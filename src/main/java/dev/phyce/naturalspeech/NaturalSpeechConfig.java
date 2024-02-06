@@ -1,11 +1,11 @@
-package com.example;
+package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech;
 
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("example")
-public interface ExampleConfig extends Config
+@ConfigGroup("naturalspeech")
+public interface NaturalSpeechConfig extends Config
 {
 	@ConfigItem(
 		keyName = "greeting",
