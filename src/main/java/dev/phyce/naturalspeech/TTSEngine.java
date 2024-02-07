@@ -31,7 +31,8 @@ public class TTSEngine {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "C:\\piper\\piper.exe",
                 "--model", modelPath,
-                "--output-raw"
+                "--output-raw",
+                "--json-input"
         );
         ttsProcess = processBuilder.start();
         ttsInputWriter = new BufferedWriter(new OutputStreamWriter(ttsProcess.getOutputStream()));
@@ -43,9 +44,14 @@ public class TTSEngine {
     public void speak(ChatMessage message) throws IOException {
         if (ttsInputWriter == null) throw new IOException("ttsInputWrite is empty");
 
-        ttsInputWriter.write(message.getMessage());
+
+        ttsInputWriter.write(generateJson(message.getMessage(), getVoiceIndex(message.getName())));
         ttsInputWriter.newLine();
         ttsInputWriter.flush();
+    }
+
+    public static String generateJson(String message, int voiceId) {
+        return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", message, voiceId);
     }
 
     private void playAudioStream() {
