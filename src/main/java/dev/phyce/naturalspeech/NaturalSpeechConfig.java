@@ -12,8 +12,7 @@ public interface NaturalSpeechConfig extends Config
 		name = "Welcome Greeting",
 		description = "The message to show to the user when they login"
 	)
-	default String greeting()
-	{
+	default String greeting() {
 		return "Hello";
 	}
 }
