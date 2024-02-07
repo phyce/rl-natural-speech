@@ -48,15 +48,6 @@ public class NaturalSpeechPlugin extends Plugin
 		}
 
 		log.info("TTS engine initialised");
-
-//		try {
-//			tts.startProcess();
-//			log.info("started audio process");
-//
-//		} catch (IOException e) {
-//			log.info("NaturalSpeech failed to start tts process//'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/");
-//			log.info(e.getMessage());
-//		}
 	}
 
 	@Override

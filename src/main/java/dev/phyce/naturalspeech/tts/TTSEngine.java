@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class TTSEngine implements Runnable {
     public int maxVoices = 903;
     private String modelPath;
-    private AudioPlayer player;
+    private AudioPlayer audio;
     private Process ttsProcess;
     private ProcessBuilder processBuilder;
     private BufferedWriter ttsInputWriter;
@@ -21,7 +21,7 @@ public class TTSEngine implements Runnable {
     public TTSEngine(String model) throws IOException, LineUnavailableException {
         modelPath = model;
 
-        player = new AudioPlayer();
+        audio = new AudioPlayer();
 
         processBuilder = new ProcessBuilder(
                 "C:\\piper\\piper.exe",
@@ -53,23 +53,25 @@ public class TTSEngine implements Runnable {
             e.printStackTrace();
         }
 
-//        new Thread(this::playAudioStream).start();
-        new Thread(() -> player.playAudioStream(ttsProcess)).start();
+        new Thread(() -> audio.playAudioStream(ttsProcess)).start();
     }
-
-
 
     public synchronized void speak(ChatMessage message) throws IOException {
         if (ttsInputWriter == null) throw new IOException("ttsInputWriter is empty");
 
-        if (isSpeaking) {
-            messageQueue.add(message);
-        } else {
-            isSpeaking = true;
-            ttsInputWriter.write(generateJson(message.getMessage(), getVoiceIndex(message.getName())));
-            ttsInputWriter.newLine();
-            ttsInputWriter.flush();
+        if(audio.isPlaying()) {
+            if(!messageQueue.isEmpty()) {
+                messageQueue.add(message);
+                return;
+            }
         }
+        sendMessage(message);
+    }
+
+    public synchronized void sendMessage(ChatMessage message) throws IOException {
+        ttsInputWriter.write(generateJson(message.getMessage(), getVoiceIndex(message.getName())));
+        ttsInputWriter.newLine();
+        ttsInputWriter.flush();
     }
 
     @Override
@@ -127,6 +129,6 @@ public class TTSEngine implements Runnable {
         if (ttsProcess != null) {
             ttsProcess.destroy();
         }
-        player.shutDown();
+        audio.shutDown();
     }
 }

@@ -24,12 +24,26 @@ public class AudioPlayer {
         line.open(format);
     }
 
+    private boolean isPlaying;
+    public boolean isPlaying() {
+        return isPlaying;
+    }
+
+    private boolean stop;
+    public void stopStream() {
+        stop = true;
+    }
+
     public void playAudioStream(Process source) {
         try {
+            stop = false;
             line.start();
             byte[] buffer = new byte[4096];
             int bytesRead;
-            while ((bytesRead = source.getInputStream().read(buffer)) != -1) {
+            while ((bytesRead = source.getInputStream().read(buffer)) != -1 && !stop) {
+                if(bytesRead > 0)isPlaying = true;
+                else isPlaying = false;
+
                 line.write(buffer, 0, bytesRead);
             }
         } catch (IOException e) {
