@@ -20,6 +20,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 
 /**/
 import net.runelite.api.events.ChatMessage;
+import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.tts.TTSEngine;
 
 import java.io.IOException;
 
