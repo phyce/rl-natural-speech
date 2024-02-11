@@ -6,18 +6,18 @@ import java.io.IOException;
 
 class AudioPlayer {
     private AudioFormat format;
-//    private SourceDataLine line;
 
-//    private  Process source;
-//    private boolean isPlaying;
-//    public boolean isPlaying() {
-//        return isPlaying;
-//    }
+    private SourceDataLine line;
+    private  Process source;
+    private boolean isPlaying;
+    public boolean isPlaying() {
+        return isPlaying;
+    }
 
-//    private boolean stop;
-//    public void stopStream() {
-//        stop = true;
-//    }
+    private boolean stop;
+    public void stopStream() {
+        stop = true;
+    }
 
     public AudioPlayer() {
         format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
@@ -27,6 +27,16 @@ class AudioPlayer {
                 2, // Frame Size
                 22050.0F, // Frame Rate
                 false); // Little Endian
+    }
+
+    public void prepareStream() {
+        DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+        try {
+            line = (SourceDataLine) AudioSystem.getLine(info);
+            line.open(format);
+        } catch (LineUnavailableException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void playClip(byte[] audio) {
@@ -80,29 +90,29 @@ class AudioPlayer {
     }
 
     public void shutDown() throws IOException {
-//        if (source != null) {
-//            line.drain();
-//            line.close();
-//        }
+        if (source != null) {
+            line.drain();
+            line.close();
+        }
+    }
+    public void playAudioStream(Process source) {
+        try {
+            stop = false;
+            line.start();
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = source.getInputStream().read(buffer)) != -1 && !stop) {
+                if(bytesRead > 0)isPlaying = true;
+                else isPlaying = false;
+
+                line.write(buffer, 0, bytesRead);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            line.drain();
+            line.close();
+        }
     }
 }
 
-//    public void playAudioStream(Process source) {
-//        try {
-//            stop = false;
-//            line.start();
-//            byte[] buffer = new byte[4096];
-//            int bytesRead;
-//            while ((bytesRead = source.getInputStream().read(buffer)) != -1 && !stop) {
-//                if(bytesRead > 0)isPlaying = true;
-//                else isPlaying = false;
-//
-//                line.write(buffer, 0, bytesRead);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } finally {
-//            line.drain();
-//            line.close();
-//        }
-//    }

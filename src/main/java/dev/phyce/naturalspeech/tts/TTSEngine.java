@@ -4,10 +4,7 @@ import net.runelite.api.events.ChatMessage;
 
 import java.io.*;
 import javax.sound.sampled.*;
-import java.nio.file.Files;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 public class TTSEngine implements Runnable {
@@ -17,13 +14,14 @@ public class TTSEngine implements Runnable {
     private Process ttsProcess;
     private ProcessBuilder processBuilder;
     private BufferedWriter ttsInputWriter;
-    private volatile long speakingTimeLeft;
+    private volatile long speakCooldown;
     private AudioPlayer audio;
-    private boolean TtsLocked = false;
+    private boolean ttsLocked = false;
     private final ConcurrentLinkedQueue<ChatMessage> messageQueue = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<byte[]> audioQueue = new ConcurrentLinkedQueue<>();
 
     private boolean processing = false;
+    private boolean audioClipReady = false;
 
     public TTSEngine(String model) throws IOException, LineUnavailableException {
         modelPath = model;
@@ -33,13 +31,13 @@ public class TTSEngine implements Runnable {
         processBuilder = new ProcessBuilder(
                 "C:\\piper\\piper.exe",
                 "--model", modelPath,
-//                "--output-raw",
+                "--output-raw",
                 "--json-input"
         );
 
         startTTSProcess();
         processing = true;
-        speakingTimeLeft = 0;
+        speakCooldown = 0;
 
         System.out.println("TTSEngine Started...");
 //        new Thread(this::processTextQueue).start();
@@ -73,6 +71,7 @@ public class TTSEngine implements Runnable {
 
     public synchronized void speak(ChatMessage message) throws IOException {
         if (ttsInputWriter == null) throw new IOException("ttsInputWriter is empty");
+        if (messageQueue.size() > 10)messageQueue.clear();
         messageQueue.add(message);
     }
 
@@ -85,7 +84,7 @@ public class TTSEngine implements Runnable {
                 ChatMessage message = messageQueue.poll();
 
                 if (message != null) {
-                    if (speakingTimeLeft < 1000 && !TtsLocked) {
+                    if (!ttsLocked && speakCooldown < 1) {
                         System.out.println("attempt to prepare message");
                         new Thread(() -> {prepareMessage(message);}).start();
                     }
@@ -94,155 +93,118 @@ public class TTSEngine implements Runnable {
         }
     }
     private void prepareMessage(ChatMessage message) {
+        while (processing) if (!ttsLocked) break;
         System.out.println("Preparing audio for: " + message.getMessage());
-
-        while (processing) if (speakingTimeLeft < 1000) break;
-
         System.out.println("sending to generate audio...");
-        sendTTSData(message);
+        speakCooldown = 250;
+        sendStreamTTSData(message);
         System.out.println("Done sending to generate audio");
-//        InputStream inputStream = ttsProcess.getInputStream();
-//        List<Byte> byteList = new ArrayList<>();
-//
-//        final int timeoutMs = 1000; // Maximum time to wait for new data
-//
-//        new Thread(() -> {
-//            System.out.println("about to start listening to audio");
-//            int readByte = 0;
-//            int lastReadTime = (int) System.currentTimeMillis();
-//
-//            while (true) {
-//                try {
-//                    if (inputStream.available() > 0) {
-//                        readByte = inputStream.read();
-//                        byteList.add((byte) readByte);
-//                        lastReadTime = (int) System.currentTimeMillis();
-//                    } else {
-//                        // Check for timeout
-//                        if ((int) System.currentTimeMillis() - lastReadTime > timeoutMs) {
-//                            System.out.println("Timeout reached, breaking loop");
-//                            break;
-//                        }
-//                    }
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//            System.out.println("done");
-//
-//            byte[] audioData = new byte[byteList.size()];
-//
-//            for (int i = 0; i < byteList.size(); i++) {
-//                audioData[i] = byteList.get(i);
-//            }
-//
-//            System.out.println("Adding audio to queue");
-//            System.out.println(audioData.length);
-//
-//            audioQueue.add(audioData);
-//        }).start();
-//
-//        try {
-//            Thread.sleep(25);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-
-//        new Thread(() -> {sendTTSData(message);}).start();
-
     }
 
-    private void sendTTSData(ChatMessage message) {
-        TtsLocked = true;
-        int ID = generateID();
+    private void sendStreamTTSData(ChatMessage message) {
+        ttsLocked = true;
+        audioClipReady = false;
+        new Thread(this::stderrListener).start();
         try {
-            ttsInputWriter.write(generateJson(message.getMessage(), getVoiceIndex(message.getName()), ID));
+            ttsInputWriter.write(generateJson(message.getMessage(), getVoiceIndex(message.getName())));
             ttsInputWriter.newLine();
             ttsInputWriter.flush();
 
-            System.out.println("IN sendTTSData");
-            System.out.println(String.valueOf(ID) + ".pcm");
+            System.out.println("IN sendStreamTTSData");
 
-            // Wait for and read the output filename from stdout
-            BufferedReader reader = new BufferedReader(new InputStreamReader(ttsProcess.getInputStream()));
-            String outputFilename;
-            while ((outputFilename = reader.readLine()) != null) {
-                System.out.println("OUTPUT FROM PIPER");
-                System.out.println(outputFilename);
-                if (outputFilename.contains("./" + String.valueOf(ID) + ".pcm")) {
-                    System.out.println(String.valueOf(ID) + ".pcm");
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int length;
+            InputStream inputStream = ttsProcess.getInputStream();
 
-                    // Filename found, break the loop
-                    break;
+            outerloop:
+            while (!audioClipReady) {
+                if (inputStream.available() > 0) {
+                    while ((length = inputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, length);
+                        if (audioClipReady || inputStream.available() < 1) break outerloop;
+                    }
+                } else {
+                    try {
+                        Thread.sleep(25);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); // Handle interrupted exception
+                        throw new RuntimeException("Interrupted while waiting for audio data", e);
+                    }
                 }
             }
-            System.out.println("past output from piper");
+            System.out.println("AUDIO CLIP IS READY !!!!!!");
 
-            // Check if the output file exists
-            File outputFile = new File(outputFilename);
-            System.out.println("ABOUT TO CHECK IF FILE EXISTS");
-            while (!outputFile.exists() || outputFile.length() == 0) {
-                try {
-                    System.out.println("Waiting for file to be filled...");
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Restore interrupted status
-                    throw new RuntimeException("Interrupted while waiting for the audio file to be filled", e);
-                }
-                // Refresh file state to get the updated size and existence status
-                outputFile = new File(outputFilename);
+            byte[] audioClip = outputStream.toByteArray();
+            ttsLocked = false;
+
+            if (audioClip.length > 0) {
+                audioQueue.add(audioClip);
+                System.out.println("Audio data added to queue. Length: " + audioClip.length);
+            } else {
+                System.out.println("Audio clip empty");
             }
-//            Thread.sleep(25);
-            TtsLocked = false;
-            System.out.println("File exists and is filled");
-
-            byte[] audioClip = Files.readAllBytes(outputFile.toPath());
-            System.out.println("ADDING DATA TO AUDIO QUEUE");
-
-            audioQueue.add(audioClip);
-            System.out.println("audio length:");
-            int audioLength = audio.calculateAudioLength(audioClip); // Assuming calculateAudioLength is accessible here
-            System.out.println(audioLength);
-
-            speakingTimeLeft = audioLength;
-
-            Files.delete(outputFile.toPath());
-
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-//        return ID;
-
     }
+    private void stderrListener() {
+        while (ttsLocked) {
+            System.out.println("TTS IS LOCKED");
 
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(ttsProcess.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("PRINTING OUT LINE");
+                    System.out.println(line);
+
+                    // Check if the line does not end with "Initialized piper"
+                    if (line.endsWith(" sec)")) {
+                        // If two relevant lines have been read, set audioClipReady to true
+                        Thread.sleep(25);
+                        audioClipReady = true;
+                        break; // Exit the loop as the condition is met
+                    }
+                }
+                System.out.println("LEFT WHILE");
+                // Check outside the inner loop in case the outer loop's condition changes
+                if (audioClipReady) break;
+
+            } catch (Exception e) {
+                System.out.println("Ending listening to stderr");
+                break;
+            }
+        }
+    }
     private void processAudioQueue() {
         System.out.println("In processAudioQueue()");
         while (processing) {
-//            System.out.println("Audio Queue Length");
-//            System.out.println(audioQueue.size());
+            //System.out.println("Audio Queue Length");
+            //System.out.println(audioQueue.size());
 
             if(!audioQueue.isEmpty()) {
                 byte[] sentence = audioQueue.poll();
-                speakingTimeLeft = audio.calculateAudioLength(sentence);
+//                speakCooldown = audio.calculateAudioLength(sentence);
                 System.out.println("Queue not empty, Sending to play clip");
                 new Thread(() -> audio.playClip(sentence)).start();
             }
         }
     }
+
     private void timer() {
         System.out.println("Timer started");
 
         long startTime = System.currentTimeMillis();
         while (processing) {
             try {
-                if (speakingTimeLeft > 0) {
+                if (speakCooldown > 0) {
                     long timePassed = System.currentTimeMillis() - startTime;
                     startTime = System.currentTimeMillis();
-                    speakingTimeLeft -= timePassed;
+                    speakCooldown -= timePassed;
 
-//                    System.out.println("Speaking time left: " + speakingTimeLeft + " ms");
-                } else speakingTimeLeft = 0;
+                    System.out.println("Speaking time left: " + speakCooldown + " ms");
+                } else speakCooldown = 0;
 
                 Thread.sleep(1);
             } catch (InterruptedException e) {
@@ -251,9 +213,9 @@ public class TTSEngine implements Runnable {
             }
         }
     }
-    public static String generateJson(String message, int voiceId, int identifier) {
+    public static String generateJson(String message, int voiceId) {
         message = escapeJsonString(message);
-        return String.format("{\"text\":\"%s\", \"speaker_id\":%d, \"output_file\":\"./%d.pcm\"}", message, voiceId, identifier);
+        return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", message, voiceId);
     }
     public static String escapeJsonString(String message) {
         return message.replace("\\", "\\\\")
@@ -284,3 +246,65 @@ public class TTSEngine implements Runnable {
         audio.shutDown();
     }
 }
+
+
+//    private void sendFileTTSData(ChatMessage message) {
+//        TtsLocked = true;
+//        int ID = generateID();
+//        try {
+//            ttsInputWriter.write(generateJson(message.getMessage(), getVoiceIndex(message.getName())));
+//            ttsInputWriter.newLine();
+//            ttsInputWriter.flush();
+//
+//            System.out.println("IN sendTTSData");
+//            System.out.println(String.valueOf(ID) + ".pcm");
+//
+//            // Wait for and read the output filename from stdout
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(ttsProcess.getInputStream()));
+//            String outputFilename;
+//            while ((outputFilename = reader.readLine()) != null) {
+//                System.out.println("OUTPUT FROM PIPER");
+//                System.out.println(outputFilename);
+//                if (outputFilename.contains("./" + String.valueOf(ID) + ".pcm")) {
+//                    System.out.println(String.valueOf(ID) + ".pcm");
+//
+//                    // Filename found, break the loop
+//                    break;
+//                }
+//            }
+//            System.out.println("past output from piper");
+//
+//            // Check if the output file exists
+//            File outputFile = new File(outputFilename);
+//            System.out.println("ABOUT TO CHECK IF FILE EXISTS");
+//            while (!outputFile.exists() || outputFile.length() == 0) {
+//                try {
+//                    System.out.println("Waiting for file to be filled...");
+//                    Thread.sleep(100);
+//                } catch (InterruptedException e) {
+//                    Thread.currentThread().interrupt(); // Restore interrupted status
+//                    throw new RuntimeException("Interrupted while waiting for the audio file to be filled", e);
+//                }
+//                // Refresh file state to get the updated size and existence status
+//                outputFile = new File(outputFilename);
+//            }
+////            Thread.sleep(25);
+//            TtsLocked = false;
+//            System.out.println("File exists and is filled");
+//
+//            byte[] audioClip = Files.readAllBytes(outputFile.toPath());
+//            System.out.println("ADDING DATA TO AUDIO QUEUE");
+//
+//            audioQueue.add(audioClip);
+//            System.out.println("audio length:");
+//            int audioLength = audio.calculateAudioLength(audioClip); // Assuming calculateAudioLength is accessible here
+//            System.out.println(audioLength);
+//
+//            speakCooldown = audioLength;
+//
+//            Files.delete(outputFile.toPath());
+//
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
