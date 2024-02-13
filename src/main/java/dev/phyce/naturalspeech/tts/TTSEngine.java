@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.atomic.AtomicBoolean;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetInfo;
 
 public class TTSEngine implements Runnable {
     private final String modelPath;
@@ -22,6 +24,7 @@ public class TTSEngine implements Runnable {
     private final AudioPlayer audio;
     private final AtomicBoolean ttsLocked = new AtomicBoolean(false);
     private final ConcurrentLinkedQueue<TTSMessage> messageQueue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<TTSMessage> dialogQueue = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<byte[]> audioQueue = new ConcurrentLinkedQueue<>();
     private boolean processing = false;
     private final AtomicBoolean capturing = new AtomicBoolean(false);
@@ -100,7 +103,7 @@ public class TTSEngine implements Runnable {
 
         while (capturing.get()) {
             try {
-                Thread.sleep(50);
+                Thread.sleep(25);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return null;
@@ -135,15 +138,13 @@ public class TTSEngine implements Runnable {
         speak(message, -1);
     }
 
+    public boolean dialogActive(Widget widget) {
+        return widget != null && !widget.isHidden();
+    }
+
     public synchronized void speak(ChatMessage message, int voiceId) throws IOException {
-        System.out.println("speak function with voiceID=");
-        System.out.println(voiceId);
         if (ttsInputWriter == null) throw new IOException("ttsInputWriter is empty");
         if (messageQueue.size() > 10)messageQueue.clear();
-
-        System.out.println(message.toString());
-        System.out.println("speak function");
-        System.out.println(message.getName());
 
         TTSMessage ttsMessage;
         if (voiceId == -1)ttsMessage = new TTSMessage(message);
@@ -159,14 +160,19 @@ public class TTSEngine implements Runnable {
     public void run() {
         while (processing) {
             if (!ttsLocked.get() && speakCooldown < 1) {
-                if (!messageQueue.isEmpty()) {
-                    TTSMessage message = messageQueue.poll();
+                TTSMessage message;
+                if (!dialogQueue.isEmpty()) {
+                    message = dialogQueue.poll();
+                }
+                else if (!messageQueue.isEmpty()) {
+                    message = messageQueue.poll();
 
-                    if (message != null) {
-                        new Thread(() -> {
-                            prepareMessage(message);
-                        }).start();
-                    }
+                } else continue;
+
+                if (message != null) {
+                    new Thread(() -> {
+                        prepareMessage(message);
+                    }).start();
                 }
             }
         }
@@ -174,26 +180,14 @@ public class TTSEngine implements Runnable {
     private void prepareMessage(TTSMessage message) {
         String parsedMessage = parseMessage(message.getMessage());
         while (processing) if (!ttsLocked.get()) break;
-//        System.out.println("Preparing audio for: " + message.getMessage());
         speakCooldown = 250;
         sendStreamTTSData(parsedMessage, message.getVoiceId());
-//        System.out.println("Done sending to generate audio");
     }
     private void sendStreamTTSData(String message, int voiceIndex) {
         ttsLocked.set(true);
-        System.out.println(message);
-        System.out.println(voiceIndex);
         try {
-//            System.out.println("IN sendStreamTTSData");
-
             byte[] audioClip = generateAudio(message, voiceIndex);
-//            System.out.println("Audio Generated");
-
-            if (audioClip.length > 0) {
-                audioQueue.add(audioClip);
-//                System.out.println("Audio data added to queue. Length: " + audioClip.length);
-            }
-
+            if (audioClip.length > 0) audioQueue.add(audioClip);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

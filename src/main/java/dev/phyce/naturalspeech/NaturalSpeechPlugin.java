@@ -6,6 +6,7 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.GameTick;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -39,6 +40,7 @@ public class NaturalSpeechPlugin extends Plugin
 		}
 		log.info("TTS engine initialised");
 	}
+
 	@Override
 	protected void shutDown() {
 		try {tts.shutDown();}
@@ -52,11 +54,9 @@ public class NaturalSpeechPlugin extends Plugin
 			tts.clearQueues();
 			return;
 		}
-		log.info(message.toString());
-
+		//log.info(message.toString());
 
 		int voiceId = -1;
-		if(config.usePersonalVoice() && client.getLocalPlayer().getName() == message.getName())voiceId = config.personalVoice();
 
 		switch(message.getType()) {
 			case PUBLICCHAT:
@@ -81,7 +81,7 @@ public class NaturalSpeechPlugin extends Plugin
 				if (!config.examineChat())return;
 
 				if (config.usePersonalVoice())voiceId = config.personalVoice();
-//				else voiceId = TTSMessage.getVoiceIndex(client.getLocalPlayer().getName());
+				message.setName(client.getLocalPlayer().getName());
 				break;
 
 			case CLAN_CHAT:
@@ -92,7 +92,22 @@ public class NaturalSpeechPlugin extends Plugin
 				if (!config.clanGuestChat())return;
 				break;
 
+			case DIALOG:
+				if(!config.dialog())return;
+				String[] parts = message.getMessage().split("\\|", 2);
+				if (parts.length == 2) {
+					message.setMessage(parts[1]);
+					message.setName(parts[0]);
+				}
+				break;
+
 			default: return;
+		}
+
+		log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
+
+		if(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())) {
+			voiceId = config.personalVoice();
 		}
 
 		try {
