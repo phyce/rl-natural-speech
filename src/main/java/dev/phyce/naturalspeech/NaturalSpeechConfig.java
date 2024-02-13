@@ -133,7 +133,7 @@ public interface NaturalSpeechConfig extends Config
 
 	)
 	@Range(min = 0, max = MAX_VOICES)
-	default int personalVoice() { return 420; }
+	default int personalVoice() { return 0; }
 	@ConfigItem(
 			position = 3,
 			keyName = "distanceFade",
@@ -192,6 +192,8 @@ public interface NaturalSpeechConfig extends Config
 				"dhide=dragonhide\n" +
 				"pvp=player versus player\n" +
 				"wyd=what you doing\n" +
-				"bc=because\n";
+				"bc=because\n" +
+				"afk=away from keyboard\n" +
+				"tts=text to speech\n";
 	}
 }

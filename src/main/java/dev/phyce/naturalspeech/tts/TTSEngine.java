@@ -7,32 +7,28 @@ import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.natural
 import java.io.*;
 import javax.inject.Inject;
 import javax.sound.sampled.*;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.Random;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TTSEngine implements Runnable {
-    private String modelPath;
+    private final String modelPath;
     private Process ttsProcess;
-    private ProcessBuilder processBuilder;
+    private final ProcessBuilder processBuilder;
     private BufferedWriter ttsInputWriter;
     private volatile long speakCooldown;
-    private AudioPlayer audio;
-    private AtomicBoolean ttsLocked = new AtomicBoolean(false);
-    private final ConcurrentLinkedQueue<ChatMessage> messageQueue = new ConcurrentLinkedQueue<>();
+    private final AudioPlayer audio;
+    private final AtomicBoolean ttsLocked = new AtomicBoolean(false);
+    private final ConcurrentLinkedQueue<TTSMessage> messageQueue = new ConcurrentLinkedQueue<>();
     private final ConcurrentLinkedQueue<byte[]> audioQueue = new ConcurrentLinkedQueue<>();
-    private Map<String, String> shortenedPhrasesMap;
     private boolean processing = false;
-    private AtomicBoolean capturing = new AtomicBoolean(false);
-    private ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
+    private final AtomicBoolean capturing = new AtomicBoolean(false);
+    private final ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
+    private Map<String, String> shortenedPhrases;
 
-    public TTSEngine(String model) throws IOException, LineUnavailableException {
+    public TTSEngine(String model, String phrases) throws IOException, LineUnavailableException {
         modelPath = model;
 
         audio = new AudioPlayer();
@@ -48,7 +44,7 @@ public class TTSEngine implements Runnable {
         processing = true;
         speakCooldown = 0;
 
-        shortenedPhrasesMap = fetchShortenedPhrases();
+        prepareShortenedPhrases(phrases);
 
         new Thread(this).start();
         new Thread(this::processAudioQueue).start();
@@ -56,6 +52,14 @@ public class TTSEngine implements Runnable {
         new Thread(this::captureAudioStream).start();
         new Thread(this::readControlMessages).start();
         System.out.println("TTSEngine Started...");
+    }
+    private void prepareShortenedPhrases(String phrases) {
+        shortenedPhrases = new HashMap<>();
+        String[] lines = phrases.split("\n");
+        for (String line : lines) {
+            String[] parts = line.split("=", 2);
+            if (parts.length == 2) shortenedPhrases.put(parts[0].trim(), parts[1].trim());
+        }
     }
     private void captureAudioStream() {
         try (InputStream inputStream = ttsProcess.getInputStream()) {
@@ -128,9 +132,24 @@ public class TTSEngine implements Runnable {
         System.out.println("TTSProcess Started...");
     }
     public synchronized void speak(ChatMessage message) throws IOException {
+        speak(message, -1);
+    }
+
+    public synchronized void speak(ChatMessage message, int voiceId) throws IOException {
+        System.out.println("speak function with voiceID=");
+        System.out.println(voiceId);
         if (ttsInputWriter == null) throw new IOException("ttsInputWriter is empty");
         if (messageQueue.size() > 10)messageQueue.clear();
-        messageQueue.add(message);
+
+        System.out.println(message.toString());
+        System.out.println("speak function");
+        System.out.println(message.getName());
+
+        TTSMessage ttsMessage;
+        if (voiceId == -1)ttsMessage = new TTSMessage(message);
+        else ttsMessage = new TTSMessage(message, voiceId);
+
+        messageQueue.add(ttsMessage);
     }
     public void clearQueues() {
         if(messageQueue.isEmpty())messageQueue.clear();
@@ -141,12 +160,11 @@ public class TTSEngine implements Runnable {
         while (processing) {
             if (!ttsLocked.get() && speakCooldown < 1) {
                 if (!messageQueue.isEmpty()) {
-                    ChatMessage message = messageQueue.poll();
+                    TTSMessage message = messageQueue.poll();
 
                     if (message != null) {
-                        TTSMessage ttsMessage = new TTSMessage(message);
                         new Thread(() -> {
-                            prepareMessage(ttsMessage);
+                            prepareMessage(message);
                         }).start();
                     }
                 }
@@ -158,17 +176,17 @@ public class TTSEngine implements Runnable {
         while (processing) if (!ttsLocked.get()) break;
 //        System.out.println("Preparing audio for: " + message.getMessage());
         speakCooldown = 250;
-        sendStreamTTSData(parsedMessage, message.getVoiceIndex());
+        sendStreamTTSData(parsedMessage, message.getVoiceId());
 //        System.out.println("Done sending to generate audio");
     }
     private void sendStreamTTSData(String message, int voiceIndex) {
         ttsLocked.set(true);
-//        System.out.println(message);
-//        System.out.println(voiceIndex);
+        System.out.println(message);
+        System.out.println(voiceIndex);
         try {
 //            System.out.println("IN sendStreamTTSData");
 
-            byte[] audioClip = generateAudio(message,voiceIndex);
+            byte[] audioClip = generateAudio(message, voiceIndex);
 //            System.out.println("Audio Generated");
 
             if (audioClip.length > 0) {
@@ -185,7 +203,7 @@ public class TTSEngine implements Runnable {
         while (processing) {
             if(!audioQueue.isEmpty()) {
                 byte[] sentence = audioQueue.poll();
-//                speakCooldown = audio.calculateAudioLength(sentence);
+                //speakCooldown = audio.calculateAudioLength(sentence);
                 new Thread(() -> audio.playClip(sentence)).start();
             }
         }
@@ -231,31 +249,13 @@ public class TTSEngine implements Runnable {
         }
         audio.shutDown();
     }
-    private Map<String, String> fetchShortenedPhrases() {
-        Map<String, String> map = new HashMap<>();
-        String phrases = "ags=armadyl godsword\n" +
-                "ags2=ancient godsword\n" +
-                "bgs=bandos godsword\n" +
-                "idk=i don't know\n" +
-                // Add the rest of your phrases here
-                "wyd=what you doing";
-
-        String[] lines = phrases.split("\n");
-        for (String line : lines) {
-            String[] parts = line.split("=", 2);
-            if (parts.length == 2) { // Ensure the line is valid
-                map.put(parts[0], parts[1]);
-            }
-        }
-        return map;
-    }
     public String parseMessage(String message) {
         List<String> tokens = tokenizeMessage(message);
         StringBuilder parsedMessage = new StringBuilder();
 
         for (String token : tokens) {
-            String key = token.replaceAll("\\p{Punct}", ""); // Remove punctuation from the token for lookup
-            String replacement = shortenedPhrasesMap.getOrDefault(key, token); // Replace abbreviation if exists
+            String key = token.replaceAll("\\p{Punct}", "").toLowerCase(); // Remove punctuation from the token for lookup
+            String replacement = shortenedPhrases.getOrDefault(key, token); // Replace abbreviation if exists
             // Append the original token if no replacement was done, preserving the original punctuation
             parsedMessage.append(replacement.equals(token) ? token : replacement).append(" ");
         }
@@ -273,90 +273,3 @@ public class TTSEngine implements Runnable {
         return tokens;
     }
 }
-
-
-
-//private void sendStreamTTSData(String message, int voiceIndex) {
-//    ttsLocked.set(true);
-////        audioClipReady.set(false);
-////        new Thread(this::stderrListener).start();
-//    try {
-////            ttsInputWriter.write(generateJson(message, voiceIndex));
-////            ttsInputWriter.newLine();
-////            ttsInputWriter.flush();
-////            Thread.sleep(10);
-//        System.out.println("IN sendStreamTTSData");
-//
-////            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-////            byte[] data = new byte[1024];
-////            int length;
-////            InputStream inputStream = ttsProcess.getInputStream();
-////            int nRead;
-//
-////            try {
-////                System.out.println("about to loop through stream data");
-////
-////                while (!audioClipReady.get()) {
-////                    // While data is available, read it
-////                    while (inputStream.available() > 0 && !audioClipReady.get()) {
-////                        nRead = inputStream.read(data, 0, data.length);
-////                        System.out.println("writing data");
-////                        buffer.write(data, 0, nRead);
-////                        System.out.println("finished writing");
-////                    }
-////                }
-//////                System.out.println("flushing");
-//////                buffer.flush();
-////
-////                System.out.println("Audio data added to queue.");
-////            } catch (IOException e) {
-////                e.printStackTrace();
-////            }
-////            audioQueue.add(buffer.toByteArray());
-////            System.out.println("AUDIO CLIP SHOULD BE READY");
-////
-////
-////            long lastWriteTime = System.currentTimeMillis();
-////            boolean dataWasWritten = false;
-////
-////            while (!audioClipReady) {
-////                System.out.println("LOOP START ///////////////////////////////////////////");
-////                if (inputStream.available() > 0) {
-////                    dataWasWritten = false;
-////                    System.out.println("writing sound data...");
-////                    outputStream.write(buffer, 0, length);
-////                    lastWriteTime = System.currentTimeMillis(); // Update last write time
-////                    dataWasWritten = true;
-////
-////                    if (System.currentTimeMillis() - lastWriteTime >= 100) {
-////                        System.out.println("breaking from clipReadyLoop");
-////                        break;
-////                    }
-////                    System.out.println("more data tba");
-////
-////                    System.out.println("about to check if audioClip is ready");
-////                    if (audioClipReady) break;
-////                    System.out.println("out of the inputstream read loop");
-////
-////                    if (dataWasWritten) {
-////                        System.out.println("Data was written to the output stream.");
-////                    }
-////                }
-////                System.out.println("Loop end///////////////////////////////////////////////");
-////            }
-//
-//
-//        byte[] audioClip = generateAudio(message,voiceIndex);
-//
-//        if (audioClip.length > 0) {
-//            audioQueue.add(audioClip);
-//            System.out.println("Audio data added to queue. Length: " + audioClip.length);
-//        } else {
-//            System.out.println("Audio clip empty");
-//        }
-//        ttsLocked.set(false);
-//
-//    } catch (IOException | InterruptedException e) {
-//        throw new RuntimeException(e);
-//    }
-//}

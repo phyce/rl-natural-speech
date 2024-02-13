@@ -8,19 +8,27 @@ import javax.inject.Inject;
 
 public class TTSMessage extends ChatMessage {
     @Inject
-    private NaturalSpeechConfig config;
-    private int voiceId;
+    private static NaturalSpeechConfig config;
+    private final int voiceId;
 
     public TTSMessage(ChatMessage chatMessage, int voiceId) {
         super(chatMessage.getMessageNode(), chatMessage.getType(), chatMessage.getName(), chatMessage.getMessage(), chatMessage.getSender(), chatMessage.getTimestamp());
-        this.voiceId = voiceId;
+        if(voiceId == -1) this.voiceId = getVoiceIndex(chatMessage.getName());
+        else this.voiceId = voiceId;
     }
     public TTSMessage(ChatMessage chatMessage) {
         super(chatMessage.getMessageNode(), chatMessage.getType(), chatMessage.getName(), chatMessage.getMessage(), chatMessage.getSender(), chatMessage.getTimestamp());
-        this.voiceId = getVoiceIndex();
+        this.voiceId = getVoiceIndex(chatMessage.getName());
     }
-    public int getVoiceIndex() {
-        int hashCode = getName().hashCode();
+
+    public int getVoiceId() {return voiceId;}
+//    public int getVoiceIndex() {
+//        int hashCode = getName().hashCode();
+//        return Math.abs(hashCode) % config.MAX_VOICES;
+//    }
+    public static int getVoiceIndex(String name){
+        int hashCode = name.hashCode();
         return Math.abs(hashCode) % config.MAX_VOICES;
     }
+
 }

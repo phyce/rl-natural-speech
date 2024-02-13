@@ -12,6 +12,7 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.enums.Locations;
 import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.tts.TTSEngine;
+import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.tts.TTSMessage;
 
 import javax.inject.Inject;
 import javax.sound.sampled.LineUnavailableException;
@@ -32,7 +33,7 @@ public class NaturalSpeechPlugin extends Plugin
 	@Override
 	protected void startUp() {
 		try {
-			tts = new TTSEngine("C:\\piper\\voices\\piper-voices\\en\\en_US\\libritts\\high\\en_US-libritts-high.onnx");
+			tts = new TTSEngine("C:\\piper\\voices\\piper-voices\\en\\en_US\\libritts\\high\\en_US-libritts-high.onnx", config.shortenedPhrases());
 		} catch (IOException | LineUnavailableException e) {
 			log.info(e.getMessage());
 		}
@@ -51,6 +52,11 @@ public class NaturalSpeechPlugin extends Plugin
 			tts.clearQueues();
 			return;
 		}
+		log.info(message.toString());
+
+
+		int voiceId = -1;
+		if(config.usePersonalVoice() && client.getLocalPlayer().getName() == message.getName())voiceId = config.personalVoice();
 
 		switch(message.getType()) {
 			case PUBLICCHAT:
@@ -73,6 +79,9 @@ public class NaturalSpeechPlugin extends Plugin
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
 				if (!config.examineChat())return;
+
+				if (config.usePersonalVoice())voiceId = config.personalVoice();
+//				else voiceId = TTSMessage.getVoiceIndex(client.getLocalPlayer().getName());
 				break;
 
 			case CLAN_CHAT:
@@ -87,7 +96,8 @@ public class NaturalSpeechPlugin extends Plugin
 		}
 
 		try {
-			tts.speak(message);
+			tts.speak(message, voiceId);
+
 			log.info(message.toString());
 		} catch(IOException e) {
 			log.info(e.getMessage());
