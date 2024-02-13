@@ -39,21 +39,36 @@ class AudioPlayer {
         }
     }
 
-    public void playClip(byte[] audio) {
+    public void playClip(TTSAudio audio) {
         AudioInputStream audioInputStream = null;
         SourceDataLine line = null;
 
         try {
             audioInputStream = new AudioInputStream(
-                    new ByteArrayInputStream(audio),
+                    new ByteArrayInputStream(audio.getClip()),
                     this.format,
-                    audio.length / this.format.getFrameSize());
+                    audio.getClip().length / this.format.getFrameSize());
 
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, this.format);
             line = (SourceDataLine) AudioSystem.getLine(info);
 
             line.open(this.format);
             line.start();
+
+            if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+                // Check if distance is greater than 0 before applying any reduction
+                if (audio.getDistance() > 0) {
+                    // Ensure distance is at least 1 to avoid dividing by zero or log of zero.
+                    int effectiveDistance = Math.max(1, audio.getDistance());
+                    float volumeReduction = -6.0f * (float)(Math.log(effectiveDistance) / Math.log(2)); // Log base 2
+
+                    // Calculate new volume, ensuring it does not exceed the control's limits.
+                    float newVolume = Math.max(volumeControl.getMinimum(), volumeControl.getValue() + volumeReduction);
+                    volumeControl.setValue(newVolume);
+                }
+                // If distance is 0, do not reduce volume, effectively leaving it at its current level
+            }
 
             byte[] buffer = new byte[1024];
             int bytesRead;
