@@ -25,10 +25,8 @@ public class NaturalSpeechPlugin extends Plugin
 {
 	@Inject
 	private Client client;
-
 	@Inject
 	private NaturalSpeechConfig config;
-
 	private TTSEngine tts;
 
 	@Override
@@ -36,48 +34,65 @@ public class NaturalSpeechPlugin extends Plugin
 		try {
 			tts = new TTSEngine("C:\\piper\\voices\\piper-voices\\en\\en_US\\libritts\\high\\en_US-libritts-high.onnx");
 		} catch (IOException | LineUnavailableException e) {
-			log.info("NaturalSpeech failed to start engine//'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/'/");
 			log.info(e.getMessage());
 		}
-
 		log.info("TTS engine initialised");
 	}
-
 	@Override
 	protected void shutDown() {
-		try {
-			tts.shutDown();
-			log.info("NaturalSpeech stopped!");
-		} catch (IOException e) {
-			log.info("NaturalSpeech failed to stop");
-		}
+		try {tts.shutDown();}
+		catch (IOException e) {}
 	}
-
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) {
 		if( config.muteGrandExchange() && playerInArea(Locations.GRAND_EXCHANGE)){
 			//Options to allow friend/clan messages in grand exchange (and those types are chosen to be enabled
 			//Only if mute grand exchange is on
+			tts.clearQueues();
 			return;
 		}
 
 		switch(message.getType()) {
 			case PUBLICCHAT:
-				if (!config.publicChat())
+				if (!config.publicChat())return;
 				break;
+
+			case PRIVATECHAT:
+				if (!config.privateChat())return;
+				break;
+
+			case PRIVATECHATOUT:
+				if (!config.privateOutChat())return;
+				break;
+
+			case FRIENDSCHAT:
+				if (!config.friendsChat())return;
+				break;
+
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
+			case OBJECT_EXAMINE:
+				if (!config.examineChat())return;
+				break;
+
+			case CLAN_CHAT:
+				if (!config.clanChat())return;
+				break;
+
+			case CLAN_GUEST_CHAT:
+				if (!config.clanGuestChat())return;
+				break;
+
+			default: return;
 		}
 
-		if ( message.getType() == ChatMessageType.PUBLICCHAT ) {
-			try {
-				log.info(message.toString());
-				tts.speak(message);
-			} catch(IOException e) {
-				log.info("Failed to speak message");
-				log.info(e.getMessage());
-			}
+		try {
+			tts.speak(message);
+			log.info(message.toString());
+		} catch(IOException e) {
+			log.info(e.getMessage());
 		}
 	}
-
 	protected boolean playerInArea(Locations location) {
 		return playerInArea(location.getStart(), location.getEnd());
 	}
@@ -91,11 +106,7 @@ public class NaturalSpeechPlugin extends Plugin
 
 		return position.getX() >= minX && position.getX() <= maxX
 				&& position.getY() >= minY && position.getY() <= maxY;
-		//position.getX()
-		//position.getY()
 	}
-
-
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager){
 		return configManager.getConfig(NaturalSpeechConfig.class);
