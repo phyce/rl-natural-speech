@@ -2,7 +2,7 @@ package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.natura
 
 import net.runelite.api.Client;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.NaturalSpeechConfig;
+import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.Strings;
 
 import java.io.*;
 import javax.inject.Inject;
@@ -56,6 +56,22 @@ public class TTSEngine implements Runnable {
         new Thread(this::readControlMessages).start();
         System.out.println("TTSEngine Started...");
     }
+    public synchronized void startTTSProcess() {
+        if (ttsProcess != null) {
+            ttsProcess.destroy();
+            //Or maybe simply return?
+
+            try {ttsInputWriter.close();}
+            catch (IOException e) {e.printStackTrace();}
+        }
+
+        try {
+            ttsProcess = processBuilder.start();
+            ttsInputWriter = new BufferedWriter(new OutputStreamWriter(ttsProcess.getOutputStream()));
+        }
+        catch (IOException e) {e.printStackTrace();}
+        System.out.println("TTSProcess Started...");
+    }
     private void prepareShortenedPhrases(String phrases) {
         shortenedPhrases = new HashMap<>();
         String[] lines = phrases.split("\n");
@@ -69,85 +85,47 @@ public class TTSEngine implements Runnable {
             byte[] data = new byte[1024];
             int nRead;
             while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-                if (capturing.get()) {
-                    synchronized (streamCapture) {
-                        streamCapture.write(data, 0, nRead);
-                    }
+                if (capturing.get()) synchronized (streamCapture) {
+                    streamCapture.write(data, 0, nRead);
                 }
             }
-        } catch (IOException e) {
-            // Handle exceptions
-        }
+        } catch (IOException e) {}
     }
     private void readControlMessages() {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(ttsProcess.getErrorStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.endsWith(" sec)")) {
-                    capturing.set(false);
-                }
+                if (line.endsWith(" sec)")) capturing.set(false);
             }
-        } catch (IOException e) {
-            // Handle exceptions
         }
+        catch (IOException e) {}
     }
     public byte[] generateAudio(String message, int voiceIndex) throws IOException {
         synchronized (this) {
             synchronized (streamCapture) {streamCapture.reset();}
             capturing.set(true);
 
-            ttsInputWriter.write(generateJson(message, voiceIndex));
+            ttsInputWriter.write(Strings.generateJson(message, voiceIndex));
             ttsInputWriter.newLine();
             ttsInputWriter.flush();
         }
 
-        while (capturing.get()) {
-            try {
-                Thread.sleep(25);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
-            }
+        while (capturing.get()) try {
+            Thread.sleep(25);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         }
 
-        synchronized (streamCapture) {
-            return streamCapture.toByteArray();
-        }
+        synchronized (streamCapture) {return streamCapture.toByteArray();}
     }
-    public synchronized void startTTSProcess() {
-        if (ttsProcess != null) {
-            ttsProcess.destroy();
-            //Or maybe simply return?
-            try {
-                ttsInputWriter.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        try {
-            ttsProcess = processBuilder.start();
-            ttsInputWriter = new BufferedWriter(new OutputStreamWriter(ttsProcess.getOutputStream()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        System.out.println("TTSProcess Started...");
-    }
-//    public synchronized void speak(ChatMessage message) throws IOException {
-//        speak(message, -1);
-//    }
-
-    public boolean dialogActive(Widget widget) {
-        return widget != null && !widget.isHidden();
-    }
-
     public synchronized void speak(ChatMessage message, int voiceId, int distance) throws IOException {
         if (ttsInputWriter == null) throw new IOException("ttsInputWriter is empty");
         if (messageQueue.size() > 10)messageQueue.clear();
 
         TTSMessage ttsMessage;
-        if (voiceId == -1)ttsMessage = new TTSMessage(message, distance);
+        if (voiceId == -1) ttsMessage = new TTSMessage(message, distance);
         else ttsMessage = new TTSMessage(message, voiceId);
 
         messageQueue.add(ttsMessage);
@@ -158,27 +136,20 @@ public class TTSEngine implements Runnable {
     }
     @Override
     public void run() {
-        while (processing) {
-            if (!ttsLocked.get() && speakCooldown < 1) {
-                TTSMessage message;
-                if (!dialogQueue.isEmpty()) {
-                    message = dialogQueue.poll();
-                }
-                else if (!messageQueue.isEmpty()) {
-                    message = messageQueue.poll();
+        while (processing) if (!ttsLocked.get() && speakCooldown < 1) {
+            TTSMessage message;
 
-                } else continue;
+            if (!dialogQueue.isEmpty()) message = dialogQueue.poll();
+            else if (!messageQueue.isEmpty()) message = messageQueue.poll();
+            else continue;
 
-                if (message != null) {
-                    new Thread(() -> {
-                        prepareMessage(message);
-                    }).start();
-                }
-            }
+            if (message != null) new Thread(() -> {
+                prepareMessage(message);
+            }).start();
         }
     }
     private void prepareMessage(TTSMessage message) {
-        String parsedMessage = parseMessage(message.getMessage());
+        String parsedMessage = Strings.parseMessage(message.getMessage(), shortenedPhrases);
         while (processing) if (!ttsLocked.get()) break;
         speakCooldown = 250;
         sendStreamTTSData(parsedMessage, message.getDistance(), message.getVoiceId());
@@ -188,19 +159,20 @@ public class TTSEngine implements Runnable {
         try {
             byte[] audioClip = generateAudio(message, voiceIndex);
             TTSAudio clip = new TTSAudio(audioClip, distance);
+
             if (audioClip.length > 0) audioQueue.add(clip);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        }
+        catch (IOException exception) {
+            System.out.println("Failed to send TTS data to stream");
+            System.out.println(exception);
+            throw new RuntimeException(exception);
         }
         ttsLocked.set(false);
     }
     private void processAudioQueue() {
-        while (processing) {
-            if(!audioQueue.isEmpty()) {
-                TTSAudio sentence = audioQueue.poll();
-                //speakCooldown = audio.calculateAudioLength(sentence);
-                new Thread(() -> audio.playClip(sentence)).start();
-            }
+        while (processing) if (!audioQueue.isEmpty()) {
+            TTSAudio sentence = audioQueue.poll();
+            new Thread(() -> audio.playClip(sentence)).start();
         }
     }
     private void timer() {
@@ -222,49 +194,15 @@ public class TTSEngine implements Runnable {
             }
         }
     }
-    public static String generateJson(String message, int voiceId) {
-        message = escapeJsonString(message);
-        return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", message, voiceId);
-    }
-    public static String escapeJsonString(String message) {
-        return message.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\b", "\\b")
-                .replace("\f", "\\f")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-    }
-    public void shutDown() throws IOException {
-        if (ttsInputWriter != null) {
-            ttsInputWriter.close();
+    public void shutDown() {
+        try {
+            if (ttsInputWriter != null) ttsInputWriter.close();
+            if (ttsProcess != null) ttsProcess.destroy();
+            audio.shutDown();
         }
-        if (ttsProcess != null) {
-            ttsProcess.destroy();
+        catch (IOException exception) {
+            System.out.println("TTSEngine failed shutting down");
+            System.out.println(exception);
         }
-        audio.shutDown();
-    }
-    public String parseMessage(String message) {
-        List<String> tokens = tokenizeMessage(message);
-        StringBuilder parsedMessage = new StringBuilder();
-
-        for (String token : tokens) {
-            String key = token.replaceAll("\\p{Punct}", "").toLowerCase(); // Remove punctuation from the token for lookup
-            String replacement = shortenedPhrases.getOrDefault(key, token); // Replace abbreviation if exists
-            // Append the original token if no replacement was done, preserving the original punctuation
-            parsedMessage.append(replacement.equals(token) ? token : replacement).append(" ");
-        }
-
-        return parsedMessage.toString().trim(); // Trim the trailing space
-    }
-    private List<String> tokenizeMessage(String message) {
-        List<String> tokens = new ArrayList<>();
-        Matcher matcher = Pattern.compile("[\\w']+|\\p{Punct}").matcher(message);
-
-        while (matcher.find()) {
-            tokens.add(matcher.group());
-        }
-
-        return tokens;
     }
 }
