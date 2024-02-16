@@ -20,7 +20,6 @@ public class TTSEngine implements Runnable {
     private Process ttsProcess;
     private final ProcessBuilder processBuilder;
     private BufferedWriter ttsInputWriter;
-    private volatile long speakCooldown;
     private final AudioPlayer audio;
     private final AtomicBoolean ttsLocked = new AtomicBoolean(false);
     private final ConcurrentLinkedQueue<TTSMessage> messageQueue = new ConcurrentLinkedQueue<>();
@@ -45,13 +44,11 @@ public class TTSEngine implements Runnable {
 
         startTTSProcess();
         processing = true;
-        speakCooldown = 0;
 
         prepareShortenedPhrases(phrases);
 
         new Thread(this).start();
         new Thread(this::processAudioQueue).start();
-        new Thread(this::timer).start();
         new Thread(this::captureAudioStream).start();
         new Thread(this::readControlMessages).start();
         System.out.println("TTSEngine Started...");
@@ -136,7 +133,7 @@ public class TTSEngine implements Runnable {
     }
     @Override
     public void run() {
-        while (processing) if (!ttsLocked.get() && speakCooldown < 1) {
+        while (processing) if (!ttsLocked.get()) {
             TTSMessage message;
 
             if (!dialogQueue.isEmpty()) message = dialogQueue.poll();
@@ -150,8 +147,9 @@ public class TTSEngine implements Runnable {
     }
     private void prepareMessage(TTSMessage message) {
         String parsedMessage = Strings.parseMessage(message.getMessage(), shortenedPhrases);
+
         while (processing) if (!ttsLocked.get()) break;
-        speakCooldown = 250;
+
         sendStreamTTSData(parsedMessage, message.getDistance(), message.getVoiceId());
     }
     private void sendStreamTTSData(String message, int distance, int voiceIndex) {
@@ -175,25 +173,7 @@ public class TTSEngine implements Runnable {
             new Thread(() -> audio.playClip(sentence)).start();
         }
     }
-    private void timer() {
-        long startTime = System.currentTimeMillis();
-        while (processing) {
-            try {
-                if (speakCooldown > 0) {
-                    long timePassed = System.currentTimeMillis() - startTime;
-                    startTime = System.currentTimeMillis();
-                    speakCooldown -= timePassed;
 
-                    //System.out.println("Speaking time left: " + speakCooldown + " ms");
-                } else speakCooldown = 0;
-
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-    }
     public void shutDown() {
         try {
             if (ttsInputWriter != null) ttsInputWriter.close();
