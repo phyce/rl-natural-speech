@@ -123,7 +123,7 @@ public class TTSEngine implements Runnable {
 
         TTSMessage ttsMessage;
         if (voiceId == -1) ttsMessage = new TTSMessage(message, distance);
-        else ttsMessage = new TTSMessage(message, voiceId);
+        else ttsMessage = new TTSMessage(message, distance, voiceId);
 
         messageQueue.add(ttsMessage);
     }
@@ -147,7 +147,6 @@ public class TTSEngine implements Runnable {
     }
     private void prepareMessage(TTSMessage message) {
         String parsedMessage = Strings.parseMessage(message.getMessage(), shortenedPhrases);
-
         while (processing) if (!ttsLocked.get()) break;
 
         sendStreamTTSData(parsedMessage, message.getDistance(), message.getVoiceId());

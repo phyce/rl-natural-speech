@@ -194,6 +194,7 @@ public interface NaturalSpeechConfig extends Config
 				"wyd=what you doing\n" +
 				"bc=because\n" +
 				"afk=away from keyboard\n" +
-				"tts=text to speech\n";
+				"tts=text to speech\n" +
+				"ea=each\n";
 	}
 }

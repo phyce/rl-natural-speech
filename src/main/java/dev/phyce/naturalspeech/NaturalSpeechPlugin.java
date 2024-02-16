@@ -100,8 +100,8 @@ public class NaturalSpeechPlugin extends Plugin
 		int distance = getSoundDistance(message);
 
 		try {
+//			System.out.println(message);
 			tts.speak(message, voiceId, distance);
-			//log.info(message.toString());
 		} catch(IOException e) {
 			log.info(e.getMessage());
 		}
@@ -110,15 +110,19 @@ public class NaturalSpeechPlugin extends Plugin
 	protected int getVoiceId(ChatMessage message) {
 		//log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
 		switch(message.getType()) {
-			case ITEM_EXAMINE:
-			case NPC_EXAMINE:
-			case OBJECT_EXAMINE:
+//			case ITEM_EXAMINE:
+//			case NPC_EXAMINE:
+//			case OBJECT_EXAMINE:
+//				if (config.usePersonalVoice())return config.personalVoice();
+//				break;
+
+			case PRIVATECHATOUT:
 				if (config.usePersonalVoice())return config.personalVoice();
 				break;
 		}
 
 		if(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())) return config.personalVoice();
-
+		
 		return -1;
 	}
 	protected int getSoundDistance(ChatMessage message) {
