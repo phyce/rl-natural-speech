@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.enums;
+package dev.phyce.naturalspeech.enums;
 
 import net.runelite.api.coords.WorldPoint;
 

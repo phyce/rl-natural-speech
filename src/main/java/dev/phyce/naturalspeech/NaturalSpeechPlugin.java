@@ -1,4 +1,7 @@
-package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech;
+
+import dev.phyce.naturalspeech.enums.Locations;
+import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
@@ -6,17 +9,20 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.GameTick;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.enums.Locations;
-import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.tts.TTSEngine;
 import net.runelite.api.Player;
+import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
+import net.runelite.client.ui.ClientToolbar;
 
 import javax.inject.Inject;
 import javax.sound.sampled.LineUnavailableException;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 @Slf4j
@@ -26,23 +32,63 @@ import java.io.IOException;
 public class NaturalSpeechPlugin extends Plugin
 {
 	@Inject
+	private ClientToolbar clientToolbar;
+	@Inject
 	private Client client;
 	@Inject
 	private NaturalSpeechConfig config;
 	private TTSEngine tts;
+	private boolean started = false;
+	private String ttsEngineLocation = "";
+	private NaturalSpeechPanel panel;
+	private NavigationButton navButton;
 
 	@Override
 	protected void startUp() {
+		System.out.println("Starting up");
+		System.out.println(getClass());
+		System.out.println(getClass());
+
+		NaturalSpeechPanel panel = new NaturalSpeechPanel();
+		System.out.println("Current working directory: " + System.getProperty("user.dir"));
+		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
+		navButton = NavigationButton.builder()
+				.tooltip("Natural Speech")
+				.icon(icon)
+				.priority(1)
+				.panel(panel)
+				.build();
+
+		clientToolbar.addNavigation(navButton);
+
+		startTTS();
+		started = true;
+		log.info("TTS engine initialised");
+	}
+
+	public void startTTS() {
 		try {
-			tts = new TTSEngine("C:\\piper\\voices\\piper-voices\\en\\en_US\\libritts\\high\\en_US-libritts-high.onnx", config.shortenedPhrases());
+			tts = new TTSEngine(config.ttsEngine(),"C:\\piper\\voices\\piper-voices\\en\\en_US\\libritts\\high\\en_US-libritts-high.onnx", config.shortenedPhrases());
 		} catch (IOException | LineUnavailableException e) {
 			log.info(e.getMessage());
 		}
-		log.info("TTS engine initialised");
 	}
+
+	@Subscribe
+	public void onGameTick(GameTick tick) {
+
+		if(started && !ttsEngineLocation.equals(config.ttsEngine())) {
+			System.out.println("TTS Location changed!");
+			ttsEngineLocation = config.ttsEngine();
+			tts.shutDown();
+			startTTS();
+		}
+	}
+
 	@Override
 	protected void shutDown() {
 		tts.shutDown();
+		clientToolbar.removeNavigation(navButton);
 	}
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) {
@@ -122,7 +168,7 @@ public class NaturalSpeechPlugin extends Plugin
 		}
 
 		if(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())) return config.personalVoice();
-		
+
 		return -1;
 	}
 	protected int getSoundDistance(ChatMessage message) {

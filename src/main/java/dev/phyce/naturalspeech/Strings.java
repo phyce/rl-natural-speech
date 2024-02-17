@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech;
 
 import java.util.ArrayList;
 import java.util.List;

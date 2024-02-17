@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.tts;
+package dev.phyce.naturalspeech.tts;
 
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;

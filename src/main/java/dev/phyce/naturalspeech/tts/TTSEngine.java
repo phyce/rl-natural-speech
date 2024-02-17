@@ -1,8 +1,10 @@
-package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.tts;
+package dev.phyce.naturalspeech.tts;
 
-import net.runelite.api.Client;
+
+import dev.phyce.naturalspeech.Strings;
+//import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.Strings;
+
 import net.runelite.api.events.ChatMessage;
-import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.Strings;
 
 import java.io.*;
 import javax.inject.Inject;
@@ -30,19 +32,27 @@ public class TTSEngine implements Runnable {
     private final ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
     private Map<String, String> shortenedPhrases;
 
-    public TTSEngine(String model, String phrases) throws IOException, LineUnavailableException {
-        modelPath = model;
+    public TTSEngine(String ttsBinary, String ttsModel, String phrases) throws IOException, LineUnavailableException {
+        modelPath = ttsModel;
 
         audio = new AudioPlayer();
 
         processBuilder = new ProcessBuilder(
-                "C:\\piper\\piper.exe",
+//                "C:\\piper\\piper.exe",
+                ttsBinary,
                 "--model", modelPath,
                 "--output-raw",
                 "--json-input"
         );
 
         startTTSProcess();
+        if (ttsProcess.isAlive()) {
+            System.out.println("TTS launched successfully");
+        } else {
+            System.out.println("TTS failed to launch");
+            return;
+
+        }
         processing = true;
 
         prepareShortenedPhrases(phrases);

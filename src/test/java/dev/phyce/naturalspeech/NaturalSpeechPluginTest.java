@@ -1,8 +1,9 @@
-package net.runelite.client.plugins.naturalspeech.src.test.java.dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech;
+//package net.runelite.client.plugins.naturalspeech.src.test.java.dev.phyce.naturalspeech;
 
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
-import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.NaturalSpeechPlugin;
 
 public class NaturalSpeechPluginTest
 {

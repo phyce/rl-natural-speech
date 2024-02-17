@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech;
 
 import net.runelite.client.config.*;
 import net.runelite.client.plugins.camera.ControlFunction;
@@ -8,11 +8,68 @@ public interface NaturalSpeechConfig extends Config
 {
 	String CONFIG_GROUP = "naturalSpeech";
 	int MAX_VOICES = 903;
+	@ConfigSection(
+			name = "General",
+			description = "General settings",
+			position = 0
+	)
+	String generalOptionsSection = "generalOptionsSection";
+
+	@ConfigItem(
+		position = 1,
+		keyName = "ttsEngine",
+		name = "TTS Engine",
+		description = "Full path to the binary of the TTS engine. Currently only Piper is supported.",
+		section = generalOptionsSection,
+		warning = "You will need to reload the plugin to apply the changes."
+	)
+	default String ttsEngine()  {
+		return  "C:\\piper\\piper.exe";
+	}
+	@ConfigItem(
+			position = 0,
+			keyName = "muteGrandExchange",
+			name = "Mute in Grand Exchange",
+			description = "Disable text-to-speech in the grand exchange area.",
+			section = generalOptionsSection
+	)
+	default boolean muteGrandExchange() {
+		return true;
+	}
+	@ConfigItem(
+			position = 1,
+			keyName = "usePersonalVoice",
+			name = "Select personal voice",
+			description = "Lets you choose the voice of your character.",
+			section = generalOptionsSection
+	)
+	default boolean usePersonalVoice() {
+		return false;
+	}
+	@ConfigItem(
+			position = 2,
+			keyName = "personalVoice",
+			name = "Personal voice ID",
+			description = "Choose one of the 903 voices for your character",
+			section = generalOptionsSection
+
+	)
+	@Range(min = 0, max = MAX_VOICES)
+	default int personalVoice() { return 0; }
+	@ConfigItem(
+			position = 3,
+			keyName = "distanceFade",
+			name = "Fade distant sound",
+			description = "Players standing further away will sound quieter.",
+			section = generalOptionsSection
+
+	)
+	default boolean distanceFade() { return true; }
 
 	@ConfigSection(
 			name = "Speech generation",
 			description = "Settings to choose which messages should be played",
-			position = 0
+			position = 1
 	)
 	String ttsOptionsSection = "ttsOptionsSection";
 	@ConfigItem(
@@ -86,6 +143,7 @@ public interface NaturalSpeechConfig extends Config
 	default boolean examineChat() {
 		return true;
 	}
+
 	@ConfigItem(
 			keyName = "dialog",
 			name = "Dialogs",
@@ -98,57 +156,17 @@ public interface NaturalSpeechConfig extends Config
 	}
 
 	@ConfigSection(
-			name = "General",
-			description = "General settings",
-			position = 1
+			name = "Other",
+			description = "Other settings",
+			position = 2
 	)
-	String generalOptionsSection = "generalOptionsSection";
-
-	@ConfigItem(
-		position = 0,
-		keyName = "muteGrandExchange",
-		name = "Mute in Grand Exchange",
-		description = "Disable text-to-speech in the grand exchange area.",
-		section = generalOptionsSection
-	)
-	default boolean muteGrandExchange() {
-		return true;
-	}
-	@ConfigItem(
-			position = 1,
-			keyName = "usePersonalVoice",
-			name = "Select personal voice",
-			description = "Lets you choose the voice of your character.",
-			section = generalOptionsSection
-	)
-	default boolean usePersonalVoice() {
-		return false;
-	}
-	@ConfigItem(
-			position = 2,
-			keyName = "personalVoice",
-			name = "Personal voice ID",
-			description = "Choose one of the 903 voices for your character",
-			section = generalOptionsSection
-
-	)
-	@Range(min = 0, max = MAX_VOICES)
-	default int personalVoice() { return 0; }
-	@ConfigItem(
-			position = 3,
-			keyName = "distanceFade",
-			name = "Fade distant sound",
-			description = "Players standing further away will sound quieter.",
-			section = generalOptionsSection
-
-	)
-	default boolean distanceFade() { return true; }
+	String otherOptionsSection = "otherOptionsSection";
 	@ConfigItem(
 			position = 4,
 			keyName = "shortenedPhrases",
 			name = "Shortened phrases",
 			description = "Replace commonly used shortened sentences with whole words",
-			section = generalOptionsSection,
+			section = otherOptionsSection,
 			warning = "You will need to reload the plugin to apply the changes."
 
 	)

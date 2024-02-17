@@ -1,5 +1,9 @@
-package net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.tts;
-import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.NaturalSpeechConfig;
+package dev.phyce.naturalspeech.tts;
+
+import dev.phyce.naturalspeech.NaturalSpeechConfig;
+//import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.NaturalSpeechConfig;
+
+
 import net.runelite.api.events.ChatMessage;
 import javax.inject.Inject;
 
