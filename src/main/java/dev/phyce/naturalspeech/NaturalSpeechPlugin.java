@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech;
 
 import dev.phyce.naturalspeech.enums.Locations;
+import dev.phyce.naturalspeech.tts.DownloadManager;
 import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
@@ -9,7 +10,6 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.GameTick;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -34,6 +34,8 @@ public class NaturalSpeechPlugin extends Plugin
 	@Inject
 	private ClientToolbar clientToolbar;
 	@Inject
+	private ConfigManager configManager;
+	@Inject
 	private Client client;
 	@Inject
 	private NaturalSpeechConfig config;
@@ -42,14 +44,18 @@ public class NaturalSpeechPlugin extends Plugin
 	private String ttsEngineLocation = "";
 	private NaturalSpeechPanel panel;
 	private NavigationButton navButton;
+	private DownloadManager downloads;
 
 	@Override
 	protected void startUp() {
+		String directoryPath = "./";
+		downloads = DownloadManager.getInstance(directoryPath);
+
 		System.out.println("Starting up");
 		System.out.println(getClass());
 		System.out.println(getClass());
 
-		NaturalSpeechPanel panel = new NaturalSpeechPanel();
+		panel = new NaturalSpeechPanel(configManager);
 		System.out.println("Current working directory: " + System.getProperty("user.dir"));
 		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 		navButton = NavigationButton.builder()
@@ -64,29 +70,34 @@ public class NaturalSpeechPlugin extends Plugin
 		startTTS();
 		started = true;
 		log.info("TTS engine initialised");
+		new Thread(this::statusUpdates).start();
 	}
 
+	public void statusUpdates() {
+		float lastProgress = 0;
+		while (started) {
+			try {
+				Thread.sleep(500);
+				float progress = downloads.getFileProgress();
+//				log.info("file progress");
+//				log.info(String.valueOf(progress));
+				if(lastProgress != progress) {
+					if (panel != null ) panel.updateModelSegment();
+					lastProgress = progress;
+				}
+
+			} catch (InterruptedException e) {return;}
+        }
+	}
 	public void startTTS() {
 		try {
 			tts = new TTSEngine(config.ttsEngine(),"C:\\piper\\voices\\piper-voices\\en\\en_US\\libritts\\high\\en_US-libritts-high.onnx", config.shortenedPhrases());
 		} catch (IOException | LineUnavailableException e) {
 			log.info(e.getMessage());
 		}
-	}
-
-	@Subscribe
-	public void onGameTick(GameTick tick) {
-
-		if(started && !ttsEngineLocation.equals(config.ttsEngine())) {
-			System.out.println("TTS Location changed!");
-			ttsEngineLocation = config.ttsEngine();
-			tts.shutDown();
-			startTTS();
-		}
-	}
-
-	@Override
+	}	@Override
 	protected void shutDown() {
+		started = false;
 		tts.shutDown();
 		clientToolbar.removeNavigation(navButton);
 	}
@@ -146,7 +157,7 @@ public class NaturalSpeechPlugin extends Plugin
 		int distance = getSoundDistance(message);
 
 		try {
-//			System.out.println(message);
+			//System.out.println(message);
 			tts.speak(message, voiceId, distance);
 		} catch(IOException e) {
 			log.info(e.getMessage());
@@ -156,11 +167,11 @@ public class NaturalSpeechPlugin extends Plugin
 	protected int getVoiceId(ChatMessage message) {
 		//log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
 		switch(message.getType()) {
-//			case ITEM_EXAMINE:
-//			case NPC_EXAMINE:
-//			case OBJECT_EXAMINE:
-//				if (config.usePersonalVoice())return config.personalVoice();
-//				break;
+			//case ITEM_EXAMINE:
+			//case NPC_EXAMINE:
+			//case OBJECT_EXAMINE:
+			//	if (config.usePersonalVoice())return config.personalVoice();
+			//	break;
 
 			case PRIVATECHATOUT:
 				if (config.usePersonalVoice())return config.personalVoice();
@@ -203,7 +214,6 @@ public class NaturalSpeechPlugin extends Plugin
 		}
 		return null;
 	}
-
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);
