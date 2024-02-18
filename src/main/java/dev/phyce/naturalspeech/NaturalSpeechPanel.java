@@ -33,30 +33,57 @@ public class NaturalSpeechPanel extends PluginPanel {
     @Inject
     private ConfigManager configManager;
 
-    public void drawActionSegment() {
+    public void drawHeaderSegment() {
+        JLabel titleLabel = new JLabel("NaturalSpeech", JLabel.CENTER);
+        titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
+        titleLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        add(titleLabel);
+
+        // Instructions Link
+        JLabel instructionsLink = new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
+        instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        instructionsLink.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                try {
+                    Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        add(instructionsLink);
+
+    }
+    public void drawEngineSegment() {
+        JComboBox<String> ttsEngineSelect = new JComboBox<>(new String[]{"Piper"});
+        ttsEngineSelect.setToolTipText("At the moment, only one TTS engine is supported.");
+        ttsEngineSelect.setEnabled(false);
+        add(ttsEngineSelect);
+    }
+    public void drawStatusSegment() {
+        // Status Label with dynamic background color
+        statusLabel = new JLabel("Status: Unknown", SwingConstants.CENTER);
+        statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
+        statusLabel.setOpaque(true); // Needed to show background color
+        statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 30)); // Set preferred height
+
+
+        add(statusLabel, BorderLayout.NORTH);
+
         // Button Panel
         buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
 
         // Initialize buttons with icons
         playButton = createButton("start.png", "Start");
-//        restartButton = createButton("restart.png", "Restart");
         stopButton = createButton("stop.png", "Stop");
 
-        // Add action listeners to buttons
         playButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 startEngine();
             }
         });
-
-//        restartButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                restartEngine();
-//            }
-//        });
-
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -64,9 +91,7 @@ public class NaturalSpeechPanel extends PluginPanel {
             }
         });
 
-        // Add buttons to the panel
         buttonPanel.add(playButton);
-//        buttonPanel.add(restartButton);
         buttonPanel.add(stopButton);
         add(buttonPanel, BorderLayout.CENTER);
     }
@@ -100,8 +125,6 @@ public class NaturalSpeechPanel extends PluginPanel {
         DownloadManager downloads = DownloadManager.getInstance();
 
         float progress = downloads.getFileReadyPercentage();
-        System.out.println("FILE PROGRESS:");
-        System.out.println(progress);
         voiceModelInput = new JTextField(String.format("voice (%.0f%%)", progress));
         voiceModelInput.setEditable(false);
         voiceModelInput.setToolTipText("Currently only one voice model available");
@@ -138,45 +161,10 @@ public class NaturalSpeechPanel extends PluginPanel {
 
         setLayout(new GridLayout(0, 1)); // Use GridLayout for simplicity
 
-        // Title
-        JLabel titleLabel = new JLabel("Natural Speech", JLabel.CENTER);
-        titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
-        titleLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        add(titleLabel);
-
-        // Instructions Link
-        JLabel instructionsLink = new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
-        instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        instructionsLink.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                try {
-                    Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-        });
-        add(instructionsLink);
-
-        // TTS Engine Select Box
-        JComboBox<String> ttsEngineSelect = new JComboBox<>(new String[]{"Piper"});
-        ttsEngineSelect.setToolTipText("At the moment, only one TTS engine is supported.");
-        ttsEngineSelect.setEnabled(false); // Disabled select box
-        add(ttsEngineSelect);
-
-        // Status Label with dynamic background color
-        statusLabel = new JLabel("Status: Unknown", SwingConstants.CENTER);
-        statusLabel.setOpaque(true); // Needed to show background color
-        statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 30)); // Set preferred height
-
-
-        add(statusLabel, BorderLayout.NORTH);
-
-        // Example status update
-
-        drawActionSegment();
-        updateStatus(1); // Initially set status for demonstration purposes
+        drawHeaderSegment();
+        drawEngineSegment();
+        drawStatusSegment();
+        updateStatus(1);
         drawBinarySegment();
         drawModelSegment();
     }
@@ -184,29 +172,29 @@ public class NaturalSpeechPanel extends PluginPanel {
     // Method to update the status text, color, and button states
     public void updateStatus(int status) {
         String statusText = "Status: ";
-        Color statusColor = Color.GRAY; // Default color
+        Color statusColor = Color.DARK_GRAY; // Default color
         boolean playEnabled = false, restartEnabled = false, stopEnabled = false;
 
         switch (status) {
             case 1: // Stopped
                 statusText += "Stopped";
-                statusColor = Color.GRAY;
+                statusColor = Color.DARK_GRAY;
                 playEnabled = true;
                 break;
             case 2: // Running
                 statusText += "Ready";
-                statusColor = Color.GREEN;
+                statusColor = Color.decode("#00B316");
                 restartEnabled = true;
                 stopEnabled = true;
                 break;
             case 3: // Launching
                 statusText += "Launching";
-                statusColor = Color.YELLOW;
+                statusColor = Color.ORANGE;
                 //stopEnabled = true; // Assuming you can stop a launching process
                 break;
             case 4: // Crashed
                 statusText += "Crashed";
-                statusColor = Color.RED;
+                statusColor = Color.decode("C40000");
                 playEnabled = true;
                 break;
         }

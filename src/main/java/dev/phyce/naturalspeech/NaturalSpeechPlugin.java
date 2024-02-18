@@ -90,9 +90,14 @@ public class NaturalSpeechPlugin extends Plugin
 		while (started) {
 			try {
 				Thread.sleep(500);
+
 				float progress = downloads.getFileProgress();
+				System.out.println("Checking for status updates");
+				System.out.println(lastProgress);
+				System.out.println(progress);
 
 				if(lastProgress != progress) {
+					System.out.println("progress changing!!!");
 					if (panel != null ) panel.updateModelSegment();
 					lastProgress = progress;
 				}

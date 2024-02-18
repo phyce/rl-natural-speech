@@ -16,17 +16,6 @@ public interface NaturalSpeechConfig extends Config
 	String generalOptionsSection = "generalOptionsSection";
 
 	@ConfigItem(
-		position = 1,
-		keyName = "ttsEngine",
-		name = "TTS Engine",
-		description = "Full path to the binary of the TTS engine. Currently only Piper is supported.",
-		section = generalOptionsSection,
-		warning = "You will need to reload the plugin to apply the changes."
-	)
-	default String ttsEngine()  {
-		return  "C:\\piper\\piper.exe";
-	}
-	@ConfigItem(
 			position = 0,
 			keyName = "muteGrandExchange",
 			name = "Mute in Grand Exchange",
@@ -161,6 +150,18 @@ public interface NaturalSpeechConfig extends Config
 			position = 2
 	)
 	String otherOptionsSection = "otherOptionsSection";
+
+	@ConfigItem(
+			position = 1,
+			keyName = "ttsEngine",
+			name = "TTS Engine",
+			description = "Full path to the binary of the TTS engine. Currently only Piper is supported.",
+			section = otherOptionsSection,
+			warning = "You will need to reload the plugin to apply the changes."
+	)
+	default String ttsEngine()  {
+		return  "C:\\piper\\piper.exe";
+	}
 	@ConfigItem(
 			position = 4,
 			keyName = "shortenedPhrases",
