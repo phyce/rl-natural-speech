@@ -7,12 +7,8 @@ import java.io.IOException;
 class AudioPlayer {
     private AudioFormat format;
     private SourceDataLine line;
-    private boolean isPlaying;
 
     private boolean stop;
-    public void stopStream() {
-        stop = true;
-    }
 
     public AudioPlayer() {
         format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,

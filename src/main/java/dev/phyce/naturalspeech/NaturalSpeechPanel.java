@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech;
 
 import com.google.inject.Provides;
 import dev.phyce.naturalspeech.tts.DownloadManager;
+import dev.phyce.naturalspeech.tts.TTSEngine;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
@@ -22,48 +23,53 @@ import java.net.URI;
 public class NaturalSpeechPanel extends PluginPanel {
     private final NaturalSpeechConfig config;
     private JLabel statusLabel;
-    private JButton playButton, restartButton, stopButton;
-    private JPanel buttonPanel;
-    private JPanel downloadPanel, fileBrowsePanel;
-    private JButton downloadButton, browseButton;
+
+    private JPanel downloadPanel, fileBrowsePanel, buttonPanel;
+    private JButton downloadButton, browseButton, playButton, /*restartButton,*/ stopButton;
     private JTextField voiceModelInput, filePathField;
+
+    private NaturalSpeechPlugin plugin;
 
     @Inject
     private ConfigManager configManager;
 
-    public void drawModelSegment() {
-        DownloadManager downloads = DownloadManager.getInstance();
+    public void drawActionSegment() {
+        // Button Panel
+        buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
 
-        float progress = downloads.getFileReadyPercentage();
-        System.out.println("FILE PROGRESS:");
-        System.out.println(progress);
-        voiceModelInput = new JTextField(String.format("voice (%.0f%%)", progress));
-        voiceModelInput.setEditable(false);
-        voiceModelInput.setToolTipText("Currently only one voice model available");
+        // Initialize buttons with icons
+        playButton = createButton("start.png", "Start");
+//        restartButton = createButton("restart.png", "Restart");
+        stopButton = createButton("stop.png", "Stop");
 
-        downloadButton = new JButton("Download");
-        downloadButton.setToolTipText("Download the en_US-libritts-high.onnx TTS voice file");
-        downloadButton.addActionListener(e -> {
-            System.out.println("Download action will be implemented here.");
-            new Thread(downloads::checkAndDownload).start();
+        // Add action listeners to buttons
+        playButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startEngine();
+            }
         });
 
-        downloadPanel = new JPanel(new BorderLayout(5, 0));
-        downloadPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
-        downloadPanel.add(voiceModelInput, BorderLayout.CENTER);
-        downloadPanel.add(downloadButton, BorderLayout.EAST);
-        add(downloadPanel);
-    }
+//        restartButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                restartEngine();
+//            }
+//        });
 
-    public void updateModelSegment() {
-        float progress = DownloadManager.getInstance().getFileProgress();
-        SwingUtilities.invokeLater(() -> {
-            if (voiceModelInput != null) voiceModelInput.setText(String.format("voice (%.0f%%)", progress));
-
-            if(progress > 0 && downloadButton != null) downloadButton.setEnabled(false);
+        stopButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                stopEngine();
+            }
         });
-    }
 
+        // Add buttons to the panel
+        buttonPanel.add(playButton);
+//        buttonPanel.add(restartButton);
+        buttonPanel.add(stopButton);
+        add(buttonPanel, BorderLayout.CENTER);
+    }
     public void drawBinarySegment() {
         filePathField = new JTextField(config.ttsEngine());
         filePathField.setToolTipText("TTS engine binary file path");
@@ -90,10 +96,45 @@ public class NaturalSpeechPanel extends PluginPanel {
 
         add(fileBrowsePanel);
     }
-    public NaturalSpeechPanel(ConfigManager manager) {
+    public void drawModelSegment() {
+        DownloadManager downloads = DownloadManager.getInstance();
+
+        float progress = downloads.getFileReadyPercentage();
+        System.out.println("FILE PROGRESS:");
+        System.out.println(progress);
+        voiceModelInput = new JTextField(String.format("voice (%.0f%%)", progress));
+        voiceModelInput.setEditable(false);
+        voiceModelInput.setToolTipText("Currently only one voice model available");
+
+        downloadButton = new JButton("Download");
+        downloadButton.setToolTipText("Download the en_US-libritts-high.onnx TTS voice file");
+        downloadButton.addActionListener(e -> {
+            System.out.println("Download action will be implemented here.");
+            new Thread(downloads::checkAndDownload).start();
+        });
+
+        downloadPanel = new JPanel(new BorderLayout(5, 0));
+        downloadPanel.setBorder(new EmptyBorder(0, 0, 15, 0));
+        downloadPanel.add(voiceModelInput, BorderLayout.CENTER);
+        downloadPanel.add(downloadButton, BorderLayout.EAST);
+        add(downloadPanel);
+    }
+    public void updateModelSegment() {
+        float progress = DownloadManager.getInstance().getFileProgress();
+        SwingUtilities.invokeLater(() -> {
+            if (voiceModelInput != null) voiceModelInput.setText(String.format("voice (%.0f%%)", progress));
+
+            if(progress > 0 && downloadButton != null) downloadButton.setEnabled(false);
+        });
+    }
+
+
+
+    public NaturalSpeechPanel(ConfigManager manager, NaturalSpeechPlugin plugin) {
         super();
         this.configManager = manager;
         this.config = manager.getConfig(NaturalSpeechConfig.class);
+        this.plugin = plugin;
 
         setLayout(new GridLayout(0, 1)); // Use GridLayout for simplicity
 
@@ -129,37 +170,13 @@ public class NaturalSpeechPanel extends PluginPanel {
         statusLabel.setOpaque(true); // Needed to show background color
         statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 30)); // Set preferred height
 
-        // Button Panel
-        buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
 
-        // Initialize buttons with icons
-        playButton = createButton("start.png", "Start");
-        restartButton = createButton("restart.png", "Restart");
-        stopButton = createButton("stop.png", "Stop");
-
-        // Add buttons to the panel
-        buttonPanel.add(playButton);
-        buttonPanel.add(restartButton);
-        buttonPanel.add(stopButton);
-
-        // Add components to the main panel
         add(statusLabel, BorderLayout.NORTH);
-        add(buttonPanel, BorderLayout.CENTER);
 
         // Example status update
+
+        drawActionSegment();
         updateStatus(1); // Initially set status for demonstration purposes
-
-//        // File Browse Input (For simplicity, using a text field to paste location)
-//        JTextField filePathField = new JTextField("Path to TTS engine...");
-//        JButton launchButton = new JButton(new ImageIcon(new ImageIcon("path/to/green_triangle_icon.png").getImage().getScaledInstance(20, 20, Image.SCALE_DEFAULT))); // Replace "path/to/green_triangle_icon.png" with your actual path
-//        launchButton.addActionListener(e -> {
-//            // Launch action
-//        });
-//        JPanel fileLaunchPanel = new JPanel(new BorderLayout());
-//        fileLaunchPanel.add(filePathField, BorderLayout.CENTER);
-//        fileLaunchPanel.add(launchButton, BorderLayout.EAST);
-//        add(fileLaunchPanel);
-
         drawBinarySegment();
         drawModelSegment();
     }
@@ -185,7 +202,7 @@ public class NaturalSpeechPanel extends PluginPanel {
             case 3: // Launching
                 statusText += "Launching";
                 statusColor = Color.YELLOW;
-                stopEnabled = true; // Assuming you can stop a launching process
+                //stopEnabled = true; // Assuming you can stop a launching process
                 break;
             case 4: // Crashed
                 statusText += "Crashed";
@@ -197,7 +214,7 @@ public class NaturalSpeechPanel extends PluginPanel {
         statusLabel.setText(statusText);
         statusLabel.setBackground(statusColor);
         playButton.setEnabled(playEnabled);
-        restartButton.setEnabled(restartEnabled);
+        //restartButton.setEnabled(restartEnabled);
         stopButton.setEnabled(stopEnabled);
     }
 
@@ -206,5 +223,23 @@ public class NaturalSpeechPanel extends PluginPanel {
         JButton button = new JButton(new ImageIcon(icon));
         button.setToolTipText(toolTipText);
         return button;
+    }
+
+    private void startEngine() {
+        updateStatus(3);
+        plugin.startTTS();
+        if(plugin.getTts().isProcessing())updateStatus(2);
+        else updateStatus(4);
+    }
+
+    private void stopEngine() {
+        plugin.stopTTS();
+        updateStatus(1);
+    }
+
+    private void restartEngine() {
+        stopEngine();
+        startEngine();
+
     }
 }
