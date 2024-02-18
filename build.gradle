@@ -4,9 +4,9 @@ plugins {
 
 repositories {
 	mavenLocal()
-	maven {
-		url = 'https://github.com/phyce/rl-natural-speech'
-	}
+    maven {
+        url = 'https://repo.runelite.net'
+    }
 	mavenCentral()
 }
 
@@ -24,8 +24,7 @@ dependencies {
 }
 
 group = 'dev.phyce.naturalspeech'
-//group = 'net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech;'
-version = '0.6.1'
+version = '0.6.2'
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
