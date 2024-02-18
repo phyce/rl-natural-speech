@@ -1,8 +1,6 @@
 package dev.phyce.naturalspeech;
 
-import com.google.inject.Provides;
 import dev.phyce.naturalspeech.tts.DownloadManager;
-import dev.phyce.naturalspeech.tts.TTSEngine;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;

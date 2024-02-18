@@ -1,7 +1,6 @@
 package dev.phyce.naturalspeech;
 
 import net.runelite.client.config.*;
-import net.runelite.client.plugins.camera.ControlFunction;
 
 @ConfigGroup("naturalSpeech")
 public interface NaturalSpeechConfig extends Config

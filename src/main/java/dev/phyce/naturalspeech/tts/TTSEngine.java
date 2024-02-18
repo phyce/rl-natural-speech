@@ -1,22 +1,14 @@
 package dev.phyce.naturalspeech.tts;
 
-
 import dev.phyce.naturalspeech.Strings;
-//import net.runelite.client.plugins.naturalspeech.src.main.java.dev.phyce.naturalspeech.Strings;
 
 import net.runelite.api.events.ChatMessage;
-
 import java.io.*;
-import javax.inject.Inject;
 import javax.sound.sampled.*;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.concurrent.atomic.AtomicBoolean;
-import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
+
 
 public class TTSEngine implements Runnable {
     private final String modelPath;
