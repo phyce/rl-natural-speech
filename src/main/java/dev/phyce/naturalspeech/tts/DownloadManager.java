@@ -63,7 +63,7 @@ public class DownloadManager {
 
             // Rest of your download code...
             long totalBytes = response.headers().firstValueAsLong("content-length").orElse(-1L);
-            System.out.println("Starting download... Total file size: " + totalBytes + " bytes");
+            //System.out.println("Starting download... Total file size: " + totalBytes + " bytes");
 
             try (InputStream is = response.body()) {
                 Files.createDirectories(directoryPath); // Ensure the directory path exists
@@ -71,7 +71,7 @@ public class DownloadManager {
                     copyStream(is, os, totalBytes); // Method to copy stream with progress
                 }
             }
-            System.out.println("Download completed: " + filePath);
+            //System.out.println("Download completed: " + filePath);
         } else {
             System.err.println("Download failed with HTTP status code: " + response.statusCode());
             // Reset progress if download fails
@@ -159,10 +159,10 @@ public class DownloadManager {
     }
 
     public void checkAndDownload() {
-        System.out.println("Checking file at path: " + downloadPath.toAbsolutePath().resolve("en_US-libritts-high.onnx").toString()); // Print the full absolute path
+        //System.out.println("Checking file at path: " + downloadPath.toAbsolutePath().resolve("en_US-libritts-high.onnx").toString()); // Print the full absolute path
         if (!Files.exists(downloadPath.toAbsolutePath().resolve("en_US-libritts-high.onnx"))) {
             try {
-                System.out.println("File not found. Starting download...");
+                //System.out.println("File not found. Starting download...");
                 downloadFile(settingsFileURL, downloadPath);
                 downloadFile(fileURL, downloadPath);
             } catch (IOException | InterruptedException e) {
@@ -170,7 +170,7 @@ public class DownloadManager {
                 fileProgress = 0.0F; // Reset progress if download fails
             }
         } else {
-            System.out.println("File already exists. No need to download.");
+            //System.out.println("File already exists. No need to download.");
             fileProgress = 100.0F; // File is fully downloaded
         }
     }

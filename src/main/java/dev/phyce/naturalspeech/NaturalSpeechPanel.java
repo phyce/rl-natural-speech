@@ -132,7 +132,6 @@ public class NaturalSpeechPanel extends PluginPanel {
         downloadButton = new JButton("Download");
         downloadButton.setToolTipText("Download the en_US-libritts-high.onnx TTS voice file");
         downloadButton.addActionListener(e -> {
-            System.out.println("Download action will be implemented here.");
             new Thread(downloads::checkAndDownload).start();
         });
 

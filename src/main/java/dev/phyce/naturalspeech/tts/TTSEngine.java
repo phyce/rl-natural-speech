@@ -84,11 +84,7 @@ public class TTSEngine implements Runnable {
             else if (!messageQueue.isEmpty()) message = messageQueue.poll();
             else continue;
 
-            if (message != null) new Thread(() -> {
-                System.out.println("preparing message");
-
-                prepareMessage(message);
-            }).start();
+            if (message != null) new Thread(() -> {prepareMessage(message);}).start();
         }
     }
     private void processAudioQueue() {
@@ -166,12 +162,10 @@ public class TTSEngine implements Runnable {
     }
     private void sendStreamTTSData(String message, int distance, int voiceIndex) {
         ttsLocked.set(true);
-        System.out.println("tts is locked");
         try {
             byte[] audioClip = generateAudio(message, voiceIndex);
             TTSAudio clip = new TTSAudio(audioClip, distance);
 
-            System.out.println("adding audio to queue");
             if (audioClip.length > 0) audioQueue.add(clip);
         }
         catch (IOException exception) {

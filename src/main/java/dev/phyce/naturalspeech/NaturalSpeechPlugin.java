@@ -73,7 +73,6 @@ public class NaturalSpeechPlugin extends Plugin
 			started = true;
 			new Thread(this::statusUpdates).start();
 			Path voiceModelPath = downloads.getDownloadPath().toAbsolutePath();
-			System.out.println(voiceModelPath);
 			tts = new TTSEngine(config.ttsEngine(), voiceModelPath.toString() + "\\en_US-libritts-high.onnx", config.shortenedPhrases());
 		} catch (IOException | LineUnavailableException e) {
 			log.info(e.getMessage());
@@ -92,12 +91,8 @@ public class NaturalSpeechPlugin extends Plugin
 				Thread.sleep(500);
 
 				float progress = downloads.getFileProgress();
-				System.out.println("Checking for status updates");
-				System.out.println(lastProgress);
-				System.out.println(progress);
 
 				if(lastProgress != progress) {
-					System.out.println("progress changing!!!");
 					if (panel != null ) panel.updateModelSegment();
 					lastProgress = progress;
 				}
@@ -162,7 +157,7 @@ public class NaturalSpeechPlugin extends Plugin
 		int distance = getSoundDistance(message);
 
 		try {
-			System.out.println(message);
+			//System.out.println(message);
 			tts.speak(message, voiceId, distance);
 		} catch(IOException e) {
 			log.info(e.getMessage());
