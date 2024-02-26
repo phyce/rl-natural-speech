@@ -128,7 +128,7 @@ public class NaturalSpeechPanel extends PluginPanel {
         filePathField.setToolTipText("TTS engine binary file path");
 
         browseButton = new JButton("Browse");
-        browseButton.setToolTipText("Requires manually downloading, read instructions.");
+        browseButton.setToolTipText("Requires manual download, please read instructions.");
         browseButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
