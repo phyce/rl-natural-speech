@@ -159,7 +159,13 @@ public interface NaturalSpeechConfig extends Config
 			warning = "You will need to reload the plugin to apply the changes."
 	)
 	default String ttsEngine()  {
-		return  "C:\\piper\\piper.exe";
+		// make sure to use the write path separators depending on operating system
+		if (System.getProperty("os.name").toLowerCase().contains("win")) {
+			return "C:\\piper\\piper.exe";
+		} else {
+			// assume in user folder
+			return System.getProperty("user.home") + "/piper/piper";
+		}
 	}
 	@ConfigItem(
 			position = 4,

@@ -2,16 +2,19 @@ package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.Strings;
 
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.events.ChatMessage;
 import java.io.*;
 import javax.sound.sampled.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
+@Slf4j
 public class TTSEngine implements Runnable {
-    private final String modelPath;
+    private final Path modelPath;
     private Process ttsProcess;
     private final ProcessBuilder processBuilder;
     private BufferedWriter ttsInputWriter;
@@ -25,23 +28,23 @@ public class TTSEngine implements Runnable {
     private final ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
     private Map<String, String> shortenedPhrases;
 
-    public TTSEngine(String ttsBinary, String ttsModel, String phrases) throws IOException, LineUnavailableException {
+    public TTSEngine(Path ttsBinary, Path ttsModel, String phrases) throws IOException, LineUnavailableException {
         modelPath = ttsModel;
         audio = new AudioPlayer();
         processBuilder = new ProcessBuilder(
-                ttsBinary,
-                "--model", modelPath,
+                ttsBinary.toString(),
+                "--model", modelPath.toString(),
                 "--output-raw",
                 "--json-input"
         );
 
         prepareShortenedPhrases(phrases);
         startTTSProcess();
-        if (!ttsProcess.isAlive()) {
-            System.out.println("TTS failed to launch");
+        if (ttsProcess == null || !ttsProcess.isAlive()) {
+            log.error("TTS failed to launch");
             return;
         }
-        System.out.println("TTSEngine Started...");
+        log.info("TTSEngine Started...");
     }
     public synchronized void startTTSProcess() {
         ttsLocked.set(false);
@@ -50,21 +53,27 @@ public class TTSEngine implements Runnable {
             //Or maybe simply return?
 
             try {ttsInputWriter.close();}
-            catch (IOException e) {e.printStackTrace();}
+            catch (IOException e) {
+                log.error("tts process error", e);
+                return;
+            }
         }
 
         try {
             ttsProcess = processBuilder.start();
             ttsInputWriter = new BufferedWriter(new OutputStreamWriter(ttsProcess.getOutputStream()));
         }
-        catch (IOException e) {e.printStackTrace();}
+        catch (IOException e) {
+            log.error("tts process error", e);
+            return;
+        }
         processing = true;
 
         new Thread(this).start();
         new Thread(this::processAudioQueue).start();
         new Thread(this::captureAudioStream).start();
         new Thread(this::readControlMessages).start();
-        System.out.println("TTSProcess Started...");
+        log.info("TTSProcess Started...");
     }
     @Override
     public void run() {
@@ -75,6 +84,7 @@ public class TTSEngine implements Runnable {
             else continue;
 
             if (message != null) new Thread(() -> {prepareMessage(message);}).start();
+
         }
     }
     private void processAudioQueue() {
@@ -159,8 +169,7 @@ public class TTSEngine implements Runnable {
             if (message.audioClip.length > 0) audioQueue.add(message);
         }
         catch (IOException exception) {
-            System.out.println("Failed to send TTS data to stream");
-            System.out.println(exception);
+            log.error("Failed to send TTS data to stream", exception);
             throw new RuntimeException(exception);
         }
         ttsLocked.set(false);
@@ -176,8 +185,7 @@ public class TTSEngine implements Runnable {
             audio.shutDown();
         }
         catch (IOException exception) {
-            System.out.println("TTSEngine failed shutting down");
-            System.out.println(exception);
+            log.error("TTSEngine failed shutting down", exception);
         }
     }
 }
