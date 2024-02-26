@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech;
 
 import dev.phyce.naturalspeech.enums.Locations;
-import dev.phyce.naturalspeech.tts.DownloadManager;
+import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
@@ -42,20 +42,21 @@ public class NaturalSpeechPlugin extends Plugin
 	@Inject
 	private NaturalSpeechConfig config;
 	@Getter
-	private TTSEngine tts;
+	private TTSEngine tts = null;
 	private boolean started = false;
-	private String ttsEngineLocation = "";
 	private NaturalSpeechPanel panel;
 	private NavigationButton navButton;
-	private DownloadManager downloads;
+
+	@Getter
+	private Downloader downloader;
 
 	@Override
 	protected void startUp() {
-		String directoryPath = "tts/";
-		downloads = DownloadManager.getInstance(directoryPath);
 
-		panel = new NaturalSpeechPanel(configManager, this);
-		//System.out.println("Current working directory: " + System.getProperty("user.dir"));
+		// create downloader
+		downloader = injector.getInstance(Downloader.class);
+		panel = injector.getInstance(NaturalSpeechPanel.class);
+
 		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 		navButton = NavigationButton.builder()
 				.tooltip("Natural Speech")
@@ -66,14 +67,24 @@ public class NaturalSpeechPlugin extends Plugin
 
 		clientToolbar.addNavigation(navButton);
 
+
 		log.info("TTS plugin initialised");
 	}
-	public void startTTS() {
+	public void startTTS() throws RuntimeException{
 		try {
 			started = true;
 			new Thread(this::statusUpdates).start();
-			Path voiceModelPath = downloads.getDownloadPath().toAbsolutePath();
-			tts = new TTSEngine(config.ttsEngine(), voiceModelPath.toString() + "\\en_US-libritts-high.onnx", config.shortenedPhrases());
+
+			Path tts_path = Path.of(config.ttsEngine());
+			Path voice_path = tts_path.resolveSibling(Settings.voiceFolderName).resolve(Settings.voiceFilename);
+
+			// check if tts_path points to existing file and is a valid executable
+			if (!tts_path.toFile().exists() || !tts_path.toFile().canExecute()) {
+				log.error("Invalid TTS engine path.");
+				throw new RuntimeException("Invalid TTS engine path");
+			}
+
+			tts = new TTSEngine(tts_path, voice_path, config.shortenedPhrases());
 		} catch (IOException | LineUnavailableException e) {
 			log.info(e.getMessage());
 		}
@@ -84,25 +95,20 @@ public class NaturalSpeechPlugin extends Plugin
 		tts.shutDown();
 	}
 	public void statusUpdates() {
-		float lastProgress = 0;
 		boolean ttsRunning = false;
 		while (started) {
 			try {
 				Thread.sleep(500);
 
-				float progress = downloads.getFileProgress();
-
-				if(lastProgress != progress) {
-					if (panel != null ) panel.updateModelSegment();
-					lastProgress = progress;
-				}
-
 				if(tts != null) {
 					if(ttsRunning != tts.isProcessing()) {
 						ttsRunning = tts.isProcessing();
 
-						if(ttsRunning)panel.updateStatus(2);
-						else panel.updateStatus(1);
+						if(ttsRunning) {
+                            panel.updateStatus(2);
+                        } else {
+                            panel.updateStatus(1);
+                        }
 					}
 				}
 
