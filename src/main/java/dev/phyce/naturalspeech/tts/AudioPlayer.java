@@ -19,15 +19,15 @@ class AudioPlayer {
                 22050.0F, // Frame Rate
                 false); // Little Endian
     }
-    public void playClip(TTSAudio audio) {
+    public void playClip(TTSItem message) {
         AudioInputStream audioInputStream = null;
         SourceDataLine line = null;
 
         try {
             audioInputStream = new AudioInputStream(
-                    new ByteArrayInputStream(audio.getClip()),
+                    new ByteArrayInputStream(message.audioClip),
                     this.format,
-                    audio.getClip().length / this.format.getFrameSize());
+				message.audioClip.length / this.format.getFrameSize());
 
             DataLine.Info info = new DataLine.Info(SourceDataLine.class, this.format);
             line = (SourceDataLine) AudioSystem.getLine(info);
@@ -35,7 +35,7 @@ class AudioPlayer {
             line.open(this.format);
             line.start();
 
-            setVolume(line, audio);
+            setVolume(line, message);
 
             byte[] buffer = new byte[1024];
             int bytesRead;
@@ -62,12 +62,12 @@ class AudioPlayer {
             }
         }
     }
-    public float setVolume(SourceDataLine line, TTSAudio audio) {
+    public float setVolume(SourceDataLine line, TTSItem message) {
         if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
             FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
 
-            if (audio.getDistance() > 0) {
-                int effectiveDistance = Math.max(1, audio.getDistance());
+            if (message.getDistance() > 0) {
+                int effectiveDistance = Math.max(1, message.getDistance());
                 float volumeReduction = -6.0f * (float)(Math.log(effectiveDistance) / Math.log(2)); // Log base 2
 
                 float newVolume = Math.max(volumeControl.getMinimum(), volumeControl.getValue() + volumeReduction);

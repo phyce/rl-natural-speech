@@ -17,9 +17,8 @@ public class TTSEngine implements Runnable {
     private BufferedWriter ttsInputWriter;
     private final AudioPlayer audio;
     private final AtomicBoolean ttsLocked = new AtomicBoolean(false);
-    private final ConcurrentLinkedQueue<TTSMessage> messageQueue = new ConcurrentLinkedQueue<>();
-    private final ConcurrentLinkedQueue<TTSMessage> dialogQueue = new ConcurrentLinkedQueue<>();
-    private final ConcurrentLinkedQueue<TTSAudio> audioQueue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<TTSItem> messageQueue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<TTSItem> audioQueue = new ConcurrentLinkedQueue<>();
     private boolean processing = false;
     public boolean isProcessing() { return processing; }
     private final AtomicBoolean capturing = new AtomicBoolean(false);
@@ -70,10 +69,9 @@ public class TTSEngine implements Runnable {
     @Override
     public void run() {
         while (processing) if (!ttsLocked.get()) {
-            TTSMessage message;
+            TTSItem message;
 
-            if (!dialogQueue.isEmpty()) message = dialogQueue.poll();
-            else if (!messageQueue.isEmpty()) message = messageQueue.poll();
+            if (!messageQueue.isEmpty()) message = messageQueue.poll();
             else continue;
 
             if (message != null) new Thread(() -> {prepareMessage(message);}).start();
@@ -81,7 +79,7 @@ public class TTSEngine implements Runnable {
     }
     private void processAudioQueue() {
         while (processing) if (!audioQueue.isEmpty()) {
-            TTSAudio sentence = audioQueue.poll();
+            TTSItem sentence = audioQueue.poll();
             new Thread(() -> audio.playClip(sentence)).start();
         }
     }
@@ -107,14 +105,15 @@ public class TTSEngine implements Runnable {
         catch (IOException e) {}
     }
 
-    public synchronized void speak(ChatMessage message, int voiceId, int distance) throws IOException {
+    public synchronized void speak(ChatMessage message, int voiceID, int distance) throws IOException {
         if (ttsInputWriter == null) throw new IOException("ttsInputWriter is empty");
         if (messageQueue.size() > 10)messageQueue.clear();
-        TTSMessage ttsMessage;
-        if (voiceId == -1) ttsMessage = new TTSMessage(message, distance);
-        else ttsMessage = new TTSMessage(message, distance, voiceId);
 
-        messageQueue.add(ttsMessage);
+		TTSItem ttsItem;
+		if (voiceID == -1) ttsItem = new TTSItem(message, distance);
+		else ttsItem = new TTSItem(message, distance, voiceID);
+
+        messageQueue.add(ttsItem);
     }
 
     private void prepareShortenedPhrases(String phrases) {
@@ -146,19 +145,18 @@ public class TTSEngine implements Runnable {
         if(messageQueue.isEmpty())messageQueue.clear();
         if(audioQueue.isEmpty())audioQueue.clear();
     }
-    private void prepareMessage(TTSMessage message) {
-        String parsedMessage = Strings.parseMessage(message.getMessage(), shortenedPhrases);
+    private void prepareMessage(TTSItem message) {
         while (processing) if (!ttsLocked.get()) break;
+		message.message = Strings.parseMessage(message.getMessage(), shortenedPhrases);
 
-        sendStreamTTSData(parsedMessage, message.getDistance(), message.getVoiceId());
+        sendStreamTTSData(message);
     }
-    private void sendStreamTTSData(String message, int distance, int voiceIndex) {
+    private void sendStreamTTSData(TTSItem message) {
         ttsLocked.set(true);
         try {
-            byte[] audioClip = generateAudio(message, voiceIndex);
-            TTSAudio clip = new TTSAudio(audioClip, distance);
+			message.audioClip = generateAudio(message.message, message.getVoiceID());
 
-            if (audioClip.length > 0) audioQueue.add(clip);
+            if (message.audioClip.length > 0) audioQueue.add(message);
         }
         catch (IOException exception) {
             System.out.println("Failed to send TTS data to stream");
