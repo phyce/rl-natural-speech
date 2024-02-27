@@ -93,18 +93,12 @@ public class TTSEngine implements Runnable {
 	private void processAudioQueue() {
 		while (processing) {
 			audioQueues.forEach((key, audioQueue) -> {
-				System.out.println("Looping through " + key);
-				System.out.println(audioQueue);
 				if (!audioQueue.queue.isEmpty() && !audioQueue.isPlaying().get()) {
 					audioQueue.setPlaying(true);
-					System.out.println("found messages");
 					new Thread(() -> {
 						try {
 							TTSItem sentence;
 							while ((sentence = audioQueue.queue.poll()) != null) {
-								System.out.println("about to play sentence:");
-								System.out.println(sentence.getMessage());
-								System.out.println(sentence.audioClip.length);
 								// Simulate playing the clip
 								audio.playClip(sentence);
 							}
@@ -155,8 +149,6 @@ public class TTSEngine implements Runnable {
 		else ttsItem = new TTSItem(message, distance, voiceID);
 
         messageQueue.add(ttsItem);
-		System.out.println("added message to queue. total count:");
-		System.out.println(messageQueue.size());
     }
 
     private void prepareShortenedPhrases(String phrases) {
@@ -205,25 +197,19 @@ public class TTSEngine implements Runnable {
 		for (TTSItem sentence : sentences) sendStreamTTSData(sentence);
     }
 	private void sendStreamTTSData(TTSItem message) {
-		System.out.println("in sendStreamTTSData");
 		ttsLocked.set(true);
-		System.out.println("Locked TTS");
 		try {
 			message.audioClip = generateAudio(message.getMessage(), message.getVoiceID());
 
 			String key = (message.getType() == ChatMessageType.DIALOG) ? "&dialog" : message.getName();
 			if (message.audioClip.length > 0) {
 				audioQueues.computeIfAbsent(key, k -> new PlayerAudioQueue()).queue.add(message);
-				System.out.println("Added audio clip to queue");
-				System.out.println(message.getMessage());
-				System.out.println(message);
 			}
 		} catch (IOException exception) {
 			System.out.println("Failed to send TTS data to stream");
 			throw new RuntimeException(exception);
 		}
 		ttsLocked.set(false);
-		System.out.println("Unlocked TTS");
 	}
 
 	public ConcurrentLinkedQueue<TTSItem> getAudioQueue(String key) {

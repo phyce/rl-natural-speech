@@ -15,7 +15,17 @@ public interface NaturalSpeechConfig extends Config
 	String generalOptionsSection = "generalOptionsSection";
 
 	@ConfigItem(
-			position = 0,
+		position = 1,
+		keyName = "autoStart",
+		name = "Autostart the TTS engine",
+		description = "If executable and voice models available, autostart the TTS engine when the plugin loads.",
+		section = generalOptionsSection
+	)
+	default boolean autoStart() {
+		return true;
+	}
+	@ConfigItem(
+			position = 1,
 			keyName = "muteGrandExchange",
 			name = "Mute in Grand Exchange",
 			description = "Disable text-to-speech in the grand exchange area.",
@@ -25,7 +35,7 @@ public interface NaturalSpeechConfig extends Config
 		return true;
 	}
 	@ConfigItem(
-			position = 1,
+			position = 2,
 			keyName = "usePersonalVoice",
 			name = "Select personal voice",
 			description = "Lets you choose the voice of your character.",
@@ -35,7 +45,7 @@ public interface NaturalSpeechConfig extends Config
 		return false;
 	}
 	@ConfigItem(
-			position = 2,
+			position = 3,
 			keyName = "personalVoice",
 			name = "Personal voice ID",
 			description = "Choose one of the 903 voices for your character",
@@ -45,7 +55,7 @@ public interface NaturalSpeechConfig extends Config
 	@Range(min = 0, max = MAX_VOICES)
 	default int personalVoice() { return 0; }
 	@ConfigItem(
-			position = 3,
+			position = 4,
 			keyName = "distanceFade",
 			name = "Fade distant sound",
 			description = "Players standing further away will sound quieter.",

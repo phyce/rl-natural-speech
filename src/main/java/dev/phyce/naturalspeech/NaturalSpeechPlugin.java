@@ -67,8 +67,9 @@ public class NaturalSpeechPlugin extends Plugin
 
 		clientToolbar.addNavigation(navButton);
 
+		if (config.autoStart())startTTS();
 
-		log.info("TTS plugin initialised");
+		log.info("NaturalSpeech TTS engine started");
 	}
 	public void startTTS() throws RuntimeException{
 		try {
