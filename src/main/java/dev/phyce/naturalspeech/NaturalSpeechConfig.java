@@ -64,6 +64,26 @@ public interface NaturalSpeechConfig extends Config
 	)
 	default boolean distanceFade() { return true; }
 
+	@ConfigItem(
+		position = 4,
+		keyName = "muteSelf",
+		name = "Mute yourself",
+		description = "Do not generate text-to-speech for messages that you send.",
+		section = generalOptionsSection
+
+	)
+	default boolean muteSelf() { return false; }
+
+	@ConfigItem(
+		position = 4,
+		keyName = "muteOthers",
+		name = "Mute others",
+		description = "Do not generate text-to-speech for messages from other players.",
+		section = generalOptionsSection
+
+	)
+	default boolean muteOthers() { return false; }
+
 	@ConfigSection(
 			name = "Speech generation",
 			description = "Settings to choose which messages should be played",

@@ -160,6 +160,16 @@ public class NaturalSpeechPlugin extends Plugin
 			default: return;
 		}
 
+		//Feels like this could be inside the conditional below too. Not sure where it should go yet.
+		if(config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) {
+			return;
+		}
+		if (!message.getType().equals(ChatMessageType.DIALOG)) {
+			if(config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName())) {
+				return;
+			}
+		}
+
 		int voiceId = getVoiceId(message);
 		int distance = getSoundDistance(message);
 
