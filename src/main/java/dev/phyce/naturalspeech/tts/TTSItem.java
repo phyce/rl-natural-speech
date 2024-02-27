@@ -14,7 +14,8 @@ public class TTSItem extends ChatMessage {
 	@Getter private SpeakerTypes speakerType;
 	public byte[] audioClip;
 
-	public String message;
+//	private String[] sentences;
+
 
 	public TTSItem(ChatMessage message, int distance, int voiceID) {
 		super(message.getMessageNode(), message.getType(), message.getName(), message.getMessage(), message.getSender(), message.getTimestamp());
@@ -27,6 +28,17 @@ public class TTSItem extends ChatMessage {
 
 	public TTSItem(ChatMessage message, int distance) {	this(message, distance, -1); }
 
+	public TTSItem(TTSItem original, String sentence) {
+		this.setMessage(sentence);
+		this.setName(original.getName());
+		this.setMessageNode(original.getMessageNode());
+		this.setSender(original.getSender());
+		this.setType(original.getType());
+		this.setTimestamp(original.getTimestamp());
+		this.voiceID = original.getVoiceID();
+		this.distance = original.distance;
+		this.speakerType = original.speakerType;
+	}
 	private int calculateVoiceIndex() {
 		return calculateVoiceIndex(this.getName());
 	}
@@ -34,5 +46,17 @@ public class TTSItem extends ChatMessage {
 	public static int calculateVoiceIndex(String name) {
 		int hashCode = name.hashCode();
 		return Math.abs(hashCode) % config.MAX_VOICES;
+	}
+
+	public TTSItem[] explode() {
+		String[] sentences = this.getMessage().split("(?<=[.!?,])\\s+|(?<=[.!?,])$");
+		TTSItem[] items = new TTSItem[sentences.length];
+
+		for (int i = 0; i < sentences.length; i++) {
+			String sentence = sentences[i] + (i < sentences.length - 1 ? "." : "");
+			items[i] = new TTSItem(this, sentence);
+		}
+
+		return items;
 	}
 }
