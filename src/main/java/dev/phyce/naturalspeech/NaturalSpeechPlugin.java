@@ -5,6 +5,7 @@ import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
+import java.util.Arrays;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
@@ -132,7 +133,9 @@ public class NaturalSpeechPlugin extends Plugin
 			return;
 		}
 
-		switch(message.getType()) {
+		ChatMessageType messageType = message.getType();
+
+		switch(messageType) {
 			case PUBLICCHAT: if (!config.publicChat())return; break;
 			case PRIVATECHAT:if (!config.privateChat())return; break;
 			case PRIVATECHATOUT:if (!config.privateOutChat())return; break;
@@ -164,8 +167,21 @@ public class NaturalSpeechPlugin extends Plugin
 		if(config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) {
 			return;
 		}
-		if (!message.getType().equals(ChatMessageType.DIALOG)) {
+		if (!messageType.equals(ChatMessageType.DIALOG)) {
 			if(config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName())) {
+				return;
+			}
+		}
+
+		if (config.muteLevelThreshold() > getPlayerLevel(message.getName())) {
+			if (!client.getLocalPlayer().getName().equals(message.getName()) &&
+				!Arrays.asList(
+					ChatMessageType.DIALOG,
+					ChatMessageType.PRIVATECHATOUT,
+					ChatMessageType.ITEM_EXAMINE,
+					ChatMessageType.NPC_EXAMINE,
+					ChatMessageType.OBJECT_EXAMINE
+				).contains(messageType)) {
 				return;
 			}
 		}
@@ -222,6 +238,14 @@ public class NaturalSpeechPlugin extends Plugin
 		if (localPlayer == null || targetPlayer == null) return 0;
 
 		return localPlayer.getWorldLocation().distanceTo(targetPlayer.getWorldLocation());
+	}
+
+	public int getPlayerLevel(String username) {
+		Player targetPlayer = getPlayerFromUsername(username);
+
+		if (targetPlayer == null) return 0;
+
+		return targetPlayer.getCombatLevel();
 	}
 	private Player getPlayerFromUsername(String username) {
 		String sanitized = Text.sanitize(username);
