@@ -1,17 +1,25 @@
 package dev.phyce.naturalspeech;
 
+import dev.phyce.naturalspeech.common.CustomMenuEntry;
 import dev.phyce.naturalspeech.enums.Locations;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
+import java.awt.Menu;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
+import net.runelite.api.MenuAction;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.events.MenuOpened;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -194,6 +202,36 @@ public class NaturalSpeechPlugin extends Plugin
 			tts.speak(message, voiceId, distance);
 		} catch(IOException e) {
 			log.info(e.getMessage());
+		}
+	}
+	@Subscribe
+	public void onMenuOpened(MenuOpened event) {
+		final MenuEntry[] entries = event.getMenuEntries();
+		int insertIndex = entries.length; // Start from the end, assuming we'll add to the bottom
+
+		for (int index = entries.length - 1; index >= 0; index--) {
+			MenuEntry entry = entries[index];
+
+			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) {
+				// Found the PLAYER_EIGHTH_OPTION, insert our custom entries here
+				insertIndex = index; // Adjust insertIndex to this position
+
+				CustomMenuEntry muteOptions = new CustomMenuEntry(
+					String.format("TTS (%s<col=ffffff>) >", entry.getTarget()), insertIndex);
+
+				muteOptions.addChild(new CustomMenuEntry("Mute player", -1, function -> {
+					System.out.println("Mute player selected");
+					// Implement the mute player functionality
+				}));
+
+				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
+					System.out.println("Mute others selected");
+					// Implement the mute others functionality
+				}));
+
+				// Instead of directly adding, modify the addTo method to handle insertIndex correctly
+				muteOptions.addTo(client);
+			}
 		}
 	}
 	protected int getVoiceId(ChatMessage message) {

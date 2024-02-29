@@ -261,6 +261,7 @@ public interface NaturalSpeechConfig extends Config
 				"afk=away from keyboard\n" +
 				"tts=text to speech\n" +
 				"ea=each\n" +
-				"bbq=barbeque\n";
+				"bbq=barbeque\n" +
+				"thx=thanks\n";
 	}
 }
