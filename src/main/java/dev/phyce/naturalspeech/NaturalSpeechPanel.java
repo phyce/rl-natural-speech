@@ -210,18 +210,6 @@ public class NaturalSpeechPanel extends PluginPanel {
         add(downloadPanel);
     }
 
-    public void updateModelSegment() {
-//        float progress = DownloadManager.getInstance().getFileProgress();
-//        SwingUtilities.invokeLater(() -> {
-//            if (voiceModelInput != null) voiceModelInput.setText(String.format("voice (%.0f%%)", progress));
-//
-//            if (progress > 0 && downloadButton != null) downloadButton.setEnabled(false);
-//        });
-    }
-
-
-
-
     // Method to update the status text, color, and button states
     public void updateStatus(int status) {
         String statusText = "Status: ";
