@@ -1,6 +1,9 @@
-package dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech.panels;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.Settings;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +47,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 
     @Inject
     public NaturalSpeechPanel(NaturalSpeechConfig config, NaturalSpeechPlugin plugin, ConfigManager configManager) {
-        super();
+        super(false);
         this.config = config;
         this.plugin = plugin;
         this.configManager = configManager;
@@ -57,6 +60,7 @@ public class NaturalSpeechPanel extends PluginPanel {
         updateStatus(1);
         drawBinarySegment();
         drawModelSegment();
+
     }
     public void drawHeaderSegment() {
         JLabel titleLabel = new JLabel("NaturalSpeech", JLabel.CENTER);
@@ -280,5 +284,19 @@ public class NaturalSpeechPanel extends PluginPanel {
         stopEngine();
         startEngine();
 
+    }
+
+    @Override
+    public void onActivate() {
+        super.onActivate();
+
+        setVisible(true);
+    }
+
+    @Override
+    public void onDeactivate() {
+        super.onDeactivate();
+
+        setVisible(false);
     }
 }

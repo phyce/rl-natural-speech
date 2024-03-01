@@ -1,8 +1,13 @@
 package dev.phyce.naturalspeech;
 
 import dev.phyce.naturalspeech.common.CustomMenuEntry;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 import dev.phyce.naturalspeech.enums.Locations;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.panels.EditorPanel;
+import dev.phyce.naturalspeech.panels.NaturalSpeechPanel;
+import dev.phyce.naturalspeech.panels.TopLevelPanel;
 import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
@@ -32,7 +37,6 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.ui.ClientToolbar;
 
-import javax.inject.Inject;
 import javax.sound.sampled.LineUnavailableException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -55,7 +59,7 @@ public class NaturalSpeechPlugin extends Plugin
 	@Getter
 	private TTSEngine tts = null;
 	private boolean started = false;
-	private NaturalSpeechPanel panel;
+
 	private NavigationButton navButton;
 	@Getter
 	private Downloader downloader;
@@ -64,21 +68,27 @@ public class NaturalSpeechPlugin extends Plugin
 	@Getter
 	private final Set<String> blockList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
+	@Inject
+	private Provider<TopLevelPanel> topLevelPanelProvider;
+	@Inject
+	private Provider<NaturalSpeechPanel> naturalSpeechPanelProvider;
+	@Inject
+	private Provider<EditorPanel> editorPanelProvider;
+	private TopLevelPanel topLevelPanel;
+
 	@Override
 	protected void startUp() {
-		// Inject client into PlayerCommon
-		PlayerCommon playerCommon = injector.getInstance(PlayerCommon.class);
-
-		// Create downloader
+		// create downloader
 		downloader = injector.getInstance(Downloader.class);
-		panel = injector.getInstance(NaturalSpeechPanel.class);
+
+		topLevelPanel = topLevelPanelProvider.get();
 
 		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 		navButton = NavigationButton.builder()
 				.tooltip("Natural Speech")
 				.icon(icon)
 				.priority(1)
-				.panel(panel)
+				.panel(topLevelPanel)
 				.build();
 
 		clientToolbar.addNavigation(navButton);
@@ -90,7 +100,7 @@ public class NaturalSpeechPlugin extends Plugin
 	public void startTTS() throws RuntimeException{
 		try {
 			started = true;
-			new Thread(this::statusUpdates).start();
+//			new Thread(this::statusUpdates).start();
 
 			Path tts_path = Path.of(config.ttsEngine());
 			Path voice_path = tts_path.resolveSibling(Settings.voiceFolderName).resolve(Settings.voiceFilename);
@@ -112,25 +122,25 @@ public class NaturalSpeechPlugin extends Plugin
 		tts.shutDown();
 	}
 	public void statusUpdates() {
-		boolean ttsRunning = false;
-		while (started) {
-			try {
-				Thread.sleep(500);
-
-				if(tts != null) {
-					if(ttsRunning != tts.isProcessing()) {
-						ttsRunning = tts.isProcessing();
-
-						if(ttsRunning) {
-                            panel.updateStatus(2);
-                        } else {
-                            panel.updateStatus(1);
-                        }
-					}
-				}
-
-			} catch (InterruptedException e) {return;}
-        }
+//		boolean ttsRunning = false;
+//		while (started) {
+//			try {
+//				Thread.sleep(500);
+//
+//				if(tts != null) {
+//					if(ttsRunning != tts.isProcessing()) {
+//						ttsRunning = tts.isProcessing();
+//
+//						if(ttsRunning) {
+//                            panel.updateStatus(2);
+//                        } else {
+//                            panel.updateStatus(1);
+//                        }
+//					}
+//				}
+//
+//			} catch (InterruptedException e) {return;}
+//        }
 	}
 	@Override
 	protected void shutDown() {
