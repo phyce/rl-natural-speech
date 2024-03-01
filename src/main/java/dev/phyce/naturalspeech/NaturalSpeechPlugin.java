@@ -62,8 +62,10 @@ public class NaturalSpeechPlugin extends Plugin
 
 	@Override
 	protected void startUp() {
+		// Inject client into PlayerCommon
+		PlayerCommon playerCommon = injector.getInstance(PlayerCommon.class);
 
-		// create downloader
+		// Create downloader
 		downloader = injector.getInstance(Downloader.class);
 		panel = injector.getInstance(NaturalSpeechPanel.class);
 
@@ -151,6 +153,8 @@ public class NaturalSpeechPlugin extends Plugin
 			case FRIENDSCHAT:		if (!config.friendsChat()) return; 		break;
 			case CLAN_CHAT: 		if (!config.clanChat()) return; 		break;
 			case CLAN_GUEST_CHAT: 	if (!config.clanGuestChat()) return; 	break;
+
+			default: break;
 		}
 
 		switch(messageType) {
