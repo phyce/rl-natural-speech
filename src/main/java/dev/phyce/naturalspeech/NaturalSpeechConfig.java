@@ -25,16 +25,6 @@ public interface NaturalSpeechConfig extends Config
 		return true;
 	}
 	@ConfigItem(
-			position = 1,
-			keyName = "muteGrandExchange",
-			name = "Mute in Grand Exchange",
-			description = "Disable text-to-speech in the grand exchange area.",
-			section = generalOptionsSection
-	)
-	default boolean muteGrandExchange() {
-		return true;
-	}
-	@ConfigItem(
 			position = 2,
 			keyName = "usePersonalVoice",
 			name = "Select personal voice",
@@ -63,37 +53,6 @@ public interface NaturalSpeechConfig extends Config
 
 	)
 	default boolean distanceFade() { return true; }
-
-	@ConfigItem(
-		position = 4,
-		keyName = "muteSelf",
-		name = "Mute yourself",
-		description = "Do not generate text-to-speech for messages that you send.",
-		section = generalOptionsSection
-
-	)
-	default boolean muteSelf() { return false; }
-
-	@ConfigItem(
-		position = 5,
-		keyName = "muteOthers",
-		name = "Mute others",
-		description = "Do not generate text-to-speech for messages from other players.",
-		section = generalOptionsSection
-
-	)
-	default boolean muteOthers() { return false; }
-
-	@ConfigItem(
-		position = 6,
-		keyName = "muteLevelThreshold",
-		name = "Mute below level",
-		description = "Do not generate text-to-speech for messages from players with levels lower than this value.",
-		section = generalOptionsSection
-
-	)
-	@Range(min = 3, max = 126)
-	default int muteLevelThreshold() { return 3; }
 
 	@ConfigSection(
 			name = "Speech generation",
@@ -185,9 +144,55 @@ public interface NaturalSpeechConfig extends Config
 	}
 
 	@ConfigSection(
+		name = "Mute",
+		description = "Change mute settings here",
+		position = 2
+	)
+	String muteOptionsSection = "muteOptionsSection";
+	@ConfigItem(
+		position = 1,
+		keyName = "muteGrandExchange",
+		name = "Mute in Grand Exchange",
+		description = "Disable text-to-speech in the grand exchange area.",
+		section = muteOptionsSection
+	)
+	default boolean muteGrandExchange() {
+		return true;
+	}
+	@ConfigItem(
+		position = 4,
+		keyName = "muteSelf",
+		name = "Mute yourself",
+		description = "Do not generate text-to-speech for messages that you send.",
+		section = muteOptionsSection
+
+	)
+	default boolean muteSelf() { return false; }
+	@ConfigItem(
+		position = 5,
+		keyName = "muteOthers",
+		name = "Mute others",
+		description = "Do not generate text-to-speech for messages from other players.",
+		section = muteOptionsSection
+
+	)
+	default boolean muteOthers() { return false; }
+
+	@ConfigItem(
+		position = 6,
+		keyName = "muteLevelThreshold",
+		name = "Mute below level",
+		description = "Do not generate text-to-speech for messages from players with levels lower than this value.",
+		section = muteOptionsSection
+
+	)
+	@Range(min = 3, max = 126)
+	default int muteLevelThreshold() { return 3; }
+
+	@ConfigSection(
 			name = "Other",
 			description = "Other settings",
-			position = 2
+			position = 3
 	)
 	String otherOptionsSection = "otherOptionsSection";
 
