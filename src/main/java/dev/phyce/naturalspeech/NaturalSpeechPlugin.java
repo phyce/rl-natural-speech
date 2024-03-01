@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
@@ -78,6 +80,7 @@ public class NaturalSpeechPlugin extends Plugin
 
 	@Override
 	protected void startUp() {
+		PlayerCommon playerCommon = injector.getInstance(PlayerCommon.class);
 		// create downloader
 		downloader = injector.getInstance(Downloader.class);
 
@@ -262,7 +265,13 @@ public class NaturalSpeechPlugin extends Plugin
 	}
 
 	public synchronized void drawOptions(MenuEntry entry, int index) {
-		String username = entry.getTarget().replaceAll(" <.*$", "");
+		String regex = "<col=[0-9a-f]+>([^<]+)";
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(entry.getTarget());
+
+		matcher.find();
+		String username = matcher.group(1).trim();
+		
 		String status;
 		if(isBeingListened(username)) {
 			status = "<col=78B159>O>";
