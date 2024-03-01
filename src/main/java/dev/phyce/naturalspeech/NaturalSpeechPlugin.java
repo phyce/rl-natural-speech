@@ -7,8 +7,10 @@ import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
@@ -19,6 +21,8 @@ import net.runelite.api.Player;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.MenuOpened;
+import net.runelite.api.widgets.InterfaceID;
+import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -56,9 +60,9 @@ public class NaturalSpeechPlugin extends Plugin
 	@Getter
 	private Downloader downloader;
 	@Getter
-	private Set<String> allowList = new HashSet<>();
+	private final Set<String> allowList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	@Getter
-	private Set<String> blockList = new HashSet<>();
+	private final Set<String> blockList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
 	@Override
 	protected void startUp() {
@@ -224,72 +228,82 @@ public class NaturalSpeechPlugin extends Plugin
 	@Subscribe
 	public void onMenuOpened(MenuOpened event) {
 		final MenuEntry[] entries = event.getMenuEntries();
-		int insertIndex = entries.length; // Start from the end, assuming we'll add to the bottom
 
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
 
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) {
-				// Found the PLAYER_EIGHTH_OPTION, insert our custom entries here
-				insertIndex = index; // Adjust insertIndex to this position
+			final int componentId = entry.getParam1();
+			final int groupId = WidgetUtil.componentToInterface(componentId);
 
-				String username = entry.getTarget().replaceAll(" <.*$", "");
-				String status;
-				if(isBeingListened(username)) {
-					status = "<col=78B159>O";
-				}
-				else {
-					status = "<col=DD2E44>0";
-				}
+			Set<Integer> interfaces = new HashSet<>();
+			interfaces.add(InterfaceID.FRIEND_LIST);
+			interfaces.add(InterfaceID.FRIENDS_CHAT);
+			interfaces.add(InterfaceID.CHATBOX);
+			interfaces.add(InterfaceID.PRIVATE_CHAT);
+			interfaces.add(InterfaceID.GROUP_IRON);
 
-				CustomMenuEntry muteOptions = new CustomMenuEntry(
-					//<col=DD2E44>0
-//					String
-					String.format("%s <col=ffffff>TTS <col=ffffff>(%s) >", status, username), insertIndex);
-
-
-				if(isBeingListened(username)) {
-					if(!allowList.isEmpty()) {
-						muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
-							unlisten(username);
-						}));
-					} else {
-						muteOptions.addChild(new CustomMenuEntry("Mute", -1, function -> {
-							mute(username);
-						}));
-					}
-
-					if(allowList.isEmpty() && blockList.isEmpty()) {
-						muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
-							listen(username);
-						}));
-					}
-				}
-				else {
-					if(!blockList.isEmpty()) {
-						muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
-							unmute(username);
-						}));
-					} else {
-						muteOptions.addChild(new CustomMenuEntry("Listen", -1, function -> {
-							listen(username);
-						}));
-					}
-				}
-
-				if(!blockList.isEmpty()) {
-					muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
-						blockList.clear();
-					}));
-				} else if (!allowList.isEmpty()) {
-					muteOptions.addChild(new CustomMenuEntry("Clear allow list", -1, function -> {
-						allowList.clear();
-					}));
-				}
-				muteOptions.addTo(client);
+			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
+			else if(interfaces.contains(groupId)/* && entry.getOption() == "Report"*/) {
+				System.out.println(entry);
+				System.out.println(entry.getOption());
+				if(entry.getOption().equals("Report")) drawOptions(entry, index);
 			}
 		}
 	}
+
+	public synchronized void drawOptions(MenuEntry entry, int index) {
+		String username = entry.getTarget().replaceAll(" <.*$", "");
+		String status;
+		if(isBeingListened(username)) {
+			status = "<col=78B159>O>";
+		}
+		else {
+			status = "<col=DD2E44>0>";
+		}
+
+		CustomMenuEntry muteOptions = new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username), index);
+
+		if(isBeingListened(username)) {
+			if(!allowList.isEmpty()) {
+				muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
+					unlisten(username);
+				}));
+			} else {
+				muteOptions.addChild(new CustomMenuEntry("Mute", -1, function -> {
+					mute(username);
+				}));
+			}
+
+			if(allowList.isEmpty() && blockList.isEmpty()) {
+				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
+					listen(username);
+				}));
+			}
+		}
+		else {
+			if(!blockList.isEmpty()) {
+				muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
+					unmute(username);
+				}));
+			} else {
+				muteOptions.addChild(new CustomMenuEntry("Listen", -1, function -> {
+					listen(username);
+				}));
+			}
+		}
+
+		if(!blockList.isEmpty()) {
+			muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
+				blockList.clear();
+			}));
+		} else if (!allowList.isEmpty()) {
+			muteOptions.addChild(new CustomMenuEntry("Clear allow list", -1, function -> {
+				allowList.clear();
+			}));
+		}
+		muteOptions.addTo(client);
+	}
+
 	public boolean isBeingListened(String username) {
 		if(allowList.isEmpty() && blockList.isEmpty())return true;
 		if(!allowList.isEmpty() && allowList.contains(username))return true;
