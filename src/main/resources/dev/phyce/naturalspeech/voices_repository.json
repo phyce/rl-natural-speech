@@ -1,8 +1,8 @@
 [
     {
         "name": "en_US-libritts-high",
-        "onnx": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx?download=true",
-        "onnx_metadata": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx.json?download=true",
-        "speakers_metadata": "https://raw.githubusercontent.com/phyce/rl-natural-speech/master/speakers_metadata/en_US-libritts-high.metadata.json"
+        "onnx_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx?download=true",
+        "onnx_metadata_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx.json?download=true",
+        "speakers_metadata_url": "https://raw.githubusercontent.com/phyce/rl-natural-speech/master/speakers_metadata/en_US-libritts-high.speakers.json"
     }
 ]
