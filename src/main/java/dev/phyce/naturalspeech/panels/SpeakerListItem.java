@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.panels;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
+import lombok.Getter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.ui.ColorScheme;
@@ -9,6 +10,7 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -17,6 +19,8 @@ public class SpeakerListItem extends JPanel {
 
     private final SpeakerExplorerPanel speakerExplorerPanel;
     private final NaturalSpeechPlugin plugin;
+    @Getter
+    private final VoiceRepository.Speaker speaker;
 
 
     SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, VoiceRepository.Speaker speaker) {
@@ -24,6 +28,7 @@ public class SpeakerListItem extends JPanel {
 
         this.speakerExplorerPanel = speakerExplorerPanel;
         this.plugin = plugin;
+        this.speaker = speaker;
 
         this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
         this.setOpaque(true);

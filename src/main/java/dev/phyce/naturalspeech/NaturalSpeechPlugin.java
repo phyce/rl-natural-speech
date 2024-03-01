@@ -64,7 +64,6 @@ public class NaturalSpeechPlugin extends Plugin
 
 	@Override
 	protected void startUp() {
-
 		// create downloader
 		downloader = injector.getInstance(Downloader.class);
 

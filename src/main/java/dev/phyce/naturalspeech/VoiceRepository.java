@@ -46,9 +46,13 @@ public class VoiceRepository {
 
     @Value
     public static class Speaker {
+        // The Model ID from the data set
         int speaker_id;
+        // The Piper Voice ID used by piper (mapped from Model ID using *.onnx.json)
         int piper_id;
+        // M, F, ...
         String gender;
+        // The speaker name from the model data set
         String name;
     }
 
@@ -100,7 +104,7 @@ public class VoiceRepository {
             if (!voiceFolder.resolve(voice_name + ".speakers.json").toFile().exists()) {
                 localVoiceValid = false;
             }
-            // TODO Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
+            // TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
         } else { // voices folder don't exist, so no voices can exist
             localVoiceValid = false;
             // create the folder
