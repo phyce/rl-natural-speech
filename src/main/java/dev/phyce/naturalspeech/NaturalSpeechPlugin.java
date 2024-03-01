@@ -6,28 +6,26 @@ import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.TTSEngine;
 
 import com.google.inject.Provides;
-import java.awt.Menu;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.Player;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.api.Player;
+import dev.phyce.naturalspeech.common.PlayerCommon;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.Text;
 import net.runelite.client.ui.ClientToolbar;
 
 import javax.inject.Inject;
@@ -55,9 +53,12 @@ public class NaturalSpeechPlugin extends Plugin
 	private boolean started = false;
 	private NaturalSpeechPanel panel;
 	private NavigationButton navButton;
-
 	@Getter
 	private Downloader downloader;
+	@Getter
+	private Set<String> allowList = new HashSet<>();
+	@Getter
+	private Set<String> blockList = new HashSet<>();
 
 	@Override
 	protected void startUp() {
@@ -144,12 +145,24 @@ public class NaturalSpeechPlugin extends Plugin
 		ChatMessageType messageType = message.getType();
 
 		switch(messageType) {
-			case PUBLICCHAT: if (!config.publicChat())return; break;
-			case PRIVATECHAT:if (!config.privateChat())return; break;
-			case PRIVATECHATOUT:if (!config.privateOutChat())return; break;
-			case FRIENDSCHAT:if (!config.friendsChat())return; break;
-			case CLAN_CHAT: if (!config.clanChat())return; break;
-			case CLAN_GUEST_CHAT: if (!config.clanGuestChat())return; break;
+			case PUBLICCHAT: 		if (!config.publicChat()) return; 		break;
+			case PRIVATECHAT:		if (!config.privateChat()) return; 		break;
+			case PRIVATECHATOUT:	if (!config.privateOutChat()) return; 	break;
+			case FRIENDSCHAT:		if (!config.friendsChat()) return; 		break;
+			case CLAN_CHAT: 		if (!config.clanChat()) return; 		break;
+			case CLAN_GUEST_CHAT: 	if (!config.clanGuestChat()) return; 	break;
+		}
+
+		switch(messageType) {
+			case PUBLICCHAT:
+			case PRIVATECHAT:
+			case PRIVATECHATOUT:
+			case FRIENDSCHAT:
+			case CLAN_CHAT:
+			case CLAN_GUEST_CHAT:
+				if(!allowList.isEmpty() && !allowList.contains(message.getName())) return;
+				if(!blockList.isEmpty() && blockList.contains(message.getName())) return;
+				break;
 
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
@@ -181,7 +194,7 @@ public class NaturalSpeechPlugin extends Plugin
 			}
 		}
 
-		if (config.muteLevelThreshold() > getPlayerLevel(message.getName())) {
+		if (config.muteLevelThreshold() > PlayerCommon.getLevel(message.getName())) {
 			if (!client.getLocalPlayer().getName().equals(message.getName()) &&
 				!Arrays.asList(
 					ChatMessageType.DIALOG,
@@ -216,23 +229,67 @@ public class NaturalSpeechPlugin extends Plugin
 				// Found the PLAYER_EIGHTH_OPTION, insert our custom entries here
 				insertIndex = index; // Adjust insertIndex to this position
 
+				String username = entry.getTarget().replaceAll(" <.*$", "");
+				String status;
+				if(isBeingListened(username)) {
+					status = "<col=78B159>O";
+				}
+				else {
+					status = "<col=DD2E44>0";
+				}
+
 				CustomMenuEntry muteOptions = new CustomMenuEntry(
-					String.format("TTS (%s<col=ffffff>) >", entry.getTarget()), insertIndex);
+					//<col=DD2E44>0
+//					String
+					String.format("%s <col=ffffff>TTS <col=ffffff>(%s) >", status, username), insertIndex);
 
-				muteOptions.addChild(new CustomMenuEntry("Mute player", -1, function -> {
-					System.out.println("Mute player selected");
-					// Implement the mute player functionality
-				}));
 
-				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
-					System.out.println("Mute others selected");
-					// Implement the mute others functionality
-				}));
+				if(isBeingListened(username)) {
+					if(!allowList.isEmpty()) {
+						muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
+							unlisten(username);
+						}));
+					} else {
+						muteOptions.addChild(new CustomMenuEntry("Mute", -1, function -> {
+							mute(username);
+						}));
+					}
 
-				// Instead of directly adding, modify the addTo method to handle insertIndex correctly
+					if(allowList.isEmpty() && blockList.isEmpty()) {
+						muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
+							listen(username);
+						}));
+					}
+				}
+				else {
+					if(!blockList.isEmpty()) {
+						muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
+							unmute(username);
+						}));
+					} else {
+						muteOptions.addChild(new CustomMenuEntry("Listen", -1, function -> {
+							listen(username);
+						}));
+					}
+				}
+
+				if(!blockList.isEmpty()) {
+					muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
+						blockList.clear();
+					}));
+				} else if (!allowList.isEmpty()) {
+					muteOptions.addChild(new CustomMenuEntry("Clear allow list", -1, function -> {
+						allowList.clear();
+					}));
+				}
 				muteOptions.addTo(client);
 			}
 		}
+	}
+	public boolean isBeingListened(String username) {
+		if(allowList.isEmpty() && blockList.isEmpty())return true;
+		if(!allowList.isEmpty() && allowList.contains(username))return true;
+		return !blockList.isEmpty() && !blockList.contains(username);
 	}
 	protected int getVoiceId(ChatMessage message) {
 		//log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
@@ -253,7 +310,7 @@ public class NaturalSpeechPlugin extends Plugin
 		return -1;
 	}
 	protected int getSoundDistance(ChatMessage message) {
-		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFade()) return getPlayerDistance(message.getName());
+		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFade()) return PlayerCommon.getDistance(message.getName());
 		return 0;
 	}
 	protected boolean positionInArea(Locations location) {
@@ -269,29 +326,29 @@ public class NaturalSpeechPlugin extends Plugin
 		return position.getX() >= minX && position.getX() <= maxX
 				&& position.getY() >= minY && position.getY() <= maxY;
 	}
-	public int getPlayerDistance(String username) {
-		Player localPlayer = client.getLocalPlayer();
-		Player targetPlayer = getPlayerFromUsername(username);
 
-		if (localPlayer == null || targetPlayer == null) return 0;
-
-		return localPlayer.getWorldLocation().distanceTo(targetPlayer.getWorldLocation());
+	public void listen(String username) {
+		blockList.clear();
+		if(allowList.contains(username))return;
+		allowList.add(username);
 	}
 
-	public int getPlayerLevel(String username) {
-		Player targetPlayer = getPlayerFromUsername(username);
-
-		if (targetPlayer == null) return 0;
-
-		return targetPlayer.getCombatLevel();
+	public void unlisten(String username) {
+		if(allowList.isEmpty())return;
+		allowList.remove(username);
 	}
-	private Player getPlayerFromUsername(String username) {
-		String sanitized = Text.sanitize(username);
-		for (Player player : client.getCachedPlayers()) {
-			if (player != null && player.getName() != null && Text.sanitize(player.getName()).equals(sanitized)) return player;
-		}
-		return null;
+
+	public void mute(String username) {
+		allowList.clear();
+		if(blockList.contains(username))return;
+		blockList.add(username);
 	}
+
+	public void unmute(String username) {
+		if(blockList.isEmpty())return;
+		blockList.remove(username);
+	}
+
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);
