@@ -9,6 +9,7 @@ import java.awt.*;
 public class EditorPanel extends PluginPanel {
 
     public EditorPanel() {
+        super(false);
         JLabel titleLabel = new JLabel("Editor", JLabel.CENTER);
         titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
         titleLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
