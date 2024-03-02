@@ -1,8 +1,7 @@
-package dev.phyce.naturalspeech.ui.components;
+package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
-import dev.phyce.naturalspeech.ui.panels.SpeakerExplorerPanel;
 import lombok.Getter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
