@@ -1,7 +1,8 @@
-package dev.phyce.naturalspeech.ui;
+package dev.phyce.naturalspeech.ui.components;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
+import dev.phyce.naturalspeech.ui.panels.SpeakerExplorerPanel;
 import lombok.Getter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
@@ -22,7 +23,7 @@ public class SpeakerListItem extends JPanel {
     private final VoiceRepository.Speaker speaker;
 
 
-    SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, VoiceRepository.Speaker speaker) {
+    public SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, VoiceRepository.Speaker speaker) {
 
 
         this.speakerExplorerPanel = speakerExplorerPanel;
