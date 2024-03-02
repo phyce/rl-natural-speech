@@ -237,6 +237,7 @@ public interface NaturalSpeechConfig extends Config
 				"ty=thank you\n" +
 				"tysm=thank you so much\n" +
 				"tyvm=thank you very much\n" +
+				"tyty=thank you thank you\n" +
 				"im=i'm\n" +
 				"np=no problem\n" +
 				"acc=account\n" +
@@ -267,6 +268,11 @@ public interface NaturalSpeechConfig extends Config
 				"tts=text to speech\n" +
 				"ea=each\n" +
 				"bbq=barbeque\n" +
-				"thx=thanks\n";
+				"thx=thanks\n" +
+				"lmk=let me know\n" +
+				"gg=good game\n" +
+				"wp=well played\n" +
+				"ggwp=good game well played\n" +
+				"ge=grand exchange\n";
 	}
 }

@@ -267,7 +267,7 @@ public class NaturalSpeechPanel extends EditorPanel {
             updateStatus(4);
             return;
         }
-        if (plugin.getTts().isProcessing()) {
+        if (plugin.getTts().isActive()) {
             updateStatus(2);
         } else {
             updateStatus(4);

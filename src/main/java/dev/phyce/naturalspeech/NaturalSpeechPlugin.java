@@ -10,11 +10,14 @@ import dev.phyce.naturalspeech.ui.panels.NaturalSpeechPanel;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 import com.google.inject.Provides;
+import dev.phyce.naturalspeech.tts.TTSManager;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
@@ -54,7 +57,7 @@ public class NaturalSpeechPlugin extends Plugin
 	@Inject
 	private NaturalSpeechConfig config;
 	@Getter
-	private TTSEngine tts = null;
+	private TTSManager tts = null;
 	private boolean started = false;
 
 	private NavigationButton navButton;
@@ -75,6 +78,7 @@ public class NaturalSpeechPlugin extends Plugin
 
 	@Override
 	protected void startUp() {
+		PlayerCommon playerCommon = injector.getInstance(PlayerCommon.class);
 		// create downloader
 		downloader = injector.getInstance(Downloader.class);
 
@@ -95,23 +99,19 @@ public class NaturalSpeechPlugin extends Plugin
 		log.info("NaturalSpeech TTS engine started");
 	}
 	public void startTTS() throws RuntimeException{
-		try {
-			started = true;
-//			new Thread(this::statusUpdates).start();
+		started = true;
 
-			Path tts_path = Path.of(config.ttsEngine());
-			Path voice_path = tts_path.resolveSibling(Settings.voiceFolderName).resolve(Settings.voiceFilename);
+		Path ttsPath = Path.of(config.ttsEngine());
+		Path voicePath = ttsPath.resolveSibling(Settings.voiceFolderName).resolve(Settings.voiceFilename);
 
-			// check if tts_path points to existing file and is a valid executable
-			if (!tts_path.toFile().exists() || !tts_path.toFile().canExecute()) {
-				log.error("Invalid TTS engine path.");
-				throw new RuntimeException("Invalid TTS engine path");
-			}
-
-			tts = new TTSEngine(tts_path, voice_path, config.shortenedPhrases());
-		} catch (IOException | LineUnavailableException e) {
-			log.info(e.getMessage());
+		// check if tts_path points to existing file and is a valid executable
+		if (!ttsPath.toFile().exists() || !ttsPath.toFile().canExecute()) {
+			log.error("Invalid TTS engine path.");
+			throw new RuntimeException("Invalid TTS engine path");
 		}
+		tts = new TTSManager(ttsPath, config.shortenedPhrases());
+		tts.startVoiceModel(voicePath);
+		//tts = new TTSEngine(tts_path, voice_path, config.shortenedPhrases());
 	}
 
 	public void stopTTS() {
@@ -147,11 +147,13 @@ public class NaturalSpeechPlugin extends Plugin
 	}
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) {
-		if(!started) return;
-		if(tts == null || !tts.isProcessing()) return;
-
+		if(!started) {
+			return;
+		}
+		if(tts == null || !tts.isActive()) {
+			return;
+		}
 		if( config.muteGrandExchange() && positionInArea(Locations.GRAND_EXCHANGE)) {
-			tts.clearQueues();
 			return;
 		}
 
@@ -226,7 +228,7 @@ public class NaturalSpeechPlugin extends Plugin
 		int distance = getSoundDistance(message);
 
 		try {
-			//System.out.println(message);
+			System.out.println(message);
 			tts.speak(message, voiceId, distance);
 		} catch(IOException e) {
 			log.info(e.getMessage());
@@ -251,21 +253,25 @@ public class NaturalSpeechPlugin extends Plugin
 
 			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
 			else if(interfaces.contains(groupId)/* && entry.getOption() == "Report"*/) {
-				System.out.println(entry);
-				System.out.println(entry.getOption());
 				if(entry.getOption().equals("Report")) drawOptions(entry, index);
 			}
 		}
 	}
 
 	public synchronized void drawOptions(MenuEntry entry, int index) {
-		String username = entry.getTarget().replaceAll(" <.*$", "");
+		String regex = "<col=[0-9a-f]+>([^<]+)";
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(entry.getTarget());
+
+		matcher.find();
+		String username = matcher.group(1).trim();
+
 		String status;
 		if(isBeingListened(username)) {
-			status = "<col=78B159>O>";
+			status = "<col=78B159>O";
 		}
 		else {
-			status = "<col=DD2E44>0>";
+			status = "<col=DD2E44>0";
 		}
 
 		CustomMenuEntry muteOptions = new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username), index);
