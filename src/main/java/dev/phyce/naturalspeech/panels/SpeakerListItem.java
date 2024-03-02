@@ -64,7 +64,7 @@ public class SpeakerListItem extends JPanel {
         SwingUtil.removeButtonDecorations(playButton);
         playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
         playButton.addActionListener(event -> {
-            if (plugin.getTts() != null && plugin.getTts().isProcessing()) {
+            if (plugin.getTts() != null && plugin.getTts().isActive()) {
                 ChatMessage msg = new ChatMessage();
                 msg.setMessage(speakerExplorerPanel.getSpeechText().getText());
                 msg.setType(ChatMessageType.DIALOG);
