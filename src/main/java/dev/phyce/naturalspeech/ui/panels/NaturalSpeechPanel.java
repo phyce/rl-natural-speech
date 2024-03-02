@@ -27,7 +27,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 
 @Slf4j
-public class NaturalSpeechPanel extends EditorPanel {
+public class NaturalSpeechPanel extends PluginPanel {
 
     private NaturalSpeechConfig config;
     private NaturalSpeechPlugin plugin;
