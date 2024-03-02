@@ -19,7 +19,7 @@ public class TTSModel implements Runnable
 
 
 	public TTSModel(String name, Path path, Path enginePath) {
-		this(name, path, enginePath, 1);
+		this(name, path, enginePath, 2);
 
 	}
 
@@ -29,7 +29,7 @@ public class TTSModel implements Runnable
 		this.enginePath = enginePath;
 
 		//Instance count should not be more than 2
-		for(int index = 0; index < instanceCount; index++ ) {
+		for(int index = 1; index <= instanceCount; index++ ) {
 			try {
 				TTSEngine instance = new TTSEngine(enginePath, path);
 				instances.add(instance);
