@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.panels;
+package dev.phyce.naturalspeech.ui;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
@@ -10,7 +10,6 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -47,7 +46,7 @@ public class SpeakerListItem extends JPanel {
         JLabel sexLabel = new JLabel(speaker.getGender().replaceFirst("M", "(M)").replaceFirst("F", "(F)"));
         sexLabel.setForeground(Color.white);
 
-        JLabel piperIdLabel = new JLabel(String.format("ID%d", speaker.getPiper_id()));
+        JLabel piperIdLabel = new JLabel(String.format("%d", speaker.getPiper_id()));
         sexLabel.setForeground(Color.white);
 
 

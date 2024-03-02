@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.panels;
+package dev.phyce.naturalspeech.ui;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
