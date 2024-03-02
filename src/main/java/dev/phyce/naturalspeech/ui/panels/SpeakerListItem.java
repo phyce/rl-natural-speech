@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.ui;
+package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
@@ -22,7 +22,7 @@ public class SpeakerListItem extends JPanel {
     private final VoiceRepository.Speaker speaker;
 
 
-    SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, VoiceRepository.Speaker speaker) {
+    public SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, VoiceRepository.Speaker speaker) {
 
 
         this.speakerExplorerPanel = speakerExplorerPanel;

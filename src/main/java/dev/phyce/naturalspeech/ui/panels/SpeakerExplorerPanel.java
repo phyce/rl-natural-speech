@@ -1,10 +1,11 @@
-package dev.phyce.naturalspeech.ui;
+package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
+import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
@@ -111,7 +112,6 @@ public class SpeakerExplorerPanel extends PluginPanel {
         speakerScrollPane = new JScrollPane(speakerListNorthWrapper);
         speakerScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-
         this.add(speakerScrollPane);
 
         buildSpeakerList();
@@ -199,13 +199,14 @@ public class SpeakerExplorerPanel extends PluginPanel {
     public void onActivate() {
         super.onActivate();
 
-        setVisible(true);
+        SwingUtilities.invokeLater( () -> setVisible(true));
     }
 
     @Override
     public void onDeactivate() {
         super.onDeactivate();
 
-        setVisible(false);
+        SwingUtilities.invokeLater( () -> setVisible(false));
     }
+
 }

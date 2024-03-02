@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package dev.phyce.naturalspeech.ui;
+package dev.phyce.naturalspeech.ui.panels;
 
 import net.runelite.client.ui.PluginPanel;
 

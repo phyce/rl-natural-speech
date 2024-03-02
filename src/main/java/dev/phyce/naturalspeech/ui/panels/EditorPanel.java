@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.ui;
+package dev.phyce.naturalspeech.ui.panels;
 
 import net.runelite.client.ui.PluginPanel;
 
@@ -9,6 +9,7 @@ import java.awt.*;
 public class EditorPanel extends PluginPanel {
 
     public EditorPanel() {
+        super(false);
         JLabel titleLabel = new JLabel("Editor", JLabel.CENTER);
         titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
         titleLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
