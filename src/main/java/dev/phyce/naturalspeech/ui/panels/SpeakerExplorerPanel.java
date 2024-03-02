@@ -194,4 +194,18 @@ public class SpeakerExplorerPanel extends EditorPanel {
         speakerListPanel.revalidate();
     }
 
+    @Override
+    public void onActivate() {
+        super.onActivate();
+
+        SwingUtilities.invokeLater( () -> setVisible(true));
+    }
+
+    @Override
+    public void onDeactivate() {
+        super.onDeactivate();
+
+        SwingUtilities.invokeLater( () -> setVisible(false));
+    }
+
 }
