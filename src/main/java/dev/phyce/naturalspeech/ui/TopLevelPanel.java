@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.panels;
+package dev.phyce.naturalspeech.ui;
 
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.ui.PluginPanel;
