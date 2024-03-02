@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.panels;
+package dev.phyce.naturalspeech.ui;
 
 import java.awt.*;
 import java.util.function.Function;
