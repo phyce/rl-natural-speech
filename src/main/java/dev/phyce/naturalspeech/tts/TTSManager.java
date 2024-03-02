@@ -55,14 +55,14 @@ public class TTSManager
 	private void prepareMessage(TTSItem message) throws IOException {
 		//TODO this will need to be changed, TTSItem should carry which model to send to
 		if(!isActive("libritts"))return;
-
 		if(message.getType() != ChatMessageType.DIALOG) {
 			message.setMessage(Strings.parseMessage(message.getMessage(), shortenedPhrases));
 		}
 
 		TTSItem[] sentences = message.explode();
-
+		System.out.println("prepared sentences");
 		for (TTSItem sentence : sentences) {
+			System.out.println(sentence);
 			models.get("libritts").speak(sentence);
 		}
 	}

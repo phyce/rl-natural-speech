@@ -230,7 +230,7 @@ public class NaturalSpeechPlugin extends Plugin
 		int distance = getSoundDistance(message);
 
 		try {
-			//System.out.println(message);
+			System.out.println(message);
 			tts.speak(message, voiceId, distance);
 		} catch(IOException e) {
 			log.info(e.getMessage());
