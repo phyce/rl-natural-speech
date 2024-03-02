@@ -27,7 +27,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 
 @Slf4j
-public class NaturalSpeechPanel extends EditorPanel {
+public class NaturalSpeechPanel extends PluginPanel {
 
     private NaturalSpeechConfig config;
     private NaturalSpeechPlugin plugin;
@@ -47,6 +47,7 @@ public class NaturalSpeechPanel extends EditorPanel {
 
     @Inject
     public NaturalSpeechPanel(NaturalSpeechConfig config, NaturalSpeechPlugin plugin, ConfigManager configManager) {
+        super(true);
         this.config = config;
         this.plugin = plugin;
         this.configManager = configManager;
@@ -283,6 +284,20 @@ public class NaturalSpeechPanel extends EditorPanel {
         stopEngine();
         startEngine();
 
+    }
+
+    @Override
+    public void onActivate() {
+        super.onActivate();
+
+        SwingUtilities.invokeLater( () -> setVisible(true));
+    }
+
+    @Override
+    public void onDeactivate() {
+        super.onDeactivate();
+
+        SwingUtilities.invokeLater( () -> setVisible(false));
     }
 
 }
