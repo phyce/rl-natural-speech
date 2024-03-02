@@ -139,7 +139,6 @@ public class TTSEngine implements Runnable {
         }
         catch (IOException e) {}
     }
-
     public synchronized void speak(ChatMessage message, int voiceID, int distance) throws IOException {
         if (ttsInputWriter == null) throw new IOException("ttsInputWriter is empty");
         if (messageQueue.size() > 10) messageQueue.clear();
@@ -150,7 +149,6 @@ public class TTSEngine implements Runnable {
 
         messageQueue.add(ttsItem);
     }
-
     private void prepareShortenedPhrases(String phrases) {
         shortenedPhrases = new HashMap<>();
         String[] lines = phrases.split("\n");
@@ -189,13 +187,14 @@ public class TTSEngine implements Runnable {
 	}
     private void prepareMessage(TTSItem message) {
         while (processing) if (!ttsLocked.get()) break;
+
 		if(message.getType() != ChatMessageType.DIALOG) {
 			message.setMessage(Strings.parseMessage(message.getMessage(), shortenedPhrases));
 		}
 
 		TTSItem[] sentences = message.explode();
 		for (TTSItem sentence : sentences) sendStreamTTSData(sentence);
-    }
+	}
 	private void sendStreamTTSData(TTSItem message) {
 		ttsLocked.set(true);
 		try {
