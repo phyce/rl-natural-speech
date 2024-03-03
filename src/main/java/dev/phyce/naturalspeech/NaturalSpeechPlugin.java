@@ -5,12 +5,11 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.enums.Locations;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.ui.panels.EditorPanel;
-import dev.phyce.naturalspeech.ui.panels.NaturalSpeechPanel;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 import com.google.inject.Provides;
 import dev.phyce.naturalspeech.tts.TTSManager;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -18,6 +17,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
@@ -44,10 +44,9 @@ import java.nio.file.Path;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Natural Speech"
+		name = "Natural Speech"
 )
-public class NaturalSpeechPlugin extends Plugin
-{
+public class NaturalSpeechPlugin extends Plugin {
 	@Inject
 	private ClientToolbar clientToolbar;
 	@Inject
@@ -56,33 +55,33 @@ public class NaturalSpeechPlugin extends Plugin
 	private Client client;
 	@Inject
 	private NaturalSpeechConfig config;
+
 	@Getter
 	private TTSManager tts = null;
-	private boolean started = false;
 
-	private NavigationButton navButton;
-	@Getter
-	private Downloader downloader;
 	@Getter
 	private final Set<String> allowList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	@Getter
 	private final Set<String> blockList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
+	@Getter
+	@Inject
+	private Downloader downloader;
+
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
-	@Inject
-	private Provider<NaturalSpeechPanel> naturalSpeechPanelProvider;
-	@Inject
-	private Provider<EditorPanel> editorPanelProvider;
+
+	@Getter
 	private TopLevelPanel topLevelPanel;
+
+	private boolean started = false;
+	private NavigationButton navButton;
 
 	@Override
 	protected void startUp() {
 		PlayerCommon playerCommon = injector.getInstance(PlayerCommon.class);
-		// create downloader
-		downloader = injector.getInstance(Downloader.class);
-
 		topLevelPanel = topLevelPanelProvider.get();
+		// create downloader
 
 		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 		navButton = NavigationButton.builder()
@@ -94,11 +93,12 @@ public class NaturalSpeechPlugin extends Plugin
 
 		clientToolbar.addNavigation(navButton);
 
-		if (config.autoStart())startTTS();
+		if (config.autoStart()) startTTS();
 
 		log.info("NaturalSpeech TTS engine started");
 	}
-	public void startTTS() throws RuntimeException{
+
+	public void startTTS() throws RuntimeException {
 		started = true;
 
 		Path ttsPath = Path.of(config.ttsEngine());
@@ -118,6 +118,7 @@ public class NaturalSpeechPlugin extends Plugin
 		started = false;
 		tts.shutDown();
 	}
+
 	public void statusUpdates() {
 //		boolean ttsRunning = false;
 //		while (started) {
@@ -139,58 +140,73 @@ public class NaturalSpeechPlugin extends Plugin
 //			} catch (InterruptedException e) {return;}
 //        }
 	}
+
 	@Override
 	protected void shutDown() {
 		started = false;
 		tts.shutDown();
 		clientToolbar.removeNavigation(navButton);
 	}
+
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) {
-		if(!started) {
+		if (!started) {
 			return;
 		}
-		if(tts == null || !tts.isActive()) {
+		if (tts == null || !tts.isActive()) {
 			return;
 		}
-		if( config.muteGrandExchange() && positionInArea(Locations.GRAND_EXCHANGE)) {
+		if (config.muteGrandExchange() && positionInArea(Locations.GRAND_EXCHANGE)) {
 			return;
 		}
 
 		ChatMessageType messageType = message.getType();
 
-		switch(messageType) {
-			case PUBLICCHAT: 		if (!config.publicChat()) return; 		break;
-			case PRIVATECHAT:		if (!config.privateChat()) return; 		break;
-			case PRIVATECHATOUT:	if (!config.privateOutChat()) return; 	break;
-			case FRIENDSCHAT:		if (!config.friendsChat()) return; 		break;
-			case CLAN_CHAT: 		if (!config.clanChat()) return; 		break;
-			case CLAN_GUEST_CHAT: 	if (!config.clanGuestChat()) return; 	break;
+		switch (messageType) {
+			case PUBLICCHAT:
+				if (!config.publicChat()) return;
+				break;
+			case PRIVATECHAT:
+				if (!config.privateChat()) return;
+				break;
+			case PRIVATECHATOUT:
+				if (!config.privateOutChat()) return;
+				break;
+			case FRIENDSCHAT:
+				if (!config.friendsChat()) return;
+				break;
+			case CLAN_CHAT:
+				if (!config.clanChat()) return;
+				break;
+			case CLAN_GUEST_CHAT:
+				if (!config.clanGuestChat()) return;
+				break;
 
-			default: break;
+			default:
+				break;
 		}
 
-		switch(messageType) {
+		switch (messageType) {
 			case PUBLICCHAT:
 			case PRIVATECHAT:
 			case PRIVATECHATOUT:
 			case FRIENDSCHAT:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
-				if(!allowList.isEmpty() && !allowList.contains(message.getName())) return;
-				if(!blockList.isEmpty() && blockList.contains(message.getName())) return;
+				if (!allowList.isEmpty() && !allowList.contains(message.getName())) return;
+				if (!blockList.isEmpty() && blockList.contains(message.getName())) return;
 				break;
 
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
-				if (!config.examineChat())return;
+				if (!config.examineChat()) return;
 
 				message.setName(client.getLocalPlayer().getName());
 				break;
 
 			case DIALOG:
-				if(!config.dialog())return;
+				if (!config.dialog()) return;
 				String[] parts = message.getMessage().split("\\|", 2);
 				if (parts.length == 2) {
 					message.setMessage(parts[1]);
@@ -198,28 +214,29 @@ public class NaturalSpeechPlugin extends Plugin
 				}
 				break;
 
-			default: return;
+			default:
+				return;
 		}
 
 		//Feels like this could be inside the conditional below too. Not sure where it should go yet.
-		if(config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) {
+		if (config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) {
 			return;
 		}
 		if (!messageType.equals(ChatMessageType.DIALOG)) {
-			if(config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName())) {
+			if (config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName())) {
 				return;
 			}
 		}
 
 		if (config.muteLevelThreshold() > PlayerCommon.getLevel(message.getName())) {
 			if (!client.getLocalPlayer().getName().equals(message.getName()) &&
-				!Arrays.asList(
-					ChatMessageType.DIALOG,
-					ChatMessageType.PRIVATECHATOUT,
-					ChatMessageType.ITEM_EXAMINE,
-					ChatMessageType.NPC_EXAMINE,
-					ChatMessageType.OBJECT_EXAMINE
-				).contains(messageType)) {
+					!Arrays.asList(
+							ChatMessageType.DIALOG,
+							ChatMessageType.PRIVATECHATOUT,
+							ChatMessageType.ITEM_EXAMINE,
+							ChatMessageType.NPC_EXAMINE,
+							ChatMessageType.OBJECT_EXAMINE
+					).contains(messageType)) {
 				return;
 			}
 		}
@@ -230,10 +247,11 @@ public class NaturalSpeechPlugin extends Plugin
 		try {
 			System.out.println(message);
 			tts.speak(message, voiceId, distance);
-		} catch(IOException e) {
+		} catch (IOException e) {
 			log.info(e.getMessage());
 		}
 	}
+
 	@Subscribe
 	public void onMenuOpened(MenuOpened event) {
 		final MenuEntry[] entries = event.getMenuEntries();
@@ -252,8 +270,8 @@ public class NaturalSpeechPlugin extends Plugin
 			interfaces.add(InterfaceID.GROUP_IRON);
 
 			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
-			else if(interfaces.contains(groupId)/* && entry.getOption() == "Report"*/) {
-				if(entry.getOption().equals("Report")) drawOptions(entry, index);
+			else if (interfaces.contains(groupId)/* && entry.getOption() == "Report"*/) {
+				if (entry.getOption().equals("Report")) drawOptions(entry, index);
 			}
 		}
 	}
@@ -267,17 +285,16 @@ public class NaturalSpeechPlugin extends Plugin
 		String username = matcher.group(1).trim();
 
 		String status;
-		if(isBeingListened(username)) {
+		if (isBeingListened(username)) {
 			status = "<col=78B159>O";
-		}
-		else {
+		} else {
 			status = "<col=DD2E44>0";
 		}
 
 		CustomMenuEntry muteOptions = new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username), index);
 
-		if(isBeingListened(username)) {
-			if(!allowList.isEmpty()) {
+		if (isBeingListened(username)) {
+			if (!allowList.isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
 					unlisten(username);
 				}));
@@ -287,14 +304,13 @@ public class NaturalSpeechPlugin extends Plugin
 				}));
 			}
 
-			if(allowList.isEmpty() && blockList.isEmpty()) {
+			if (allowList.isEmpty() && blockList.isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
 					listen(username);
 				}));
 			}
-		}
-		else {
-			if(!blockList.isEmpty()) {
+		} else {
+			if (!blockList.isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
 					unmute(username);
 				}));
@@ -305,7 +321,7 @@ public class NaturalSpeechPlugin extends Plugin
 			}
 		}
 
-		if(!blockList.isEmpty()) {
+		if (!blockList.isEmpty()) {
 			muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
 				blockList.clear();
 			}));
@@ -318,13 +334,14 @@ public class NaturalSpeechPlugin extends Plugin
 	}
 
 	public boolean isBeingListened(String username) {
-		if(allowList.isEmpty() && blockList.isEmpty())return true;
-		if(!allowList.isEmpty() && allowList.contains(username))return true;
+		if (allowList.isEmpty() && blockList.isEmpty()) return true;
+		if (!allowList.isEmpty() && allowList.contains(username)) return true;
 		return !blockList.isEmpty() && !blockList.contains(username);
 	}
+
 	protected int getVoiceId(ChatMessage message) {
 		//log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
-		switch(message.getType()) {
+		switch (message.getType()) {
 			//case ITEM_EXAMINE:
 			//case NPC_EXAMINE:
 			//case OBJECT_EXAMINE:
@@ -332,18 +349,22 @@ public class NaturalSpeechPlugin extends Plugin
 			//	break;
 
 			case PRIVATECHATOUT:
-				if (config.usePersonalVoice())return config.personalVoice();
+				if (config.usePersonalVoice()) return config.personalVoice();
 				break;
 		}
 
-		if(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())) return config.personalVoice();
+		if (config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName()))
+			return config.personalVoice();
 
 		return -1;
 	}
+
 	protected int getSoundDistance(ChatMessage message) {
-		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFade()) return PlayerCommon.getDistance(message.getName());
+		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFade())
+			return PlayerCommon.getDistance(message.getName());
 		return 0;
 	}
+
 	protected boolean positionInArea(Locations location) {
 		WorldPoint position = client.getLocalPlayer().getWorldLocation();
 		WorldPoint from = location.getStart();
@@ -360,23 +381,23 @@ public class NaturalSpeechPlugin extends Plugin
 
 	public void listen(String username) {
 		blockList.clear();
-		if(allowList.contains(username))return;
+		if (allowList.contains(username)) return;
 		allowList.add(username);
 	}
 
 	public void unlisten(String username) {
-		if(allowList.isEmpty())return;
+		if (allowList.isEmpty()) return;
 		allowList.remove(username);
 	}
 
 	public void mute(String username) {
 		allowList.clear();
-		if(blockList.contains(username))return;
+		if (blockList.contains(username)) return;
 		blockList.add(username);
 	}
 
 	public void unmute(String username) {
-		if(blockList.isEmpty())return;
+		if (blockList.isEmpty()) return;
 		blockList.remove(username);
 	}
 

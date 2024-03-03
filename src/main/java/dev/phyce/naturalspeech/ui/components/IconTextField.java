@@ -35,13 +35,11 @@ import net.runelite.client.util.SwingUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 import javax.swing.text.Document;
-import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -51,308 +49,308 @@ import java.util.List;
  * This component is a FlatTextField with an icon on its left side, and a clear button (×) on its right side.
  */
 public class IconTextField extends JPanel {
-    // To support gifs, the icon needs to be wrapped in a JLabel
-    private final JLabel iconWrapperLabel;
-    private final FlatTextField textField;
-    private final JButton clearButton;
-    private final JButton suggestionButton;
+	// To support gifs, the icon needs to be wrapped in a JLabel
+	private final JLabel iconWrapperLabel;
+	private final FlatTextField textField;
+	private final JButton clearButton;
+	private final JButton suggestionButton;
 
-    @Getter
-    private final DefaultListModel<String> suggestionListModel;
+	@Getter
+	private final DefaultListModel<String> suggestionListModel;
 
-    private final List<Runnable> clearListeners = new ArrayList<>();
-    private final JLabel placeHolderTextField;
+	private final List<Runnable> clearListeners = new ArrayList<>();
+	private final JLabel placeHolderTextField;
 
-    public IconTextField() {
-        setLayout(new BorderLayout());
+	public IconTextField() {
+		setLayout(new BorderLayout());
 
-        iconWrapperLabel = new JLabel();
-        iconWrapperLabel.setPreferredSize(new Dimension(30, 0));
-        iconWrapperLabel.setVerticalAlignment(JLabel.CENTER);
-        iconWrapperLabel.setHorizontalAlignment(JLabel.CENTER);
+		iconWrapperLabel = new JLabel();
+		iconWrapperLabel.setPreferredSize(new Dimension(30, 0));
+		iconWrapperLabel.setVerticalAlignment(JLabel.CENTER);
+		iconWrapperLabel.setHorizontalAlignment(JLabel.CENTER);
 
-        JPanel textFieldWrapper = new JPanel();
-        textFieldWrapper.setLayout(new OverlayLayout(textFieldWrapper));
+		JPanel textFieldWrapper = new JPanel();
+		textFieldWrapper.setLayout(new OverlayLayout(textFieldWrapper));
 
-        textField = new FlatTextField();
-        textField.setBorder(null);
+		textField = new FlatTextField();
+		textField.setBorder(null);
 
-        JPanel placeHolderWrapper = new JPanel();
-        placeHolderWrapper.setBackground(new Color(0,0,0,0));
-        placeHolderWrapper.setLayout(new BorderLayout());
+		JPanel placeHolderWrapper = new JPanel();
+		placeHolderWrapper.setBackground(new Color(0, 0, 0, 0));
+		placeHolderWrapper.setLayout(new BorderLayout());
 
-        placeHolderTextField = new JLabel();
-        placeHolderTextField.setHorizontalAlignment(JLabel.LEADING);
-        placeHolderTextField.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
-        placeHolderWrapper.add(placeHolderTextField);
+		placeHolderTextField = new JLabel();
+		placeHolderTextField.setHorizontalAlignment(JLabel.LEADING);
+		placeHolderTextField.setForeground(ColorScheme.MEDIUM_GRAY_COLOR);
+		placeHolderWrapper.add(placeHolderTextField);
 
-        textFieldWrapper.add(placeHolderWrapper);
-        textFieldWrapper.add(textField);
-
-
-        final JTextField innerTxt = textField.getTextField();
-        innerTxt.removeMouseListener(innerTxt.getMouseListeners()[innerTxt.getMouseListeners().length - 1]);
-
-        final MouseListener hoverEffect = new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent mouseEvent) {
-                if (textField.isBlocked()) {
-                    return;
-                }
-
-                final Color hoverColor = textField.getHoverBackgroundColor();
-
-                if (hoverColor != null) {
-                    IconTextField.super.setBackground(hoverColor);
-                    textField.setBackground(hoverColor, false);
-                }
-
-            }
-
-            @Override
-            public void mouseExited(MouseEvent mouseEvent) {
-                setBackground(textField.getBackgroundColor());
-            }
-        };
-
-        textField.addMouseListener(hoverEffect);
-        innerTxt.addMouseListener(hoverEffect);
-
-        innerTxt.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                placeHolderWrapper.setVisible(false);
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                placeHolderWrapper.setVisible(textField.getText().isEmpty());
-            }
-        });
-
-        clearButton = createRHSButton(ColorScheme.PROGRESS_ERROR_COLOR, Color.PINK, FontManager.getRunescapeBoldFont());
-        clearButton.setText("×");
-        clearButton.addActionListener(evt ->
-        {
-            setText(null);
-
-            for (Runnable l : clearListeners) {
-                l.run();
-            }
-        });
-
-        suggestionListModel = new DefaultListModel<>();
-        suggestionListModel.addListDataListener(new ListDataListener() {
-            @Override
-            public void intervalAdded(ListDataEvent e) {
-                updateContextButton();
-            }
-
-            @Override
-            public void intervalRemoved(ListDataEvent e) {
-                updateContextButton();
-            }
-
-            @Override
-            public void contentsChanged(ListDataEvent e) {
-                updateContextButton();
-            }
-        });
-
-        JList<String> suggestionList = new JList<>();
-        suggestionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        suggestionList.setModel(suggestionListModel);
-        suggestionList.addListSelectionListener(e ->
-        {
-            String val = suggestionList.getSelectedValue();
-            if (val == null) {
-                return;
-            }
-
-            textField.setText(val);
-            textField.getTextField().selectAll();
-            textField.getTextField().requestFocusInWindow();
-        });
-
-        JPopupMenu popup = new JPopupMenu();
-        popup.setLightWeightPopupEnabled(true);
-        popup.setLayout(new BorderLayout());
-        popup.add(suggestionList, BorderLayout.CENTER);
-        popup.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent e) {
-                popup.setVisible(false);
-                suggestionList.clearSelection();
-            }
-        });
-
-        suggestionButton = createRHSButton(ColorScheme.LIGHT_GRAY_COLOR, ColorScheme.MEDIUM_GRAY_COLOR, FontManager.getDefaultBoldFont());
-        suggestionButton.setText("▾");
-        suggestionButton.addActionListener(e ->
-        {
-            suggestionList.setPreferredSize(new Dimension(getWidth(), suggestionList.getPreferredSize().height));
-            popup.show(IconTextField.this, 0, suggestionButton.getHeight());
-            popup.revalidate();
-            popup.requestFocusInWindow();
-        });
-
-        // Show the clear button when text is present, and hide again when empty
-        textField.getTextField().getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                placeHolderWrapper.setVisible(textField.getText().isEmpty());
-                updateContextButton();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                placeHolderWrapper.setVisible(textField.getText().isEmpty());
-                updateContextButton();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                placeHolderWrapper.setVisible(textField.getText().isEmpty());
-                updateContextButton();
-            }
-
-        });
-
-        JPanel rhsButtons = new JPanel();
-        rhsButtons.setBackground(new Color(0, 0, 0, 0));
-        rhsButtons.setOpaque(false);
-        rhsButtons.setLayout(new BorderLayout());
-        rhsButtons.add(clearButton, BorderLayout.EAST);
-        rhsButtons.add(suggestionButton, BorderLayout.WEST);
-        updateContextButton();
-
-        add(iconWrapperLabel, BorderLayout.WEST);
-        add(textFieldWrapper, BorderLayout.CENTER);
-        add(rhsButtons, BorderLayout.EAST);
+		textFieldWrapper.add(placeHolderWrapper);
+		textFieldWrapper.add(textField);
 
 
-    }
+		final JTextField innerTxt = textField.getTextField();
+		innerTxt.removeMouseListener(innerTxt.getMouseListeners()[innerTxt.getMouseListeners().length - 1]);
 
-    private JButton createRHSButton(Color fg, Color rollover, Font font) {
-        JButton b = new JButton();
-        b.setPreferredSize(new Dimension(30, 0));
-        b.setFont(font);
-        b.setBorder(null);
-        b.setRolloverEnabled(true);
-        SwingUtil.removeButtonDecorations(b);
-        b.setForeground(fg);
+		final MouseListener hoverEffect = new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent mouseEvent) {
+				if (textField.isBlocked()) {
+					return;
+				}
 
-        b.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent mouseEvent) {
-                b.setForeground(rollover);
-                textField.dispatchEvent(mouseEvent);
-            }
+				final Color hoverColor = textField.getHoverBackgroundColor();
 
-            @Override
-            public void mouseExited(MouseEvent mouseEvent) {
-                b.setForeground(fg);
-                textField.dispatchEvent(mouseEvent);
-            }
-        });
+				if (hoverColor != null) {
+					IconTextField.super.setBackground(hoverColor);
+					textField.setBackground(hoverColor, false);
+				}
 
-        return b;
-    }
+			}
 
-    private void updateContextButton() {
-        boolean empty = StringUtils.isBlank(textField.getText());
+			@Override
+			public void mouseExited(MouseEvent mouseEvent) {
+				setBackground(textField.getBackgroundColor());
+			}
+		};
 
-        clearButton.setVisible(!empty);
-        suggestionButton.setVisible(!suggestionListModel.isEmpty() && empty);
-    }
+		textField.addMouseListener(hoverEffect);
+		innerTxt.addMouseListener(hoverEffect);
 
-    public void addActionListener(ActionListener actionListener) {
-        textField.addActionListener(actionListener);
-    }
+		innerTxt.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusGained(FocusEvent e) {
+				placeHolderWrapper.setVisible(false);
+			}
 
-    public void setIcon(Icon icon) {
-        final ImageIcon imageIcon = new ImageIcon(this.getClass().getResource(icon.getFile()));
-        iconWrapperLabel.setIcon(imageIcon);
-    }
+			@Override
+			public void focusLost(FocusEvent e) {
+				placeHolderWrapper.setVisible(textField.getText().isEmpty());
+			}
+		});
 
-    public void setIcon(ImageIcon imageIcon) {
-        iconWrapperLabel.setIcon(imageIcon);
-    }
+		clearButton = createRHSButton(ColorScheme.PROGRESS_ERROR_COLOR, Color.PINK, FontManager.getRunescapeBoldFont());
+		clearButton.setText("×");
+		clearButton.addActionListener(evt ->
+		{
+			setText(null);
 
-    public String getText() {
-        return textField.getText();
-    }
+			for (Runnable l : clearListeners) {
+				l.run();
+			}
+		});
 
-    public void setText(String text) {
-        assert SwingUtilities.isEventDispatchThread();
-        textField.setText(text);
-    }
+		suggestionListModel = new DefaultListModel<>();
+		suggestionListModel.addListDataListener(new ListDataListener() {
+			@Override
+			public void intervalAdded(ListDataEvent e) {
+				updateContextButton();
+			}
 
-    public void setPlaceholderText(String text) {
-        assert SwingUtilities.isEventDispatchThread();
-        placeHolderTextField.setText(text);
-    }
+			@Override
+			public void intervalRemoved(ListDataEvent e) {
+				updateContextButton();
+			}
 
-    @Override
-    public void setBackground(Color color) {
-        if (color == null) {
-            return;
-        }
+			@Override
+			public void contentsChanged(ListDataEvent e) {
+				updateContextButton();
+			}
+		});
 
-        super.setBackground(color);
+		JList<String> suggestionList = new JList<>();
+		suggestionList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		suggestionList.setModel(suggestionListModel);
+		suggestionList.addListSelectionListener(e ->
+		{
+			String val = suggestionList.getSelectedValue();
+			if (val == null) {
+				return;
+			}
 
-        if (textField != null) {
-            textField.setBackground(color);
-        }
-    }
+			textField.setText(val);
+			textField.getTextField().selectAll();
+			textField.getTextField().requestFocusInWindow();
+		});
 
-    public void setHoverBackgroundColor(Color hoverBackgroundColor) {
-        if (hoverBackgroundColor == null) {
-            return;
-        }
+		JPopupMenu popup = new JPopupMenu();
+		popup.setLightWeightPopupEnabled(true);
+		popup.setLayout(new BorderLayout());
+		popup.add(suggestionList, BorderLayout.CENTER);
+		popup.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				popup.setVisible(false);
+				suggestionList.clearSelection();
+			}
+		});
 
-        this.textField.setHoverBackgroundColor(hoverBackgroundColor);
-    }
+		suggestionButton = createRHSButton(ColorScheme.LIGHT_GRAY_COLOR, ColorScheme.MEDIUM_GRAY_COLOR, FontManager.getDefaultBoldFont());
+		suggestionButton.setText("▾");
+		suggestionButton.addActionListener(e ->
+		{
+			suggestionList.setPreferredSize(new Dimension(getWidth(), suggestionList.getPreferredSize().height));
+			popup.show(IconTextField.this, 0, suggestionButton.getHeight());
+			popup.revalidate();
+			popup.requestFocusInWindow();
+		});
 
-    @Override
-    public void addKeyListener(KeyListener keyListener) {
-        textField.addKeyListener(keyListener);
-    }
+		// Show the clear button when text is present, and hide again when empty
+		textField.getTextField().getDocument().addDocumentListener(new DocumentListener() {
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				placeHolderWrapper.setVisible(textField.getText().isEmpty());
+				updateContextButton();
+			}
 
-    public void addClearListener(Runnable clearListener) {
-        clearListeners.add(clearListener);
-    }
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				placeHolderWrapper.setVisible(textField.getText().isEmpty());
+				updateContextButton();
+			}
 
-    @Override
-    public void removeKeyListener(KeyListener keyListener) {
-        textField.removeKeyListener(keyListener);
-    }
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				placeHolderWrapper.setVisible(textField.getText().isEmpty());
+				updateContextButton();
+			}
 
-    public void setEditable(boolean editable) {
-        textField.setEditable(editable);
-        if (!editable) {
-            super.setBackground(textField.getBackgroundColor());
-        }
-    }
+		});
 
-    @Override
-    public boolean requestFocusInWindow() {
-        super.requestFocusInWindow();
-        return textField.requestFocusInWindow();
-    }
+		JPanel rhsButtons = new JPanel();
+		rhsButtons.setBackground(new Color(0, 0, 0, 0));
+		rhsButtons.setOpaque(false);
+		rhsButtons.setLayout(new BorderLayout());
+		rhsButtons.add(clearButton, BorderLayout.EAST);
+		rhsButtons.add(suggestionButton, BorderLayout.WEST);
+		updateContextButton();
 
-    public Document getDocument() {
-        return textField.getDocument();
-    }
+		add(iconWrapperLabel, BorderLayout.WEST);
+		add(textFieldWrapper, BorderLayout.CENTER);
+		add(rhsButtons, BorderLayout.EAST);
 
-    @Getter
-    @RequiredArgsConstructor
-    public enum Icon {
-        SEARCH("search.png"),
-        LOADING("loading_spinner.gif"),
-        LOADING_DARKER("loading_spinner_darker.gif"),
-        ERROR("error.png");
 
-        private final String file;
-    }
+	}
+
+	private JButton createRHSButton(Color fg, Color rollover, Font font) {
+		JButton b = new JButton();
+		b.setPreferredSize(new Dimension(30, 0));
+		b.setFont(font);
+		b.setBorder(null);
+		b.setRolloverEnabled(true);
+		SwingUtil.removeButtonDecorations(b);
+		b.setForeground(fg);
+
+		b.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseEntered(MouseEvent mouseEvent) {
+				b.setForeground(rollover);
+				textField.dispatchEvent(mouseEvent);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent mouseEvent) {
+				b.setForeground(fg);
+				textField.dispatchEvent(mouseEvent);
+			}
+		});
+
+		return b;
+	}
+
+	private void updateContextButton() {
+		boolean empty = StringUtils.isBlank(textField.getText());
+
+		clearButton.setVisible(!empty);
+		suggestionButton.setVisible(!suggestionListModel.isEmpty() && empty);
+	}
+
+	public void addActionListener(ActionListener actionListener) {
+		textField.addActionListener(actionListener);
+	}
+
+	public void setIcon(Icon icon) {
+		final ImageIcon imageIcon = new ImageIcon(this.getClass().getResource(icon.getFile()));
+		iconWrapperLabel.setIcon(imageIcon);
+	}
+
+	public void setIcon(ImageIcon imageIcon) {
+		iconWrapperLabel.setIcon(imageIcon);
+	}
+
+	public String getText() {
+		return textField.getText();
+	}
+
+	public void setText(String text) {
+		assert SwingUtilities.isEventDispatchThread();
+		textField.setText(text);
+	}
+
+	public void setPlaceholderText(String text) {
+		assert SwingUtilities.isEventDispatchThread();
+		placeHolderTextField.setText(text);
+	}
+
+	@Override
+	public void setBackground(Color color) {
+		if (color == null) {
+			return;
+		}
+
+		super.setBackground(color);
+
+		if (textField != null) {
+			textField.setBackground(color);
+		}
+	}
+
+	public void setHoverBackgroundColor(Color hoverBackgroundColor) {
+		if (hoverBackgroundColor == null) {
+			return;
+		}
+
+		this.textField.setHoverBackgroundColor(hoverBackgroundColor);
+	}
+
+	@Override
+	public void addKeyListener(KeyListener keyListener) {
+		textField.addKeyListener(keyListener);
+	}
+
+	public void addClearListener(Runnable clearListener) {
+		clearListeners.add(clearListener);
+	}
+
+	@Override
+	public void removeKeyListener(KeyListener keyListener) {
+		textField.removeKeyListener(keyListener);
+	}
+
+	public void setEditable(boolean editable) {
+		textField.setEditable(editable);
+		if (!editable) {
+			super.setBackground(textField.getBackgroundColor());
+		}
+	}
+
+	@Override
+	public boolean requestFocusInWindow() {
+		super.requestFocusInWindow();
+		return textField.requestFocusInWindow();
+	}
+
+	public Document getDocument() {
+		return textField.getDocument();
+	}
+
+	@Getter
+	@RequiredArgsConstructor
+	public enum Icon {
+		SEARCH("search.png"),
+		LOADING("loading_spinner.gif"),
+		LOADING_DARKER("loading_spinner_darker.gif"),
+		ERROR("error.png");
+
+		private final String file;
+	}
 }
