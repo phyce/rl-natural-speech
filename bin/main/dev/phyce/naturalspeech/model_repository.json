@@ -4,13 +4,13 @@
         "shortname": "libritts",
         "onnx_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx?download=true",
         "onnx_metadata_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx.json?download=true",
-        "speakers_metadata_url": "https://raw.githubusercontent.com/phyce/rl-natural-speech/master/speakers_metadata/en_US-libritts-high.speakers.json"
+        "metadata_url": "https://raw.githubusercontent.com/phyce/rl-natural-speech/master/speakers_metadata/en_US-libritts-high.metadata.json"
     },
     {
         "name": "en_GB-vctk-medium",
         "shortname": "vctk",
         "onnx_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx?download=true",
         "onnx_metadata_url": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx.json?download=true",
-        "speakers_metadata_url": "https://raw.githubusercontent.com/phyce/rl-natural-speech/master/speakers_metadata/en_GB-vctk-medium.speakers.json"
+        "metadata_url": "https://raw.githubusercontent.com/phyce/rl-natural-speech/master/speakers_metadata/en_GB-vctk-medium.metadata.json"
     }
 ]
