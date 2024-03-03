@@ -45,7 +45,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 	static {
-		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "MainSettingsPanel/arrow_right.png");
+		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
 		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
 		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
 		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);

@@ -44,7 +44,7 @@ public class SpeakerExplorerPanel extends EditorPanel {
 	@Getter
 	private final JScrollPane speakerScrollPane;
 
-	private final HashSet<SpeakerListItem> speakerListItems = new HashSet<>();
+	private final List<SpeakerListItem> speakerListItems = new ArrayList<>();
 
 	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
 	private static final ImageIcon SECTION_RETRACT_ICON;
@@ -56,7 +56,7 @@ public class SpeakerExplorerPanel extends EditorPanel {
 	);
 
 	static {
-		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "MainSettingsPanel/arrow_right.png");
+		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
 		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
 		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
 		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
