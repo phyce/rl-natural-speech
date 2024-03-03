@@ -91,7 +91,7 @@ public class NaturalSpeechPlugin extends Plugin
 
 		clientToolbar.addNavigation(navButton);
 
-		if (config.autoStart())startTTS();
+//		if (config.autoStart())startTTS();
 
 		log.info("NaturalSpeech TTS engine started");
 	}

@@ -274,6 +274,7 @@ public interface NaturalSpeechConfig extends Config
 				"wp=well played\n" +
 				"ggwp=good game well played\n" +
 				"rn=right now\n" +
+				"fr=for real\n" +
 				"ge=grand exchange\n";
 	}
 }

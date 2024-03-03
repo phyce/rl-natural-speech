@@ -1,18 +1,8 @@
 package dev.phyce.naturalspeech.tts;
 
-import be.tarsos.dsp.AudioDispatcher;
-import be.tarsos.dsp.filters.BandPass;
-import be.tarsos.dsp.filters.HighPass;
-import be.tarsos.dsp.filters.LowPassFS;
-import be.tarsos.dsp.io.TarsosDSPAudioFormat;
-import be.tarsos.dsp.io.UniversalAudioInputStream;
-import java.io.ByteArrayOutputStream;
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import be.tarsos.dsp.AudioEvent;
-import be.tarsos.dsp.AudioProcessor;
-import be.tarsos.dsp.effects.DelayEffect;
 import net.runelite.api.ChatMessageType;
 
 class AudioPlayer {
@@ -42,11 +32,11 @@ class AudioPlayer {
 				this.format,
 				audioData.length / this.format.getFrameSize());
 
-			if (message.getType() == ChatMessageType.ITEM_EXAMINE ||
-				message.getType() == ChatMessageType.NPC_EXAMINE ||
-				message.getType() == ChatMessageType.OBJECT_EXAMINE) {
-				audioInputStream = applyEffectsToStream(audioInputStream);
-			}
+//			if (message.getType() == ChatMessageType.ITEM_EXAMINE ||
+//				message.getType() == ChatMessageType.NPC_EXAMINE ||
+//				message.getType() == ChatMessageType.OBJECT_EXAMINE) {
+//				audioInputStream = applyEffectsToStream(audioInputStream);
+//			}
 
 			DataLine.Info info = new DataLine.Info(SourceDataLine.class, this.format);
 			line = (SourceDataLine) AudioSystem.getLine(info);
