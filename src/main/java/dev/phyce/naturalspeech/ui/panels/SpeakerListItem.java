@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
+import dev.phyce.naturalspeech.tts.TTSItem;
 import lombok.Getter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
@@ -56,24 +57,27 @@ public class SpeakerListItem extends JPanel {
 		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup().addGap(5).addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(sexLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addGap(5));
 
 
-		BufferedImage image = ImageUtil.loadImageResource(SpeakerListItem.class, "start.png");
-		Image scaledImg = image.getScaledInstance(25, 25, Image.SCALE_SMOOTH);
-		ImageIcon playIcon = new ImageIcon(scaledImg);
-		JButton playButton = new JButton(playIcon);
-		SwingUtil.removeButtonDecorations(playButton);
-		playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
-		playButton.addActionListener(event -> {
-			if (plugin.getTts() != null && plugin.getTts().isActive()) {
-				ChatMessage msg = new ChatMessage();
-				msg.setMessage(speakerExplorerPanel.getSpeechText().getText());
-				msg.setType(ChatMessageType.DIALOG);
+        BufferedImage image = ImageUtil.loadImageResource(SpeakerListItem.class, "start.png");
+        Image scaledImg = image.getScaledInstance(25, 25, Image.SCALE_SMOOTH);
+        ImageIcon playIcon = new ImageIcon(scaledImg);
+        JButton playButton = new JButton(playIcon);
+        SwingUtil.removeButtonDecorations(playButton);
+        playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
+        playButton.addActionListener(event -> {
+            if (plugin.getTts() != null && plugin.getTts().isActive()) {
+                ChatMessage message = new ChatMessage();
+                message.setMessage(speakerExplorerPanel.getSpeechText().getText());
+                message.setType(ChatMessageType.DIALOG);
+				message.setName("VoiceExplorer");
+
+				TTSItem ttsItem = new TTSItem(message, 0, speaker.getVoiceID());
 				try {
-					plugin.getTts().speak(msg, speaker.getVoiceID(), 0);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		});
+					plugin.getTts().speak(ttsItem);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
 
 		BorderLayout rootLayout = new BorderLayout();
 		this.setLayout(rootLayout);
