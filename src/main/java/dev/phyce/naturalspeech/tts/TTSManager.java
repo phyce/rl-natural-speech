@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import net.runelite.api.ChatMessageType;
 
+import static net.runelite.client.RuneLite.RUNELITE_DIR;
+
 public class TTSManager
 {
 	private HashMap<String, SpeakerConfiguration> speakerConfigurations;
@@ -30,8 +32,8 @@ public class TTSManager
 		this.models = new HashMap<>();
 		loadConfigurations();
 		System.out.println("speakerConfigurations");
-		System.out.println(speakerConfigurations.get("phyce").getModel());
-		System.out.println(speakerConfigurations.get("banker").getName());
+//		System.out.println(speakerConfigurations.get("phyce").getModel());
+//		System.out.println(speakerConfigurations.get("banker").getName());
 		prepareShortenedPhrases(phrases);
 	}
 	private void loadConfigurations() {

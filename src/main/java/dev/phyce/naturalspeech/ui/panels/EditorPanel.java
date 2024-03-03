@@ -8,25 +8,25 @@ import java.awt.*;
 
 public class EditorPanel extends PluginPanel {
 
-    public EditorPanel() {
-        super(false);
-        JLabel titleLabel = new JLabel("Editor", JLabel.CENTER);
-        titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
-        titleLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        add(titleLabel);
-    }
+	public EditorPanel() {
+		super(false);
+		JLabel titleLabel = new JLabel("Editor", JLabel.CENTER);
+		titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
+		titleLabel.setBorder(new EmptyBorder(10, 10, 10, 10));
+		add(titleLabel);
+	}
 
-    @Override
-    public void onActivate() {
-        super.onActivate();
+	@Override
+	public void onActivate() {
+		super.onActivate();
 
-        setVisible(true);
-    }
+		setVisible(true);
+	}
 
-    @Override
-    public void onDeactivate() {
-        super.onDeactivate();
+	@Override
+	public void onDeactivate() {
+		super.onDeactivate();
 
-        setVisible(false);
-    }
+		setVisible(false);
+	}
 }
