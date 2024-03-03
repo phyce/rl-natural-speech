@@ -32,6 +32,7 @@ import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import dev.phyce.naturalspeech.common.PlayerCommon;
@@ -65,10 +66,6 @@ public class NaturalSpeechPlugin extends Plugin
 	private NavigationButton navButton;
 	@Getter
 	private Downloader downloader;
-	@Getter
-	private final Set<String> allowList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-	@Getter
-	private final Set<String> blockList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
@@ -156,6 +153,7 @@ public class NaturalSpeechPlugin extends Plugin
 			return;
 		}
 		if( config.muteGrandExchange() && positionInArea(Locations.GRAND_EXCHANGE)) {
+
 			return;
 		}
 
@@ -179,8 +177,8 @@ public class NaturalSpeechPlugin extends Plugin
 			case FRIENDSCHAT:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
-				if(!allowList.isEmpty() && !allowList.contains(message.getName())) return;
-				if(!blockList.isEmpty() && blockList.contains(message.getName())) return;
+				if(!PlayerCommon.getAllowList().isEmpty() && !PlayerCommon.getAllowList().contains(message.getName())) return;
+				if(!PlayerCommon.getBlockList().isEmpty() && PlayerCommon.getBlockList().contains(message.getName())) return;
 				break;
 
 			case ITEM_EXAMINE:
@@ -240,18 +238,18 @@ public class NaturalSpeechPlugin extends Plugin
 	public void onMenuOpened(MenuOpened event) {
 		final MenuEntry[] entries = event.getMenuEntries();
 
+		Set<Integer> interfaces = new HashSet<>();
+		interfaces.add(InterfaceID.FRIEND_LIST);
+		interfaces.add(InterfaceID.FRIENDS_CHAT);
+		interfaces.add(InterfaceID.CHATBOX);
+		interfaces.add(InterfaceID.PRIVATE_CHAT);
+		interfaces.add(InterfaceID.GROUP_IRON);
+
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
 
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
-
-			Set<Integer> interfaces = new HashSet<>();
-			interfaces.add(InterfaceID.FRIEND_LIST);
-			interfaces.add(InterfaceID.FRIENDS_CHAT);
-			interfaces.add(InterfaceID.CHATBOX);
-			interfaces.add(InterfaceID.PRIVATE_CHAT);
-			interfaces.add(InterfaceID.GROUP_IRON);
 
 			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
 			else if(interfaces.contains(groupId)/* && entry.getOption() == "Report"*/) {
@@ -259,7 +257,20 @@ public class NaturalSpeechPlugin extends Plugin
 			}
 		}
 	}
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event) {
+		if(event.getGroup().equals("naturalSpeech")) {
+			switch(event.getKey()) {
+				case "muteSelf":
+					tts.clearPlayerAudio(PlayerCommon.getUsername());
+					break;
 
+				case "muteOthers":
+					tts.focusOnPlayer(PlayerCommon.getUsername());
+					break;
+			}
+		}
+	}
 	public synchronized void drawOptions(MenuEntry entry, int index) {
 		String regex = "<col=[0-9a-f]+>([^<]+)";
 		Pattern pattern = Pattern.compile(regex);
@@ -269,7 +280,7 @@ public class NaturalSpeechPlugin extends Plugin
 		String username = matcher.group(1).trim();
 
 		String status;
-		if(isBeingListened(username)) {
+		if(PlayerCommon.isBeingListened(username)) {
 			status = "<col=78B159>O";
 		}
 		else {
@@ -278,52 +289,49 @@ public class NaturalSpeechPlugin extends Plugin
 
 		CustomMenuEntry muteOptions = new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username), index);
 
-		if(isBeingListened(username)) {
-			if(!allowList.isEmpty()) {
+		if(PlayerCommon.isBeingListened(username)) {
+			if(!PlayerCommon.getAllowList().isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
-					unlisten(username);
+					PlayerCommon.unlisten(username);
 				}));
 			} else {
 				muteOptions.addChild(new CustomMenuEntry("Mute", -1, function -> {
-					mute(username);
+					PlayerCommon.mute(username);
 				}));
 			}
 
-			if(allowList.isEmpty() && blockList.isEmpty()) {
+			if(PlayerCommon.getAllowList().isEmpty() && PlayerCommon.getBlockList().isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
-					listen(username);
+					PlayerCommon.listen(username);
+					tts.focusOnPlayer(username);
 				}));
 			}
 		}
 		else {
-			if(!blockList.isEmpty()) {
+			if(!PlayerCommon.getBlockList().isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
-					unmute(username);
+					PlayerCommon.unmute(username);
 				}));
 			} else {
 				muteOptions.addChild(new CustomMenuEntry("Listen", -1, function -> {
-					listen(username);
+					PlayerCommon.listen(username);
 				}));
 			}
 		}
 
-		if(!blockList.isEmpty()) {
+		if(! PlayerCommon.getBlockList().isEmpty()) {
 			muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
-				blockList.clear();
+				PlayerCommon.getBlockList().clear();
 			}));
-		} else if (!allowList.isEmpty()) {
+		} else if (!PlayerCommon.getAllowList().isEmpty()) {
 			muteOptions.addChild(new CustomMenuEntry("Clear allow list", -1, function -> {
-				allowList.clear();
+				PlayerCommon.getAllowList().clear();
 			}));
 		}
 		muteOptions.addTo(client);
 	}
 
-	public boolean isBeingListened(String username) {
-		if(allowList.isEmpty() && blockList.isEmpty())return true;
-		if(!allowList.isEmpty() && allowList.contains(username))return true;
-		return !blockList.isEmpty() && !blockList.contains(username);
-	}
+
 	protected int getVoiceId(ChatMessage message) {
 		//log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
 		switch(message.getType()) {
@@ -360,27 +368,7 @@ public class NaturalSpeechPlugin extends Plugin
 				&& position.getY() >= minY && position.getY() <= maxY;
 	}
 
-	public void listen(String username) {
-		blockList.clear();
-		if(allowList.contains(username))return;
-		allowList.add(username);
-	}
 
-	public void unlisten(String username) {
-		if(allowList.isEmpty())return;
-		allowList.remove(username);
-	}
-
-	public void mute(String username) {
-		allowList.clear();
-		if(blockList.contains(username))return;
-		blockList.add(username);
-	}
-
-	public void unmute(String username) {
-		if(blockList.isEmpty())return;
-		blockList.remove(username);
-	}
 
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
