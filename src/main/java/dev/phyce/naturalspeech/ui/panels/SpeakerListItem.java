@@ -31,7 +31,7 @@ public class SpeakerListItem extends JPanel {
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("ID%d-%s %s (%s)", speaker.getPiper_id(), speaker.getPiperModelName(), speaker.getName(), speaker.getGender()));
+		this.setToolTipText(String.format("%s:%d %s (%s)", speaker.getPiperModelName(), speaker.getVoiceID(), speaker.getName(), speaker.getGender()));
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
@@ -46,7 +46,7 @@ public class SpeakerListItem extends JPanel {
 		JLabel sexLabel = new JLabel(speaker.getGender().replaceFirst("M", "(M)").replaceFirst("F", "(F)"));
 		sexLabel.setForeground(Color.white);
 
-		JLabel piperIdLabel = new JLabel(String.format("ID%d", speaker.getPiper_id()));
+		JLabel piperIdLabel = new JLabel(String.format("ID%d", speaker.getVoiceID()));
 		sexLabel.setForeground(Color.white);
 
 
@@ -68,7 +68,7 @@ public class SpeakerListItem extends JPanel {
 				msg.setMessage(speakerExplorerPanel.getSpeechText().getText());
 				msg.setType(ChatMessageType.DIALOG);
 				try {
-					plugin.getTts().speak(msg, speaker.getPiper_id(), 0);
+					plugin.getTts().speak(msg, speaker.getVoiceID(), 0);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}

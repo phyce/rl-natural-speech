@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import lombok.Getter;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.ui.PluginPanel;
@@ -18,8 +19,10 @@ public class TopLevelPanel extends PluginPanel {
 	private final CardLayout layout;
 	private final JPanel content;
 
+//	@Getter
+//	private final MainSettingsPanel mainSettingsPanel;
 	@Getter
-	private final MainSettingsPanel mainSettingsPanel;
+	private final NaturalSpeechPanel mainSettingsPanel;
 	@Getter
 	private final SpeakerExplorerPanel speakerExplorerPanel;
 	@Getter
@@ -34,7 +37,8 @@ public class TopLevelPanel extends PluginPanel {
 	@Inject
 	TopLevelPanel(
 			EventBus eventBus,
-			MainSettingsPanel mainSettingsPanel,
+//			MainSettingsPanel mainSettingsPanel,
+			NaturalSpeechPanel mainSettingsPanel,
 			SpeakerExplorerPanel speakerExplorerPanel,
 			EditorPanel editorPanel
 	) {
@@ -59,6 +63,7 @@ public class TopLevelPanel extends PluginPanel {
 		add(content, BorderLayout.CENTER);
 
 		// Main Settings Panel Tab
+//		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
 		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
 		tabGroup.select(mainSettingsTab);
 

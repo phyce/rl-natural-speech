@@ -288,14 +288,14 @@ public class NaturalSpeechPanel extends PluginPanel {
 	public void onActivate() {
 		super.onActivate();
 
-		SwingUtilities.invokeLater(() -> setVisible(true));
+		SwingUtilities.invokeLater(() -> this.getWrappedPanel().setVisible(true));
 	}
 
 	@Override
 	public void onDeactivate() {
 		super.onDeactivate();
 
-		SwingUtilities.invokeLater(() -> setVisible(false));
+		SwingUtilities.invokeLater(() -> this.getWrappedPanel().setVisible(false));
 	}
 
 }

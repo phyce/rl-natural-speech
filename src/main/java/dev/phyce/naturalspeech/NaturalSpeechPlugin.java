@@ -70,7 +70,11 @@ public class NaturalSpeechPlugin extends Plugin {
 	private Downloader downloader;
 
 	@Inject
+	private VoiceRepository voiceRepository;
+
+	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
+
 
 	@Getter
 	private TopLevelPanel topLevelPanel;
@@ -80,6 +84,13 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	protected void startUp() {
+		try {
+			voiceRepository.downloadPiperVoice("en_GB-vctk-medium");
+			voiceRepository.downloadPiperVoice("en_US-libritts-high");
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
 		PlayerCommon playerCommon = injector.getInstance(PlayerCommon.class);
 		topLevelPanel = topLevelPanelProvider.get();
 		// create downloader
@@ -145,7 +156,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Override
 	protected void shutDown() {
 		started = false;
-		tts.shutDown();
+		if (tts != null) {
+			tts.shutDown();
+		}
 		clientToolbar.removeNavigation(navButton);
 	}
 

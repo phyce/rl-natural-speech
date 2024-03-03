@@ -32,7 +32,7 @@ public class VoiceRepository {
 		String shortname;
 		String onnx_url;
 		String onnx_metadata_url;
-		String speakers_metadata_url;
+		String metadata_url;
 		boolean hasLocal;
 	}
 
@@ -49,9 +49,7 @@ public class VoiceRepository {
 	@Data
 	public static class Speaker {
 		// The Model ID from the data set
-		int speaker_id;
-		// The Piper Voice ID used by piper (mapped from Model ID using *.onnx.json)
-		int piper_id;
+		int voiceID;
 		// M, F, ...
 		String gender;
 		// The speaker name from the model data set
@@ -118,7 +116,7 @@ public class VoiceRepository {
 				localVoiceValid = false;
 			}
 			// Check if speakers metadata exists
-			if (!voiceFolder.resolve(voice_name + ".speakers.json").toFile().exists()) {
+			if (!voiceFolder.resolve(voice_name + ".metadata.json").toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
@@ -147,7 +145,7 @@ public class VoiceRepository {
 				localVoiceValid = false;
 			}
 			// Check if speakers metadata exists
-			if (!voiceFolder.resolve(voice_name + ".speakers.json").toFile().exists()) {
+			if (!voiceFolder.resolve(voice_name + ".metadata.json").toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
@@ -173,7 +171,7 @@ public class VoiceRepository {
 			// download voice files
 			DownloadTask onnxTask = downloader.create(HttpUrl.get(piperVoiceURL.onnx_url), voiceFolder.resolve(voice_name + ".onnx"));
 			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(piperVoiceURL.onnx_metadata_url), voiceFolder.resolve(voice_name + ".onnx.json"));
-			DownloadTask speakersTask = downloader.create(HttpUrl.get(piperVoiceURL.speakers_metadata_url), voiceFolder.resolve(voice_name + ".speakers.json"));
+			DownloadTask speakersTask = downloader.create(HttpUrl.get(piperVoiceURL.metadata_url), voiceFolder.resolve(voice_name + ".metadata.json"));
 
 			// thread blocking download
 			File onnx = onnxTask.get();
@@ -187,7 +185,7 @@ public class VoiceRepository {
 		}
 
 		// Read Speaker File into an HashSet of Array of Speaker
-		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(voice_name + ".speakers.json").toFile())) {
+		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(voice_name + ".metadata.json").toFile())) {
 			Speaker[] speakers = new Gson().fromJson(new InputStreamReader(fis), new TypeToken<Speaker[]>() {
 			}.getType());
 			for (Speaker speaker : speakers) {
