@@ -19,15 +19,11 @@ public class TTSModel implements Runnable
 	@Getter final private List<TTSEngine> instances = new ArrayList<>();
 
 	private AudioPlayer audio;
-	private final ConcurrentHashMap<String, PlayerAudioQueue> audioQueues = new ConcurrentHashMap<>();
-
+	@Getter private final ConcurrentHashMap<String, PlayerAudioQueue> audioQueues = new ConcurrentHashMap<>();
 	private final ConcurrentLinkedQueue<TTSItem> messageQueue = new ConcurrentLinkedQueue<>();
-
-
 	public TTSModel(String name, Path path, Path enginePath) {
 		this(name, path, enginePath, 1);
 	}
-
 	public TTSModel(String name, Path path, Path enginePath, int instanceCount) {
 		this.name = name;
 		this.path = path;
@@ -73,7 +69,6 @@ public class TTSModel implements Runnable
 			}
 		}
 	}
-
 	public void processAudioQueue() {
 		while (activeInstances() > 0) {
 			audioQueues.forEach((key, audioQueue) -> {
@@ -100,7 +95,6 @@ public class TTSModel implements Runnable
 			}
 		}
 	}
-
 	public ConcurrentLinkedQueue<TTSItem> getAudioQueue(String key) {
 		return audioQueues.computeIfAbsent(key, k -> new PlayerAudioQueue()).queue;
 	}

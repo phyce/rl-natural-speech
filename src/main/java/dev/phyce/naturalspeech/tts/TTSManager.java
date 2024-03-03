@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.Strings;
+import dev.phyce.naturalspeech.common.PlayerCommon;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -74,6 +75,26 @@ public class TTSManager
 	public void clearQueues() {
 		for (String key : models.keySet()) {
 			models.get(key).clearQueue();
+		}
+	}
+
+	public void focusOnPlayer(String username) {
+		for (String key : models.keySet()) {
+			for (String queueName : models.get(key).getAudioQueues().keySet()) {
+				if (queueName == "&dialog") continue;
+				if (queueName == PlayerCommon.getUsername()) continue;
+				if (queueName == username) continue;
+				models.get(key).getAudioQueues().get(queueName).queue.clear();
+			}
+		}
+	}
+
+	public void clearPlayerAudio(String username) {
+		for (String key : models.keySet()) {
+			for (String queueName : models.get(key).getAudioQueues().keySet()) {
+				if (queueName == "&dialog") continue;
+				if (queueName == username) models.get(key).getAudioQueues().get(queueName).queue.clear();
+			}
 		}
 	}
 }
