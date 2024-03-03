@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.VoiceRepository;
+import dev.phyce.naturalspeech.tts.TTSItem;
 import lombok.Getter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
@@ -64,11 +65,13 @@ public class SpeakerListItem extends JPanel {
         playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
         playButton.addActionListener(event -> {
             if (plugin.getTts() != null && plugin.getTts().isActive()) {
-                ChatMessage msg = new ChatMessage();
-                msg.setMessage(speakerExplorerPanel.getSpeechText().getText());
-                msg.setType(ChatMessageType.DIALOG);
-                try {
-                    plugin.getTts().speak(msg, speaker.getPiper_id(), 0);
+                ChatMessage message = new ChatMessage();
+                message.setMessage(speakerExplorerPanel.getSpeechText().getText());
+                message.setType(ChatMessageType.DIALOG);
+
+				TTSItem ttsItem = new TTSItem(message, 0, speaker.getPiper_id());
+				try {
+					plugin.getTts().speak(ttsItem);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

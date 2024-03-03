@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.enums.Locations;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.tts.TTSItem;
 import dev.phyce.naturalspeech.ui.panels.EditorPanel;
 import dev.phyce.naturalspeech.ui.panels.NaturalSpeechPanel;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
@@ -60,11 +61,9 @@ public class NaturalSpeechPlugin extends Plugin
 	@Getter
 	private TTSManager tts = null;
 	private boolean started = false;
-
 	private NavigationButton navButton;
 	@Getter
 	private Downloader downloader;
-
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
 	@Inject
@@ -72,7 +71,6 @@ public class NaturalSpeechPlugin extends Plugin
 	@Inject
 	private Provider<EditorPanel> editorPanelProvider;
 	private TopLevelPanel topLevelPanel;
-
 	@Override
 	protected void startUp() {
 		PlayerCommon playerCommon = injector.getInstance(PlayerCommon.class);
@@ -110,7 +108,6 @@ public class NaturalSpeechPlugin extends Plugin
 		tts.startVoiceModel(voicePath);
 		//tts = new TTSEngine(tts_path, voice_path, config.shortenedPhrases());
 	}
-
 	public void stopTTS() {
 		started = false;
 		tts.shutDown();
@@ -151,7 +148,6 @@ public class NaturalSpeechPlugin extends Plugin
 			return;
 		}
 		if( config.muteGrandExchange() && positionInArea(Locations.GRAND_EXCHANGE)) {
-
 			return;
 		}
 
@@ -225,9 +221,12 @@ public class NaturalSpeechPlugin extends Plugin
 		int voiceId = getVoiceId(message);
 		int distance = getSoundDistance(message);
 
+		TTSItem ttsItem = new TTSItem(message, distance, config.personalVoice());
+
 		try {
-			System.out.println(message);
-			tts.speak(message, voiceId, distance);
+//			System.out.println(message);
+//			tts.speak(message, voiceId, distance);
+			tts.speak(ttsItem);
 		} catch(IOException e) {
 			log.info(e.getMessage());
 		}
@@ -266,6 +265,8 @@ public class NaturalSpeechPlugin extends Plugin
 				case "muteOthers":
 					tts.focusOnPlayer(PlayerCommon.getUsername());
 					break;
+
+//				case ""
 			}
 		}
 	}
@@ -328,8 +329,6 @@ public class NaturalSpeechPlugin extends Plugin
 		}
 		muteOptions.addTo(client);
 	}
-
-
 	protected int getVoiceId(ChatMessage message) {
 		//log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
 		switch(message.getType()) {
@@ -365,9 +364,6 @@ public class NaturalSpeechPlugin extends Plugin
 		return position.getX() >= minX && position.getX() <= maxX
 				&& position.getY() >= minY && position.getY() <= maxY;
 	}
-
-
-
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);

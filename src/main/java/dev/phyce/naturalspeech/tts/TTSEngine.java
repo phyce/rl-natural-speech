@@ -113,7 +113,7 @@ public class TTSEngine implements Runnable {
 		ttsLocked.set(true);
 		byte[] audioClip;
 		try {
-			audioClip = generateAudio(message.getMessage(), message.getVoiceID());
+			audioClip = generateAudio(message.getMessage(), message.voiceID);
 		} catch (IOException exception) {
 			throw new RuntimeException(exception);
 		} finally {
