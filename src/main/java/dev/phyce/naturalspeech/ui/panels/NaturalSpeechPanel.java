@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.ui;
+package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
@@ -47,7 +47,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 
     @Inject
     public NaturalSpeechPanel(NaturalSpeechConfig config, NaturalSpeechPlugin plugin, ConfigManager configManager) {
-        super(false);
+        super(true);
         this.config = config;
         this.plugin = plugin;
         this.configManager = configManager;
@@ -290,13 +290,14 @@ public class NaturalSpeechPanel extends PluginPanel {
     public void onActivate() {
         super.onActivate();
 
-        setVisible(true);
+        SwingUtilities.invokeLater( () -> setVisible(true));
     }
 
     @Override
     public void onDeactivate() {
         super.onDeactivate();
 
-        setVisible(false);
+        SwingUtilities.invokeLater( () -> setVisible(false));
     }
+
 }

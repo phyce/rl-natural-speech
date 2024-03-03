@@ -5,10 +5,9 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.enums.Locations;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.ui.EditorPanel;
-import dev.phyce.naturalspeech.ui.NaturalSpeechPanel;
-import dev.phyce.naturalspeech.ui.TopLevelPanel;
-import dev.phyce.naturalspeech.tts.TTSEngine;
+import dev.phyce.naturalspeech.ui.panels.EditorPanel;
+import dev.phyce.naturalspeech.ui.panels.NaturalSpeechPanel;
+import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 import com.google.inject.Provides;
 import dev.phyce.naturalspeech.tts.TTSManager;
@@ -40,7 +39,6 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.ui.ClientToolbar;
 
-import javax.sound.sampled.LineUnavailableException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
