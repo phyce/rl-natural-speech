@@ -8,15 +8,23 @@ import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.DynamicGridLayout;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.SwingUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.List;
 import java.util.*;
@@ -32,16 +40,28 @@ public class SpeakerExplorerPanel extends EditorPanel {
 	@Getter
 	private final IconTextField searchBar;
 	@Getter
-	private final FixedWidthPanel speakerListPanel;
+	private final FixedWidthPanel sectionListPanel;
 	@Getter
 	private final JScrollPane speakerScrollPane;
 
+	private final HashSet<SpeakerListItem> speakerListItems = new HashSet<>();
+
 	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
+	private static final ImageIcon SECTION_RETRACT_ICON;
+	public static final ImageIcon SECTION_EXPAND_ICON;
 
 	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of(
 			"Male", // Special search term for disabled plugins
 			"Female" // Special search term for pinned plugins
 	);
+
+	static {
+		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "MainSettingsPanel/arrow_right.png");
+		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
+		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
+		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
+		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
+	}
 
 	@Inject
 	public SpeakerExplorerPanel(VoiceRepository voiceRepository, NaturalSpeechPlugin plugin) {
@@ -97,15 +117,15 @@ public class SpeakerExplorerPanel extends EditorPanel {
 		this.add(topPanel, BorderLayout.NORTH);
 
 		// Speakers panel containing individual speaker item panels
-		speakerListPanel = new FixedWidthPanel();
-		speakerListPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
-		speakerListPanel.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
-		speakerListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+		sectionListPanel = new FixedWidthPanel();
+		sectionListPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
+		sectionListPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 		// North panel wraps and fixes the speakerList north
 		JPanel speakerListNorthWrapper = new FixedWidthPanel();
 		speakerListNorthWrapper.setLayout(new BorderLayout());
-		speakerListNorthWrapper.add(speakerListPanel, BorderLayout.NORTH);
+		speakerListNorthWrapper.add(sectionListPanel, BorderLayout.NORTH);
 
 		// A parent scroll view pane for speakerListPanel
 		speakerScrollPane = new JScrollPane(speakerListNorthWrapper);
@@ -118,23 +138,91 @@ public class SpeakerExplorerPanel extends EditorPanel {
 
 	void buildSpeakerList() {
 
+		for (VoiceRepository.PiperVoiceURL piperVoiceURL : voiceRepository.getPiperVoiceURLS()) {
+			if (piperVoiceURL.isHasLocal()) {
+				buildSpeakerSegmentForVoice(piperVoiceURL.getName());
+			}
+		}
+	}
+
+	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
+		boolean newState = !sectionContent.isVisible();
+		sectionContent.setVisible(newState);
+		toggleButton.setIcon(newState ? SECTION_RETRACT_ICON : SECTION_EXPAND_ICON);
+		toggleButton.setToolTipText(newState ? "Retract" : "Expand");
+		SwingUtilities.invokeLater(sectionContent::revalidate);
+	}
+
+	private void buildSpeakerSegmentForVoice(String voice_name) {
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+				new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = voice_name;
+		final String description = voice_name;
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+				new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		// Add listeners to each part of the header so that it's easier to toggle them
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSpeakerSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSpeakerSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
 		try {
 			// TODO(Louis) loadPiper actually downloads the voice if local files don't exist
-			VoiceRepository.PiperVoice piperVoice = voiceRepository.loadPiperVoice("en_US-libritts-high");
+			VoiceRepository.PiperVoice piperVoice = voiceRepository.downloadPiperVoice(voice_name);
 			Arrays.stream(piperVoice.getSpeakers()).sorted(Comparator.comparing(a -> a.getName().toLowerCase())).forEach((speaker) -> {
 				SpeakerListItem speakerItem = new SpeakerListItem(this, plugin, speaker);
-				speakerListPanel.add(speakerItem);
+				speakerListItems.add(speakerItem);
+				sectionContent.add(speakerItem);
 			});
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+
+		sectionListPanel.add(section);
 	}
 
 	void searchFilter(String name_search) {
 		if (name_search.isEmpty()) {
 			// enable all and return
-			for (Component comp : speakerListPanel.getComponents()) {
-				comp.setVisible(true);
+			for (SpeakerListItem speakerItems : speakerListItems) {
+				speakerItems.setVisible(true);
 			}
 			return;
 		}
@@ -163,9 +251,8 @@ public class SpeakerExplorerPanel extends EditorPanel {
 
 		name_search = StringUtils.join(searchTerms, " ");
 
-		for (Component comp : speakerListPanel.getComponents()) {
-
-			VoiceRepository.Speaker speaker = ((SpeakerListItem) comp).getSpeaker();
+		for (SpeakerListItem speakerItem : speakerListItems) {
+			VoiceRepository.Speaker speaker = speakerItem.getSpeaker();
 
 			boolean visible = true;
 
@@ -188,10 +275,10 @@ public class SpeakerExplorerPanel extends EditorPanel {
 					visible = false;
 				}
 			}
-			comp.setVisible(visible);
+			speakerItem.setVisible(visible);
 		}
 
-		speakerListPanel.revalidate();
+		sectionListPanel.revalidate();
 	}
 
 	@Override

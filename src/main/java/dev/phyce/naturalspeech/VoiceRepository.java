@@ -7,43 +7,46 @@ import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Value;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Objects;
 
 @Slf4j
 public class VoiceRepository {
 
-	@Inject
-	private Downloader downloader;
+	private final Downloader downloader;
 
-	@Inject
-	private NaturalSpeechConfig config;
+	private final NaturalSpeechConfig config;
 
+	@Getter
 	private final HashSet<PiperVoiceURL> piperVoiceURLS;
 
-	@Value
+	@Data
 	public static class PiperVoiceURL {
 		String name;
+		String shortname;
 		String onnx_url;
 		String onnx_metadata_url;
 		String speakers_metadata_url;
+		boolean hasLocal;
 	}
 
 	@Data
 	@AllArgsConstructor
 	public static class PiperVoice {
 		String name;
+		String shortname;
 		File onnx;
 		File onnx_metadata;
 		Speaker[] speakers;
 	}
 
-	@Value
+	@Data
 	public static class Speaker {
 		// The Model ID from the data set
 		int speaker_id;
@@ -53,14 +56,30 @@ public class VoiceRepository {
 		String gender;
 		// The speaker name from the model data set
 		String name;
+		// the name of the voice model
+		String piperModelName;
 	}
 
-	public VoiceRepository() throws IOException {
+	@Inject
+	public VoiceRepository(
+			Downloader downloader,
+			NaturalSpeechConfig config) throws IOException {
+		this.downloader = downloader;
+		this.config = config;
+
 		try {
-			InputStream is = this.getClass().getResource(Settings.voiceRepositoryFilename).openStream();
+			InputStream is = Objects.requireNonNull(this.getClass().getResource(Settings.voiceRepositoryFilename)).openStream();
 			// read dictionary index as name
 			piperVoiceURLS = new Gson().fromJson(new InputStreamReader(is), new TypeToken<HashSet<PiperVoiceURL>>() {
 			}.getType());
+
+			// check for local files availability
+			for (PiperVoiceURL piperVoiceURL : piperVoiceURLS) {
+				piperVoiceURL.setHasLocal(hasLocalFiles(piperVoiceURL.name));
+			}
+
+			log.info(piperVoiceURLS.toString());
+
 			log.info("Loaded voice repository with " + piperVoiceURLS.size() + " voices");
 
 			// log voices
@@ -83,7 +102,35 @@ public class VoiceRepository {
 		return null;
 	}
 
-	public PiperVoice loadPiperVoice(String voice_name) throws IOException {
+	public boolean hasLocalFiles(String voice_name) throws IOException {
+		// assume true
+		boolean localVoiceValid = true;
+
+		// First check if voice folder exist
+		Path voiceFolder = Path.of(config.ttsEngine()).resolveSibling(Settings.voiceFolderName).resolve(voice_name);
+		if (voiceFolder.toFile().exists()) {
+			// Check voice is missing any files
+			if (!voiceFolder.resolve(voice_name + ".onnx").toFile().exists()) {
+				localVoiceValid = false;
+			}
+			// Check if onnx metadata exists
+			if (!voiceFolder.resolve(voice_name + ".onnx.json").toFile().exists()) {
+				localVoiceValid = false;
+			}
+			// Check if speakers metadata exists
+			if (!voiceFolder.resolve(voice_name + ".speakers.json").toFile().exists()) {
+				localVoiceValid = false;
+			}
+			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
+		} else { // voices folder don't exist, so no voices can exist
+			localVoiceValid = false;
+		}
+
+		// if local voice files weren't valid, clear the folder and re-download.
+		return localVoiceValid;
+	}
+
+	public PiperVoice downloadPiperVoice(String voice_name) throws IOException {
 
 		// assume true
 		boolean localVoiceValid = true;
@@ -113,14 +160,15 @@ public class VoiceRepository {
 			}
 		}
 
+		PiperVoiceURL piperVoiceURL = findPiperVoiceURL(voice_name);
+		if (piperVoiceURL == null) {
+			log.error("Voice not found in repository: " + voice_name);
+			return null;
+		}
+
 		// if local voice files weren't valid, clear the folder and re-download.
 		if (!localVoiceValid) {
 			log.info("Local voice files are invalid, re-downloading.");
-			PiperVoiceURL piperVoiceURL = findPiperVoiceURL(voice_name);
-			if (piperVoiceURL == null) {
-				log.error("Voice not found in repository: " + voice_name);
-				return null;
-			}
 
 			// download voice files
 			DownloadTask onnxTask = downloader.create(HttpUrl.get(piperVoiceURL.onnx_url), voiceFolder.resolve(voice_name + ".onnx"));
@@ -142,8 +190,13 @@ public class VoiceRepository {
 		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(voice_name + ".speakers.json").toFile())) {
 			Speaker[] speakers = new Gson().fromJson(new InputStreamReader(fis), new TypeToken<Speaker[]>() {
 			}.getType());
+			for (Speaker speaker : speakers) {
+				speaker.setPiperModelName(voice_name);
+			}
+
 			PiperVoice piperVoice = new PiperVoice(
 					voice_name,
+					piperVoiceURL.getShortname(),
 					voiceFolder.resolve(voice_name + ".onnx").toFile(),
 					voiceFolder.resolve(voice_name + ".onnx.json").toFile(),
 					speakers

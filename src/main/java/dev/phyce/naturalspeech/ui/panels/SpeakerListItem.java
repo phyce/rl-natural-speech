@@ -31,7 +31,7 @@ public class SpeakerListItem extends JPanel {
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("ID%d %s (%s)", speaker.getPiper_id(), speaker.getName(), speaker.getGender()));
+		this.setToolTipText(String.format("ID%d-%s %s (%s)", speaker.getPiper_id(), speaker.getPiperModelName(), speaker.getName(), speaker.getGender()));
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
