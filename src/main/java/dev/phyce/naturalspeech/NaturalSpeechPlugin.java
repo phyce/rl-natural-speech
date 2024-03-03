@@ -19,6 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -110,11 +111,14 @@ public class NaturalSpeechPlugin extends Plugin {
 		log.info("NaturalSpeech TTS engine started");
 	}
 
+	@SneakyThrows
 	public void startTTS() throws RuntimeException {
 		started = true;
 
+		VoiceRepository.PiperVoice voice =  voiceRepository.downloadPiperVoice("en_US-libritts-high");
+
 		Path ttsPath = Path.of(config.ttsEngine());
-		Path voicePath = ttsPath.resolveSibling(Settings.voiceFolderName).resolve(Settings.voiceFilename);
+		Path voicePath = voice.onnx.toPath();
 
 		// check if tts_path points to existing file and is a valid executable
 		if (!ttsPath.toFile().exists() || !ttsPath.toFile().canExecute()) {
