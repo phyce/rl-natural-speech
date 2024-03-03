@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.ui.panels;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.VoiceRepository;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.net.URI;
 public class MainSettingsPanel extends PluginPanel {
 	private final FixedWidthPanel mainContentPanel;
 	private final JScrollPane scrollPane;
+	private final VoiceRepository voiceRepository;
 	private NaturalSpeechConfig config;
 	private NaturalSpeechPlugin plugin;
 
@@ -55,13 +57,15 @@ public class MainSettingsPanel extends PluginPanel {
 			NaturalSpeechConfig config,
 			NaturalSpeechPlugin plugin,
 			ConfigManager configManager,
-			Downloader downloader
+			Downloader downloader,
+			VoiceRepository voiceRepository
 	) {
 		super(false);
 		this.config = config;
 		this.plugin = plugin;
 		this.configManager = configManager;
 		this.downloader = downloader;
+		this.voiceRepository = voiceRepository;
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
