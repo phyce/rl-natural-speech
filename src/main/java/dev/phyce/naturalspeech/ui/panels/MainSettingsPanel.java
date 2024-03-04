@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.ui.panels;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.VoiceRepository;
+import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,6 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
@@ -30,7 +29,7 @@ import java.net.URI;
 public class MainSettingsPanel extends PluginPanel {
 	private final FixedWidthPanel mainContentPanel;
 	private final JScrollPane scrollPane;
-	private final VoiceRepository voiceRepository;
+	private final ModelRepository modelRepository;
 	private NaturalSpeechConfig config;
 	private NaturalSpeechPlugin plugin;
 
@@ -58,14 +57,14 @@ public class MainSettingsPanel extends PluginPanel {
 			NaturalSpeechPlugin plugin,
 			ConfigManager configManager,
 			Downloader downloader,
-			VoiceRepository voiceRepository
+			ModelRepository modelRepository
 	) {
 		super(false);
 		this.config = config;
 		this.plugin = plugin;
 		this.configManager = configManager;
 		this.downloader = downloader;
-		this.voiceRepository = voiceRepository;
+		this.modelRepository = modelRepository;
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);

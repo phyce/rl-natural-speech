@@ -5,16 +5,15 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.enums.Locations;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.tts.TTSItem;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 import com.google.inject.Provides;
 import dev.phyce.naturalspeech.tts.TTSManager;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,18 +59,14 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Getter
 	private TTSManager tts = null;
-
-	@Getter
-	private final Set<String> allowList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-	@Getter
-	private final Set<String> blockList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-
+	private boolean started = false;
+	private NavigationButton navButton;
 	@Getter
 	@Inject
 	private Downloader downloader;
 
 	@Inject
-	private VoiceRepository voiceRepository;
+	private ModelRepository modelRepository;
 
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
@@ -79,15 +74,11 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Getter
 	private TopLevelPanel topLevelPanel;
-
-	private boolean started = false;
-	private NavigationButton navButton;
-
 	@Override
 	protected void startUp() {
 		try {
-			voiceRepository.downloadPiperVoice("en_GB-vctk-medium");
-			voiceRepository.downloadPiperVoice("en_US-libritts-high");
+			modelRepository.downloadPiperVoice("en_GB-vctk-medium");
+			modelRepository.downloadPiperVoice("en_US-libritts-high");
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -115,7 +106,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void startTTS() throws RuntimeException {
 		started = true;
 
-		VoiceRepository.PiperVoice voice =  voiceRepository.downloadPiperVoice("en_US-libritts-high");
+		ModelRepository.ModelLocal voice =  modelRepository.downloadPiperVoice("en_US-libritts-high");
 
 		Path ttsPath = Path.of(config.ttsEngine());
 		Path voicePath = voice.onnx.toPath();
@@ -129,7 +120,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		tts.startVoiceModel(voicePath);
 		//tts = new TTSEngine(tts_path, voice_path, config.shortenedPhrases());
 	}
-
 	public void stopTTS() {
 		started = false;
 		tts.shutDown();
@@ -262,10 +252,13 @@ public class NaturalSpeechPlugin extends Plugin {
 		int voiceId = getVoiceId(message);
 		int distance = getSoundDistance(message);
 
+		TTSItem ttsItem = new TTSItem(message, distance, config.personalVoice());
+
 		try {
-			System.out.println(message);
-			tts.speak(message, voiceId, distance);
-		} catch (IOException e) {
+//			System.out.println(message);
+//			tts.speak(message, voiceId, distance);
+			tts.speak(ttsItem);
+		} catch(IOException e) {
 			log.info(e.getMessage());
 		}
 	}
@@ -304,6 +297,8 @@ public class NaturalSpeechPlugin extends Plugin {
 				case "muteOthers":
 					tts.focusOnPlayer(PlayerCommon.getUsername());
 					break;
+
+//				case ""
 			}
 		}
 	}
@@ -365,8 +360,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 		muteOptions.addTo(client);
 	}
-
-
 	protected int getVoiceId(ChatMessage message) {
 		//log.info(String.valueOf(config.usePersonalVoice() && client.getLocalPlayer().getName().equals(message.getName())));
 		switch (message.getType()) {
@@ -406,9 +399,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		return position.getX() >= minX && position.getX() <= maxX
 				&& position.getY() >= minY && position.getY() <= maxY;
 	}
-
-
-
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);

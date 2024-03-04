@@ -9,13 +9,15 @@ import net.runelite.api.events.ChatMessage;
 public class TTSItem extends ChatMessage {
 	@Inject private static NaturalSpeechConfig config;
 
-	@Getter private final int voiceID;
+	public int voiceID;
+	public String model;
 	@Getter private int distance;
 	@Getter private SpeakerTypes speakerType;
+	private boolean configPersonalVoice;
 	public byte[] audioClip;
 
 //	private String[] sentences;
-
+//	public TTSItem
 
 	public TTSItem(ChatMessage message, int distance, int voiceID) {
 		super(message.getMessageNode(), message.getType(), message.getName(), message.getMessage(), message.getSender(), message.getTimestamp());
@@ -26,7 +28,12 @@ public class TTSItem extends ChatMessage {
 		this.distance = Math.max(distance, 0);
 	}
 
-	public TTSItem(ChatMessage message, int distance) {	this(message, distance, -1); }
+	public TTSItem(ChatMessage message, int distance, boolean configPersonalVoice) {
+		super(message.getMessageNode(), message.getType(), message.getName(), message.getMessage(), message.getSender(), message.getTimestamp());
+//		this(message, distance, -1);
+		this.configPersonalVoice = configPersonalVoice;
+		this.distance = Math.max(distance, 0);
+	}
 
 	public TTSItem(TTSItem original, String sentence) {
 		this.setMessage(sentence);
@@ -35,7 +42,7 @@ public class TTSItem extends ChatMessage {
 		this.setSender(original.getSender());
 		this.setType(original.getType());
 		this.setTimestamp(original.getTimestamp());
-		this.voiceID = original.getVoiceID();
+		this.voiceID = original.voiceID;
 		this.distance = original.distance;
 		this.speakerType = original.speakerType;
 	}

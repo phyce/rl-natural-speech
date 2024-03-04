@@ -1,7 +1,8 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.VoiceRepository;
+import dev.phyce.naturalspeech.ModelRepository;
+import dev.phyce.naturalspeech.tts.TTSItem;
 import lombok.Getter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
@@ -19,19 +20,19 @@ public class SpeakerListItem extends JPanel {
 	private final SpeakerExplorerPanel speakerExplorerPanel;
 	private final NaturalSpeechPlugin plugin;
 	@Getter
-	private final VoiceRepository.Speaker speaker;
+	private final ModelRepository.Voice voice;
 
 
-	public SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, VoiceRepository.Speaker speaker) {
+	public SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.Voice voice) {
 
 
 		this.speakerExplorerPanel = speakerExplorerPanel;
 		this.plugin = plugin;
-		this.speaker = speaker;
+		this.voice = voice;
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("%s:%d %s (%s)", speaker.getPiperModelName(), speaker.getVoiceID(), speaker.getName(), speaker.getGender()));
+		this.setToolTipText(String.format("%s:%d %s (%s)", voice.getModelShortName(), voice.getVoiceID(), voice.getName(), voice.getGender()));
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
@@ -40,13 +41,13 @@ public class SpeakerListItem extends JPanel {
 		speakerPanel.setLayout(speakerLayout);
 
 
-		JLabel nameLabel = new JLabel(speaker.getName());
+		JLabel nameLabel = new JLabel(voice.getName());
 		nameLabel.setForeground(Color.white);
 
-		JLabel sexLabel = new JLabel(speaker.getGender().replaceFirst("M", "(M)").replaceFirst("F", "(F)"));
+		JLabel sexLabel = new JLabel(voice.getGender().replaceFirst("M", "(M)").replaceFirst("F", "(F)"));
 		sexLabel.setForeground(Color.white);
 
-		JLabel piperIdLabel = new JLabel(String.format("ID%d", speaker.getVoiceID()));
+		JLabel piperIdLabel = new JLabel(String.format("ID%d", voice.getVoiceID()));
 		sexLabel.setForeground(Color.white);
 
 
@@ -56,24 +57,27 @@ public class SpeakerListItem extends JPanel {
 		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup().addGap(5).addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(sexLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addGap(5));
 
 
-		BufferedImage image = ImageUtil.loadImageResource(SpeakerListItem.class, "start.png");
-		Image scaledImg = image.getScaledInstance(25, 25, Image.SCALE_SMOOTH);
-		ImageIcon playIcon = new ImageIcon(scaledImg);
-		JButton playButton = new JButton(playIcon);
-		SwingUtil.removeButtonDecorations(playButton);
-		playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
-		playButton.addActionListener(event -> {
-			if (plugin.getTts() != null && plugin.getTts().isActive()) {
-				ChatMessage msg = new ChatMessage();
-				msg.setMessage(speakerExplorerPanel.getSpeechText().getText());
-				msg.setType(ChatMessageType.DIALOG);
+        BufferedImage image = ImageUtil.loadImageResource(SpeakerListItem.class, "start.png");
+        Image scaledImg = image.getScaledInstance(25, 25, Image.SCALE_SMOOTH);
+        ImageIcon playIcon = new ImageIcon(scaledImg);
+        JButton playButton = new JButton(playIcon);
+        SwingUtil.removeButtonDecorations(playButton);
+        playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
+        playButton.addActionListener(event -> {
+            if (plugin.getTts() != null && plugin.getTts().isActive()) {
+                ChatMessage message = new ChatMessage();
+                message.setMessage(speakerExplorerPanel.getSpeechText().getText());
+                message.setType(ChatMessageType.DIALOG);
+				message.setName("VoiceExplorer");
+
+				TTSItem ttsItem = new TTSItem(message, 0, voice.getVoiceID());
 				try {
-					plugin.getTts().speak(msg, speaker.getVoiceID(), 0);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		});
+					plugin.getTts().speak(ttsItem);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
 
 		BorderLayout rootLayout = new BorderLayout();
 		this.setLayout(rootLayout);
