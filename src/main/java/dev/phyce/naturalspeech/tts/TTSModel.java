@@ -102,7 +102,6 @@ public class TTSModel implements Runnable
 		if (activeInstances() == 0) throw new IOException("No active TTS engine instances running");
 		if (messageQueue.size() > 10) clearQueue();
 
-		System.out.println("adding message to text queue");
 		messageQueue.add(message);
 	}
 	public void clearQueue() {

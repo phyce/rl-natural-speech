@@ -17,49 +17,59 @@ import java.util.HashSet;
 import java.util.Objects;
 
 @Slf4j
-public class VoiceRepository {
+public class ModelRepository {
 
 	private final Downloader downloader;
 
 	private final NaturalSpeechConfig config;
 
 	@Getter
-	private final HashSet<PiperVoiceURL> piperVoiceURLS;
+	private final HashSet<ModelURL> modelURLS;
 
+	// Partially Serialized JSON Object
 	@Data
-	public static class PiperVoiceURL {
-		String name;
-		String shortname;
-		String onnx_url;
-		String onnx_metadata_url;
-		String metadata_url;
+	public static class ModelURL {
+		// Part of JSON
+		String fullName;
+		String shortName;
+		String onnxURL;
+		String onnxMetadataURL;
+		String metadataURL;
+
+		// Not part of JSON
+		// Whether local model files are available for immediate use
 		boolean hasLocal;
 	}
 
+	// Not an JSON Object
 	@Data
 	@AllArgsConstructor
-	public static class PiperVoice {
-		String name;
-		String shortname;
+	public static class ModelLocal {
+		String fullName;
+		String shortName;
 		File onnx;
 		File onnx_metadata;
-		Speaker[] speakers;
+		Voice[] voices;
 	}
 
+	// Partially Serialized JSON Object
 	@Data
-	public static class Speaker {
-		// The Model ID from the data set
+	public static class Voice {
+		// (Serialized in JSON) The Model ID from the data set
 		int voiceID;
-		// M, F, ...
+		// (Serialized in JSON) M, F, ...
 		String gender;
-		// The speaker name from the model data set
+		// (Serialzied in JSON) The speaker name from the model data set
 		String name;
-		// the name of the voice model
-		String piperModelName;
+
+		// Model Short name
+		String modelShortName;
+		// Model Full name
+		String modelFullName;
 	}
 
 	@Inject
-	public VoiceRepository(
+	public ModelRepository(
 			Downloader downloader,
 			NaturalSpeechConfig config) throws IOException {
 		this.downloader = downloader;
@@ -68,21 +78,21 @@ public class VoiceRepository {
 		try {
 			InputStream is = Objects.requireNonNull(this.getClass().getResource(Settings.voiceRepositoryFilename)).openStream();
 			// read dictionary index as name
-			piperVoiceURLS = new Gson().fromJson(new InputStreamReader(is), new TypeToken<HashSet<PiperVoiceURL>>() {
+			modelURLS = new Gson().fromJson(new InputStreamReader(is), new TypeToken<HashSet<ModelURL>>() {
 			}.getType());
 
 			// check for local files availability
-			for (PiperVoiceURL piperVoiceURL : piperVoiceURLS) {
-				piperVoiceURL.setHasLocal(hasLocalFiles(piperVoiceURL.name));
+			for (ModelURL modelURL : modelURLS) {
+				modelURL.setHasLocal(hasLocalFiles(modelURL.fullName));
 			}
 
-			log.info(piperVoiceURLS.toString());
+			log.info(modelURLS.toString());
 
-			log.info("Loaded voice repository with " + piperVoiceURLS.size() + " voices");
+			log.info("Loaded voice repository with " + modelURLS.size() + " voices");
 
 			// log voices
-			for (PiperVoiceURL piperVoiceURL : piperVoiceURLS) {
-				log.info("Voice: " + piperVoiceURL);
+			for (ModelURL modelURL : modelURLS) {
+				log.info("Voice: " + modelURL);
 			}
 
 		} catch (IOException e) {
@@ -91,10 +101,10 @@ public class VoiceRepository {
 		}
 	}
 
-	public PiperVoiceURL findPiperVoiceURL(String voice_name) {
-		for (PiperVoiceURL piperVoiceURL : piperVoiceURLS) {
-			if (piperVoiceURL.name.equals(voice_name)) {
-				return piperVoiceURL;
+	public ModelURL findPiperVoiceURL(String voice_name) {
+		for (ModelURL modelURL : modelURLS) {
+			if (modelURL.fullName.equals(voice_name)) {
+				return modelURL;
 			}
 		}
 		return null;
@@ -128,7 +138,7 @@ public class VoiceRepository {
 		return localVoiceValid;
 	}
 
-	public PiperVoice downloadPiperVoice(String voice_name) throws IOException {
+	public ModelLocal downloadPiperVoice(String voice_name) throws IOException {
 
 		// assume true
 		boolean localVoiceValid = true;
@@ -158,8 +168,8 @@ public class VoiceRepository {
 			}
 		}
 
-		PiperVoiceURL piperVoiceURL = findPiperVoiceURL(voice_name);
-		if (piperVoiceURL == null) {
+		ModelURL modelURL = findPiperVoiceURL(voice_name);
+		if (modelURL == null) {
 			log.error("Voice not found in repository: " + voice_name);
 			return null;
 		}
@@ -169,9 +179,9 @@ public class VoiceRepository {
 			log.info("Local voice files are invalid, re-downloading.");
 
 			// download voice files
-			DownloadTask onnxTask = downloader.create(HttpUrl.get(piperVoiceURL.onnx_url), voiceFolder.resolve(voice_name + ".onnx"));
-			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(piperVoiceURL.onnx_metadata_url), voiceFolder.resolve(voice_name + ".onnx.json"));
-			DownloadTask speakersTask = downloader.create(HttpUrl.get(piperVoiceURL.metadata_url), voiceFolder.resolve(voice_name + ".metadata.json"));
+			DownloadTask onnxTask = downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(voice_name + ".onnx"));
+			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL), voiceFolder.resolve(voice_name + ".onnx.json"));
+			DownloadTask speakersTask = downloader.create(HttpUrl.get(modelURL.metadataURL), voiceFolder.resolve(voice_name + ".metadata.json"));
 
 			// thread blocking download
 			File onnx = onnxTask.get();
@@ -186,20 +196,20 @@ public class VoiceRepository {
 
 		// Read Speaker File into an HashSet of Array of Speaker
 		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(voice_name + ".metadata.json").toFile())) {
-			Speaker[] speakers = new Gson().fromJson(new InputStreamReader(fis), new TypeToken<Speaker[]>() {
+			Voice[] voices = new Gson().fromJson(new InputStreamReader(fis), new TypeToken<Voice[]>() {
 			}.getType());
-			for (Speaker speaker : speakers) {
-				speaker.setPiperModelName(voice_name);
+			for (Voice voice : voices) {
+				voice.setModelShortName(voice_name);
 			}
 
-			PiperVoice piperVoice = new PiperVoice(
+			ModelLocal modelLocal = new ModelLocal(
 					voice_name,
-					piperVoiceURL.getShortname(),
+					modelURL.getShortName(),
 					voiceFolder.resolve(voice_name + ".onnx").toFile(),
 					voiceFolder.resolve(voice_name + ".onnx.json").toFile(),
-					speakers
+					voices
 			);
-			return piperVoice;
+			return modelLocal;
 
 		} catch (IOException e) {
 			log.error("Failed to read speakers file, even after validation: " + e.getMessage());

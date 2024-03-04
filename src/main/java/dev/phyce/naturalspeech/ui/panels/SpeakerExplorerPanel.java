@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.ui.panels;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.VoiceRepository;
+import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import lombok.Getter;
@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 public class SpeakerExplorerPanel extends EditorPanel {
 
-	private final VoiceRepository voiceRepository;
+	private final ModelRepository modelRepository;
 	private final NaturalSpeechPlugin plugin;
 
 	@Getter
@@ -64,8 +64,8 @@ public class SpeakerExplorerPanel extends EditorPanel {
 	}
 
 	@Inject
-	public SpeakerExplorerPanel(VoiceRepository voiceRepository, NaturalSpeechPlugin plugin) {
-		this.voiceRepository = voiceRepository;
+	public SpeakerExplorerPanel(ModelRepository modelRepository, NaturalSpeechPlugin plugin) {
+		this.modelRepository = modelRepository;
 		this.plugin = plugin;
 
 		this.setLayout(new BorderLayout());
@@ -138,9 +138,9 @@ public class SpeakerExplorerPanel extends EditorPanel {
 
 	void buildSpeakerList() {
 
-		for (VoiceRepository.PiperVoiceURL piperVoiceURL : voiceRepository.getPiperVoiceURLS()) {
-			if (piperVoiceURL.isHasLocal()) {
-				buildSpeakerSegmentForVoice(piperVoiceURL.getName());
+		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+			if (modelURL.isHasLocal()) {
+				buildSpeakerSegmentForVoice(modelURL.getFullName());
 			}
 		}
 	}
@@ -205,9 +205,9 @@ public class SpeakerExplorerPanel extends EditorPanel {
 
 		try {
 			// TODO(Louis) loadPiper actually downloads the voice if local files don't exist
-			VoiceRepository.PiperVoice piperVoice = voiceRepository.downloadPiperVoice(voice_name);
-			Arrays.stream(piperVoice.getSpeakers()).sorted(Comparator.comparing(a -> a.getName().toLowerCase())).forEach((speaker) -> {
-				SpeakerListItem speakerItem = new SpeakerListItem(this, plugin, speaker);
+			ModelRepository.ModelLocal modelLocal = modelRepository.downloadPiperVoice(voice_name);
+			Arrays.stream(modelLocal.getVoices()).sorted(Comparator.comparing(a -> a.getName().toLowerCase())).forEach((voice) -> {
+				SpeakerListItem speakerItem = new SpeakerListItem(this, plugin, voice);
 				speakerListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
 			});
@@ -252,11 +252,11 @@ public class SpeakerExplorerPanel extends EditorPanel {
 		name_search = StringUtils.join(searchTerms, " ");
 
 		for (SpeakerListItem speakerItem : speakerListItems) {
-			VoiceRepository.Speaker speaker = speakerItem.getSpeaker();
+			ModelRepository.Voice voice = speakerItem.getVoice();
 
 			boolean visible = true;
 
-			if (gender_search != null && !gender_search.equals(speaker.getGender())) {
+			if (gender_search != null && !gender_search.equals(voice.getGender())) {
 				visible = false;
 			}
 
@@ -266,7 +266,7 @@ public class SpeakerExplorerPanel extends EditorPanel {
 				// split speaker name and check if any of the search terms are in the name
 				if (!searchTerms.isEmpty()) {
 					// if nameTerms contain any of the search terms, then term_matched = true
-					if (speaker.getName().toLowerCase().contains(name_search)) {
+					if (voice.getName().toLowerCase().contains(name_search)) {
 						term_matched = true;
 					}
 				}
