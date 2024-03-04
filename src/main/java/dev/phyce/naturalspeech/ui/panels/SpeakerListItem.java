@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.VoiceRepository;
+import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.tts.TTSItem;
 import lombok.Getter;
 import net.runelite.api.ChatMessageType;
@@ -20,19 +20,19 @@ public class SpeakerListItem extends JPanel {
 	private final SpeakerExplorerPanel speakerExplorerPanel;
 	private final NaturalSpeechPlugin plugin;
 	@Getter
-	private final VoiceRepository.Speaker speaker;
+	private final ModelRepository.Voice voice;
 
 
-	public SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, VoiceRepository.Speaker speaker) {
+	public SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.Voice voice) {
 
 
 		this.speakerExplorerPanel = speakerExplorerPanel;
 		this.plugin = plugin;
-		this.speaker = speaker;
+		this.voice = voice;
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("%s:%d %s (%s)", speaker.getPiperModelName(), speaker.getVoiceID(), speaker.getName(), speaker.getGender()));
+		this.setToolTipText(String.format("%s:%d %s (%s)", voice.getModelShortName(), voice.getVoiceID(), voice.getName(), voice.getGender()));
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
@@ -41,13 +41,13 @@ public class SpeakerListItem extends JPanel {
 		speakerPanel.setLayout(speakerLayout);
 
 
-		JLabel nameLabel = new JLabel(speaker.getName());
+		JLabel nameLabel = new JLabel(voice.getName());
 		nameLabel.setForeground(Color.white);
 
-		JLabel sexLabel = new JLabel(speaker.getGender().replaceFirst("M", "(M)").replaceFirst("F", "(F)"));
+		JLabel sexLabel = new JLabel(voice.getGender().replaceFirst("M", "(M)").replaceFirst("F", "(F)"));
 		sexLabel.setForeground(Color.white);
 
-		JLabel piperIdLabel = new JLabel(String.format("ID%d", speaker.getVoiceID()));
+		JLabel piperIdLabel = new JLabel(String.format("ID%d", voice.getVoiceID()));
 		sexLabel.setForeground(Color.white);
 
 
@@ -70,7 +70,7 @@ public class SpeakerListItem extends JPanel {
                 message.setType(ChatMessageType.DIALOG);
 				message.setName("VoiceExplorer");
 
-				TTSItem ttsItem = new TTSItem(message, 0, speaker.getVoiceID());
+				TTSItem ttsItem = new TTSItem(message, 0, voice.getVoiceID());
 				try {
 					plugin.getTts().speak(ttsItem);
                 } catch (IOException e) {

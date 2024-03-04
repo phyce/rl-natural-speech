@@ -6,18 +6,14 @@ import com.google.inject.Provider;
 import dev.phyce.naturalspeech.enums.Locations;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.TTSItem;
-import dev.phyce.naturalspeech.ui.panels.EditorPanel;
-import dev.phyce.naturalspeech.ui.panels.NaturalSpeechPanel;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 import com.google.inject.Provides;
 import dev.phyce.naturalspeech.tts.TTSManager;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,7 +66,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private Downloader downloader;
 
 	@Inject
-	private VoiceRepository voiceRepository;
+	private ModelRepository modelRepository;
 
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
@@ -81,8 +77,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Override
 	protected void startUp() {
 		try {
-			voiceRepository.downloadPiperVoice("en_GB-vctk-medium");
-			voiceRepository.downloadPiperVoice("en_US-libritts-high");
+			modelRepository.downloadPiperVoice("en_GB-vctk-medium");
+			modelRepository.downloadPiperVoice("en_US-libritts-high");
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -110,7 +106,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void startTTS() throws RuntimeException {
 		started = true;
 
-		VoiceRepository.PiperVoice voice =  voiceRepository.downloadPiperVoice("en_US-libritts-high");
+		ModelRepository.ModelLocal voice =  modelRepository.downloadPiperVoice("en_US-libritts-high");
 
 		Path ttsPath = Path.of(config.ttsEngine());
 		Path voicePath = voice.onnx.toPath();
