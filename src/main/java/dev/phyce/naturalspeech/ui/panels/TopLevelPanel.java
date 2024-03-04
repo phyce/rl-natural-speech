@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.Singleton;
 import lombok.Getter;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.ui.PluginPanel;
@@ -13,12 +14,13 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
+@Singleton
 public class TopLevelPanel extends PluginPanel {
 	private final MaterialTabGroup tabGroup;
 	private final CardLayout layout;
 	private final JPanel content;
 
-//	@Getter
+	//	@Getter
 //	private final MainSettingsPanel mainSettingsPanel;
 	@Getter
 	private final NaturalSpeechPanel mainSettingsPanel;
@@ -31,7 +33,7 @@ public class TopLevelPanel extends PluginPanel {
 	private PluginPanel current;
 	private boolean removeOnTabChange;
 
-	private EventBus eventBus;
+	private final EventBus eventBus;
 
 	@Inject
 	TopLevelPanel(

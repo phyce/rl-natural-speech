@@ -6,9 +6,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Strings {
-	public static String parseMessage(String message, Map<String, String> phrases) {
-		List<String> tokens = tokenize(message);
+public final class TextToSpeechUtil {
+	public static String expandShortenedPhrases(String text, Map<String, String> phrases) {
+		List<String> tokens = tokenize(text);
 		StringBuilder parsedMessage = new StringBuilder();
 
 		for (String token : tokens) {
@@ -23,17 +23,17 @@ public class Strings {
 		return parsedMessage.toString().trim();
 	}
 
-	public static List<String> tokenize(String message) {
+	public static List<String> tokenize(String text) {
 		List<String> tokens = new ArrayList<>();
-		Matcher matcher = Pattern.compile("[\\w']+|\\p{Punct}").matcher(message);
+		Matcher matcher = Pattern.compile("[\\w']+|\\p{Punct}").matcher(text);
 
 		while (matcher.find()) tokens.add(matcher.group());
 
 		return tokens;
 	}
 
-	public static String escape(String message) {
-		return message.replace("\\", "\\\\")
+	public static String escape(String text) {
+		return text.replace("\\", "\\\\")
 				.replace("\"", "\\\"")
 				.replace("\b", "\\b")
 				.replace("\f", "\\f")
@@ -42,8 +42,8 @@ public class Strings {
 				.replace("\t", "\\t");
 	}
 
-	public static String generateJson(String message, int voiceId) {
-		message = escape(message);
-		return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", message, voiceId);
+	public static String generateJson(String text, int voiceId) {
+		text = escape(text);
+		return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
 	}
 }

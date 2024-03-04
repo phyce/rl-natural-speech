@@ -5,17 +5,6 @@ import java.util.function.Function;
 
 public class OnlyVisibleGridLayout extends GridLayout {
 
-	// Pretends invisible components don't exist during layout
-	private int getVisibleComponentCount(Container parent) {
-		int count = 0;
-		for (Component c : parent.getComponents()) {
-			if (c.isVisible()) {
-				count++;
-			}
-		}
-		return count;
-	}
-
 	public OnlyVisibleGridLayout() {
 		this(1, 0, 0, 0);
 	}
@@ -28,6 +17,16 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		super(rows, cols, hgap, vgap);
 	}
 
+	// Pretends invisible components don't exist during layout
+	private int getVisibleComponentCount(Container parent) {
+		int count = 0;
+		for (Component c : parent.getComponents()) {
+			if (c.isVisible()) {
+				count++;
+			}
+		}
+		return count;
+	}
 
 	@Override
 	public Dimension preferredLayoutSize(Container parent) {

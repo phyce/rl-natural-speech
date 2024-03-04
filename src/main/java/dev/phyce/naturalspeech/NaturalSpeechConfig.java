@@ -2,10 +2,10 @@ package dev.phyce.naturalspeech;
 
 import net.runelite.client.config.*;
 
-@ConfigGroup("naturalSpeech")
-public interface NaturalSpeechConfig extends Config
-{
-	String CONFIG_GROUP = "naturalSpeech";
+import static dev.phyce.naturalspeech.Settings.CONFIG_GROUP;
+
+@ConfigGroup(CONFIG_GROUP)
+public interface NaturalSpeechConfig extends Config {
 	int MAX_VOICES = 903;
 	@ConfigSection(
 			name = "General",
@@ -13,17 +13,36 @@ public interface NaturalSpeechConfig extends Config
 			position = 0
 	)
 	String generalOptionsSection = "generalOptionsSection";
+	@ConfigSection(
+			name = "Speech generation",
+			description = "Settings to choose which messages should be played",
+			position = 1
+	)
+	String ttsOptionsSection = "ttsOptionsSection";
+	@ConfigSection(
+			name = "Mute",
+			description = "Change mute settings here",
+			position = 2
+	)
+	String muteOptionsSection = "muteOptionsSection";
+	@ConfigSection(
+			name = "Other",
+			description = "Other settings",
+			position = 3
+	)
+	String otherOptionsSection = "otherOptionsSection";
 
 	@ConfigItem(
-		position = 1,
-		keyName = "autoStart",
-		name = "Autostart the TTS engine",
-		description = "If executable and voice models available, autostart the TTS engine when the plugin loads.",
-		section = generalOptionsSection
+			position = 1,
+			keyName = "autoStart",
+			name = "Autostart the TTS engine",
+			description = "If executable and voice models available, autostart the TTS engine when the plugin loads.",
+			section = generalOptionsSection
 	)
 	default boolean autoStart() {
 		return true;
 	}
+
 	@ConfigItem(
 			position = 2,
 			keyName = "usePersonalVoice",
@@ -34,16 +53,19 @@ public interface NaturalSpeechConfig extends Config
 	default boolean usePersonalVoice() {
 		return false;
 	}
+
 	@ConfigItem(
 			position = 3,
 			keyName = "personalVoice",
 			name = "Personal voice ID",
-			description = "Choose one of the 903 voices for your character",
+			description = "Choose one of the 903 voices for your character, example: libritts:0",
 			section = generalOptionsSection
 
 	)
-	@Range(min = 0, max = MAX_VOICES)
-	default int personalVoice() { return 0; }
+	default String personalVoiceID() {
+		return "libritts:0";
+	}
+
 	@ConfigItem(
 			position = 4,
 			keyName = "distanceFade",
@@ -52,14 +74,10 @@ public interface NaturalSpeechConfig extends Config
 			section = generalOptionsSection
 
 	)
-	default boolean distanceFade() { return true; }
+	default boolean distanceFadeEnabled() {
+		return true;
+	}
 
-	@ConfigSection(
-			name = "Speech generation",
-			description = "Settings to choose which messages should be played",
-			position = 1
-	)
-	String ttsOptionsSection = "ttsOptionsSection";
 	@ConfigItem(
 			keyName = "publicChat",
 			name = "Public messages",
@@ -67,9 +85,10 @@ public interface NaturalSpeechConfig extends Config
 			section = ttsOptionsSection,
 			position = 1
 	)
-	default boolean publicChat() {
+	default boolean publicChatEnabled() {
 		return true;
 	}
+
 	@ConfigItem(
 			keyName = "privateChat",
 			name = "Private received messages",
@@ -77,9 +96,10 @@ public interface NaturalSpeechConfig extends Config
 			section = ttsOptionsSection,
 			position = 2
 	)
-	default boolean privateChat() {
+	default boolean privateChatEnabled() {
 		return false;
 	}
+
 	@ConfigItem(
 			keyName = "privateOutChat",
 			name = "Private sent out messages",
@@ -88,9 +108,10 @@ public interface NaturalSpeechConfig extends Config
 			,
 			position = 3
 	)
-	default boolean privateOutChat() {
+	default boolean privateOutChatEnabled() {
 		return false;
 	}
+
 	@ConfigItem(
 			keyName = "friendsChat",
 			name = "Friends chat",
@@ -98,9 +119,10 @@ public interface NaturalSpeechConfig extends Config
 			section = ttsOptionsSection,
 			position = 4
 	)
-	default boolean friendsChat() {
+	default boolean friendsChatEnabled() {
 		return true;
 	}
+
 	@ConfigItem(
 			keyName = "clanChat",
 			name = "Clan chat",
@@ -108,9 +130,10 @@ public interface NaturalSpeechConfig extends Config
 			section = ttsOptionsSection,
 			position = 5
 	)
-	default boolean clanChat() {
+	default boolean clanChatEnabled() {
 		return false;
 	}
+
 	@ConfigItem(
 			keyName = "clanGuestChat",
 			name = "Guest clan chat",
@@ -118,9 +141,10 @@ public interface NaturalSpeechConfig extends Config
 			section = ttsOptionsSection,
 			position = 6
 	)
-	default boolean clanGuestChat() {
+	default boolean clanGuestChatEnabled() {
 		return false;
 	}
+
 	@ConfigItem(
 			keyName = "examineChat",
 			name = "Examine text",
@@ -128,7 +152,7 @@ public interface NaturalSpeechConfig extends Config
 			section = ttsOptionsSection,
 			position = 7
 	)
-	default boolean examineChat() {
+	default boolean examineChatEnabled() {
 		return true;
 	}
 
@@ -139,91 +163,67 @@ public interface NaturalSpeechConfig extends Config
 			section = ttsOptionsSection,
 			position = 8
 	)
-	default boolean dialog() {
+	default boolean dialogEnabled() {
 		return true;
 	}
 
-	@ConfigSection(
-		name = "Mute",
-		description = "Change mute settings here",
-		position = 2
-	)
-	String muteOptionsSection = "muteOptionsSection";
 	@ConfigItem(
-		position = 1,
-		keyName = "muteGrandExchange",
-		name = "Mute in Grand Exchange",
-		description = "Disable text-to-speech in the grand exchange area.",
-		section = muteOptionsSection
+			position = 1,
+			keyName = "muteGrandExchange",
+			name = "Mute in Grand Exchange",
+			description = "Disable text-to-speech in the grand exchange area.",
+			section = muteOptionsSection
 	)
 	default boolean muteGrandExchange() {
 		return true;
 	}
+
 	@ConfigItem(
-		position = 4,
-		keyName = "muteSelf",
-		name = "Mute yourself",
-		description = "Do not generate text-to-speech for messages that you send.",
-		section = muteOptionsSection
+			position = 4,
+			keyName = "muteSelf",
+			name = "Mute yourself",
+			description = "Do not generate text-to-speech for messages that you send.",
+			section = muteOptionsSection
 
 	)
-	default boolean muteSelf() { return false; }
+	default boolean muteSelf() {
+		return false;
+	}
+
 	@ConfigItem(
-		position = 5,
-		keyName = "muteOthers",
-		name = "Mute others",
-		description = "Do not generate text-to-speech for messages from other players.",
-		section = muteOptionsSection
+			position = 5,
+			keyName = "muteOthers",
+			name = "Mute others",
+			description = "Do not generate text-to-speech for messages from other players.",
+			section = muteOptionsSection
 
 	)
-	default boolean muteOthers() { return false; }
+	default boolean muteOthers() {
+		return false;
+	}
 
 	@ConfigItem(
-		position = 6,
-		keyName = "muteLevelThreshold",
-		name = "Mute below level",
-		description = "Do not generate text-to-speech for messages from players with levels lower than this value.",
-		section = muteOptionsSection
+			position = 6,
+			keyName = "muteLevelThreshold",
+			name = "Mute below level",
+			description = "Do not generate text-to-speech for messages from players with levels lower than this value.",
+			section = muteOptionsSection
 
 	)
 	@Range(min = 3, max = 126)
-	default int muteLevelThreshold() { return 3; }
-
-	@ConfigSection(
-			name = "Other",
-			description = "Other settings",
-			position = 3
-	)
-	String otherOptionsSection = "otherOptionsSection";
-
-	@ConfigItem(
-			position = 1,
-			keyName = "ttsEngine",
-			name = "TTS Engine",
-			description = "Full path to the binary of the TTS engine. Currently only Piper is supported.",
-			section = otherOptionsSection,
-			warning = "You will need to reload the plugin to apply the changes."
-	)
-	default String ttsEngine()  {
-		// make sure to use the write path separators depending on operating system
-		if (System.getProperty("os.name").toLowerCase().contains("win")) {
-			return "C:\\piper\\piper.exe";
-		} else {
-			// assume in user folder
-			return System.getProperty("user.home") + "/piper/piper";
-		}
+	default int muteLevelThreshold() {
+		return 3;
 	}
+
 	@ConfigItem(
 			position = 4,
 			keyName = "shortenedPhrases",
 			name = "Shortened phrases",
 			description = "Replace commonly used shortened sentences with whole words",
-			section = otherOptionsSection,
-			warning = "You will need to reload the plugin to apply the changes."
-
+			section = otherOptionsSection
 	)
-	default String shortenedPhrases()  {
-		return  "ags=armadyl godsword\n" +
+	default String shortenedPhrases() {
+		return "ags=armadyl godsword\n" +
 				"ags2=ancient godsword\n" +
 				"bgs=bandos godsword\n" +
 				"idk=i don't know\n" +

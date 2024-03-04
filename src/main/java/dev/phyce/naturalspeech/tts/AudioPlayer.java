@@ -3,34 +3,42 @@ package dev.phyce.naturalspeech.tts;
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import net.runelite.api.ChatMessageType;
 
 class AudioPlayer {
-    private AudioFormat format;
-    private SourceDataLine line;
+	private final AudioFormat format;
+	private SourceDataLine line;
 
-    private boolean stop;
+	private boolean stop;
 
-    public AudioPlayer() {
-        format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
-                22050.0F, // Sample Rate
-                16, // Sample Size in Bits
-                1, // Channels
-                2, // Frame Size
-                22050.0F, // Frame Rate
-                false); // Little Endian
-    }
-	public void playClip(TTSItem message) {
+	public AudioPlayer() {
+		format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
+				22050.0F, // Sample Rate
+				16, // Sample Size in Bits
+				1, // Channels
+				2, // Frame Size
+				22050.0F, // Frame Rate
+				false); // Little Endian
+	}
+
+//	public static int calculateAudioLength(byte[] audioClip) {
+//		final int bytesPerSample = 2; // 16-bit mono
+//		final int sampleRate = 22050; // Hz
+//
+//		int totalSamples = audioClip.length / bytesPerSample;
+//
+//		return (int) ((totalSamples / (double) sampleRate) * 1000);
+//	}
+
+	public void playClip(byte[] audioData, float volume) {
 		AudioInputStream audioInputStream = null;
 		SourceDataLine line = null;
 
 		try {
-			byte[] audioData = message.audioClip;
 
 			audioInputStream = new AudioInputStream(
-				new ByteArrayInputStream(audioData),
-				this.format,
-				audioData.length / this.format.getFrameSize());
+					new ByteArrayInputStream(audioData),
+					this.format,
+					audioData.length / this.format.getFrameSize());
 
 //			if (message.getType() == ChatMessageType.ITEM_EXAMINE ||
 //				message.getType() == ChatMessageType.NPC_EXAMINE ||
@@ -44,7 +52,8 @@ class AudioPlayer {
 			line.open(this.format);
 			line.start();
 
-			setVolume(line, message); // Assuming this method adjusts the line's volume
+//			setVolumeBasedOnDistance(line, distance); // Assuming this method adjusts the line's volume
+			setVolume(line, volume);
 
 			byte[] buffer = new byte[1024];
 			int bytesRead;
@@ -68,65 +77,65 @@ class AudioPlayer {
 		}
 	}
 
-	public AudioInputStream applyEffectsToStream(AudioInputStream inputAudio) {
-		try {
-			AudioFormat format = inputAudio.getFormat();
-			int bytesPerFrame = format.getFrameSize();
-			float sampleRate = format.getSampleRate();
-			int delayMilliseconds = 300; // Delay time in milliseconds
-			int delayBytes = (int)((delayMilliseconds / 1000.0) * sampleRate * bytesPerFrame);
+//	public AudioInputStream applyEffectsToStream(AudioInputStream inputAudio) {
+//		try {
+//			AudioFormat format = inputAudio.getFormat();
+//			int bytesPerFrame = format.getFrameSize();
+//			float sampleRate = format.getSampleRate();
+//			int delayMilliseconds = 300; // Delay time in milliseconds
+//			int delayBytes = (int) ((delayMilliseconds / 1000.0) * sampleRate * bytesPerFrame);
+//
+//			// Create a circular buffer to hold the delay
+//			byte[] delayBuffer = new byte[delayBytes];
+//			int delayBufferPos = 0;
+//
+//			// Read the entire stream into memory (not efficient for large files)
+//			byte[] inputBytes = inputAudio.readAllBytes();
+//			byte[] outputBytes = new byte[inputBytes.length];
+//
+//			// Apply the echo effect
+//			for (int i = 0; i < inputBytes.length; i++) {
+//				// Mix current sample and delayed sample
+//				int currentSample = inputBytes[i];
+//				int delayedSample = delayBuffer[delayBufferPos];
+//
+//				// Simple mix: average the current sample and the delayed sample
+//				outputBytes[i] = (byte) ((currentSample + delayedSample) / 2);
+//
+//				// Update the delay buffer
+//				delayBuffer[delayBufferPos] = (byte) currentSample;
+//				delayBufferPos = (delayBufferPos + 1) % delayBytes;
+//			}
+//
+//			// Convert the output bytes back into an AudioInputStream
+//			ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(outputBytes);
+//			return new AudioInputStream(byteArrayInputStream, format, outputBytes.length / bytesPerFrame);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return null;
+//		}
+//	}
+//
+//	public double[] bytesToDouble(byte[] byteArray, AudioFormat format) {
+//		double[] doubleArray = new double[byteArray.length / 2];
+//		for (int i = 0; i < doubleArray.length; i++) {
+//			int sample = (byteArray[2 * i] & 0xFF) | (byteArray[2 * i + 1] << 8);
+//			doubleArray[i] = sample / 32768.0; // Normalize to -1.0 to 1.0 for 16-bit audio
+//		}
+//		return doubleArray;
+//	}
+//
+//	public byte[] doubleToBytes(double[] doubleArray, AudioFormat format) {
+//		byte[] byteArray = new byte[doubleArray.length * 2];
+//		for (int i = 0; i < doubleArray.length; i++) {
+//			int sample = (int) (doubleArray[i] * 32768.0);
+//			byteArray[2 * i] = (byte) (sample & 0xFF);
+//			byteArray[2 * i + 1] = (byte) ((sample >> 8) & 0xFF);
+//		}
+//		return byteArray;
+//	}
 
-			// Create a circular buffer to hold the delay
-			byte[] delayBuffer = new byte[delayBytes];
-			int delayBufferPos = 0;
-
-			// Read the entire stream into memory (not efficient for large files)
-			byte[] inputBytes = inputAudio.readAllBytes();
-			byte[] outputBytes = new byte[inputBytes.length];
-
-			// Apply the echo effect
-			for (int i = 0; i < inputBytes.length; i++) {
-				// Mix current sample and delayed sample
-				int currentSample = inputBytes[i];
-				int delayedSample = delayBuffer[delayBufferPos];
-
-				// Simple mix: average the current sample and the delayed sample
-				outputBytes[i] = (byte)((currentSample + delayedSample) / 2);
-
-				// Update the delay buffer
-				delayBuffer[delayBufferPos] = (byte)currentSample;
-				delayBufferPos = (delayBufferPos + 1) % delayBytes;
-			}
-
-			// Convert the output bytes back into an AudioInputStream
-			ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(outputBytes);
-			return new AudioInputStream(byteArrayInputStream, format, outputBytes.length / bytesPerFrame);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-	public double[] bytesToDouble(byte[] byteArray, AudioFormat format) {
-		double[] doubleArray = new double[byteArray.length / 2];
-		for (int i = 0; i < doubleArray.length; i++) {
-			int sample = (byteArray[2*i] & 0xFF) | (byteArray[2*i + 1] << 8);
-			doubleArray[i] = sample / 32768.0; // Normalize to -1.0 to 1.0 for 16-bit audio
-		}
-		return doubleArray;
-	}
-
-	public byte[] doubleToBytes(double[] doubleArray, AudioFormat format) {
-		byte[] byteArray = new byte[doubleArray.length * 2];
-		for (int i = 0; i < doubleArray.length; i++) {
-			int sample = (int)(doubleArray[i] * 32768.0);
-			byteArray[2*i] = (byte)(sample & 0xFF);
-			byteArray[2*i + 1] = (byte)((sample >> 8) & 0xFF);
-		}
-		return byteArray;
-	}
-
-//	private byte[] addThoughtEffect(byte[] inputAudio) throws UnsupportedAudioFileException, LineUnavailableException {
+	//	private byte[] addThoughtEffect(byte[] inputAudio) throws UnsupportedAudioFileException, LineUnavailableException {
 //		// Convert byte array to an AudioInputStream
 //		ByteArrayInputStream inputStream = new ByteArrayInputStream(inputAudio);
 //		AudioInputStream audioStream = new AudioInputStream(inputStream, this.format, inputAudio.length / this.format.getFrameSize());
@@ -172,28 +181,17 @@ class AudioPlayer {
 //
 //		return outputStream.toByteArray();
 //	}
-    public float setVolume(SourceDataLine line, TTSItem message) {
-        if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-            FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
 
-            if (message.getDistance() > 0) {
-                int effectiveDistance = Math.max(1, message.getDistance());
-                float volumeReduction = -6.0f * (float)(Math.log(effectiveDistance) / Math.log(2)); // Log base 2
 
-                float newVolume = Math.max(volumeControl.getMinimum(), volumeControl.getValue() + volumeReduction);
-                volumeControl.setValue(newVolume);
-            }
-        }
-        return -1;
-    }
-    public static int calculateAudioLength(byte[] audioClip) {
-        final int bytesPerSample = 2; // 16-bit mono
-        final int sampleRate = 22050; // Hz
 
-        int totalSamples = audioClip.length / bytesPerSample;
+	public static void setVolume(SourceDataLine line, float volume) {
+		if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+			FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+			volumeControl.setValue(volume);
+		}
+	}
 
-        return (int) ((totalSamples / (double) sampleRate) * 1000);
-    }
-    public void shutDown() {}
+	public void shutDown() {
+	}
 }
 

@@ -1,9 +1,9 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import lombok.extern.slf4j.Slf4j;
@@ -27,20 +27,9 @@ import java.net.URI;
 
 @Slf4j
 public class MainSettingsPanel extends PluginPanel {
-	private final FixedWidthPanel mainContentPanel;
-	private final JScrollPane scrollPane;
-	private final ModelRepository modelRepository;
-	private NaturalSpeechConfig config;
-	private NaturalSpeechPlugin plugin;
-
-	private ConfigManager configManager;
-
-	private Downloader downloader;
-
+	public static final ImageIcon SECTION_EXPAND_ICON;
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
 	private static final ImageIcon SECTION_RETRACT_ICON;
-	public static final ImageIcon SECTION_EXPAND_ICON;
-
 	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 	static {
@@ -50,6 +39,14 @@ public class MainSettingsPanel extends PluginPanel {
 		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
 		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
 	}
+
+	private final FixedWidthPanel mainContentPanel;
+	private final JScrollPane scrollPane;
+	private final ModelRepository modelRepository;
+	private final NaturalSpeechConfig config;
+	private final NaturalSpeechPlugin plugin;
+	private final ConfigManager configManager;
+	private final Downloader downloader;
 
 	@Inject
 	public MainSettingsPanel(

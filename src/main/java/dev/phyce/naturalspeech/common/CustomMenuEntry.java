@@ -11,18 +11,21 @@ import java.util.function.Consumer;
 
 public class CustomMenuEntry {
 	@Getter
-	private String text;
-	private int index;
+	private final String text;
+	private final int index;
 	@Getter
-	private Consumer<CustomMenuEntry> action;
+	private final Consumer<CustomMenuEntry> action;
 	@Getter
-	private List<CustomMenuEntry> children = new ArrayList<>();
+	private final List<CustomMenuEntry> children = new ArrayList<>();
 
 	public CustomMenuEntry(String text, int index) {
 		this.text = text;
-		this.action = entry -> {System.out.println("no function for custom menu entry main");};
+		this.action = entry -> {
+			System.out.println("no function for custom menu entry main");
+		};
 		this.index = index;
 	}
+
 	public CustomMenuEntry(String text, int index, Consumer<CustomMenuEntry> action) {
 		this.text = text;
 		this.action = action;
@@ -36,17 +39,17 @@ public class CustomMenuEntry {
 	public void addMenuEntry(Client client, String option, Consumer<CustomMenuEntry> action, CustomMenuEntry[] children) {
 
 		MenuEntry parentEntry = client.createMenuEntry(this.index)
-			.setOption(option)
-			.setTarget("")
-			.setType(MenuAction.RUNELITE)
-			.onClick(consumer -> action.accept(this));
+				.setOption(option)
+				.setTarget("")
+				.setType(MenuAction.RUNELITE)
+				.onClick(consumer -> action.accept(this));
 
 		for (CustomMenuEntry child : children) {
 			MenuEntry childEntry = client.createMenuEntry(child.index)
-				.setOption(child.text)
-				.setTarget("")
-				.setType(MenuAction.RUNELITE)
-				.onClick(consumer -> child.action.accept(child));
+					.setOption(child.text)
+					.setTarget("")
+					.setType(MenuAction.RUNELITE)
+					.onClick(consumer -> child.action.accept(child));
 
 			childEntry.setParent(parentEntry);
 		}

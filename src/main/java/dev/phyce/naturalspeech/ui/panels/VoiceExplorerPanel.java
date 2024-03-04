@@ -2,8 +2,8 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.ModelRepository;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import lombok.Getter;
@@ -32,24 +32,8 @@ import java.util.stream.Collectors;
 
 public class VoiceExplorerPanel extends EditorPanel {
 
-	private final ModelRepository modelRepository;
-	private final NaturalSpeechPlugin plugin;
-
-	@Getter
-	private final IconTextField speechText;
-	@Getter
-	private final IconTextField searchBar;
-	@Getter
-	private final FixedWidthPanel sectionListPanel;
-	@Getter
-	private final JScrollPane speakerScrollPane;
-
-	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
-
-	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
-	private static final ImageIcon SECTION_RETRACT_ICON;
 	public static final ImageIcon SECTION_EXPAND_ICON;
-
+	private static final ImageIcon SECTION_RETRACT_ICON;
 	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of(
 			"Male", // Special search term for disabled plugins
 			"Female" // Special search term for pinned plugins
@@ -62,6 +46,19 @@ public class VoiceExplorerPanel extends EditorPanel {
 		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
 		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
 	}
+
+	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
+	private final ModelRepository modelRepository;
+	private final NaturalSpeechPlugin plugin;
+	@Getter
+	private final IconTextField speechText;
+	@Getter
+	private final IconTextField searchBar;
+	@Getter
+	private final FixedWidthPanel sectionListPanel;
+	@Getter
+	private final JScrollPane speakerScrollPane;
+	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 
 	@Inject
 	public VoiceExplorerPanel(ModelRepository modelRepository, NaturalSpeechPlugin plugin) {
@@ -140,7 +137,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 			if (modelURL.isHasLocal()) {
-				buildSpeakerSegmentForVoice(modelURL.getFullName());
+				buildSpeakerSegmentForVoice(modelURL.getModelName());
 			}
 		}
 	}
@@ -206,11 +203,15 @@ public class VoiceExplorerPanel extends EditorPanel {
 		try {
 			// TODO(Louis) loadPiper actually downloads the voice if local files don't exist
 			ModelRepository.ModelLocal modelLocal = modelRepository.getModelLocal(voice_name);
-			Arrays.stream(modelLocal.getVoices()).sorted(Comparator.comparing(a -> a.getName().toLowerCase())).forEach((voice) -> {
-				VoiceListItem speakerItem = new VoiceListItem(this, plugin, voice);
-				voiceListItems.add(speakerItem);
-				sectionContent.add(speakerItem);
-			});
+
+			Arrays.stream(modelLocal.getVoiceMetadata())
+					.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
+					.forEach((voiceMetadata) -> {
+						VoiceListItem speakerItem = new VoiceListItem(this, plugin, voiceMetadata);
+						voiceListItems.add(speakerItem);
+						sectionContent.add(speakerItem);
+					});
+
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -252,13 +253,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 		name_search = StringUtils.join(searchTerms, " ");
 
 		for (VoiceListItem speakerItem : voiceListItems) {
-			ModelRepository.Voice voice = speakerItem.getVoice();
+			ModelRepository.VoiceMetadata voiceMetadata = speakerItem.getVoiceMetadata();
 
-			boolean visible = true;
-
-			if (gender_search != null && !gender_search.equals(voice.getGender())) {
-				visible = false;
-			}
+			boolean visible = gender_search == null || gender_search.equals(voiceMetadata.getGender());
 
 			// name search
 			if (!name_search.isEmpty()) {
@@ -266,7 +263,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 				// split speaker name and check if any of the search terms are in the name
 				if (!searchTerms.isEmpty()) {
 					// if nameTerms contain any of the search terms, then term_matched = true
-					if (voice.getName().toLowerCase().contains(name_search)) {
+					if (voiceMetadata.getName().toLowerCase().contains(name_search)) {
 						term_matched = true;
 					}
 				}

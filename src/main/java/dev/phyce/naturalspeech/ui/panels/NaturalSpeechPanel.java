@@ -1,16 +1,12 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.Settings;
-import dev.phyce.naturalspeech.downloader.DownloadTask;
+import dev.phyce.naturalspeech.RuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
-import okhttp3.HttpUrl;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,16 +17,13 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.net.URI;
-import java.nio.file.FileSystem;
 import java.nio.file.Path;
 
 @Slf4j
 public class NaturalSpeechPanel extends PluginPanel {
 
-	private NaturalSpeechConfig config;
-	private NaturalSpeechPlugin plugin;
-
-	private ConfigManager configManager;
+	private final RuntimeConfig runtimeConfig;
+	private final NaturalSpeechPlugin plugin;
 
 	@Inject
 	private Downloader downloader;
@@ -44,11 +37,12 @@ public class NaturalSpeechPanel extends PluginPanel {
 
 
 	@Inject
-	public NaturalSpeechPanel(NaturalSpeechConfig config, NaturalSpeechPlugin plugin, ConfigManager configManager) {
+	public NaturalSpeechPanel(
+			NaturalSpeechPlugin plugin,
+			RuntimeConfig runtimeConfig) {
 		super(true);
-		this.config = config;
 		this.plugin = plugin;
-		this.configManager = configManager;
+		this.runtimeConfig = runtimeConfig;
 
 		setLayout(new GridLayout(0, 1)); // Use GridLayout for simplicity
 
@@ -127,21 +121,23 @@ public class NaturalSpeechPanel extends PluginPanel {
 	}
 
 	public void drawBinarySegment() {
-		filePathField = new JTextField(config.ttsEngine());
+		filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
 		filePathField.setToolTipText("TTS engine binary file path");
+		filePathField.setEditable(false);
 
 		browseButton = new JButton("Browse");
 		browseButton.setToolTipText("Requires manual download, please read instructions.");
 		browseButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser fileChooser = new JFileChooser();
+				// open in drive top path
+				JFileChooser fileChooser = new JFileChooser("/");
 				fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 				int returnValue = fileChooser.showOpenDialog(NaturalSpeechPanel.this);
 				if (returnValue == JFileChooser.APPROVE_OPTION) {
 					String newPath = fileChooser.getSelectedFile().getPath();
 					filePathField.setText(newPath);
-					configManager.setConfiguration(NaturalSpeechConfig.CONFIG_GROUP, "ttsEngine", newPath);
+					runtimeConfig.setPiperPath(Path.of(newPath));
 				}
 			}
 		});
@@ -268,7 +264,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 			updateStatus(4);
 			return;
 		}
-		if (plugin.getTts().isActive()) {
+		if (plugin.getTextToSpeech().isAnyPiperRunning()) {
 			updateStatus(2);
 		} else {
 			updateStatus(4);
