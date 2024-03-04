@@ -19,6 +19,10 @@ import java.util.Objects;
 @Slf4j
 public class ModelRepository {
 
+	public final static String ONNX_EXTENSION = ".onnx";
+	public final static String ONNX_METADATA_EXTENSION = ".onnx.json";
+	public final static String METADATA_EXTENSION = ".metadata.json";
+
 	private final Downloader downloader;
 
 	private final NaturalSpeechConfig config;
@@ -41,14 +45,14 @@ public class ModelRepository {
 		boolean hasLocal;
 	}
 
-	// Not an JSON Object
+	// Not a Serialized JSON Object
 	@Data
 	@AllArgsConstructor
 	public static class ModelLocal {
 		String fullName;
 		String shortName;
 		File onnx;
-		File onnx_metadata;
+		File onnxMetadata;
 		Voice[] voices;
 	}
 
@@ -59,7 +63,7 @@ public class ModelRepository {
 		int voiceID;
 		// (Serialized in JSON) M, F, ...
 		String gender;
-		// (Serialzied in JSON) The speaker name from the model data set
+		// (Serialized in JSON) The speaker name from the model data set
 		String name;
 
 		// Model Short name
@@ -101,9 +105,9 @@ public class ModelRepository {
 		}
 	}
 
-	public ModelURL findPiperVoiceURL(String voice_name) {
+	public ModelURL getModelURL(String modelFullName) {
 		for (ModelURL modelURL : modelURLS) {
-			if (modelURL.fullName.equals(voice_name)) {
+			if (modelURL.fullName.equals(modelFullName)) {
 				return modelURL;
 			}
 		}
@@ -118,15 +122,15 @@ public class ModelRepository {
 		Path voiceFolder = Path.of(config.ttsEngine()).resolveSibling(Settings.voiceFolderName).resolve(voice_name);
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
-			if (!voiceFolder.resolve(voice_name + ".onnx").toFile().exists()) {
+			if (!voiceFolder.resolve(voice_name + ONNX_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if onnx metadata exists
-			if (!voiceFolder.resolve(voice_name + ".onnx.json").toFile().exists()) {
+			if (!voiceFolder.resolve(voice_name + ONNX_METADATA_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if speakers metadata exists
-			if (!voiceFolder.resolve(voice_name + ".metadata.json").toFile().exists()) {
+			if (!voiceFolder.resolve(voice_name + METADATA_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
@@ -138,24 +142,24 @@ public class ModelRepository {
 		return localVoiceValid;
 	}
 
-	public ModelLocal downloadPiperVoice(String voice_name) throws IOException {
+	public ModelLocal getModelLocal(String modelFullName) throws IOException {
 
 		// assume true
 		boolean localVoiceValid = true;
 
 		// First check if voice folder exist
-		Path voiceFolder = Path.of(config.ttsEngine()).resolveSibling(Settings.voiceFolderName).resolve(voice_name);
+		Path voiceFolder = Path.of(config.ttsEngine()).resolveSibling(Settings.voiceFolderName).resolve(modelFullName);
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
-			if (!voiceFolder.resolve(voice_name + ".onnx").toFile().exists()) {
+			if (!voiceFolder.resolve(modelFullName + ONNX_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if onnx metadata exists
-			if (!voiceFolder.resolve(voice_name + ".onnx.json").toFile().exists()) {
+			if (!voiceFolder.resolve(modelFullName + ONNX_METADATA_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if speakers metadata exists
-			if (!voiceFolder.resolve(voice_name + ".metadata.json").toFile().exists()) {
+			if (!voiceFolder.resolve(modelFullName + METADATA_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
@@ -168,9 +172,9 @@ public class ModelRepository {
 			}
 		}
 
-		ModelURL modelURL = findPiperVoiceURL(voice_name);
+		ModelURL modelURL = getModelURL(modelFullName);
 		if (modelURL == null) {
-			log.error("Voice not found in repository: " + voice_name);
+			log.error("Voice not found in repository: " + modelFullName);
 			return null;
 		}
 
@@ -179,9 +183,9 @@ public class ModelRepository {
 			log.info("Local voice files are invalid, re-downloading.");
 
 			// download voice files
-			DownloadTask onnxTask = downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(voice_name + ".onnx"));
-			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL), voiceFolder.resolve(voice_name + ".onnx.json"));
-			DownloadTask speakersTask = downloader.create(HttpUrl.get(modelURL.metadataURL), voiceFolder.resolve(voice_name + ".metadata.json"));
+			DownloadTask onnxTask = downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(modelFullName + ONNX_EXTENSION));
+			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL), voiceFolder.resolve(modelFullName + ONNX_METADATA_EXTENSION));
+			DownloadTask speakersTask = downloader.create(HttpUrl.get(modelURL.metadataURL), voiceFolder.resolve(modelFullName + METADATA_EXTENSION));
 
 			// thread blocking download
 			File onnx = onnxTask.get();
@@ -195,18 +199,19 @@ public class ModelRepository {
 		}
 
 		// Read Speaker File into an HashSet of Array of Speaker
-		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(voice_name + ".metadata.json").toFile())) {
+		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(modelFullName + METADATA_EXTENSION).toFile())) {
 			Voice[] voices = new Gson().fromJson(new InputStreamReader(fis), new TypeToken<Voice[]>() {
 			}.getType());
+
 			for (Voice voice : voices) {
-				voice.setModelShortName(voice_name);
+				voice.setModelShortName(modelURL.getShortName());
 			}
 
 			ModelLocal modelLocal = new ModelLocal(
-					voice_name,
+					modelFullName,
 					modelURL.getShortName(),
-					voiceFolder.resolve(voice_name + ".onnx").toFile(),
-					voiceFolder.resolve(voice_name + ".onnx.json").toFile(),
+					voiceFolder.resolve(modelFullName + ONNX_EXTENSION).toFile(),
+					voiceFolder.resolve(modelFullName + ONNX_METADATA_EXTENSION).toFile(),
 					voices
 			);
 			return modelLocal;

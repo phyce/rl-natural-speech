@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SpeakerExplorerPanel extends EditorPanel {
+public class VoiceExplorerPanel extends EditorPanel {
 
 	private final ModelRepository modelRepository;
 	private final NaturalSpeechPlugin plugin;
@@ -44,7 +44,7 @@ public class SpeakerExplorerPanel extends EditorPanel {
 	@Getter
 	private final JScrollPane speakerScrollPane;
 
-	private final List<SpeakerListItem> speakerListItems = new ArrayList<>();
+	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 
 	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
 	private static final ImageIcon SECTION_RETRACT_ICON;
@@ -64,7 +64,7 @@ public class SpeakerExplorerPanel extends EditorPanel {
 	}
 
 	@Inject
-	public SpeakerExplorerPanel(ModelRepository modelRepository, NaturalSpeechPlugin plugin) {
+	public VoiceExplorerPanel(ModelRepository modelRepository, NaturalSpeechPlugin plugin) {
 		this.modelRepository = modelRepository;
 		this.plugin = plugin;
 
@@ -205,10 +205,10 @@ public class SpeakerExplorerPanel extends EditorPanel {
 
 		try {
 			// TODO(Louis) loadPiper actually downloads the voice if local files don't exist
-			ModelRepository.ModelLocal modelLocal = modelRepository.downloadPiperVoice(voice_name);
+			ModelRepository.ModelLocal modelLocal = modelRepository.getModelLocal(voice_name);
 			Arrays.stream(modelLocal.getVoices()).sorted(Comparator.comparing(a -> a.getName().toLowerCase())).forEach((voice) -> {
-				SpeakerListItem speakerItem = new SpeakerListItem(this, plugin, voice);
-				speakerListItems.add(speakerItem);
+				VoiceListItem speakerItem = new VoiceListItem(this, plugin, voice);
+				voiceListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
 			});
 		} catch (IOException e) {
@@ -221,7 +221,7 @@ public class SpeakerExplorerPanel extends EditorPanel {
 	void searchFilter(String name_search) {
 		if (name_search.isEmpty()) {
 			// enable all and return
-			for (SpeakerListItem speakerItems : speakerListItems) {
+			for (VoiceListItem speakerItems : voiceListItems) {
 				speakerItems.setVisible(true);
 			}
 			return;
@@ -251,7 +251,7 @@ public class SpeakerExplorerPanel extends EditorPanel {
 
 		name_search = StringUtils.join(searchTerms, " ");
 
-		for (SpeakerListItem speakerItem : speakerListItems) {
+		for (VoiceListItem speakerItem : voiceListItems) {
 			ModelRepository.Voice voice = speakerItem.getVoice();
 
 			boolean visible = true;
