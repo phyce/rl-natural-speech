@@ -15,18 +15,18 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-public class SpeakerListItem extends JPanel {
+public class VoiceListItem extends JPanel {
 
-	private final SpeakerExplorerPanel speakerExplorerPanel;
+	private final VoiceExplorerPanel voiceExplorerPanel;
 	private final NaturalSpeechPlugin plugin;
 	@Getter
 	private final ModelRepository.Voice voice;
 
 
-	public SpeakerListItem(SpeakerExplorerPanel speakerExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.Voice voice) {
+	public VoiceListItem(VoiceExplorerPanel voiceExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.Voice voice) {
 
 
-		this.speakerExplorerPanel = speakerExplorerPanel;
+		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.plugin = plugin;
 		this.voice = voice;
 
@@ -57,7 +57,7 @@ public class SpeakerListItem extends JPanel {
 		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup().addGap(5).addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(sexLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addGap(5));
 
 
-        BufferedImage image = ImageUtil.loadImageResource(SpeakerListItem.class, "start.png");
+        BufferedImage image = ImageUtil.loadImageResource(VoiceListItem.class, "start.png");
         Image scaledImg = image.getScaledInstance(25, 25, Image.SCALE_SMOOTH);
         ImageIcon playIcon = new ImageIcon(scaledImg);
         JButton playButton = new JButton(playIcon);
@@ -66,7 +66,7 @@ public class SpeakerListItem extends JPanel {
         playButton.addActionListener(event -> {
             if (plugin.getTts() != null && plugin.getTts().isActive()) {
                 ChatMessage message = new ChatMessage();
-                message.setMessage(speakerExplorerPanel.getSpeechText().getText());
+                message.setMessage(voiceExplorerPanel.getSpeechText().getText());
                 message.setType(ChatMessageType.DIALOG);
 				message.setName("VoiceExplorer");
 

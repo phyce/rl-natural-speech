@@ -2,7 +2,6 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import lombok.Getter;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.ui.PluginPanel;
@@ -24,7 +23,7 @@ public class TopLevelPanel extends PluginPanel {
 	@Getter
 	private final NaturalSpeechPanel mainSettingsPanel;
 	@Getter
-	private final SpeakerExplorerPanel speakerExplorerPanel;
+	private final VoiceExplorerPanel voiceExplorerPanel;
 	@Getter
 	private final EditorPanel editorPanel;
 
@@ -39,14 +38,14 @@ public class TopLevelPanel extends PluginPanel {
 			EventBus eventBus,
 //			MainSettingsPanel mainSettingsPanel,
 			NaturalSpeechPanel mainSettingsPanel,
-			SpeakerExplorerPanel speakerExplorerPanel,
+			VoiceExplorerPanel voiceExplorerPanel,
 			EditorPanel editorPanel
 	) {
 		super(false);
 
 		this.eventBus = eventBus;
 		this.mainSettingsPanel = mainSettingsPanel;
-		this.speakerExplorerPanel = speakerExplorerPanel;
+		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.editorPanel = editorPanel;
 
 
@@ -64,11 +63,11 @@ public class TopLevelPanel extends PluginPanel {
 
 		// Main Settings Panel Tab
 //		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
-		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
+		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech Settings");
 		tabGroup.select(mainSettingsTab);
 
 		// Speaker Explorer Panel Tab
-		addTab(speakerExplorerPanel, "profile_icon.png", "Speaker Explorer");
+		addTab(voiceExplorerPanel, "profile_icon.png", "Voice Explorer");
 
 		// Editor Panel Tab
 		addTab(editorPanel, "plugin_hub_icon.png", "Editor");

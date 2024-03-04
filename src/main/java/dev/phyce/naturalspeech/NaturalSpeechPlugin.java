@@ -77,8 +77,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Override
 	protected void startUp() {
 		try {
-			modelRepository.downloadPiperVoice("en_GB-vctk-medium");
-			modelRepository.downloadPiperVoice("en_US-libritts-high");
+			modelRepository.getModelLocal("en_GB-vctk-medium");
+			modelRepository.getModelLocal("en_US-libritts-high");
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -102,14 +102,14 @@ public class NaturalSpeechPlugin extends Plugin {
 		log.info("NaturalSpeech TTS engine started");
 	}
 
-	@SneakyThrows
+	@SneakyThrows // TODO(Louis) temporary sneaky throw for modelRepository.
 	public void startTTS() throws RuntimeException {
 		started = true;
 
-		ModelRepository.ModelLocal voice =  modelRepository.downloadPiperVoice("en_US-libritts-high");
+		ModelRepository.ModelLocal librittsLocal =  modelRepository.getModelLocal("en_US-libritts-high");
 
 		Path ttsPath = Path.of(config.ttsEngine());
-		Path voicePath = voice.onnx.toPath();
+		Path voicePath = librittsLocal.onnx.toPath();
 
 		// check if tts_path points to existing file and is a valid executable
 		if (!ttsPath.toFile().exists() || !ttsPath.toFile().canExecute()) {

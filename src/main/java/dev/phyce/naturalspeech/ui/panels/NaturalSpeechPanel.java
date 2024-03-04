@@ -57,7 +57,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 		drawStatusSegment();
 		updateStatus(1);
 		drawBinarySegment();
-		drawModelSegment();
+//		drawModelSegment();
 
 	}
 
@@ -154,6 +154,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 		add(fileBrowsePanel);
 	}
 
+	/*
 	public void drawModelSegment() {
 
 		voiceModelStatus = new JTextField("voice (0%)");
@@ -212,6 +213,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 		downloadPanel.add(downloadButton, BorderLayout.EAST);
 		add(downloadPanel);
 	}
+*/
 
 	// Method to update the status text, color, and button states
 	public void updateStatus(int status) {
