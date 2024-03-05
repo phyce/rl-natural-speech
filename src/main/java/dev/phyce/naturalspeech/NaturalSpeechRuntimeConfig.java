@@ -9,13 +9,16 @@ import java.nio.file.Path;
 
 import static net.runelite.client.config.RuneLiteConfig.GROUP_NAME;
 
+/**
+ * Runtime Configs are serialized configurations invisible to the player but used at plugin runtime.
+ */
 @Singleton
-public class RuntimeConfig {
+public class NaturalSpeechRuntimeConfig {
 
 	private final ConfigManager configManager;
 
 	@Inject
-	private RuntimeConfig(ConfigManager configManager) {
+	private NaturalSpeechRuntimeConfig(ConfigManager configManager) {
 		this.configManager = configManager;
 	}
 

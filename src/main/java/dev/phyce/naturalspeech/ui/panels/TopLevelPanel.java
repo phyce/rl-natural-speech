@@ -20,8 +20,6 @@ public class TopLevelPanel extends PluginPanel {
 	private final CardLayout layout;
 	private final JPanel content;
 
-	//	@Getter
-//	private final MainSettingsPanel mainSettingsPanel;
 	@Getter
 	private final NaturalSpeechPanel mainSettingsPanel;
 	@Getter
@@ -38,7 +36,6 @@ public class TopLevelPanel extends PluginPanel {
 	@Inject
 	TopLevelPanel(
 			EventBus eventBus,
-//			MainSettingsPanel mainSettingsPanel,
 			NaturalSpeechPanel mainSettingsPanel,
 			VoiceExplorerPanel voiceExplorerPanel,
 			EditorPanel editorPanel
@@ -49,7 +46,6 @@ public class TopLevelPanel extends PluginPanel {
 		this.mainSettingsPanel = mainSettingsPanel;
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.editorPanel = editorPanel;
-
 
 		tabGroup = new MaterialTabGroup();
 		tabGroup.setLayout(new GridLayout(1, 0, 7, 7));
@@ -135,6 +131,9 @@ public class TopLevelPanel extends PluginPanel {
 
 	@Override
 	public void onActivate() {
+		// FIXME(Louis) First tab always defaults to being visible after deactivate then reactivate
+		// Despite the code running water tight, strange behavior.
+		// Possible that super onActivate sets visibility
 		active = true;
 		current.onActivate();
 	}

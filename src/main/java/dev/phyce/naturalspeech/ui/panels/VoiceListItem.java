@@ -2,11 +2,8 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.TextToSpeechUtil;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import lombok.Getter;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.events.ChatMessage;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;

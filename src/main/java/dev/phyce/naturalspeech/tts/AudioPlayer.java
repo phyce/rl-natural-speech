@@ -1,14 +1,14 @@
 package dev.phyce.naturalspeech.tts;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
+@Slf4j
 class AudioPlayer {
 	private final AudioFormat format;
-	private SourceDataLine line;
-
-	private boolean stop;
 
 	public AudioPlayer() {
 		format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
@@ -20,31 +20,27 @@ class AudioPlayer {
 				false); // Little Endian
 	}
 
-//	public static int calculateAudioLength(byte[] audioClip) {
-//		final int bytesPerSample = 2; // 16-bit mono
-//		final int sampleRate = 22050; // Hz
-//
-//		int totalSamples = audioClip.length / bytesPerSample;
-//
-//		return (int) ((totalSamples / (double) sampleRate) * 1000);
-//	}
+	// moved distance logic to TextToSpeech
+	public static void setVolume(SourceDataLine line, float volume) {
+		if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+			FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+			volumeControl.setValue(volume);
+		}
+	}
 
+	public void shutDown() {
+	}
+
+	// decoupled audio system from plugin logic
 	public void playClip(byte[] audioData, float volume) {
 		AudioInputStream audioInputStream = null;
 		SourceDataLine line = null;
 
 		try {
-
 			audioInputStream = new AudioInputStream(
 					new ByteArrayInputStream(audioData),
 					this.format,
 					audioData.length / this.format.getFrameSize());
-
-//			if (message.getType() == ChatMessageType.ITEM_EXAMINE ||
-//				message.getType() == ChatMessageType.NPC_EXAMINE ||
-//				message.getType() == ChatMessageType.OBJECT_EXAMINE) {
-//				audioInputStream = applyEffectsToStream(audioInputStream);
-//			}
 
 			DataLine.Info info = new DataLine.Info(SourceDataLine.class, this.format);
 			line = (SourceDataLine) AudioSystem.getLine(info);
@@ -52,7 +48,6 @@ class AudioPlayer {
 			line.open(this.format);
 			line.start();
 
-//			setVolumeBasedOnDistance(line, distance); // Assuming this method adjusts the line's volume
 			setVolume(line, volume);
 
 			byte[] buffer = new byte[1024];
@@ -62,20 +57,29 @@ class AudioPlayer {
 				line.write(buffer, 0, bytesRead);
 			}
 			line.drain();
-		} catch (Exception exception) {
-			System.out.println("Clip failed to play");
-			exception.printStackTrace();
+		} catch (IOException | LineUnavailableException e) {
+			log.error("Clip failed to play", e);
 		} finally {
 			if (line != null) line.close();
 			if (audioInputStream != null) {
 				try {
 					audioInputStream.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					log.error("Line failed to close", e);
 				}
 			}
 		}
 	}
+
+//	public static int calculateAudioLength(byte[] audioClip) {
+//		final int bytesPerSample = 2; // 16-bit mono
+//		final int sampleRate = 22050; // Hz
+//
+//		int totalSamples = audioClip.length / bytesPerSample;
+//
+//		return (int) ((totalSamples / (double) sampleRate) * 1000);
+//	}
+
 
 //	public AudioInputStream applyEffectsToStream(AudioInputStream inputAudio) {
 //		try {
@@ -183,15 +187,5 @@ class AudioPlayer {
 //	}
 
 
-
-	public static void setVolume(SourceDataLine line, float volume) {
-		if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-			FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
-			volumeControl.setValue(volume);
-		}
-	}
-
-	public void shutDown() {
-	}
 }
 

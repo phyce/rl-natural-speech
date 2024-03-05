@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.downloader;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -16,6 +17,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+@Slf4j
 public class DownloadTask implements Supplier<File> {
 	@Getter
 	private final Path destination;
@@ -79,7 +81,7 @@ public class DownloadTask implements Supplier<File> {
 					downloading = false;
 				}
 			} catch (IOException e) {
-				System.err.println("Error downloading the file: " + e.getMessage());
+				log.error("Error downloading the file: {}", e.getMessage());
 				progress = 0; // Reset progress if download fails
 				error = 1;
 				downloading = false;

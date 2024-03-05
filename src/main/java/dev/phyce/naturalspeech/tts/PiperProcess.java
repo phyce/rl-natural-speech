@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.tts;
 
-import dev.phyce.naturalspeech.TextToSpeechUtil;
+import dev.phyce.naturalspeech.utils.TextUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,18 +31,21 @@ public class PiperProcess implements Runnable {
 				"--json-input"
 		);
 
-		// FIXME Error handling and reporting
 		startTTSProcess();
 		if (process == null || !process.isAlive()) {
-			log.error("TTS failed to launch: {}",
-					processBuilder.command().stream().reduce((a, b) -> a + " " + b).orElse(""));
+			log.error("TTS failed to launch: {}", this);
 			return;
 		}
-		log.info("TTSEngine Started: {}",
+		log.info("TTSEngine Started: {}", this);
+	}
+
+	@Override
+	public String toString() {
+		return String.format("PiperProcess with command: %s",
 				processBuilder.command().stream().reduce((a, b) -> a + " " + b).orElse(""));
 	}
 
-	public synchronized void startTTSProcess() {
+	public synchronized void startTTSProcess() throws IOException {
 		piperLocked.set(false);
 		if (process != null) {
 			process.destroy();
@@ -52,7 +55,7 @@ public class PiperProcess implements Runnable {
 				processStdin.close();
 			} catch (IOException e) {
 				log.error("tts process error", e);
-				return;
+				throw e;
 			}
 		}
 
@@ -60,14 +63,26 @@ public class PiperProcess implements Runnable {
 			process = processBuilder.start();
 			processStdin = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 		} catch (IOException e) {
-			log.error("tts process error", e);
-			return;
+			log.error("PiperProcess error", e);
+			throw e;
 		}
 		processing = true;
 
 		new Thread(this).start();
 		new Thread(this::readControlMessages).start();
 		log.info("TTSProcess Started...");
+	}
+
+	public void shutDown() {
+		processing = false;
+		piperLocked.set(true);
+		try {
+			if (processStdin != null) processStdin.close();
+			if (process != null) process.destroy();
+
+		} catch (IOException exception) {
+			log.error("TTSEngine failed shutting down", exception);
+		}
 	}
 
 	@Override
@@ -96,6 +111,7 @@ public class PiperProcess implements Runnable {
 		}
 	}
 
+	// refactor: inlined the speak(TTSItem) method into one generateAudio function
 	public synchronized byte[] generateAudio(String text, int piperVoiceID) {
 		piperLocked.set(true);
 		byte[] audioClip;
@@ -108,7 +124,7 @@ public class PiperProcess implements Runnable {
 				}
 				capturing.set(true);
 
-				processStdin.write(TextToSpeechUtil.generateJson(text, piperVoiceID));
+				processStdin.write(TextUtil.generateJson(text, piperVoiceID));
 				processStdin.newLine();
 				processStdin.flush();
 			}
@@ -134,15 +150,4 @@ public class PiperProcess implements Runnable {
 		return audioClip;
 	}
 
-	public void shutDown() {
-		processing = false;
-		piperLocked.set(true);
-		try {
-			if (processStdin != null) processStdin.close();
-			if (process != null) process.destroy();
-
-		} catch (IOException exception) {
-			log.error("TTSEngine failed shutting down", exception);
-		}
-	}
 }

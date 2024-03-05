@@ -136,7 +136,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	void buildSpeakerList() {
 
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
-			if (modelURL.isHasLocal()) {
+			if (modelURL.isLocalFileAvailable()) {
 				buildSpeakerSegmentForVoice(modelURL.getModelName());
 			}
 		}

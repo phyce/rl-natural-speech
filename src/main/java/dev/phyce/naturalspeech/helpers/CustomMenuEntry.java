@@ -1,6 +1,7 @@
-package dev.phyce.naturalspeech.common;
+package dev.phyce.naturalspeech.helpers;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+@Slf4j
 public class CustomMenuEntry {
 	@Getter
 	private final String text;
@@ -21,7 +23,7 @@ public class CustomMenuEntry {
 	public CustomMenuEntry(String text, int index) {
 		this.text = text;
 		this.action = entry -> {
-			System.out.println("no function for custom menu entry main");
+			log.info("no function for custom menu entry main");
 		};
 		this.index = index;
 	}

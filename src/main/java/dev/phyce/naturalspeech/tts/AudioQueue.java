@@ -6,9 +6,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AudioQueue {
-	public ConcurrentLinkedQueue<AudioTask> queue = new ConcurrentLinkedQueue<>();
-
 	private final AtomicBoolean playing = new AtomicBoolean(false);
+	public ConcurrentLinkedQueue<AudioTask> queue = new ConcurrentLinkedQueue<>();
 
 	public synchronized AtomicBoolean isPlaying() {
 		return playing;
@@ -18,6 +17,7 @@ public class AudioQueue {
 		this.playing.set(playing);
 	}
 
+	// decoupled audio queue from plugin logic
 	@Value
 	public static class AudioTask {
 		byte[] audioClip;

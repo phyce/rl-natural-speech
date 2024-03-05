@@ -1,6 +1,8 @@
 package dev.phyce.naturalspeech;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
@@ -17,6 +19,9 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Objects;
 
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
+
 @Slf4j
 public class ModelRepository {
 
@@ -26,25 +31,30 @@ public class ModelRepository {
 
 	private final Downloader downloader;
 
-	private final RuntimeConfig runtimeConfig;
+	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Getter
 	private final HashSet<ModelURL> modelURLS;
 
+	private final Gson gson;
+
 	@Inject
-	public ModelRepository(Downloader downloader, RuntimeConfig runtimeConfig) throws IOException {
+	public ModelRepository(Downloader downloader, NaturalSpeechRuntimeConfig runtimeConfig) throws IOException {
+
+		this.gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
+
 		this.downloader = downloader;
 		this.runtimeConfig = runtimeConfig;
 
 		try {
-			InputStream is = Objects.requireNonNull(this.getClass().getResource(Settings.MODEL_REPO_FILENAME)).openStream();
+			InputStream is = Objects.requireNonNull(this.getClass().getResource(MODEL_REPO_FILENAME)).openStream();
 			// read dictionary index as name
-			modelURLS = new Gson().fromJson(new InputStreamReader(is), new TypeToken<HashSet<ModelURL>>() {
+			modelURLS = gson.fromJson(new InputStreamReader(is), new TypeToken<HashSet<ModelURL>>() {
 			}.getType());
 
 			// check for local files availability
 			for (ModelURL modelURL : modelURLS) {
-				modelURL.setHasLocal(hasModelLocal(modelURL.modelName));
+				modelURL.setLocalFileAvailable(hasModelLocal(modelURL.modelName));
 			}
 
 			log.info(modelURLS.toString());
@@ -57,7 +67,7 @@ public class ModelRepository {
 			}
 
 		} catch (IOException e) {
-			log.error("Could not read voice repository file: " + Settings.MODEL_REPO_FILENAME);
+			log.error("Could not read voice repository file: " + MODEL_REPO_FILENAME);
 			throw e;
 		}
 	}
@@ -80,7 +90,7 @@ public class ModelRepository {
 		boolean localVoiceValid = true;
 
 		// First check if voice folder exist
-		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(Settings.MODEL_FOLDER_NAME).resolve(modelName);
+		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelName);
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
 			if (!voiceFolder.resolve(modelName + ONNX_EXTENSION).toFile().exists()) {
@@ -113,7 +123,7 @@ public class ModelRepository {
 		boolean localVoiceValid = true;
 
 		// First check if voice folder exist
-		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(Settings.MODEL_FOLDER_NAME).resolve(modelName);
+		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelName);
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
 			if (!voiceFolder.resolve(modelName + ONNX_EXTENSION).toFile().exists()) {
@@ -165,20 +175,19 @@ public class ModelRepository {
 
 		// Read Speaker File into an HashSet of Array of Speaker
 		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(modelName + METADATA_EXTENSION).toFile())) {
-			VoiceMetadata[] voiceMetadatas = new Gson().fromJson(new InputStreamReader(fis), new TypeToken<VoiceMetadata[]>() {
+			VoiceMetadata[] voiceMetadatas = gson.fromJson(new InputStreamReader(fis), new TypeToken<VoiceMetadata[]>() {
 			}.getType());
 
 			for (VoiceMetadata voiceMetadata : voiceMetadatas) {
 				voiceMetadata.setModelName(modelURL.getModelName());
 			}
 
-			ModelLocal modelLocal = new ModelLocal(
+			return new ModelLocal(
 					modelURL.getModelName(),
 					voiceFolder.resolve(modelName + ONNX_EXTENSION).toFile(),
 					voiceFolder.resolve(modelName + ONNX_METADATA_EXTENSION).toFile(),
 					voiceMetadatas
 			);
-			return modelLocal;
 
 		} catch (IOException e) {
 			log.error("Failed to read speakers file, even after validation: " + e.getMessage());
@@ -190,14 +199,40 @@ public class ModelRepository {
 	@Data
 	public static class ModelURL {
 		// Part of JSON
+		@Expose
 		String modelName;
+		@Expose
 		String onnxURL;
+		@Expose
 		String onnxMetadataURL;
+		@Expose
 		String metadataURL;
 
 		// Not part of JSON
 		// Whether local model files are available for immediate use
-		boolean hasLocal;
+		boolean localFileAvailable;
+	}
+
+
+	// Partially Serialized JSON Object
+	@Data
+	public static class VoiceMetadata {
+		// (Serialized in JSON) The speaker name from the model data set
+		@Expose
+		String name;
+		// (Serialized in JSON) M, F, ...
+		@Expose
+		String gender;
+		// (Serialized in JSON) The Model ID from the data set
+		@Expose
+		int piperVoiceID;
+
+		// Model Full name, not serialized, manually set when loading metadata
+		String modelName;
+
+		public VoiceID toVoiceID() {
+			return new VoiceID(modelName, piperVoiceID);
+		}
 	}
 
 	// Not a Serialized JSON Object
@@ -208,23 +243,5 @@ public class ModelRepository {
 		File onnx;
 		File onnxMetadata;
 		VoiceMetadata[] voiceMetadata;
-	}
-
-	// Partially Serialized JSON Object
-	@Data
-	public static class VoiceMetadata {
-		// (Serialized in JSON) The Model ID from the data set
-		int piperVoiceID;
-		// (Serialized in JSON) M, F, ...
-		String gender;
-		// (Serialized in JSON) The speaker name from the model data set
-		String name;
-
-		// Model Full name
-		String modelName;
-
-		public VoiceID toVoiceID() {
-			return new VoiceID(modelName, piperVoiceID);
-		}
 	}
 }

@@ -2,11 +2,10 @@ package dev.phyce.naturalspeech;
 
 import net.runelite.client.config.*;
 
-import static dev.phyce.naturalspeech.Settings.CONFIG_GROUP;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.NATURALSPEECH_CONFIG_GROUP;
 
-@ConfigGroup(CONFIG_GROUP)
+@ConfigGroup(NATURALSPEECH_CONFIG_GROUP)
 public interface NaturalSpeechConfig extends Config {
-	int MAX_VOICES = 903;
 	@ConfigSection(
 			name = "General",
 			description = "General settings",

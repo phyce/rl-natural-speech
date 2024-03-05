@@ -2,12 +2,13 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.RuntimeConfig;
+import dev.phyce.naturalspeech.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
 
+import javax.sound.sampled.LineUnavailableException;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -16,13 +17,14 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 
 @Slf4j
 public class NaturalSpeechPanel extends PluginPanel {
 
-	private final RuntimeConfig runtimeConfig;
+	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final NaturalSpeechPlugin plugin;
 
 	@Inject
@@ -39,7 +41,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 	@Inject
 	public NaturalSpeechPanel(
 			NaturalSpeechPlugin plugin,
-			RuntimeConfig runtimeConfig) {
+			NaturalSpeechRuntimeConfig runtimeConfig) {
 		super(true);
 		this.plugin = plugin;
 		this.runtimeConfig = runtimeConfig;
@@ -258,9 +260,9 @@ public class NaturalSpeechPanel extends PluginPanel {
 	private void startEngine() {
 		updateStatus(3);
 		try {
-			plugin.startTTS();
-		} catch (RuntimeException e) {
-			log.error("Error starting TTS", e);
+			plugin.startTextToSpeech();
+		} catch (RuntimeException | IOException | LineUnavailableException e) {
+			log.error("Error starting TextToSpeech", e);
 			updateStatus(4);
 			return;
 		}
@@ -272,7 +274,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 	}
 
 	private void stopEngine() {
-		plugin.stopTTS();
+		plugin.stopTextToSpeech();
 		updateStatus(1);
 	}
 
