@@ -60,7 +60,7 @@ public class ModelRepository {
 	@Data
 	public static class Voice {
 		// (Serialized in JSON) The Model ID from the data set
-		int voiceID;
+		int piperVoiceID;
 		// (Serialized in JSON) M, F, ...
 		String gender;
 		// (Serialized in JSON) The speaker name from the model data set
