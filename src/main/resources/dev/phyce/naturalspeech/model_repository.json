@@ -3,12 +3,12 @@
         "modelName": "libritts",
         "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx?download=true",
         "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx.json?download=true",
-        "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/en_US-libritts-high.metadata.json"
+        "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/libritts.metadata.json"
     },
     {
         "modelName": "vctk",
         "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx?download=true",
         "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx.json?download=true",
-        "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/en_US-libritts-high.metadata.json"
+        "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/vctk.metadata.json"
     }
 ]
