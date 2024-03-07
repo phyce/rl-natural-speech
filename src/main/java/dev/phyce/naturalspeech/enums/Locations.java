@@ -37,7 +37,7 @@ public enum Locations {
 				&& position.getY() >= minY && position.getY() <= maxY;
 	}
 
-	public static boolean isGrandExchange(WorldPoint position) {
+	public static boolean inGrandExchange(WorldPoint position) {
 		return Locations.GRAND_EXCHANGE.isWorldPointInside2D(position);
 	}
 }

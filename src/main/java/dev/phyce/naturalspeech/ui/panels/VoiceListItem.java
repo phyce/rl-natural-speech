@@ -21,8 +21,6 @@ public class VoiceListItem extends JPanel {
 
 
 	public VoiceListItem(VoiceExplorerPanel voiceExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.VoiceMetadata voiceMetadata) {
-
-
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.plugin = plugin;
 		this.voiceMetadata = voiceMetadata;
@@ -48,10 +46,22 @@ public class VoiceListItem extends JPanel {
 		sexLabel.setForeground(Color.white);
 
 
-		speakerLayout.setHorizontalGroup(speakerLayout.createSequentialGroup().addGap(5).addComponent(piperIdLabel, 35, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE).addGap(5).addComponent(nameLabel).addGap(5).addComponent(sexLabel));
+		speakerLayout.setHorizontalGroup(speakerLayout
+			.createSequentialGroup()
+			.addGap(5)
+			.addComponent(piperIdLabel, 35, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+			.addGap(5)
+			.addComponent(nameLabel)
+			.addGap(5).addComponent(sexLabel));
 
 		int lineHeight = (int) (nameLabel.getFontMetrics(nameLabel.getFont()).getHeight() * 1.5);
-		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup().addGap(5).addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addComponent(sexLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight).addGap(5));
+
+		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup()
+			.addGap(5)
+			.addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
+			.addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
+			.addComponent(sexLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
+			.addGap(5));
 
 
 		BufferedImage image = ImageUtil.loadImageResource(VoiceListItem.class, "start.png");
@@ -61,13 +71,13 @@ public class VoiceListItem extends JPanel {
 		SwingUtil.removeButtonDecorations(playButton);
 		playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
 		playButton.addActionListener(event -> {
-			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().isAnyPiperRunning()) {
+			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().activePiperInstanceCount() > 0) {
 				try {
 					plugin.getTextToSpeech().speak(
-							voiceMetadata.toVoiceID(),
-							plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
-							0,
-							"&VoiceExplorer");
+						voiceMetadata.toVoiceID(),
+						plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
+						0,
+						"&VoiceExplorer");
 				} catch (ModelLocalUnavailableException e) {
 					throw new RuntimeException(e);
 				}
@@ -81,5 +91,4 @@ public class VoiceListItem extends JPanel {
 
 		revalidate();
 	}
-
 }

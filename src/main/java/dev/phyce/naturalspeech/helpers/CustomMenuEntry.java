@@ -27,17 +27,14 @@ public class CustomMenuEntry {
 		};
 		this.index = index;
 	}
-
 	public CustomMenuEntry(String text, int index, Consumer<CustomMenuEntry> action) {
 		this.text = text;
 		this.action = action;
 		this.index = index;
 	}
-
 	public void addChild(CustomMenuEntry child) {
 		children.add(child);
 	}
-
 	public void addMenuEntry(Client client, String option, Consumer<CustomMenuEntry> action, CustomMenuEntry[] children) {
 
 		MenuEntry parentEntry = client.createMenuEntry(this.index)

@@ -130,13 +130,10 @@ public class IconTextField extends JPanel {
 
 		clearButton = createRHSButton(ColorScheme.PROGRESS_ERROR_COLOR, Color.PINK, FontManager.getRunescapeBoldFont());
 		clearButton.setText("×");
-		clearButton.addActionListener(evt ->
-		{
+		clearButton.addActionListener(evt -> {
 			setText(null);
 
-			for (Runnable l : clearListeners) {
-				l.run();
-			}
+			for (Runnable listener : clearListeners) listener.run();
 		});
 
 		suggestionListModel = new DefaultListModel<>();
@@ -163,9 +160,7 @@ public class IconTextField extends JPanel {
 		suggestionList.addListSelectionListener(e ->
 		{
 			String val = suggestionList.getSelectedValue();
-			if (val == null) {
-				return;
-			}
+			if (val == null) return;
 
 			textField.setText(val);
 			textField.getTextField().selectAll();
@@ -179,15 +174,14 @@ public class IconTextField extends JPanel {
 		popup.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent e) {
-				popup.setVisible(false);
-				suggestionList.clearSelection();
+			popup.setVisible(false);
+			suggestionList.clearSelection();
 			}
 		});
 
 		suggestionButton = createRHSButton(ColorScheme.LIGHT_GRAY_COLOR, ColorScheme.MEDIUM_GRAY_COLOR, FontManager.getDefaultBoldFont());
 		suggestionButton.setText("▾");
-		suggestionButton.addActionListener(e ->
-		{
+		suggestionButton.addActionListener(e -> {
 			suggestionList.setPreferredSize(new Dimension(getWidth(), suggestionList.getPreferredSize().height));
 			popup.show(IconTextField.this, 0, suggestionButton.getHeight());
 			popup.revalidate();
@@ -213,7 +207,6 @@ public class IconTextField extends JPanel {
 				placeHolderWrapper.setVisible(textField.getText().isEmpty());
 				updateContextButton();
 			}
-
 		});
 
 		JPanel rhsButtons = new JPanel();
@@ -227,34 +220,32 @@ public class IconTextField extends JPanel {
 		add(iconWrapperLabel, BorderLayout.WEST);
 		add(textFieldWrapper, BorderLayout.CENTER);
 		add(rhsButtons, BorderLayout.EAST);
-
-
 	}
 
-	private JButton createRHSButton(Color fg, Color rollover, Font font) {
-		JButton b = new JButton();
-		b.setPreferredSize(new Dimension(30, 0));
-		b.setFont(font);
-		b.setBorder(null);
-		b.setRolloverEnabled(true);
-		SwingUtil.removeButtonDecorations(b);
-		b.setForeground(fg);
+	private JButton createRHSButton(Color foregroundColor, Color rollover, Font font) {
+		JButton button = new JButton();
+		button.setPreferredSize(new Dimension(30, 0));
+		button.setFont(font);
+		button.setBorder(null);
+		button.setRolloverEnabled(true);
+		SwingUtil.removeButtonDecorations(button);
+		button.setForeground(foregroundColor);
 
-		b.addMouseListener(new MouseAdapter() {
+		button.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseEntered(MouseEvent mouseEvent) {
-				b.setForeground(rollover);
+				button.setForeground(rollover);
 				textField.dispatchEvent(mouseEvent);
 			}
 
 			@Override
 			public void mouseExited(MouseEvent mouseEvent) {
-				b.setForeground(fg);
+				button.setForeground(foregroundColor);
 				textField.dispatchEvent(mouseEvent);
 			}
 		});
 
-		return b;
+		return button;
 	}
 
 	private void updateContextButton() {
@@ -293,21 +284,15 @@ public class IconTextField extends JPanel {
 
 	@Override
 	public void setBackground(Color color) {
-		if (color == null) {
-			return;
-		}
+		if (color == null) return;
 
 		super.setBackground(color);
 
-		if (textField != null) {
-			textField.setBackground(color);
-		}
+		if (textField != null) textField.setBackground(color);
 	}
 
 	public void setHoverBackgroundColor(Color hoverBackgroundColor) {
-		if (hoverBackgroundColor == null) {
-			return;
-		}
+		if (hoverBackgroundColor == null) return;
 
 		this.textField.setHoverBackgroundColor(hoverBackgroundColor);
 	}
@@ -328,9 +313,7 @@ public class IconTextField extends JPanel {
 
 	public void setEditable(boolean editable) {
 		textField.setEditable(editable);
-		if (!editable) {
-			super.setBackground(textField.getBackgroundColor());
-		}
+		if (!editable) super.setBackground(textField.getBackgroundColor());
 	}
 
 	@Override

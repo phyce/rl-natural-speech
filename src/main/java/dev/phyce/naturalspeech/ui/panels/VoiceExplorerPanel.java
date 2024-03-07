@@ -34,10 +34,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	public static final ImageIcon SECTION_EXPAND_ICON;
 	private static final ImageIcon SECTION_RETRACT_ICON;
-	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of(
-			"Male", // Special search term for disabled plugins
-			"Female" // Special search term for pinned plugins
-	);
+	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male","Female");
 
 	static {
 		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
@@ -107,9 +104,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		JPanel topPanel = new JPanel();
 		topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 		topPanel.setLayout(new GridLayout(0, 1, 0, PluginPanel.BORDER_OFFSET));
-		// add search bar
 		topPanel.add(searchBar);
-		// add speech text bar
 		topPanel.add(speechText);
 		this.add(topPanel, BorderLayout.NORTH);
 
@@ -134,11 +129,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	void buildSpeakerList() {
-
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
-			if (modelURL.isLocalFileAvailable()) {
-				buildSpeakerSegmentForVoice(modelURL.getModelName());
-			}
+			if (modelURL.isLocalFileAvailable()) buildSpeakerSegmentForVoice(modelURL.getModelName());
 		}
 	}
 
@@ -161,8 +153,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
 		// border on the right only affects the width when closed, fixing the issue.
 		sectionHeader.setBorder(new CompoundBorder(
-				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-				new EmptyBorder(0, 0, 3, 1)));
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
 		section.add(sectionHeader);
 
 		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
@@ -184,8 +176,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
 		section.setBorder(new CompoundBorder(
-				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-				new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
 		));
 		section.add(sectionContent, BorderLayout.SOUTH);
 
@@ -212,65 +204,50 @@ public class VoiceExplorerPanel extends EditorPanel {
 						sectionContent.add(speakerItem);
 					});
 
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		} catch (IOException e) { throw new RuntimeException(e); }
 
 		sectionListPanel.add(section);
 	}
 
-	void searchFilter(String name_search) {
-		if (name_search.isEmpty()) {
-			// enable all and return
-			for (VoiceListItem speakerItems : voiceListItems) {
-				speakerItems.setVisible(true);
-			}
+	void searchFilter(String nameSearch) {
+		if (nameSearch.isEmpty()) {
+			for (VoiceListItem speakerItems : voiceListItems) speakerItems.setVisible(true);
 			return;
 		}
 
 		// split search by space and comma
-		Set<String> searchTerms = Arrays.stream(name_search.toLowerCase().split("[,\\s]+"))
-				// remove empty strings
+		Set<String> searchTerms = Arrays.stream(nameSearch.toLowerCase().split("[,\\s]+"))
 				.filter(s -> !s.isEmpty())
-				// truncate leading and trailing empty space
 				.map(String::trim)
-				// apply lower case
 				.map(String::toLowerCase).collect(Collectors.toSet());
 
-		String gender_search = null;
-		Iterator<String> it = searchTerms.iterator();
-		while (it.hasNext()) {
-			String searchTerm = it.next();
+		String genderSearch = null;
+		Iterator<String> iterator = searchTerms.iterator();
+		while (iterator.hasNext()) {
+			String searchTerm = iterator.next();
+
 			if (List.of("m", "male", "guy").contains(searchTerm)) {
-				gender_search = "M";
-				it.remove();
+				genderSearch = "M";
+				iterator.remove();
 			} else if (List.of("f", "female", "girl").contains(searchTerm)) {
-				gender_search = "F";
-				it.remove();
+				genderSearch = "F";
+				iterator.remove();
 			}
 		}
 
-		name_search = StringUtils.join(searchTerms, " ");
+		nameSearch = StringUtils.join(searchTerms, " ");
 
 		for (VoiceListItem speakerItem : voiceListItems) {
 			ModelRepository.VoiceMetadata voiceMetadata = speakerItem.getVoiceMetadata();
 
-			boolean visible = gender_search == null || gender_search.equals(voiceMetadata.getGender());
+			boolean visible = genderSearch == null || genderSearch.equals(voiceMetadata.getGender());
 
 			// name search
-			if (!name_search.isEmpty()) {
+			if (!nameSearch.isEmpty()) {
 				boolean term_matched = false;
-				// split speaker name and check if any of the search terms are in the name
-				if (!searchTerms.isEmpty()) {
-					// if nameTerms contain any of the search terms, then term_matched = true
-					if (voiceMetadata.getName().toLowerCase().contains(name_search)) {
-						term_matched = true;
-					}
-				}
+				if (!searchTerms.isEmpty() && voiceMetadata.getName().toLowerCase().contains(nameSearch)) term_matched = true;
 
-				if (!term_matched) {
-					visible = false;
-				}
+				if (!term_matched) visible = false;
 			}
 			speakerItem.setVisible(visible);
 		}
@@ -291,5 +268,4 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		SwingUtilities.invokeLater(() -> setVisible(false));
 	}
-
 }

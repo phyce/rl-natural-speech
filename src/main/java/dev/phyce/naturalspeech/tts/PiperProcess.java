@@ -104,11 +104,8 @@ public class PiperProcess implements Runnable {
 	public void readControlMessages() {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 			String line;
-			while (processing && (line = reader.readLine()) != null) {
-				if (line.endsWith(" sec)")) capturing.set(false);
-			}
-		} catch (IOException e) {
-		}
+			while (processing && (line = reader.readLine()) != null) if (line.endsWith(" sec)")) capturing.set(false);
+		} catch (IOException e) {}
 	}
 
 	// refactor: inlined the speak(TTSItem) method into one generateAudio function
@@ -149,5 +146,4 @@ public class PiperProcess implements Runnable {
 		}
 		return audioClip;
 	}
-
 }

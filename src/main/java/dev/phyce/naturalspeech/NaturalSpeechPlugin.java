@@ -5,7 +5,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.enums.Locations;
+import static dev.phyce.naturalspeech.enums.Locations.*;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
@@ -41,18 +41,20 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.NATURALSPEECH_CONFIG_GROUP;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 
 
 @Slf4j
-@PluginDescriptor(name = NATURALSPEECH_CONFIG_GROUP)
+@PluginDescriptor(name = CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
-	public final static String NATURALSPEECH_CONFIG_GROUP = "NaturalSpeech";
+	//<editor-fold desc="> Misc">
+	public final static String CONFIG_GROUP = "NaturalSpeech";
 	public final static String MODEL_REPO_FILENAME = "model_repository.json";
 	public final static String MODEL_FOLDER_NAME = "models";
+	//</editor-fold>
 
-	// RuneLite Dependencies
+	//<editor-fold desc="> RuneLite Dependencies">
 	@Inject
 	private ClientToolbar clientToolbar;
 	@Inject
@@ -61,8 +63,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	private Client client;
 	@Inject
 	private NaturalSpeechConfig config;
+	//</editor-fold>
 
-	// Internal Dependencies
+	//<editor-fold desc="> Internal Dependencies">
 	@Inject
 	private NaturalSpeechRuntimeConfig runtimeConfig;
 	@Inject
@@ -72,13 +75,33 @@ public class NaturalSpeechPlugin extends Plugin {
 	private TextToSpeech textToSpeech;
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
+	//</editor-fold>
 
-	// Runtime Variables
+	//<editor-fold desc="> Runtime Variables">
 	@Getter
 	private TopLevelPanel topLevelPanel;
 	private Map<String, String> shortenedPhrases;
 	private NavigationButton navButton;
+	//</editor-fold>
+	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
+		// FIXME(Louis) Need to modify to load in all ModelLocal configured
+		ModelRepository.ModelLocal librittsLocal = modelRepository.getModelLocal("libritts");
 
+		Path piperPath = runtimeConfig.getPiperPath();
+
+		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
+			log.error("Invalid TTS engine path: {}", piperPath);
+			throw new RuntimeException("Invalid TTS engine path " + piperPath);
+		}
+
+		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
+		textToSpeech.startPiperForModelLocal(librittsLocal);
+	}
+
+	public void stopTextToSpeech() {
+		textToSpeech.shutDownAllPipers();
+	}
+	//<editor-fold desc="> Override Methods">
 	@Override
 	public void configure(Binder binder) {
 		// Instantiate PluginHelper early, Plugin relies on static PluginHelper::Instance
@@ -94,23 +117,23 @@ public class NaturalSpeechPlugin extends Plugin {
 		topLevelPanel = topLevelPanelProvider.get();
 
 		// FIXME(Louis) Change to user controlled lazy loading
-		try {
-			modelRepository.getModelLocal("en_GB-vctk-medium");
-			modelRepository.getModelLocal("en_US-libritts-high");
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+//		try {
+////			modelRepository.getModelLocal("en_GB-vctk-medium");
+////			modelRepository.getModelLocal("en_US-libritts-high");
+//		} catch (IOException e) {
+//			throw new RuntimeException(e);
+//		}
 
 
 		// Build navButton
 		{
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 			navButton = NavigationButton.builder()
-					.tooltip("Natural Speech")
-					.icon(icon)
-					.priority(1)
-					.panel(topLevelPanel)
-					.build();
+				.tooltip("Natural Speech")
+				.icon(icon)
+				.priority(1)
+				.panel(topLevelPanel)
+				.build();
 			clientToolbar.addNavigation(navButton);
 		}
 
@@ -122,43 +145,59 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	protected void shutDown() {
-		if (textToSpeech != null) {
-			textToSpeech.shutDownAllPipers();
-		}
+		if (textToSpeech != null) textToSpeech.shutDownAllPipers();
 		clientToolbar.removeNavigation(navButton);
 
 		textToSpeech.saveVoiceConfig();
 	}
+	//</editor-fold>
 
-	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
+	//<editor-fold desc="> Hooks">
+	@Subscribe
+	public void onMenuOpened(MenuOpened event) {
+		final MenuEntry[] entries = event.getMenuEntries();
 
-		// FIXME(Louis) Need to modify to load in all ModelLocal configured
-		ModelRepository.ModelLocal librittsLocal = modelRepository.getModelLocal("libritts");
+		Set<Integer> interfaces = new HashSet<>();
+		interfaces.add(InterfaceID.FRIEND_LIST);
+		interfaces.add(InterfaceID.FRIENDS_CHAT);
+		interfaces.add(InterfaceID.CHATBOX);
+		interfaces.add(InterfaceID.PRIVATE_CHAT);
+		interfaces.add(InterfaceID.GROUP_IRON);
 
-		Path piperPath = runtimeConfig.getPiperPath();
+		for (int index = entries.length - 1; index >= 0; index--) {
+			MenuEntry entry = entries[index];
 
+			final int componentId = entry.getParam1();
+			final int groupId = WidgetUtil.componentToInterface(componentId);
 
-		// check if tts_path points to existing file and is a valid executable
-		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-			log.error("Invalid TTS engine path: {}", piperPath);
-			throw new RuntimeException("Invalid TTS engine path " + piperPath);
+			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
+			else if (interfaces.contains(groupId) && entry.getOption().equals("Report")) drawOptions(entry, index);
 		}
-
-		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
-		textToSpeech.startPiperForModelLocal(librittsLocal);
-	}
-
-	public void stopTextToSpeech() {
-		textToSpeech.shutDownAllPipers();
 	}
 
 	@Subscribe
-	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		if (!textToSpeech.isAnyPiperRunning()) {
-			return;
-		}
+	public void onConfigChanged(ConfigChanged event) {
+		if (event.getGroup().equals(CONFIG_GROUP)) {
+			switch (event.getKey()) {
+				case "muteSelf":
+					textToSpeech.clearPlayerAudioQueue(getLocalPlayerUserName());
+					break;
 
-		// Patch message with correct name, message is passed through reference and modified
+				case "muteOthers":
+					textToSpeech.clearOtherPlayersAudioQueue(getLocalPlayerUserName());
+					break;
+				case "shortenedPhrases":
+					loadShortenedPhrases();
+					break;
+			}
+		}
+	}
+	//</editor-fold>
+
+	@Subscribe
+	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+		if (textToSpeech.activePiperInstanceCount() == 0) return;
+
 		patchChatMessageMissingName(message);
 
 		if (isMessageTypeDisabledInConfig(message)
@@ -171,14 +210,68 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		String text = isPlayerChatMessage(message) ? expandShortenedPhrases(message.getMessage()) : message.getMessage();
-		// expand short phrases for player chat
-		// use original for NPC dialog
-
 		VoiceID voiceID = getModelAndVoiceFromChatMessage(message);
-		int distance = getSoundDistance(message);
+		int distance = getSpeakerDistance(message);
 		textToSpeech.speak(voiceID, text, distance, message.getName());
 	}
 
+	//<editor-fold desc="> ChatMessage">
+	public boolean isMessageTypeDisabledInConfig(ChatMessage message) {
+		switch (message.getType()) {
+			case PUBLICCHAT:
+				if (!config.publicChatEnabled()) return true;
+				break;
+			case PRIVATECHAT:
+				if (!config.privateChatEnabled()) return true;
+				break;
+			case PRIVATECHATOUT:
+				if (!config.privateOutChatEnabled()) return true;
+				break;
+			case FRIENDSCHAT:
+				if (!config.friendsChatEnabled()) return true;
+				break;
+			case CLAN_CHAT:
+				if (!config.clanChatEnabled()) return true;
+				break;
+			case CLAN_GUEST_CHAT:
+				if (!config.clanGuestChatEnabled()) return true;
+				break;
+			case OBJECT_EXAMINE:
+				if (!config.examineChatEnabled()) return true;
+				break;
+			case DIALOG:
+				if (!config.dialogEnabled()) return true;
+				break;
+		}
+		return false;
+	}
+	public int getSpeakerDistance(ChatMessage message) {
+		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFadeEnabled()) {
+			return getDistance(message.getName());
+		}
+		return 0;
+	}
+	private boolean checkMuteSelf(ChatMessage message) {
+		if (config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) return true;
+		return false;
+	}
+	private boolean checkMuteOtherPlayers(ChatMessage message) {
+		if (isNPCChatMessage(message)) return false;
+
+		return config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName());
+	}
+	private boolean checkMuteLevelThreshold(ChatMessage message) {
+		if (isNPCChatMessage(message)) return false;
+		if (Objects.equals(client.getLocalPlayer().getName(), message.getName())) return false;
+		if (getLevel(message.getName()) < config.muteLevelThreshold()) return true;
+
+		return false;
+	}
+	// FIXME Implement voice getter
+	protected VoiceID getModelAndVoiceFromChatMessage(ChatMessage message) {
+		// FIXME(Louis) Abuse, using personalVoice for all ChatMessage
+		return VoiceID.fromIDString(config.personalVoiceID());
+	}
 	/**
 	 * EXAMINE has null for name field<br>
 	 * DIALOG has name in `name|message` format with null for name field<br>
@@ -205,97 +298,19 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 		}
 	}
+	//</editor-fold>
 
+	//<editor-fold desc="> Other">
 	public String expandShortenedPhrases(String text) {
 		return TextUtil.expandShortenedPhrases(text, shortenedPhrases);
 	}
 
-	private boolean checkMuteSelf(ChatMessage message) {
-		if (config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) {
-			return true;
-		}
-		return false;
-	}
-
-	private boolean checkMuteOtherPlayers(ChatMessage message) {
-		if (isNPCChatMessage(message)) {
-			return false;
-		}
-
-		return config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName());
-	}
-
-	private boolean checkMuteLevelThreshold(ChatMessage message) {
-		if (isNPCChatMessage(message)) return false;
-
-		// Local Player Don't mute
-		if (Objects.equals(client.getLocalPlayer().getName(), message.getName())) {
-			return false;
-		}
-
-		// Is player and level is lower then threshold
-		if (getLevel(message.getName()) < config.muteLevelThreshold()) {
-			return true;
-		}
-
-		return false;
-	}
-
 	private boolean isAreaDisabled() {
-		if (client.getLocalPlayer() == null) {
-			return false;
-		}
+		if (client.getLocalPlayer() == null) return false;
 		//noinspection RedundantIfStatement
-		if (config.muteGrandExchange() && Locations.isGrandExchange(client.getLocalPlayer().getWorldLocation())) {
-			return true;
-		}
-		// ... other areas
+		if (config.muteGrandExchange() && inGrandExchange(client.getLocalPlayer().getWorldLocation())) return true;
 
 		return false;
-	}
-
-
-	@Subscribe
-	public void onMenuOpened(MenuOpened event) {
-		final MenuEntry[] entries = event.getMenuEntries();
-
-		Set<Integer> interfaces = new HashSet<>();
-		interfaces.add(InterfaceID.FRIEND_LIST);
-		interfaces.add(InterfaceID.FRIENDS_CHAT);
-		interfaces.add(InterfaceID.CHATBOX);
-		interfaces.add(InterfaceID.PRIVATE_CHAT);
-		interfaces.add(InterfaceID.GROUP_IRON);
-
-		for (int index = entries.length - 1; index >= 0; index--) {
-			MenuEntry entry = entries[index];
-
-			final int componentId = entry.getParam1();
-			final int groupId = WidgetUtil.componentToInterface(componentId);
-
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
-			else if (interfaces.contains(groupId)/* && entry.getOption() == "Report"*/) {
-				if (entry.getOption().equals("Report")) drawOptions(entry, index);
-			}
-		}
-	}
-
-	@Subscribe
-	public void onConfigChanged(ConfigChanged event) {
-		if (event.getGroup().equals(NATURALSPEECH_CONFIG_GROUP)) {
-			switch (event.getKey()) {
-				case "muteSelf":
-					textToSpeech.clearPlayerAudioQueue(getLocalPlayerUserName());
-					break;
-
-				case "muteOthers":
-					textToSpeech.clearOtherPlayersAudioQueue(getLocalPlayerUserName());
-					break;
-				case "shortenedPhrases":
-					// load in new shortened phrases
-					loadShortenedPhrases();
-					break;
-			}
-		}
 	}
 
 	public synchronized void drawOptions(MenuEntry entry, int index) {
@@ -307,11 +322,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		String username = matcher.group(1).trim();
 
 		String status;
-		if (isBeingListened(username)) {
-			status = "<col=78B159>O";
-		} else {
-			status = "<col=DD2E44>0";
-		}
+		if (isBeingListened(username)) status = "<col=78B159>O";
+		else status = "<col=DD2E44>0";
 
 		CustomMenuEntry muteOptions = new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username), index);
 
@@ -325,7 +337,6 @@ public class NaturalSpeechPlugin extends Plugin {
 					mute(username);
 				}));
 			}
-
 			if (getAllowList().isEmpty() && PluginHelper.getBlockList().isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
 					listen(username);
@@ -356,23 +367,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		muteOptions.addTo(client);
 	}
 
-	// FIXME Implement voice getter
-	protected VoiceID getModelAndVoiceFromChatMessage(ChatMessage message) {
-		// FIXME(Louis) Abuse, using personalVoice for all ChatMessage
-		return VoiceID.fromIDString(config.personalVoiceID());
-	}
-
-	/**
-	 * Gets distance from player messages
-	 * @param message
-	 * @return
-	 */
-	public int getSoundDistance(ChatMessage message) {
-		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFadeEnabled())
-			return getDistance(message.getName());
-		return 0;
-	}
-
 	// In method so we can load again when user changes config
 	public void loadShortenedPhrases() {
 		String phrases = config.shortenedPhrases();
@@ -384,58 +378,30 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
-	public boolean isMessageTypeDisabledInConfig(ChatMessage message) {
-		switch (message.getType()) {
-			case PUBLICCHAT:
-				if (!config.publicChatEnabled()) return true;
-				break;
-			case PRIVATECHAT:
-				if (!config.privateChatEnabled()) return true;
-				break;
-			case PRIVATECHATOUT:
-				if (!config.privateOutChatEnabled()) return true;
-				break;
-			case FRIENDSCHAT:
-				if (!config.friendsChatEnabled()) return true;
-				break;
-			case CLAN_CHAT:
-				if (!config.clanChatEnabled()) return true;
-				break;
-			case CLAN_GUEST_CHAT:
-				if (!config.clanGuestChatEnabled()) return true;
-				break;
-			case OBJECT_EXAMINE:
-				if (!config.examineChatEnabled()) return true;
-				break;
-			case DIALOG:
-				if (!config.dialogEnabled()) return true;
-				break;
-		}
-		return false;
-	}
+	//</editor-fold>
 
 	// FIXME(Louis) Implement new status update in new MainSettingsPanel
-//	public void statusUpdates() {
-//		boolean ttsRunning = false;
-//		while (started) {
-//			try {
-//				Thread.sleep(500);
-//
-//				if(tts != null) {
-//					if(ttsRunning != tts.isProcessing()) {
-//						ttsRunning = tts.isProcessing();
-//
-//						if(ttsRunning) {
-//                            panel.updateStatus(2);
-//                        } else {
-//                            panel.updateStatus(1);
-//                        }
-//					}
-//				}
-//
-//			} catch (InterruptedException e) {return;}
-//        }
-//	}
+	//	public void statusUpdates() {
+	//		boolean ttsRunning = false;
+	//		while (started) {
+	//			try {
+	//				Thread.sleep(500);
+	//
+	//				if(tts != null) {
+	//					if(ttsRunning != tts.isProcessing()) {
+	//						ttsRunning = tts.isProcessing();
+	//
+	//						if(ttsRunning) {
+	//                            panel.updateStatus(2);
+	//                        } else {
+	//                            panel.updateStatus(1);
+	//                        }
+	//					}
+	//				}
+	//
+	//			} catch (InterruptedException e) {return;}
+	//        }
+	//	}
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);

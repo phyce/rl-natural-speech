@@ -24,14 +24,10 @@ public class VoiceID {
 		String[] split = idString.split(":");
 
 		// incorrect format
-		if (split.length != 2) {
-			return null;
-		}
+		if (split.length != 2) return null;
 
 		// verify model short name
-		if (split[0].isEmpty() || split[0].isBlank()) {
-			return null;
-		}
+		if (split[0].isEmpty() || split[0].isBlank()) return null;
 
 		// verify voice ID
 		int voiceID;

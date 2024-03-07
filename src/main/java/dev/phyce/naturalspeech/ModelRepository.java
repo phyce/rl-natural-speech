@@ -25,8 +25,8 @@ import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
 @Slf4j
 public class ModelRepository {
 
-	public final static String ONNX_EXTENSION = ".onnx";
-	public final static String ONNX_METADATA_EXTENSION = ".onnx.json";
+	public final static String EXTENSION = ".onnx";
+	public final static String MODEL_METADATA_EXTENSION = ".onnx.json";
 	public final static String METADATA_EXTENSION = ".metadata.json";
 
 	private final Downloader downloader;
@@ -93,11 +93,11 @@ public class ModelRepository {
 		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelName);
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
-			if (!voiceFolder.resolve(modelName + ONNX_EXTENSION).toFile().exists()) {
+			if (!voiceFolder.resolve(modelName + EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if onnx metadata exists
-			if (!voiceFolder.resolve(modelName + ONNX_METADATA_EXTENSION).toFile().exists()) {
+			if (!voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if speakers metadata exists
@@ -118,19 +118,17 @@ public class ModelRepository {
 	}
 
 	public ModelLocal getModelLocal(String modelName) throws IOException {
-
-		// assume true
 		boolean localVoiceValid = true;
 
 		// First check if voice folder exist
 		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelName);
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
-			if (!voiceFolder.resolve(modelName + ONNX_EXTENSION).toFile().exists()) {
+			if (!voiceFolder.resolve(modelName + EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if onnx metadata exists
-			if (!voiceFolder.resolve(modelName + ONNX_METADATA_EXTENSION).toFile().exists()) {
+			if (!voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
 			// Check if speakers metadata exists
@@ -158,14 +156,18 @@ public class ModelRepository {
 			log.info("Local voice files are invalid, re-downloading.");
 
 			// download voice files
-			DownloadTask onnxTask = downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(modelName + ONNX_EXTENSION));
-			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL), voiceFolder.resolve(modelName + ONNX_METADATA_EXTENSION));
+			DownloadTask onnxTask = downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(modelName + EXTENSION));
+			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL), voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION));
 			DownloadTask speakersTask = downloader.create(HttpUrl.get(modelURL.metadataURL), voiceFolder.resolve(modelName + METADATA_EXTENSION));
+			log.info("modelURL.metadataURL");
+			log.info(modelURL.metadataURL);
 
 			// thread blocking download
 			File onnx = onnxTask.get();
 			File onnxMetadata = onnxMetadataTask.get();
+			log.info("22222222222222222222222222222");
 			File speakers = speakersTask.get();
+			log.info("33333333333333333333333333333");
 
 			if (!onnx.exists() || !onnxMetadata.exists() || !speakers.exists()) {
 				// if any of the files doesn't exist after validation, throw
@@ -183,10 +185,10 @@ public class ModelRepository {
 			}
 
 			return new ModelLocal(
-					modelURL.getModelName(),
-					voiceFolder.resolve(modelName + ONNX_EXTENSION).toFile(),
-					voiceFolder.resolve(modelName + ONNX_METADATA_EXTENSION).toFile(),
-					voiceMetadatas
+				modelURL.getModelName(),
+				voiceFolder.resolve(modelName + EXTENSION).toFile(),
+				voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION).toFile(),
+				voiceMetadatas
 			);
 
 		} catch (IOException e) {

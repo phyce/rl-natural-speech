@@ -93,7 +93,6 @@ public class MainSettingsPanel extends PluginPanel {
 		titleLabel.setBorder(new EmptyBorder(1, 0, 1, 0));
 		mainContentPanel.add(titleLabel);
 
-
 		// Instructions Link
 		JLabel instructionsLink = new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
 		instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -123,8 +122,8 @@ public class MainSettingsPanel extends PluginPanel {
 		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
 		// border on the right only affects the width when closed, fixing the issue.
 		sectionHeader.setBorder(new CompoundBorder(
-				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-				new EmptyBorder(0, 0, 3, 1)));
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
 		section.add(sectionHeader);
 
 		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
@@ -146,8 +145,8 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
 		section.setBorder(new CompoundBorder(
-				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-				new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
 		));
 		section.add(sectionContent, BorderLayout.SOUTH);
 
@@ -165,8 +164,8 @@ public class MainSettingsPanel extends PluginPanel {
 		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
 		// border on the right only affects the width when closed, fixing the issue.
 		sectionHeader.setBorder(new CompoundBorder(
-				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-				new EmptyBorder(0, 0, 3, 1)));
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
 		section.add(sectionHeader);
 
 		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
@@ -188,8 +187,8 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
 		section.setBorder(new CompoundBorder(
-				new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-				new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
 		));
 		section.add(sectionContent, BorderLayout.SOUTH);
 

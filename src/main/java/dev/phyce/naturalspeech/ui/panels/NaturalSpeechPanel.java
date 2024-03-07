@@ -69,15 +69,14 @@ public class NaturalSpeechPanel extends PluginPanel {
 		instructionsLink.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				try {
-					Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
-				} catch (Exception ex) {
-					ex.printStackTrace();
-				}
+			try {
+				Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
 			}
 		});
 		add(instructionsLink);
-
 	}
 
 	public void drawEngineSegment() {
@@ -266,11 +265,8 @@ public class NaturalSpeechPanel extends PluginPanel {
 			updateStatus(4);
 			return;
 		}
-		if (plugin.getTextToSpeech().isAnyPiperRunning()) {
-			updateStatus(2);
-		} else {
-			updateStatus(4);
-		}
+		if (plugin.getTextToSpeech().activePiperInstanceCount() > 0) updateStatus(2);
+		else updateStatus(4);
 	}
 
 	private void stopEngine() {
@@ -281,7 +277,6 @@ public class NaturalSpeechPanel extends PluginPanel {
 	private void restartEngine() {
 		stopEngine();
 		startEngine();
-
 	}
 
 	@Override

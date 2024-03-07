@@ -11,16 +11,13 @@ import java.util.stream.Collectors;
 public final class TextUtil {
 	private static final Pattern sentenceSplitter = Pattern.compile("(?<=[.!?,])\\s+|(?<=[.!?,])$");
 	public static List<String> splitSentence(String sentence) {
-
 		List<String> fragments = Arrays.stream(sentenceSplitter.split(sentence))
-				.filter(s -> !s.isBlank()) // remove blanks
-				.map(String::trim) // trim spaces
-				.collect(Collectors.toList());
+			.filter(s -> !s.isBlank()) // remove blanks
+			.map(String::trim) // trim spaces
+			.collect(Collectors.toList());
 
 		// add period to the last segment
-		if (fragments.size() > 1) {
-			fragments.set(fragments.size() - 1, fragments.get(fragments.size() - 1) + ".");
-		}
+		if (fragments.size() > 1) fragments.set(fragments.size() - 1, fragments.get(fragments.size() - 1) + ".");
 
 		return fragments;
 	}
@@ -39,7 +36,6 @@ public final class TextUtil {
 
 		return parsedMessage.toString().trim();
 	}
-
 	public static List<String> tokenize(String text) {
 		List<String> tokens = new ArrayList<>();
 		Matcher matcher = Pattern.compile("[\\w']+|\\p{Punct}").matcher(text);
@@ -48,7 +44,6 @@ public final class TextUtil {
 
 		return tokens;
 	}
-
 	public static String escape(String text) {
 		return text.replace("\\", "\\\\")
 				.replace("\"", "\\\"")
@@ -58,7 +53,6 @@ public final class TextUtil {
 				.replace("\r", "\\r")
 				.replace("\t", "\\t");
 	}
-
 	public static String generateJson(String text, int voiceId) {
 		text = escape(text);
 		return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);

@@ -65,16 +65,12 @@ public class DownloadTask implements Supplier<File> {
 					int totalRead = 0;
 					while ((bytesRead = in.read(buffer)) != -1) {
 						// check if the connection was closed
-						if (bytesRead == 0) {
-							throw new IOException("Connection closed");
-						}
+						if (bytesRead == 0) throw new IOException("Connection closed");
 
 						out.write(buffer, 0, bytesRead);
 						totalRead += bytesRead;
 						progress = (float) totalRead / flength * 100;
-						if (progressListener != null) {
-							progressListener.onProgress(progress);
-						}
+						if (progressListener != null) progressListener.onProgress(progress);
 					}
 					progress = 100;
 					finished = true;
@@ -87,19 +83,12 @@ public class DownloadTask implements Supplier<File> {
 				downloading = false;
 			}
 		}
-
 	}
 
 	@Override
 	public synchronized File get() {
-
-		if (!finished && !downloading && error == 0) {
-			download(null);
-		}
-
-		if (error > 0) {
-			return null;
-		}
+		if (!finished && !downloading && error == 0) download(null);
+		if (error > 0) return null;
 
 		return destination.toFile();
 	}
@@ -107,6 +96,5 @@ public class DownloadTask implements Supplier<File> {
 	public interface ProgressListener {
 		void onProgress(float progress);
 	}
-
 }
 

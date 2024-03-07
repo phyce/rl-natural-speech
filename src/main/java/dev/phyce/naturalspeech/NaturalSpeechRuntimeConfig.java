@@ -14,9 +14,7 @@ import static net.runelite.client.config.RuneLiteConfig.GROUP_NAME;
  */
 @Singleton
 public class NaturalSpeechRuntimeConfig {
-
 	private final ConfigManager configManager;
-
 	@Inject
 	private NaturalSpeechRuntimeConfig(ConfigManager configManager) {
 		this.configManager = configManager;
@@ -26,20 +24,10 @@ public class NaturalSpeechRuntimeConfig {
 		String pathString = configManager.getConfiguration(GROUP_NAME, "ttsEngine");
 
 		Path path;
-		// has existing path settings for piper
-		if (pathString != null) {
-			path = Path.of(pathString);
-		} else {
-			// missing existing path settings for piper
-
-			// if mac or linux/unix
-			if (OSValidator.IS_MAC || OSValidator.IS_UNIX) {
-				// assume in user folder
-				path = Path.of(System.getProperty("user.home") + "/piper");
-			} else { // assume windows
-				path = Path.of("C:\\piper\\piper.exe");
-			}
-			// No existing config, set the default path
+		if (pathString != null) path = Path.of(pathString);
+		else {
+			if (OSValidator.IS_MAC || OSValidator.IS_UNIX) path = Path.of(System.getProperty("user.home") + "/piper");
+			else path = Path.of("C:\\piper\\piper.exe");
 			setPiperPath(path);
 		}
 

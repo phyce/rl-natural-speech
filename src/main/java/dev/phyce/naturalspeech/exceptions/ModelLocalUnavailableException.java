@@ -3,7 +3,6 @@ package dev.phyce.naturalspeech.exceptions;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
 
 public class ModelLocalUnavailableException extends RuntimeException {
-
 	public VoiceID voiceID;
 
 	public ModelLocalUnavailableException(String errMessage, VoiceID voiceID) {

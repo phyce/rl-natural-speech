@@ -7,7 +7,6 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class EditorPanel extends PluginPanel {
-
 	public EditorPanel() {
 		super(false);
 		JLabel titleLabel = new JLabel("Editor", JLabel.CENTER);

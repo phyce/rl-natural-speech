@@ -11,12 +11,9 @@ import lombok.NonNull;
 import java.util.HashMap;
 
 public class VoiceConfig {
-
 	private final HashMap<String, PlayerNameVoiceConfigDatum> playerNameToPlayerNameVoiceConfigData;
-
 	private final HashMap<Integer, NPCIDVoiceConfigDatum> npcidToVoiceConfigDataHashMap;
 	private final HashMap<String, NPCNameVoiceConfigDatum> npcNameToNPCNameVoiceConfigDataHashMap;
-
 	private final Gson gson;
 
 	public VoiceConfig(@NonNull VoiceConfigDatum data) {
@@ -76,27 +73,24 @@ public class VoiceConfig {
 
 	public VoiceID[] findVoiceIDsWithPlayerUserName(String playerUserName) {
 		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = playerNameToPlayerNameVoiceConfigData.get(playerUserName);
-		if (playerNameVoiceConfigDatum == null) {
-			return null;
-		}
+
+		if (playerNameVoiceConfigDatum == null) return null;
 
 		return playerNameVoiceConfigDatum.getVoiceIDs();
 	}
 
 	public VoiceID[] findVoiceIDsWithNPCID(int npcID) {
 		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = npcidToVoiceConfigDataHashMap.get(npcID);
-		if (npcIDVoiceConfigDatum == null) {
-			return null;
-		}
+
+		if (npcIDVoiceConfigDatum == null) return null;
 
 		return npcIDVoiceConfigDatum.getVoiceIDs();
 	}
 
 	public VoiceID[] findVoiceIDsWithNPCName(String npcName) {
 		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = npcNameToNPCNameVoiceConfigDataHashMap.get(npcName);
-		if (npcNameVoiceConfigDatum == null) {
-			return null;
-		}
+
+		if (npcNameVoiceConfigDatum == null) return null;
 
 		return npcNameVoiceConfigDatum.getVoiceIDs();
 	}

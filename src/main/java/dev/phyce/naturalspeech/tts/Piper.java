@@ -18,7 +18,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 // Renamed from TTSModel
 @Slf4j
 public class Piper implements Runnable {
-
 	@Getter
 	private final List<PiperProcess> instances = new ArrayList<>();
 	@Getter
@@ -56,9 +55,7 @@ public class Piper implements Runnable {
 	//Process message queue
 	public void run() {
 		while (countProcessingInstances() > 0) {
-			if (piperTaskQueue.isEmpty()) {
-				continue;
-			}
+			if (piperTaskQueue.isEmpty()) continue;
 
 			PiperTask task = piperTaskQueue.poll();
 
@@ -110,18 +107,13 @@ public class Piper implements Runnable {
 			clearQueue();
 		}
 
-
 		piperTaskQueue.add(new PiperTask(text, voiceID, volume, audioQueueName));
 	}
 
 	public void clearQueue() {
-		if (!piperTaskQueue.isEmpty()) {
-			piperTaskQueue.clear();
-		}
+		if (!piperTaskQueue.isEmpty()) piperTaskQueue.clear();
 		audioQueues.values().forEach(audioQueue -> {
-			if (!audioQueue.queue.isEmpty()) {
-				audioQueue.queue.clear();
-			}
+			if (!audioQueue.queue.isEmpty()) audioQueue.queue.clear();
 		});
 	}
 

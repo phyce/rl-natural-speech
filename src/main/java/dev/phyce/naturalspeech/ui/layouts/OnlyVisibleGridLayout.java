@@ -9,22 +9,18 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		this(1, 0, 0, 0);
 	}
 
-	public OnlyVisibleGridLayout(int rows, int cols) {
-		this(rows, cols, 0, 0);
+	public OnlyVisibleGridLayout(int rows, int columns) {
+		this(rows, columns, 0, 0);
 	}
 
-	public OnlyVisibleGridLayout(int rows, int cols, int hgap, int vgap) {
-		super(rows, cols, hgap, vgap);
+	public OnlyVisibleGridLayout(int rows, int columns, int horizontalGap, int verticalGap) {
+		super(rows, columns, horizontalGap, verticalGap);
 	}
 
 	// Pretends invisible components don't exist during layout
 	private int getVisibleComponentCount(Container parent) {
 		int count = 0;
-		for (Component c : parent.getComponents()) {
-			if (c.isVisible()) {
-				count++;
-			}
-		}
+		for (Component component : parent.getComponents()) if (component.isVisible()) count++;
 		return count;
 	}
 
@@ -46,83 +42,75 @@ public class OnlyVisibleGridLayout extends GridLayout {
 	public void layoutContainer(Container parent) {
 		synchronized (parent.getTreeLock()) {
 			final Insets insets = parent.getInsets();
-			final int ncomponents = parent.getComponentCount();
-			final int ncomponents_visible = getVisibleComponentCount(parent);
-			int nrows = getRows();
-			int ncols = getColumns();
+			final int componentCount = parent.getComponentCount();
+			final int visibleComponentCount = getVisibleComponentCount(parent);
+			int rowCount = getRows();
+			int columnCount = getColumns();
 
-			if (ncomponents_visible == 0) {
-				return;
-			}
+			if (visibleComponentCount == 0) return;
 
-			if (nrows > 0) {
-				ncols = (ncomponents_visible + nrows - 1) / nrows;
-			} else {
-				nrows = (ncomponents_visible + ncols - 1) / ncols;
-			}
+			if (rowCount > 0) columnCount = (visibleComponentCount + rowCount - 1) / rowCount;
+			else rowCount = (visibleComponentCount + columnCount - 1) / columnCount;
 
-			final int hgap = getHgap();
-			final int vgap = getVgap();
+			final int horizontalGap = getHgap();
+			final int verticalGap = getVgap();
 
 			// scaling factors
-			final Dimension pd = preferredLayoutSize(parent);
+			final Dimension preferredDimension = preferredLayoutSize(parent);
 			final Insets parentInsets = parent.getInsets();
-			int wborder = parentInsets.left + parentInsets.right;
-			int hborder = parentInsets.top + parentInsets.bottom;
-			final double sw = (1.0 * parent.getWidth() - wborder) / (pd.width - wborder);
-			final double sh = (1.0 * parent.getHeight() - hborder) / (pd.height - hborder);
+			int widthBorder = parentInsets.left + parentInsets.right;
+			int heightBorder = parentInsets.top + parentInsets.bottom;
+			final double widthScale = (1.0 * parent.getWidth() - widthBorder) / (preferredDimension.width - widthBorder);
+			final double heightScale = (1.0 * parent.getHeight() - heightBorder) / (preferredDimension.height - heightBorder);
 
-			final int[] w = new int[ncols];
-			final int[] h = new int[nrows];
+			final int[] widths = new int[columnCount];
+			final int[] heights = new int[rowCount];
 
 			// calculate dimensions for all components + apply scaling
 			{
-				int visible_index = 0;
-				int true_index = 0;
-				while (true_index < ncomponents) {
-					final Component comp = parent.getComponent(true_index);
+				int visibleIndex = 0;
+				int trueIndex = 0;
+				while (trueIndex < componentCount) {
+					final Component comp = parent.getComponent(trueIndex);
 
 					if (!comp.isVisible()) {
-						true_index++;
+						trueIndex++;
 						continue;
 					}
 
-					final int r = visible_index / ncols;
-					final int c = visible_index % ncols;
-					final Dimension d = comp.getPreferredSize();
-					d.width = (int) (sw * d.width);
-					d.height = (int) (sh * d.height);
+					final int row = visibleIndex / columnCount;
+					final int column = visibleIndex % columnCount;
+					final Dimension dimension = comp.getPreferredSize();
 
-					if (w[c] < d.width) {
-						w[c] = d.width;
-					}
+					dimension.width = (int) (widthScale * dimension.width);
+					dimension.height = (int) (heightScale * dimension.height);
 
-					if (h[r] < d.height) {
-						h[r] = d.height;
-					}
-					visible_index++;
-					true_index++;
+					if (widths[column] < dimension.width) widths[column] = dimension.width;
+					if (heights[row] < dimension.height) heights[row] = dimension.height;
+
+					visibleIndex++;
+					trueIndex++;
 				}
 			}
 
 			// Apply new bounds to all child components
-			int visible_index = 0;
-			int true_index = 0;
-			while (true_index < ncomponents) {
-				final Component comp = parent.getComponent(true_index);
+			int visibleIndex = 0;
+			int trueIndex = 0;
+			while (trueIndex < componentCount) {
+				final Component comp = parent.getComponent(trueIndex);
 
 				if (!comp.isVisible()) {
-					true_index++;
+					trueIndex++;
 					continue;
 				}
 
-				final int r = visible_index / ncols;
-				final int c = visible_index % ncols;
-				final int x = insets.left + c * (w[c] + hgap);
-				final int y = insets.top + r * (h[r] + vgap);
-				comp.setBounds(x, y, w[c], h[r]);
-				visible_index++;
-				true_index++;
+				final int row = visibleIndex / columnCount;
+				final int column = visibleIndex % columnCount;
+				final int x = insets.left + column * (widths[column] + horizontalGap);
+				final int y = insets.top + row * (heights[row] + verticalGap);
+				comp.setBounds(x, y, widths[column], heights[row]);
+				visibleIndex++;
+				trueIndex++;
 			}
 		}
 	}
@@ -135,64 +123,54 @@ public class OnlyVisibleGridLayout extends GridLayout {
 	 * @return outer size
 	 */
 	private Dimension calculateSize(final Container parent, final Function<Component, Dimension> sizer) {
-		final int ncomponents_visible = getVisibleComponentCount(parent);
-		final int ncomponents = parent.getComponentCount();
-		int nrows = getRows();
-		int ncols = getColumns();
+		final int visibleComponentCount = getVisibleComponentCount(parent);
+		final int componentCount = parent.getComponentCount();
+		int rowCount = getRows();
+		int columnCount = getColumns();
 
-		if (nrows > 0) {
-			ncols = (ncomponents_visible + nrows - 1) / nrows;
-		} else {
-			nrows = (ncomponents_visible + ncols - 1) / ncols;
-		}
+		if (rowCount > 0) columnCount = (visibleComponentCount + rowCount - 1) / rowCount;
+		else rowCount = (visibleComponentCount + columnCount - 1) / columnCount;
 
-		final int[] w = new int[ncols];
-		final int[] h = new int[nrows];
+		final int[] width = new int[columnCount];
+		final int[] height = new int[rowCount];
 
 		// Calculate dimensions for all components
-		int visible_index = 0;
-		int true_index = 0;
-		while (true_index < ncomponents) {
-			final Component comp = parent.getComponent(true_index);
+		int visibleIndex = 0;
+		int trueIndex = 0;
+		while (trueIndex < componentCount) {
+			final Component comp = parent.getComponent(trueIndex);
 
 			if (!comp.isVisible()) {
-				true_index++;
+				trueIndex++;
 				continue;
 			}
 
-			final int r = visible_index / ncols;
-			final int c = visible_index % ncols;
-			final Dimension d = sizer.apply(comp);
+			final int row = visibleIndex / columnCount;
+			final int column = visibleIndex % columnCount;
+			final Dimension dimension = sizer.apply(comp);
 
-			if (w[c] < d.width) {
-				w[c] = d.width;
-			}
+			if (width[column] < dimension.width) width[column] = dimension.width;
+			if (height[row] < dimension.height) height[row] = dimension.height;
 
-			if (h[r] < d.height) {
-				h[r] = d.height;
-			}
-			visible_index++;
-			true_index++;
+			visibleIndex++;
+			trueIndex++;
 		}
 
 		// Calculate total width and height of the layout
-		int nw = 0;
+		int netWidth = 0;
 
-		for (int j = 0; j < ncols; j++) {
-			nw += w[j];
-		}
+		for (int j = 0; j < columnCount; j++) netWidth += width[j];
 
-		int nh = 0;
+		int netHeight = 0;
 
-		for (int i = 0; i < nrows; i++) {
-			nh += h[i];
-		}
+		for (int i = 0; i < rowCount; i++) netHeight += height[i];
 
 		final Insets insets = parent.getInsets();
 
 		// Apply insets and horizontal and vertical gap to layout
 		return new Dimension(
-				insets.left + insets.right + nw + (ncols - 1) * getHgap(),
-				insets.top + insets.bottom + nh + (nrows - 1) * getVgap());
+			insets.left + insets.right + netWidth + (columnCount - 1) * getHgap(),
+			insets.top + insets.bottom + netHeight + (rowCount - 1) * getVgap()
+		);
 	}
 }

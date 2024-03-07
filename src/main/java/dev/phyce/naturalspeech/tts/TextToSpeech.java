@@ -17,20 +17,17 @@ import javax.sound.sampled.LineUnavailableException;
 import java.io.IOException;
 import java.util.*;
 
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.NATURALSPEECH_CONFIG_GROUP;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 
 // Renamed from TTSManager
 @Slf4j
 @Singleton
 public class TextToSpeech {
-
 	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
 	private final ConfigManager configManager;
 	private final ModelRepository modelRepository;
-	/**
-	 * Model ShortName -> PiperRunner
-	 */
+	/** Model ShortName -> PiperRunner */
 	private final Map<ModelRepository.ModelLocal, Piper> pipers = new HashMap<>();
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private VoiceConfig voiceConfig;
@@ -47,34 +44,29 @@ public class TextToSpeech {
 		loadVoiceConfig(); // throws on err
 	}
 
-
-
 	public void loadVoiceConfig() throws JsonSyntaxException {
-		String voiceSettingsJSON = configManager.getConfiguration(NATURALSPEECH_CONFIG_GROUP, "VoiceConfig");
-		if (voiceSettingsJSON == null) {
-			voiceSettingsJSON = "{}"; //
-		}
+		String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
+
+		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
+
 		voiceConfig = new VoiceConfig(voiceSettingsJSON);
 	}
 
 	public void saveVoiceConfig() {
-		configManager.setConfiguration(NATURALSPEECH_CONFIG_GROUP, "VoiceConfig", voiceConfig.exportJSON());
+		configManager.setConfiguration(CONFIG_GROUP, "VoiceConfig", voiceConfig.exportJSON());
 	}
 
 	public boolean isPiperForModelRunning(ModelRepository.ModelLocal modelLocal) {
 		return pipers.get(modelLocal).countProcessingInstances() > 0;
 	}
 
-	/**
-	 * Look for any instances of piper.
-	 * @return true if there are pipers, false if no pipers exists. Aka dead and not valid to speak.
-	 */
-	public boolean isAnyPiperRunning() {
+	public int activePiperInstanceCount() {
+		int result = 0;
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 			Piper model = pipers.get(modelLocal);
-			if (model.countProcessingInstances() > 0) return true;
+			result += model.countProcessingInstances();
 		}
-		return false;
+		return result;
 	}
 
 	/**
@@ -82,21 +74,12 @@ public class TextToSpeech {
 	 * @param modelLocal
 	 */
 	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws LineUnavailableException, IOException {
-
 		// @FIXME Make instanceCount configurable
 		Piper piper = new Piper(modelLocal, runtimeConfig.getPiperPath(), 2);
 
 		pipers.put(modelLocal, piper);
 	}
 
-	/**
-	 * Does what it says, plays the text as audio
-	 * @param voiceID
-	 * @param text
-	 * @param distance
-	 * @param audioQueueName
-	 * @throws ModelLocalUnavailableException
-	 */
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 			throws ModelLocalUnavailableException, PiperNotAvailableException {
 
@@ -128,6 +111,7 @@ public class TextToSpeech {
 		}
 		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
 	}
+
 	public void shutDownAllPipers() {
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 			pipers.get(modelLocal).shutDown();

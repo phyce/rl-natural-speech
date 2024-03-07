@@ -73,31 +73,30 @@ public class TopLevelPanel extends PluginPanel {
 	}
 
 	private MaterialTab addTab(PluginPanel panel, String image, String tooltip) {
-		MaterialTab mt = new MaterialTab(
-				new ImageIcon(ImageUtil.loadImageResource(TopLevelPanel.class, image)),
-				tabGroup, null);
-		mt.setToolTipText(tooltip);
-		tabGroup.addTab(mt);
+		MaterialTab materialTab = new MaterialTab(
+			new ImageIcon(ImageUtil.loadImageResource(TopLevelPanel.class, image)),
+			tabGroup, null);
+		materialTab.setToolTipText(tooltip);
+		tabGroup.addTab(materialTab);
 
 		content.add(image, panel.getWrappedPanel());
 		eventBus.register(panel);
 
-		mt.setOnSelectEvent(() ->
-		{
+		materialTab.setOnSelectEvent(() -> {
 			switchTo(image, panel, false);
 			return true;
 		});
-		return mt;
+		return materialTab;
 	}
 
 	private MaterialTab addTab(Provider<? extends PluginPanel> panelProvider, String image, String tooltip) {
-		MaterialTab mt = new MaterialTab(
-				new ImageIcon(ImageUtil.loadImageResource(TopLevelPanel.class, image)),
-				tabGroup, null);
-		mt.setToolTipText(tooltip);
-		tabGroup.addTab(mt);
+		MaterialTab materialTab = new MaterialTab(
+			new ImageIcon(ImageUtil.loadImageResource(TopLevelPanel.class, image)),
+			tabGroup, null);
+		materialTab.setToolTipText(tooltip);
+		tabGroup.addTab(materialTab);
 
-		mt.setOnSelectEvent(() ->
+		materialTab.setOnSelectEvent(() ->
 		{
 			PluginPanel panel = panelProvider.get();
 			content.add(image, panel.getWrappedPanel());
@@ -105,7 +104,7 @@ public class TopLevelPanel extends PluginPanel {
 			switchTo(image, panel, true);
 			return true;
 		});
-		return mt;
+		return materialTab;
 	}
 
 	private void switchTo(String cardName, PluginPanel panel, boolean removeOnTabChange) {
@@ -143,5 +142,4 @@ public class TopLevelPanel extends PluginPanel {
 		active = false;
 		current.onDeactivate();
 	}
-
 }
