@@ -203,8 +203,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (isMessageTypeDisabledInConfig(message)
 				|| checkMuteAllowAndBlockList(message)
 				|| isAreaDisabled()
-				|| checkMuteSelf(message)
-				|| checkMuteOtherPlayers(message)
+				|| isSelfMuted(message)
+				|| isMutingOthers(message)
 				|| checkMuteLevelThreshold(message)) {
 			return;
 		}
@@ -213,9 +213,10 @@ public class NaturalSpeechPlugin extends Plugin {
 		VoiceID[] voiceIDs = textToSpeech.getModelAndVoiceFromChatMessage(message);
 		int distance = getSpeakerDistance(message);
 		//TODO: I feel like this could be simplified
+//		System.out.println(message);
 		textToSpeech.speak(
 			textToSpeech.getModelAndVoiceFromChatMessage(message)[0],
-			text,
+			text.toLowerCase(),
 			distance,
 			message.getName()
 		);
@@ -257,11 +258,11 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 		return 0;
 	}
-	private boolean checkMuteSelf(ChatMessage message) {
+	private boolean isSelfMuted(ChatMessage message) {
 		if (config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) return true;
 		return false;
 	}
-	private boolean checkMuteOtherPlayers(ChatMessage message) {
+	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 
 		return config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName());
@@ -269,7 +270,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 		if (Objects.equals(client.getLocalPlayer().getName(), message.getName())) return false;
+		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
 		if (getLevel(message.getName()) < config.muteLevelThreshold()) return true;
+
 
 		return false;
 	}

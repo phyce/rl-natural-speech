@@ -11,25 +11,66 @@ import java.util.stream.Collectors;
 public final class TextUtil {
 	private static final Pattern sentenceSplitter = Pattern.compile("(?<=[.!?,])\\s+|(?<=[.!?,])$");
 	public static List<String> splitSentence(String sentence) {
-		List<String> fragments = Arrays.stream(sentenceSplitter.split(sentence))
-			.filter(s -> !s.isBlank()) // remove blanks
-			.map(String::trim) // trim spaces
-			.collect(Collectors.toList());
+		final int softLimit = 40;
+		final int hardLimit = 80;
+		List<String> fragments = new ArrayList<>();
+		StringBuilder currentFragment = new StringBuilder();
 
-		// add period to the last segment
-		if (fragments.size() > 1) fragments.set(fragments.size() - 1, fragments.get(fragments.size() - 1) + ".");
+		List<String> tokens = tokenize(sentence);
+
+		for (String token : tokens) {
+			if (currentFragment.length() + token.length() <= hardLimit) {
+				currentFragment.append(token);
+
+				if (token.matches(".*[.!?]$")) {
+					fragments.add(currentFragment.toString().trim());
+					currentFragment.setLength(0);
+					continue;
+				}
+
+				if (token.matches(".*[,-;/]$") && currentFragment.length() > softLimit) {
+					fragments.add(currentFragment.toString().trim());
+					currentFragment.setLength(0);
+					continue;
+				}
+			} else {
+				int lastBreakPoint = findLastBreakPoint(currentFragment.toString(), softLimit, hardLimit);
+				if (lastBreakPoint > 0) {
+					fragments.add(currentFragment.substring(0, lastBreakPoint).trim());
+					currentFragment = new StringBuilder(currentFragment.substring(lastBreakPoint).trim());
+				} else {
+					fragments.add(currentFragment.toString().trim());
+					currentFragment.setLength(0);
+				}
+				currentFragment.append(token);
+			}
+
+			if (!token.matches("\\p{Punct}")) currentFragment.append(" ");
+		}
+
+		if (currentFragment.length() > 0) fragments.add(currentFragment.toString().trim());
 
 		return fragments;
 	}
+
+	private static int findLastBreakPoint(String fragment, int softLimit, int hardLimit) {
+		int lastSpace = -1;
+
+		for (int i = 0; i < fragment.length(); i++) {
+			if (fragment.charAt(i) == ' ' || fragment.charAt(i) == ',') lastSpace = i + 1;
+			else if (fragment.charAt(i) == '.' || fragment.charAt(i) == '!' || fragment.charAt(i) == '?') return i + 1;
+		}
+		return lastSpace;
+	}
+
 	public static String expandShortenedPhrases(String text, Map<String, String> phrases) {
 		List<String> tokens = tokenize(text);
 		StringBuilder parsedMessage = new StringBuilder();
 
+		System.out.println(phrases);
 		for (String token : tokens) {
-			// Remove punctuation from the token for lookup
 			String key = token.replaceAll("\\p{Punct}", "").toLowerCase();
 
-			// Replace abbreviation if present
 			String replacement = phrases.getOrDefault(key, token);
 			parsedMessage.append(replacement.equals(token) ? token : replacement).append(" ");
 		}
@@ -38,8 +79,8 @@ public final class TextUtil {
 	}
 	public static List<String> tokenize(String text) {
 		List<String> tokens = new ArrayList<>();
-		Matcher matcher = Pattern.compile("[\\w']+|\\p{Punct}").matcher(text);
 
+		Matcher matcher = Pattern.compile("[\\w']+(?:[.,;!?]+|\\.\\.\\.)?|\\p{Punct}").matcher(text);
 		while (matcher.find()) tokens.add(matcher.group());
 
 		return tokens;

@@ -108,7 +108,6 @@ public final class PluginHelper {
 		// From NPC
 		switch (message.getType()) {
 			case DIALOG:
-			case PRIVATECHAT:
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:

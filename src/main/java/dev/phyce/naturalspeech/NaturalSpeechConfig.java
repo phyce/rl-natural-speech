@@ -197,7 +197,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 	//</editor-fold>
 
-	//<editor-fold desc="> Mute Options">
+	//<editor-fold desc="> Other Settings">
 	@ConfigSection(
 		name = "Other",
 		description = "Other settings",
