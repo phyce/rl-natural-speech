@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.helpers;
 
+import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import lombok.Getter;
 import lombok.NonNull;
 import net.runelite.api.Client;
@@ -17,7 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Singleton
 public final class PluginHelper {
 	private static PluginHelper instance;
-
+	@Inject
+	private NaturalSpeechConfig config;
 	@Inject
 	private Client client;
 
@@ -31,7 +33,11 @@ public final class PluginHelper {
 		instance = this;
 	}
 
-	public static String getLocalPlayerUserName() {
+	public static NaturalSpeechConfig getConfig() {
+		return instance.config;
+	}
+
+	public static String getClientUsername() {
 		if (instance.client.getLocalPlayer() == null) {
 			return null;
 		}

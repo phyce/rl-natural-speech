@@ -245,5 +245,10 @@ public class ModelRepository {
 		File onnx;
 		File onnxMetadata;
 		VoiceMetadata[] voiceMetadata;
+
+		public VoiceID calculateVoice(String username) {
+			int hashCode = username.hashCode();
+			return new VoiceID(modelName, Math.abs(hashCode) % voiceMetadata.length);
+		}
 	}
 }

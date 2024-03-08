@@ -7,6 +7,9 @@ public class VoiceID {
 	public String modelName;
 	public int piperVoiceID;
 
+	public VoiceID() {
+
+	}
 	public VoiceID(String modelName, int piperVoiceID) {
 		this.modelName = modelName;
 		this.piperVoiceID = piperVoiceID;

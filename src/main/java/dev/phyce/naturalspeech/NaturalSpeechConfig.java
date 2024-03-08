@@ -23,17 +23,6 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() { return true; }
 
 	@ConfigItem(
-		position = 2,
-		keyName = "usePersonalVoice",
-		name = "Select personal voice",
-		description = "Lets you choose the voice of your character.",
-		section = generalSettingsSection
-	)
-	default boolean usePersonalVoice() {
-		return false;
-	}
-
-	@ConfigItem(
 		position = 3,
 		keyName = "personalVoice",
 		name = "Personal voice ID",

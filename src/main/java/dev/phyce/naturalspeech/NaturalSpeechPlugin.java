@@ -14,7 +14,6 @@ import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -180,11 +179,11 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (event.getGroup().equals(CONFIG_GROUP)) {
 			switch (event.getKey()) {
 				case "muteSelf":
-					textToSpeech.clearPlayerAudioQueue(getLocalPlayerUserName());
+					textToSpeech.clearPlayerAudioQueue(getClientUsername());
 					break;
 
 				case "muteOthers":
-					textToSpeech.clearOtherPlayersAudioQueue(getLocalPlayerUserName());
+					textToSpeech.clearOtherPlayersAudioQueue(getClientUsername());
 					break;
 				case "shortenedPhrases":
 					loadShortenedPhrases();
@@ -197,6 +196,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
+		if (message.getType() == ChatMessageType.AUTOTYPER) return;
 
 		patchChatMessageMissingName(message);
 
@@ -210,9 +210,15 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		String text = isPlayerChatMessage(message) ? expandShortenedPhrases(message.getMessage()) : message.getMessage();
-		VoiceID voiceID = getModelAndVoiceFromChatMessage(message);
+		VoiceID[] voiceIDs = textToSpeech.getModelAndVoiceFromChatMessage(message);
 		int distance = getSpeakerDistance(message);
-		textToSpeech.speak(voiceID, text, distance, message.getName());
+		//TODO: I feel like this could be simplified
+		textToSpeech.speak(
+			textToSpeech.getModelAndVoiceFromChatMessage(message)[0],
+			text,
+			distance,
+			message.getName()
+		);
 	}
 
 	//<editor-fold desc="> ChatMessage">
@@ -268,10 +274,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		return false;
 	}
 	// FIXME Implement voice getter
-	protected VoiceID getModelAndVoiceFromChatMessage(ChatMessage message) {
-		// FIXME(Louis) Abuse, using personalVoice for all ChatMessage
-		return VoiceID.fromIDString(config.personalVoiceID());
-	}
+
 	/**
 	 * EXAMINE has null for name field<br>
 	 * DIALOG has name in `name|message` format with null for name field<br>

@@ -11,6 +11,7 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceConfig;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 
 import javax.sound.sampled.LineUnavailableException;
@@ -45,12 +46,41 @@ public class TextToSpeech {
 	}
 
 	public void loadVoiceConfig() throws JsonSyntaxException {
-		String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
-
-		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
-
+		String voiceSettingsJSON = "./speaker_config.json";
 		voiceConfig = new VoiceConfig(voiceSettingsJSON);
+
+
+//		//String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
+//		try {
+//			if (!Files.exists(Paths.get(voiceSettingsJSON))) {
+//				saveSpeakerConfigurations(new HashMap<String, SpeakerConfiguration>());
+//			}
+//			try (FileReader reader = new FileReader(speakerConfig)) {
+//				Type listType = new TypeToken<List<SpeakerConfiguration>>() {}.getType();
+//				List<SpeakerConfiguration> configs = new Gson().fromJson(reader, listType);
+//				if (configs != null) {
+//					configs.forEach(config -> speakerConfigurations.put(config.getName(), config));
+//				}
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+////		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
+//
+//		voiceConfig = new VoiceConfig(voiceSettingsJSON);
 	}
+
+//	private void saveSpeakerConfigurations(HashMap<String, SpeakerConfiguration> configs) {
+//		try (FileWriter writer = new FileWriter(speakerConfig)) {
+//			new Gson().toJson(configs, writer);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+//	public void saveSpeakerConfigurations() {
+//		saveSpeakerConfigurations(speakerConfigurations);
+//	}
+
 
 	public void saveVoiceConfig() {
 		configManager.setConfiguration(CONFIG_GROUP, "VoiceConfig", voiceConfig.exportJSON());
@@ -132,7 +162,7 @@ public class TextToSpeech {
 			Piper piper = pipers.get(modelLocal);
 			for (String audioQueueName : piper.getAudioQueues().keySet()) {
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-				if (audioQueueName.equals(PluginHelper.getLocalPlayerUserName())) continue;
+				if (audioQueueName.equals(PluginHelper.getClientUsername())) continue;
 				if (audioQueueName.equals(username)) continue;
 				piper.getAudioQueues().get(audioQueueName).queue.clear();
 			}
@@ -148,34 +178,24 @@ public class TextToSpeech {
 		}
 	}
 
-
-	// TODO Unfinished refactor, moved the save-able voice configs to JSON stored in the plugin configurations
-//	public VoiceID getVoiceModel(String username) {
-//		SpeakerConfiguration config = speakerConfigurations.get(username.toLowerCase());
-//		if (config != null) {
-//			System.out.println("config MODEL not null for: " + username);
-//			System.out.println(config.getModel());
-//
-//			return config.getModel();
-//		}
-//
-//		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-//			Piper model = pipers.get(modelLocal);
-//			return model.getmo();
-//		}
-//		return "";
-//	}
-//
-//	public int getVoiceID(String username) {
-//		SpeakerConfiguration config = speakerConfigurations.get(username.toLowerCase());
-//		if (config != null) {
-//			System.out.println("config  VOICE ID not null for: " + username);
-//			System.out.println(config.getVoiceID());
-//			return config.getVoiceID();
-//		}
-//
-//		return TTSItem.calculateVoiceIndex(username);
-//	}
-
-
+	public VoiceID[] getModelAndVoiceFromChatMessage(ChatMessage message) {
+		VoiceID []results = {};
+		if(message.getName().equals(PluginHelper.getClientUsername())) results = voiceConfig.getPlayerVoiceIDs(message.getName());
+		else switch(message.getType()) {
+			case DIALOG:
+				//TODO add way to find out NPC ID
+				results = voiceConfig.getNpcVoiceIDs(message.getName());
+				break;
+			default:
+				results = voiceConfig.getPlayerVoiceIDs(message.getName());
+				break;
+		}
+		if(results == null) {
+			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+				Piper model = pipers.get(modelLocal);
+				results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
+			}
+		}
+		return results;
+	}
 }
