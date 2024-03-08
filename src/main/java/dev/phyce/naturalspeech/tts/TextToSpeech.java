@@ -46,6 +46,7 @@ public class TextToSpeech {
 	}
 
 	public void loadVoiceConfig() throws JsonSyntaxException {
+		// FIXME(Louis): Reading from local file but saving to runtimeConfig right now
 		String voiceSettingsJSON = "./speaker_config.json";
 		voiceConfig = new VoiceConfig(voiceSettingsJSON);
 
@@ -87,7 +88,8 @@ public class TextToSpeech {
 	}
 
 	public boolean isPiperForModelRunning(ModelRepository.ModelLocal modelLocal) {
-		return pipers.get(modelLocal).countProcessingInstances() > 0;
+		Piper piper = pipers.get(modelLocal);
+		return piper != null && piper.countProcessingInstances() > 0;
 	}
 
 	public int activePiperInstanceCount() {

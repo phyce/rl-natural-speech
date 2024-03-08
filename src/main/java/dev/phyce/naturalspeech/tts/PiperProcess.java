@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 // Renamed from TTSEngine
 @Slf4j
-public class PiperProcess implements Runnable {
+public class PiperProcess {
 	private final ProcessBuilder processBuilder;
 	@Getter
 	private final AtomicBoolean piperLocked = new AtomicBoolean(false);
@@ -22,6 +22,8 @@ public class PiperProcess implements Runnable {
 	private BufferedWriter processStdin;
 	@Getter
 	private boolean processing = false;
+	private Thread readStdInThread;
+	private Thread readStdErrThread;
 
 	public PiperProcess(Path piperPath, Path modelPath) throws IOException, LineUnavailableException {
 		processBuilder = new ProcessBuilder(
@@ -68,8 +70,11 @@ public class PiperProcess implements Runnable {
 		}
 		processing = true;
 
-		new Thread(this).start();
-		new Thread(this::readControlMessages).start();
+		readStdInThread = new Thread(this::readStdIn);
+		readStdInThread.start();
+		readStdErrThread = new Thread(this::readStdErr);
+		readStdErrThread.start();
+
 		log.info("TTSProcess Started...");
 	}
 
@@ -85,9 +90,8 @@ public class PiperProcess implements Runnable {
 		}
 	}
 
-	@Override
 	//Capture audio stream
-	public void run() {
+	public void readStdIn() {
 		try (InputStream inputStream = process.getInputStream()) {
 			byte[] data = new byte[1024];
 			int nRead;
@@ -101,7 +105,7 @@ public class PiperProcess implements Runnable {
 		}
 	}
 
-	public void readControlMessages() {
+	public void readStdErr() {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 			String line;
 			while (processing && (line = reader.readLine()) != null) if (line.endsWith(" sec)")) capturing.set(false);

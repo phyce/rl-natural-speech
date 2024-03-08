@@ -4,6 +4,7 @@ import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
@@ -12,18 +13,21 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
+@Slf4j
 public class VoiceListItem extends JPanel {
 
 	private final VoiceExplorerPanel voiceExplorerPanel;
 	private final NaturalSpeechPlugin plugin;
 	@Getter
 	private final ModelRepository.VoiceMetadata voiceMetadata;
+	private final ModelRepository.ModelLocal modelLocal;
 
 
-	public VoiceListItem(VoiceExplorerPanel voiceExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.VoiceMetadata voiceMetadata) {
+	public VoiceListItem(VoiceExplorerPanel voiceExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.VoiceMetadata voiceMetadata, ModelRepository.ModelLocal modelLocal) {
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.plugin = plugin;
 		this.voiceMetadata = voiceMetadata;
+		this.modelLocal = modelLocal;
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
@@ -73,11 +77,15 @@ public class VoiceListItem extends JPanel {
 		playButton.addActionListener(event -> {
 			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().activePiperInstanceCount() > 0) {
 				try {
-					plugin.getTextToSpeech().speak(
-						voiceMetadata.toVoiceID(),
-						plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
-						0,
-						"&VoiceExplorer");
+					if (plugin.getTextToSpeech().isPiperForModelRunning(modelLocal)) {
+						plugin.getTextToSpeech().speak(
+							voiceMetadata.toVoiceID(),
+							plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
+							0,
+							"&VoiceExplorer");
+					} else {
+						log.info("Model {} is currently not running.", modelLocal.getModelName());
+					}
 				} catch (ModelLocalUnavailableException e) {
 					throw new RuntimeException(e);
 				}

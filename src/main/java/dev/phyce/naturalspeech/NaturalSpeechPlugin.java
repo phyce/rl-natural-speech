@@ -384,6 +384,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
+
+
 	//</editor-fold>
 
 	// FIXME(Louis) Implement new status update in new MainSettingsPanel
@@ -408,6 +410,13 @@ public class NaturalSpeechPlugin extends Plugin {
 	//			} catch (InterruptedException e) {return;}
 	//        }
 	//	}
+
+
+	@Override
+	public void resetConfiguration() {
+		runtimeConfig.reset();
+	}
+
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);

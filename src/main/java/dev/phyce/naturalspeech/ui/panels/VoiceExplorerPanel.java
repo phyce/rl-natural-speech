@@ -199,7 +199,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			Arrays.stream(modelLocal.getVoiceMetadata())
 					.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
 					.forEach((voiceMetadata) -> {
-						VoiceListItem speakerItem = new VoiceListItem(this, plugin, voiceMetadata);
+						VoiceListItem speakerItem = new VoiceListItem(this, plugin, voiceMetadata, modelLocal);
 						voiceListItems.add(speakerItem);
 						sectionContent.add(speakerItem);
 					});

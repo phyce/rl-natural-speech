@@ -14,6 +14,7 @@ import static net.runelite.client.config.RuneLiteConfig.GROUP_NAME;
  */
 @Singleton
 public class NaturalSpeechRuntimeConfig {
+	public static final String KEY_TTS_ENGINE_PATH = "ttsEngine";
 	private final ConfigManager configManager;
 	@Inject
 	private NaturalSpeechRuntimeConfig(ConfigManager configManager) {
@@ -21,13 +22,13 @@ public class NaturalSpeechRuntimeConfig {
 	}
 
 	public Path getPiperPath() {
-		String pathString = configManager.getConfiguration(GROUP_NAME, "ttsEngine");
+		String pathString = configManager.getConfiguration(GROUP_NAME, KEY_TTS_ENGINE_PATH);
 
 		Path path;
 		if (pathString != null) path = Path.of(pathString);
 		else {
-			if (OSValidator.IS_MAC || OSValidator.IS_UNIX) path = Path.of(System.getProperty("user.home") + "/piper");
-			else path = Path.of("C:\\piper\\piper.exe");
+			if (OSValidator.IS_MAC || OSValidator.IS_UNIX) path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper");
+			else path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper.exe");
 			setPiperPath(path);
 		}
 
@@ -35,7 +36,12 @@ public class NaturalSpeechRuntimeConfig {
 	}
 
 	public void setPiperPath(Path path) {
-		configManager.setConfiguration(GROUP_NAME, "ttsEngine", path.toString());
+		configManager.setConfiguration(GROUP_NAME, KEY_TTS_ENGINE_PATH, path.toString());
+	}
+
+	public void reset() {
+		configManager.unsetConfiguration(GROUP_NAME, KEY_TTS_ENGINE_PATH);
+		setPiperPath(getPiperPath()); // reset
 	}
 
 }
