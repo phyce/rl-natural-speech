@@ -16,12 +16,10 @@ public class PiperProcess {
 	private final ProcessBuilder processBuilder;
 	@Getter
 	private final AtomicBoolean piperLocked = new AtomicBoolean(false);
-	private final AtomicBoolean capturing = new AtomicBoolean(false);
 	private final ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
 	private Process process;
 	private BufferedWriter processStdin;
 	@Getter
-	private boolean processing = false;
 	private Thread readStdInThread;
 	private Thread readStdErrThread;
 
@@ -68,7 +66,6 @@ public class PiperProcess {
 			log.error("PiperProcess error", e);
 			throw e;
 		}
-		processing = true;
 
 		readStdInThread = new Thread(this::readStdIn);
 		readStdInThread.start();
@@ -79,7 +76,6 @@ public class PiperProcess {
 	}
 
 	public void shutDown() {
-		processing = false;
 		piperLocked.set(true);
 		try {
 			if (processStdin != null) processStdin.close();
@@ -95,59 +91,65 @@ public class PiperProcess {
 		try (InputStream inputStream = process.getInputStream()) {
 			byte[] data = new byte[1024];
 			int nRead;
-			while (processing && (nRead = inputStream.read(data, 0, data.length)) != -1) {
-				if (capturing.get()) synchronized (streamCapture) {
+			while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+				synchronized (streamCapture) {
 					streamCapture.write(data, 0, nRead);
 				}
 			}
-			processing = false;
 		} catch (IOException e) {
+			log.error("readStdIn for {} threw", this, e);
 		}
 	}
 
 	public void readStdErr() {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 			String line;
-			while (processing && (line = reader.readLine()) != null) if (line.endsWith(" sec)")) capturing.set(false);
-		} catch (IOException e) {}
+			while ((line = reader.readLine()) != null) {
+				if (line.endsWith(" sec)")) {
+					synchronized(streamCapture) {
+						streamCapture.notify();
+					}
+				}
+			}
+		} catch (IOException e) {
+			log.error("readStdErr for {} threw", this, e);
+		}
 	}
 
 	// refactor: inlined the speak(TTSItem) method into one generateAudio function
-	public synchronized byte[] generateAudio(String text, int piperVoiceID) {
+	public byte[] generateAudio(String text, int piperVoiceID) {
 		piperLocked.set(true);
 		byte[] audioClip;
 		try {
 			byte[] result = null;
-			boolean finished = false;
-			synchronized (this) {
-				synchronized (streamCapture) {
-					streamCapture.reset();
-				}
-				capturing.set(true);
+			boolean valid = false;
 
-				processStdin.write(TextUtil.generateJson(text, piperVoiceID));
-				processStdin.newLine();
-				processStdin.flush();
+			synchronized (streamCapture) {
+				streamCapture.reset();
 			}
 
-			while (capturing.get()) try {
-				Thread.sleep(25);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				finished = true;
-				break;
-			}
-			if (!finished) {
-				synchronized (streamCapture) {
+			processStdin.write(TextUtil.generateJson(text, piperVoiceID));
+			processStdin.newLine();
+			processStdin.flush();
+
+			synchronized(streamCapture) {
+				streamCapture.wait();
+
+				if (!valid) {
 					result = streamCapture.toByteArray();
 				}
 			}
+
 			audioClip = result;
-		} catch (IOException exception) {
+		} catch (IOException | InterruptedException exception) {
 			throw new RuntimeException(exception);
 		} finally {
 			piperLocked.set(false);
 		}
 		return audioClip;
+	}
+
+	public boolean isProcessAlive() {
+		return process.isAlive();
 	}
 }
