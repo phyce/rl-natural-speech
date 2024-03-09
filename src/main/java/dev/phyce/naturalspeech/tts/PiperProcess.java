@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.sound.sampled.LineUnavailableException;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -140,7 +139,7 @@ public class PiperProcess {
 		return audioClip;
 	}
 
-	public boolean isProcessAlive() {
+	public boolean isAlive() {
 		return process.isAlive();
 	}
 

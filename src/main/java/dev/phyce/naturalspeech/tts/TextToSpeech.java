@@ -89,14 +89,14 @@ public class TextToSpeech {
 
 	public boolean isPiperForModelRunning(ModelRepository.ModelLocal modelLocal) {
 		Piper piper = pipers.get(modelLocal);
-		return piper != null && piper.countProcessingInstances() > 0;
+		return piper != null && piper.countAlive() > 0;
 	}
 
 	public int activePiperInstanceCount() {
 		int result = 0;
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 			Piper model = pipers.get(modelLocal);
-			result += model.countProcessingInstances();
+			result += model.countAlive();
 		}
 		return result;
 	}

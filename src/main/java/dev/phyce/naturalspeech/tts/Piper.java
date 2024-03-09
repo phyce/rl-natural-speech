@@ -109,7 +109,7 @@ public class Piper {
 
 	// Refactored to decouple from dependencies
 	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
-		if (countProcessingInstances() == 0) throw new IOException("No active TTS engine instances running");
+		if (countAlive() == 0) throw new IOException("No active PiperProcess instances running");
 		if (piperTaskQueue.size() > 10) {
 			log.info("Cleared queue because queue size is too large. (more then 10)");
 			clearQueue();
@@ -125,11 +125,11 @@ public class Piper {
 		});
 	}
 
-	public int countProcessingInstances() {
+	public int countAlive() {
 		int result = 0;
 		if (!instances.isEmpty()) {
 			for (PiperProcess instance : instances) {
-				if (instance.isProcessAlive()) result++;
+				if (instance.isAlive()) result++;
 			}
 		}
 		return result;
