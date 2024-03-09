@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 // Renamed from TTSModel
 @Slf4j
-public class Piper implements Runnable {
+public class Piper {
 	@Getter
 	private final List<PiperProcess> instances = new ArrayList<>();
 	@Getter
@@ -47,13 +47,12 @@ public class Piper implements Runnable {
 			}
 		}
 
-		new Thread(this).start();
+		new Thread(this::processPiperTask).start();
 		new Thread(this::processAudioQueue).start();
 	}
 
-	@Override
 	//Process message queue
-	public void run() {
+	public void processPiperTask() {
 		while (countProcessingInstances() > 0) {
 			if (piperTaskQueue.isEmpty()) continue;
 
@@ -100,7 +99,7 @@ public class Piper implements Runnable {
 	}
 
 	// Refactored to decouple from dependencies
-	public synchronized void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
+	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
 		if (countProcessingInstances() == 0) throw new IOException("No active TTS engine instances running");
 		if (piperTaskQueue.size() > 10) {
 			log.info("Cleared queue because queue size is too large. (more then 10)");
