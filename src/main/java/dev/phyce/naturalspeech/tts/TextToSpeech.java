@@ -192,6 +192,9 @@ public class TextToSpeech {
 		if(message.getName().equals(PluginHelper.getClientUsername())) results = voiceConfig.getPlayerVoiceIDs(message.getName());
 		else switch(message.getType()) {
 			case DIALOG:
+			case WELCOME:
+			case GAMEMESSAGE:
+			case CONSOLE:
 				//TODO add way to find out NPC ID
 				results = voiceConfig.getNpcVoiceIDs(message.getName());
 				break;

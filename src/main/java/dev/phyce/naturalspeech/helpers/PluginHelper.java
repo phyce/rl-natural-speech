@@ -111,6 +111,10 @@ public final class PluginHelper {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
+			case WELCOME:
+			case GAMEMESSAGE:
+			case CONSOLE:
+
 				return true;
 		}
 		return false;

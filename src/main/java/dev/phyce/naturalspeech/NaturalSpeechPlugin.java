@@ -19,12 +19,8 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
-import net.runelite.api.NameableContainer;
-import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOpened;
-import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
@@ -43,7 +39,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.runelite.api.Ignore;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 
@@ -219,9 +214,10 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+		System.out.println(message);
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
 		if (message.getType() == ChatMessageType.AUTOTYPER) return;
-		patchChatMessageMissingName(message);
+		patchChatMessage(message);
 		if (!isMessageProcessable(message))return;
 
 		String text = isPlayerChatMessage(message) ? expandShortenedPhrases(message.getMessage()) : message.getMessage();
@@ -274,6 +270,16 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 			case DIALOG:
 				if (!config.dialogEnabled()) return true;
+			case WELCOME:
+			case GAMEMESSAGE:
+			case CONSOLE:
+				if (!config.systemMesagesEnabled()) return true;
+				break;
+			case TRADEREQ:
+			case CHALREQ_CLANCHAT:
+			case CHALREQ_FRIENDSCHAT:
+			case CHALREQ_TRADE:
+				if (!config.requestsEnabled()) return true;
 				break;
 		}
 		return false;
@@ -310,12 +316,14 @@ public class NaturalSpeechPlugin extends Plugin {
 	/**
 	 * EXAMINE has null for name field<br>
 	 * DIALOG has name in `name|message` format with null for name field<br>
+	 * GAMEMESSAGE & CONSOLE can sometimes have tags which need to be removed<br>
+	 *
 	 * <p>
 	 * This method takes in message reference and patches the name field with correct value<br>
 	 *
 	 * @param message reference passed in and modified
 	 */
-	private void patchChatMessageMissingName(ChatMessage message) {
+	private void patchChatMessage(ChatMessage message) {
 		switch (message.getType()) {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
@@ -331,8 +339,15 @@ public class NaturalSpeechPlugin extends Plugin {
 					throw new RuntimeException("Unknown NPC dialog format: " + message.getMessage());
 				}
 				break;
+			case WELCOME:
+			case GAMEMESSAGE:
+			case CONSOLE:
+				message.setMessage(TextUtil.removeTags(message.getMessage()));
+				message.setName("_system_");
+				break;
 		}
 	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="> Other">

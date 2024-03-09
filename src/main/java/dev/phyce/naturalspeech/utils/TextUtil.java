@@ -97,4 +97,8 @@ public final class TextUtil {
 		text = escape(text);
 		return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
 	}
+
+	public static String removeTags(String input) {
+		return input.replaceAll("<[^>]+>", "");
+	}
 }

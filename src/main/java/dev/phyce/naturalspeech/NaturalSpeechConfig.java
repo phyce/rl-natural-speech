@@ -142,6 +142,28 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean dialogEnabled() {
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "requests",
+		name = "Trade/Challenge requests",
+		description = "Enable text-to-speech to trade and challenge requests.",
+		section = ttsOptionsSection,
+		position = 8
+	)
+	default boolean requestsEnabled() {
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "systemMesages",
+		name = "System messages",
+		description = "Generate text-to-speech to game's messages",
+		section = ttsOptionsSection,
+		position = 8
+	)
+	default boolean systemMesagesEnabled() {
+		return true;
+	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Mute Options">
