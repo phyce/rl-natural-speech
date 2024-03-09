@@ -197,29 +197,31 @@ public class NaturalSpeechPlugin extends Plugin {
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
 		if (message.getType() == ChatMessageType.AUTOTYPER) return;
-
 		patchChatMessageMissingName(message);
-
-		if (isMessageTypeDisabledInConfig(message)
-				|| checkMuteAllowAndBlockList(message)
-				|| isAreaDisabled()
-				|| isSelfMuted(message)
-				|| isMutingOthers(message)
-				|| checkMuteLevelThreshold(message)) {
-			return;
-		}
+		if (!isMessageProcessable(message))return;
 
 		String text = isPlayerChatMessage(message) ? expandShortenedPhrases(message.getMessage()) : message.getMessage();
 		VoiceID[] voiceIDs = textToSpeech.getModelAndVoiceFromChatMessage(message);
 		int distance = getSpeakerDistance(message);
 		//TODO: I feel like this could be simplified
-//		System.out.println(message);
+		//System.out.println(message);
 		textToSpeech.speak(
 			textToSpeech.getModelAndVoiceFromChatMessage(message)[0],
 			text.toLowerCase(),
 			distance,
 			message.getName()
 		);
+	}
+
+	public boolean isMessageProcessable(ChatMessage message) {
+		if (isMessageTypeDisabledInConfig(message)) return false;
+		if (checkMuteAllowAndBlockList(message)) return false;
+		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return false;
+		if (isSelfMuted(message)) return false;
+		if (isMutingOthers(message)) return false;
+		if (checkMuteLevelThreshold(message)) return false;
+
+		return true;
 	}
 
 	//<editor-fold desc="> ChatMessage">
