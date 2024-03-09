@@ -11,6 +11,7 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceConfig;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 
@@ -20,6 +21,7 @@ import java.util.*;
 
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
+import net.runelite.client.plugins.Plugin;
 
 // Renamed from TTSManager
 @Slf4j
@@ -200,7 +202,12 @@ public class TextToSpeech {
 		if(results == null) {
 			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 				Piper model = pipers.get(modelLocal);
-				results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
+
+				if(message.getType() == ChatMessageType.PUBLICCHAT) {
+					int gender = PluginHelper.getFromUsername(message.getName()).getPlayerComposition().getGender();
+					results = new VoiceID[]{model.getModelLocal().calculateGenderedVoice(message.getName(), gender)};
+				}
+				else results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
 			}
 		}
 		return results;

@@ -7,11 +7,17 @@ import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.plugins.Plugin;
 import okhttp3.HttpUrl;
 
 import java.io.*;
@@ -246,9 +252,34 @@ public class ModelRepository {
 		File onnxMetadata;
 		VoiceMetadata[] voiceMetadata;
 
+		private static Map<Integer, List<Integer>> genderCategorizedVoices;
+
+		private void categorizeVoicesByGender() {
+			genderCategorizedVoices = new HashMap<>();
+			for (VoiceMetadata voice : voiceMetadata) {
+				int genderKey = voice.gender.equals("M") ? 0 : 1;
+				genderCategorizedVoices.putIfAbsent(genderKey, new ArrayList<>());
+				genderCategorizedVoices.get(genderKey).add(voice.piperVoiceID);
+			}
+		}
+
 		public VoiceID calculateVoice(String username) {
 			int hashCode = username.hashCode();
 			return new VoiceID(modelName, Math.abs(hashCode) % voiceMetadata.length);
+		}
+
+		public VoiceID calculateGenderedVoice(String username, int gender) {
+			if (genderCategorizedVoices == null) categorizeVoicesByGender();
+
+			List<Integer> voiceIDs = genderCategorizedVoices.get(gender);
+			if (voiceIDs == null || voiceIDs.isEmpty()) {
+				throw new IllegalArgumentException("No voices available for the specified gender");
+			}
+			int hashCode = username.hashCode();
+			int voiceIDIndex = Math.abs(hashCode) % voiceIDs.size();
+			int selectedVoiceID = voiceIDs.get(voiceIDIndex);
+
+			return new VoiceID(modelName, selectedVoiceID);
 		}
 	}
 }

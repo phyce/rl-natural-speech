@@ -19,8 +19,12 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.NameableContainer;
+import net.runelite.api.VarClientStr;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOpened;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
@@ -39,7 +43,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import net.runelite.api.Ignore;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 
@@ -81,6 +85,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private TopLevelPanel topLevelPanel;
 	private Map<String, String> shortenedPhrases;
 	private NavigationButton navButton;
+	private Set<String> ignoreListSnapshot = new HashSet<>();
 	//</editor-fold>
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
 		// FIXME(Louis) Need to modify to load in all ModelLocal configured
@@ -193,6 +198,25 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 	//</editor-fold>
 
+//	@Subscribe
+//	public void onMenuOptionClicked(MenuOptionClicked event) {
+//		System.out.println(event);
+		//Need to listen to user input when adding users to ignore list. unless there is a better way?
+//		if(event.getMenuOption().equals("Add Name")) snapshotIgnoreList();
+//		else if(event.getMenuOption().equals("Cancel")) ignoreListSnapshot.clear();
+//	}
+
+//	private Set<String> getIgnoreListNames() {
+//		Set<String> names = new HashSet<>();
+//		NameableContainer<Ignore> ignoreContainer = client.getIgnoreContainer();
+//		Ignore[] ignores = ignoreContainer.getMembers();
+//
+//		for (Ignore ignore : ignores) {
+//			if (ignore != null) names.add(ignore.getName());
+//		}
+//		return names;
+//	}
+
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
@@ -273,6 +297,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (isNPCChatMessage(message)) return false;
 		if (Objects.equals(client.getLocalPlayer().getName(), message.getName())) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
+		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
+		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
+		if (message.getType() == ChatMessageType.CLAN_GUEST_CHAT) return false;
 		if (getLevel(message.getName()) < config.muteLevelThreshold()) return true;
 
 
