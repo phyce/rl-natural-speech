@@ -9,6 +9,7 @@ import static dev.phyce.naturalspeech.enums.Locations.*;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.tts.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
@@ -44,7 +45,7 @@ import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 
 
 @Slf4j
-@PluginDescriptor(name = CONFIG_GROUP)
+@PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Misc">
 	public final static String CONFIG_GROUP = "NaturalSpeech";
@@ -80,7 +81,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	private TopLevelPanel topLevelPanel;
 	private Map<String, String> shortenedPhrases;
 	private NavigationButton navButton;
+	private TextToSpeech.PiperLifetimeListener piperLifetimeListener;
 	private Set<String> ignoreListSnapshot = new HashSet<>();
+
 	//</editor-fold>
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
 		// FIXME(Louis) Need to modify to load in all ModelLocal configured
@@ -98,8 +101,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	public void stopTextToSpeech() {
-		textToSpeech.shutDownAllPipers();
+		textToSpeech.stopAllPipers();
 	}
+
 	//<editor-fold desc="> Override Methods">
 	@Override
 	public void configure(Binder binder) {
@@ -115,16 +119,23 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Have to lazy-load config panel after RuneLite UI is initialized, cannot field @Inject
 		topLevelPanel = topLevelPanelProvider.get();
 
-		// FIXME(Louis) Change to user controlled lazy loading
-//		try {
-////			modelRepository.getModelLocal("en_GB-vctk-medium");
-////			modelRepository.getModelLocal("en_US-libritts-high");
-//		} catch (IOException e) {
-//			throw new RuntimeException(e);
-//		}
+		piperLifetimeListener = new TextToSpeech.PiperLifetimeListener() {
+			@Override
+			public void onPiperStart(Piper piper) {
+				log.info("Plugin hears that {} has started", piper);
+			}
 
+			@Override
+			public void onPiperExit(Piper piper) {
+				log.info("Plugin hears that {} has exited", piper);
+			}
+		};
 
-		// Build navButton
+		textToSpeech.addPiperLifetimeListener(
+			piperLifetimeListener
+		);
+
+			// Build navButton
 		{
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 			navButton = NavigationButton.builder()
@@ -139,15 +150,20 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Load ShortenedPhrases is a method that can be called later when configs are changed
 		loadShortenedPhrases();
 
-		log.info("NaturalSpeech TTS engine started");
+		log.info("NaturalSpeech plugin has started");
 	}
 
 	@Override
 	protected void shutDown() {
-		if (textToSpeech != null) textToSpeech.shutDownAllPipers();
+		if (textToSpeech != null) {
+			textToSpeech.stopAllPipers();
+			textToSpeech.removePiperLifetimeListener(piperLifetimeListener);
+		}
 		clientToolbar.removeNavigation(navButton);
 
 		textToSpeech.saveVoiceConfig();
+
+		log.info("NaturalSpeech plugin has shutDown");
 	}
 	//</editor-fold>
 
@@ -169,7 +185,7 @@ public class NaturalSpeechPlugin extends Plugin {
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
 
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
+			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) {drawOptions(entry, index);}
 			else if (interfaces.contains(groupId) && entry.getOption().equals("Report")) drawOptions(entry, index);
 		}
 	}
@@ -214,7 +230,6 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		System.out.println(message);
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
 		if (message.getType() == ChatMessageType.AUTOTYPER) return;
 		patchChatMessage(message);
@@ -284,21 +299,25 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 		return false;
 	}
+
 	public int getSpeakerDistance(ChatMessage message) {
 		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFadeEnabled()) {
 			return getDistance(message.getName());
 		}
 		return 0;
 	}
+
 	private boolean isSelfMuted(ChatMessage message) {
 		if (config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) return true;
 		return false;
 	}
+
 	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 
 		return config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName());
 	}
+
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 		if (Objects.equals(client.getLocalPlayer().getName(), message.getName())) return false;
@@ -372,17 +391,20 @@ public class NaturalSpeechPlugin extends Plugin {
 		String username = matcher.group(1).trim();
 
 		String status;
-		if (isBeingListened(username)) status = "<col=78B159>O";
-		else status = "<col=DD2E44>0";
+		if (isBeingListened(username)) {status = "<col=78B159>O";}
+		else {status = "<col=DD2E44>0";}
 
-		CustomMenuEntry muteOptions = new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username), index);
+		CustomMenuEntry muteOptions =
+			new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username),
+				index);
 
 		if (isBeingListened(username)) {
 			if (!getAllowList().isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
 					unlisten(username);
 				}));
-			} else {
+			}
+			else {
 				muteOptions.addChild(new CustomMenuEntry("Mute", -1, function -> {
 					mute(username);
 				}));
@@ -393,12 +415,14 @@ public class NaturalSpeechPlugin extends Plugin {
 					textToSpeech.clearOtherPlayersAudioQueue(username);
 				}));
 			}
-		} else {
+		}
+		else {
 			if (!PluginHelper.getBlockList().isEmpty()) {
 				muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
 					unmute(username);
 				}));
-			} else {
+			}
+			else {
 				muteOptions.addChild(new CustomMenuEntry("Listen", -1, function -> {
 					listen(username);
 				}));
@@ -409,7 +433,8 @@ public class NaturalSpeechPlugin extends Plugin {
 			muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
 				getBlockList().clear();
 			}));
-		} else if (!getAllowList().isEmpty()) {
+		}
+		else if (!getAllowList().isEmpty()) {
 			muteOptions.addChild(new CustomMenuEntry("Clear allow list", -1, function -> {
 				getAllowList().clear();
 			}));
@@ -427,7 +452,6 @@ public class NaturalSpeechPlugin extends Plugin {
 			if (parts.length == 2) shortenedPhrases.put(parts[0].trim(), parts[1].trim());
 		}
 	}
-
 
 
 	//</editor-fold>

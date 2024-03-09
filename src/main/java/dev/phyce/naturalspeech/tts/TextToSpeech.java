@@ -15,12 +15,12 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 
-import javax.sound.sampled.LineUnavailableException;
 import java.io.IOException;
 import java.util.*;
 
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.plugins.Plugin;
 
 // Renamed from TTSManager
@@ -30,16 +30,20 @@ public class TextToSpeech {
 	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
 	private final ConfigManager configManager;
 	private final ModelRepository modelRepository;
-	/** Model ShortName -> PiperRunner */
+	/**
+	 * Model ShortName -> PiperRunner
+	 */
 	private final Map<ModelRepository.ModelLocal, Piper> pipers = new HashMap<>();
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private VoiceConfig voiceConfig;
 
+	private final List<PiperLifetimeListener> piperLifetimeListeners = new ArrayList<>();
+
 	@Inject
 	private TextToSpeech(
-			NaturalSpeechRuntimeConfig runtimeConfig,
-			ConfigManager configManager,
-			ModelRepository modelRepository) {
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		ConfigManager configManager,
+		ModelRepository modelRepository, EventBus eventbus) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.modelRepository = modelRepository;
@@ -53,36 +57,36 @@ public class TextToSpeech {
 		voiceConfig = new VoiceConfig(voiceSettingsJSON);
 
 
-//		//String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
-//		try {
-//			if (!Files.exists(Paths.get(voiceSettingsJSON))) {
-//				saveSpeakerConfigurations(new HashMap<String, SpeakerConfiguration>());
-//			}
-//			try (FileReader reader = new FileReader(speakerConfig)) {
-//				Type listType = new TypeToken<List<SpeakerConfiguration>>() {}.getType();
-//				List<SpeakerConfiguration> configs = new Gson().fromJson(reader, listType);
-//				if (configs != null) {
-//					configs.forEach(config -> speakerConfigurations.put(config.getName(), config));
-//				}
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-////		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
-//
-//		voiceConfig = new VoiceConfig(voiceSettingsJSON);
+		//		//String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
+		//		try {
+		//			if (!Files.exists(Paths.get(voiceSettingsJSON))) {
+		//				saveSpeakerConfigurations(new HashMap<String, SpeakerConfiguration>());
+		//			}
+		//			try (FileReader reader = new FileReader(speakerConfig)) {
+		//				Type listType = new TypeToken<List<SpeakerConfiguration>>() {}.getType();
+		//				List<SpeakerConfiguration> configs = new Gson().fromJson(reader, listType);
+		//				if (configs != null) {
+		//					configs.forEach(config -> speakerConfigurations.put(config.getName(), config));
+		//				}
+		//			}
+		//		} catch (Exception e) {
+		//			e.printStackTrace();
+		//		}
+		////		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
+		//
+		//		voiceConfig = new VoiceConfig(voiceSettingsJSON);
 	}
 
-//	private void saveSpeakerConfigurations(HashMap<String, SpeakerConfiguration> configs) {
-//		try (FileWriter writer = new FileWriter(speakerConfig)) {
-//			new Gson().toJson(configs, writer);
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-//	public void saveSpeakerConfigurations() {
-//		saveSpeakerConfigurations(speakerConfigurations);
-//	}
+	//	private void saveSpeakerConfigurations(HashMap<String, SpeakerConfiguration> configs) {
+	//		try (FileWriter writer = new FileWriter(speakerConfig)) {
+	//			new Gson().toJson(configs, writer);
+	//		} catch (Exception e) {
+	//			e.printStackTrace();
+	//		}
+	//	}
+	//	public void saveSpeakerConfigurations() {
+	//		saveSpeakerConfigurations(speakerConfigurations);
+	//	}
 
 
 	public void saveVoiceConfig() {
@@ -103,23 +107,8 @@ public class TextToSpeech {
 		return result;
 	}
 
-	/**
-	 * Starts Piper for specific ModelLocal
-	 * @param modelLocal
-	 */
-	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws LineUnavailableException, IOException {
-		if (pipers.get(modelLocal) != null) {
-			pipers.remove(modelLocal).stopAll();
-		}
-
-		// @FIXME Make instanceCount configurable
-		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
-
-		pipers.put(modelLocal, piper);
-	}
-
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
-			throws ModelLocalUnavailableException, PiperNotAvailableException {
+		throws ModelLocalUnavailableException, PiperNotAvailableException {
 
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
@@ -143,6 +132,7 @@ public class TextToSpeech {
 	}
 
 	// Extracted distance volume algorithm from AudioPlayer
+
 	public float getVolumeWithDistance(int distance) {
 		if (distance <= 1) {
 			return 0;
@@ -150,9 +140,40 @@ public class TextToSpeech {
 		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
 	}
 
-	public void shutDownAllPipers() {
+	/**
+	 * Starts Piper for specific ModelLocal
+	 */
+	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws IOException {
+		if (pipers.get(modelLocal) != null) {
+			log.warn("Starting piper for {} when there are already pipers running for the model.",
+				modelLocal.getModelName());
+			pipers.remove(modelLocal).stop();
+		}
+
+		// @FIXME Make instanceCount configurable
+		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
+
+		pipers.put(modelLocal, piper);
+
+		triggerOnPiperStart(piper);
+	}
+
+	public void stopPiperForModelLocal(ModelRepository.ModelLocal modelLocal)
+		throws PiperNotAvailableException {
+		Piper piper;
+		if ((piper = pipers.remove(modelLocal)) != null) {
+			piper.stop();
+			triggerOnPiperExit(piper);
+		}
+		else {
+			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
+		}
+	}
+
+	public void stopAllPipers() {
 		for (Piper piper : pipers.values()) {
-			piper.stopAll();
+			piper.stop();
+			triggerOnPiperExit(piper);
 		}
 		pipers.clear();
 	}
@@ -182,7 +203,9 @@ public class TextToSpeech {
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 			for (String audioQueueName : pipers.get(modelLocal).getNamedAudioQueueMap().keySet()) {
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-				if (audioQueueName.equals(username)) pipers.get(modelLocal).getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+				if (audioQueueName.equals(username)) {
+					pipers.get(modelLocal).getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+				}
 			}
 		}
 	}
@@ -214,5 +237,31 @@ public class TextToSpeech {
 			}
 		}
 		return results;
+	}
+
+	public void triggerOnPiperStart(Piper piper) {
+		for (PiperLifetimeListener listener : piperLifetimeListeners) {
+			listener.onPiperStart(piper);
+		}
+	}
+
+	public void triggerOnPiperExit(Piper piper) {
+		for (PiperLifetimeListener listener : piperLifetimeListeners) {
+			listener.onPiperExit(piper);
+		}
+	}
+
+	public void addPiperLifetimeListener(PiperLifetimeListener listener) {
+		piperLifetimeListeners.add(listener);
+	}
+
+	public void removePiperLifetimeListener(PiperLifetimeListener listener) {
+		piperLifetimeListeners.remove(listener);
+	}
+
+	public interface PiperLifetimeListener {
+		default void onPiperStart(Piper piper) {}
+
+		default void onPiperExit(Piper piper) {}
 	}
 }
