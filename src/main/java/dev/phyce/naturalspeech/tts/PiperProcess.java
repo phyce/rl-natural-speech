@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.utils.TextUtil;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
@@ -24,10 +25,10 @@ public class PiperProcess {
 	private Process process;
 	private BufferedWriter processStdin;
 	@Getter
-	private Thread readStdInThread;
-	private Thread readStdErrThread;
+	private Thread processStdInThread;
+	private Thread processStdErrThread;
 
-	public PiperProcess(Path piperPath, Path modelPath) throws IOException, LineUnavailableException {
+	private PiperProcess(Path piperPath, Path modelPath) throws IOException {
 		this.modelPath = modelPath;
 		processBuilder = new ProcessBuilder(
 				piperPath.toString(),
@@ -36,12 +37,19 @@ public class PiperProcess {
 				"--json-input"
 		);
 
-		startTTSProcess();
-		if (process == null || !process.isAlive()) {
-			log.error("{} failed to launch", this);
-			return;
-		}
-		log.info("{} started", this);
+		process = processBuilder.start();
+
+		piperLocked.set(false);
+
+		process = processBuilder.start();
+		processStdin = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+
+		processStdInThread = new Thread(this::processStdIn);
+		processStdInThread.start();
+		processStdErrThread = new Thread(this::processStdErr);
+		processStdErrThread.start();
+
+		log.info("{}: Started...", this);
 	}
 
 	@Override
@@ -52,53 +60,28 @@ public class PiperProcess {
 			return String.format("pid:dead model:%s", modelPath.getFileName());
 	}
 
-	public synchronized void startTTSProcess() throws IOException {
-		piperLocked.set(false);
-		if (process != null) {
-			process.destroy();
-			//Or maybe simply return?
-
-			try {
-				processStdin.close();
-			} catch (IOException e) {
-				log.error("{}: Error", this, e);
-				throw e;
-			}
-		}
-
-		try {
-			process = processBuilder.start();
-			processStdin = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
-		} catch (IOException e) {
-			log.error("{}: Error", this, e);
-			throw e;
-		}
-
-		readStdInThread = new Thread(this::readStdIn);
-		readStdInThread.start();
-		readStdErrThread = new Thread(this::readStdErr);
-		readStdErrThread.start();
-
-		log.info("{}: Started...", this);
+	public static PiperProcess start(Path piperPath, Path modelPath) throws IOException {
+		return new PiperProcess(piperPath, modelPath);
 	}
 
-	public void shutDown() {
+	public void stop() {
 		piperLocked.set(true);
 		try {
 			if (processStdin != null) processStdin.close();
+			processStdErrThread.interrupt();
+			processStdInThread.interrupt();
 			if (process != null) process.destroy();
-
 		} catch (IOException exception) {
 			log.error("{} failed shutting down", this, exception);
 		}
 	}
 
 	//Capture audio stream
-	public void readStdIn() {
+	public void processStdIn() {
 		try (InputStream inputStream = process.getInputStream()) {
 			byte[] data = new byte[1024];
 			int nRead;
-			while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+			while (!processStdInThread.isInterrupted() && (nRead = inputStream.read(data, 0, data.length)) != -1) {
 				synchronized (streamCapture) {
 					streamCapture.write(data, 0, nRead);
 				}
@@ -108,10 +91,10 @@ public class PiperProcess {
 		}
 	}
 
-	public void readStdErr() {
+	public void processStdErr() {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 			String line;
-			while ((line = reader.readLine()) != null) {
+			while (!processStdErrThread.isInterrupted() && (line = reader.readLine()) != null) {
 				if (line.endsWith(" sec)")) {
 					synchronized(streamCapture) {
 						streamCapture.notify();
@@ -161,6 +144,10 @@ public class PiperProcess {
 		return process.isAlive();
 	}
 
+	public CompletableFuture<Process> onExit() {
+		return process.onExit();
+	}
+
 	private static String stripPiperLogPrefix(String piperLog) {
 		// [2024-03-08 16:07:17.781] [piper] [info] Real-time factor: 0.45758559656250003 (infer=0.6640698 sec, audio=1.4512471655328798 sec)
 		// ->
@@ -172,4 +159,5 @@ public class PiperProcess {
 			return piperLog;
 		}
 	}
+
 }

@@ -29,6 +29,8 @@ public class Piper {
 	private final ModelRepository.ModelLocal modelLocal;
 	@Getter
 	private final Path piperPath;
+	private final Thread processPiperTaskThread;
+	private final Thread processAudioQueueThread;
 
 	// decoupled and can be called anywhere now
 	public Piper(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount) throws LineUnavailableException, IOException {
@@ -40,20 +42,23 @@ public class Piper {
 		//Instance count should not be more than 2
 		for (int index = 0; index < instanceCount; index++) {
 			try {
-				PiperProcess instance = new PiperProcess(piperPath, modelLocal.getOnnx().toPath());
+				PiperProcess instance = PiperProcess.start(piperPath, modelLocal.getOnnx().toPath());
 				instances.add(instance);
-			} catch (IOException | LineUnavailableException e) {
+			} catch (IOException e) {
 				throw e;
 			}
 		}
 
-		new Thread(this::processPiperTask).start();
-		new Thread(this::processAudioQueue).start();
+		processPiperTaskThread = new Thread(this::processPiperTask);
+		processPiperTaskThread.start();
+
+		processAudioQueueThread = new Thread(this::processAudioQueue);
+		processAudioQueueThread.start();
 	}
 
 	//Process message queue
 	public void processPiperTask() {
-		while (countProcessingInstances() > 0) {
+		while (!processPiperTaskThread.isInterrupted()) {
 			if (piperTaskQueue.isEmpty()) continue;
 
 			PiperTask task = piperTaskQueue.poll();
@@ -72,8 +77,8 @@ public class Piper {
 	}
 
 	public void processAudioQueue() {
-		while (countProcessingInstances() > 0) {
-			audioQueues.forEach((key, audioQueue) -> {
+		while (!processAudioQueueThread.isInterrupted()) {
+			audioQueues.forEach((queueName, audioQueue) -> {
 				if (!audioQueue.queue.isEmpty() && !audioQueue.isPlaying().get()) {
 					audioQueue.setPlaying(true);
 					new Thread(() -> {
@@ -130,9 +135,11 @@ public class Piper {
 		audioPlayer.shutDown();
 		if (!instances.isEmpty()) {
 			for (PiperProcess instance : instances) {
-				instance.shutDown();
+				instance.stop();
 			}
 		}
+		processAudioQueueThread.interrupt();
+		processPiperTaskThread.interrupt();
 	}
 
 	// Renamed from TTSItem, decoupled from dependencies
