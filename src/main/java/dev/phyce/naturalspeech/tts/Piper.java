@@ -33,7 +33,7 @@ public class Piper {
 	private final Thread processAudioQueueThread;
 
 	// decoupled and can be called anywhere now
-	public Piper(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount) throws LineUnavailableException, IOException {
+	private Piper(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount) throws IOException {
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
 
@@ -54,6 +54,11 @@ public class Piper {
 
 		processAudioQueueThread = new Thread(this::processAudioQueue);
 		processAudioQueueThread.start();
+	}
+
+	public static Piper start(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount)
+		throws IOException {
+		return new Piper(modelLocal, piperPath, instanceCount);
 	}
 
 	//Process message queue

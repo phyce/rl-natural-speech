@@ -107,7 +107,7 @@ public class TextToSpeech {
 	 */
 	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws LineUnavailableException, IOException {
 		// @FIXME Make instanceCount configurable
-		Piper piper = new Piper(modelLocal, runtimeConfig.getPiperPath(), 2);
+		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
 
 		pipers.put(modelLocal, piper);
 	}
