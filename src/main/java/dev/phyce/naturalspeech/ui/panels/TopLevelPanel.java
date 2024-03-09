@@ -21,7 +21,7 @@ public class TopLevelPanel extends PluginPanel {
 	private final JPanel content;
 
 	@Getter
-	private final MainSettingsPanel mainSettingsPanel;
+	private final NaturalSpeechPanel mainSettingsPanel;
 	@Getter
 	private final VoiceExplorerPanel voiceExplorerPanel;
 	@Getter
@@ -36,7 +36,7 @@ public class TopLevelPanel extends PluginPanel {
 	@Inject
 	TopLevelPanel(
 			EventBus eventBus,
-			MainSettingsPanel mainSettingsPanel,
+			NaturalSpeechPanel  mainSettingsPanel,
 			VoiceExplorerPanel voiceExplorerPanel,
 			EditorPanel editorPanel
 	) {
