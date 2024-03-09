@@ -62,7 +62,7 @@ public class Piper implements Runnable {
 			for (PiperProcess instance : instances) {
 				if (!instance.getPiperLocked().get()) {
 					byte[] audioClip = instance.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
-					if (audioClip.length > 0) {
+					if (audioClip != null && audioClip.length > 0) {
 						AudioQueue audioQueue = audioQueues.computeIfAbsent(task.audioQueueName, audioQueueName -> new AudioQueue());
 						audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getVolume()));
 						break; // will only break for the nearest scoped loop, aka the for, not while
