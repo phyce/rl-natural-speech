@@ -16,32 +16,30 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 public class PiperProcess {
 	public static final Pattern piperLogMatcher = Pattern.compile("\\[.+] \\[piper] \\[info] (.+)");
-	private final ProcessBuilder processBuilder;
 	@Getter
-	private final AtomicBoolean piperLocked = new AtomicBoolean(false);
+	private final AtomicBoolean piperLocked;
 	private final ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
 	private final Path modelPath;
-	private Process process;
-	private BufferedWriter processStdin;
-	@Getter
-	private Thread processStdInThread;
-	private Thread processStdErrThread;
+	private final Process process;
+	private final BufferedWriter processStdIn;
+	private final Thread processStdInThread;
+	private final Thread processStdErrThread;
 
 	private PiperProcess(Path piperPath, Path modelPath) throws IOException {
+		piperLocked = new AtomicBoolean(false);
+		piperLocked.set(false);
 		this.modelPath = modelPath;
-		processBuilder = new ProcessBuilder(
-				piperPath.toString(),
-				"--model", modelPath.toString(),
-				"--output-raw",
-				"--json-input"
+
+		ProcessBuilder processBuilder = new ProcessBuilder(
+			piperPath.toString(),
+			"--model", modelPath.toString(),
+			"--output-raw",
+			"--json-input"
 		);
 
 		process = processBuilder.start();
 
-		piperLocked.set(false);
-
-		process = processBuilder.start();
-		processStdin = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 
 		processStdInThread = new Thread(this::processStdIn);
 		processStdInThread.start();
@@ -66,7 +64,7 @@ public class PiperProcess {
 	public void stop() {
 		piperLocked.set(true);
 		try {
-			if (processStdin != null) processStdin.close();
+			if (processStdIn != null) processStdIn.close();
 			processStdErrThread.interrupt();
 			processStdInThread.interrupt();
 			if (process != null) process.destroy();
@@ -118,9 +116,9 @@ public class PiperProcess {
 				streamCapture.reset();
 			}
 
-			processStdin.write(TextUtil.generateJson(text, piperVoiceID));
-			processStdin.newLine();
-			processStdin.flush();
+			processStdIn.write(TextUtil.generateJson(text, piperVoiceID));
+			processStdIn.newLine();
+			processStdIn.flush();
 
 			synchronized(streamCapture) {
 				streamCapture.wait();
@@ -141,6 +139,10 @@ public class PiperProcess {
 
 	public boolean isAlive() {
 		return process.isAlive();
+	}
+
+	public long getPid() {
+		return process.pid();
 	}
 
 	public CompletableFuture<Process> onExit() {

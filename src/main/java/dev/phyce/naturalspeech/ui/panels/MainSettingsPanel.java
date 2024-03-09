@@ -257,6 +257,7 @@ public class MainSettingsPanel extends PluginPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
+					log.info("Play button pressed");
 					startEngine();
 				} catch (LineUnavailableException | IOException ex) {
 					log.error("Piper failed to start. ", ex);

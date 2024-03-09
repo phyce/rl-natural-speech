@@ -89,8 +89,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		Path piperPath = runtimeConfig.getPiperPath();
 
 		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-			log.error("Invalid TTS engine path: {}", piperPath);
-			throw new RuntimeException("Invalid TTS engine path " + piperPath);
+			log.error("Invalid Piper exectuable path: {}", piperPath);
+			throw new RuntimeException("Invalid Piper executable path " + piperPath);
 		}
 
 		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config

@@ -9,11 +9,11 @@ public class AudioQueue {
 	private final AtomicBoolean playing = new AtomicBoolean(false);
 	public ConcurrentLinkedQueue<AudioTask> queue = new ConcurrentLinkedQueue<>();
 
-	public synchronized AtomicBoolean isPlaying() {
-		return playing;
+	public boolean isPlaying() {
+		return playing.get();
 	}
 
-	public synchronized void setPlaying(boolean playing) {
+	public void setPlaying(boolean playing) {
 		this.playing.set(playing);
 	}
 

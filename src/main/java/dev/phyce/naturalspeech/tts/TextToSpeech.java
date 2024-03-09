@@ -106,6 +106,10 @@ public class TextToSpeech {
 	 * @param modelLocal
 	 */
 	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws LineUnavailableException, IOException {
+		if (pipers.get(modelLocal) != null) {
+			pipers.remove(modelLocal).stopAll();
+		}
+
 		// @FIXME Make instanceCount configurable
 		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
 
@@ -145,9 +149,10 @@ public class TextToSpeech {
 	}
 
 	public void shutDownAllPipers() {
-		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			pipers.get(modelLocal).stopAll();
+		for (Piper piper : pipers.values()) {
+			piper.stopAll();
 		}
+		pipers.clear();
 	}
 
 	/**
@@ -162,20 +167,20 @@ public class TextToSpeech {
 	public void clearOtherPlayersAudioQueue(String username) {
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 			Piper piper = pipers.get(modelLocal);
-			for (String audioQueueName : piper.getAudioQueues().keySet()) {
+			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
 				if (audioQueueName.equals(PluginHelper.getClientUsername())) continue;
 				if (audioQueueName.equals(username)) continue;
-				piper.getAudioQueues().get(audioQueueName).queue.clear();
+				piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
 			}
 		}
 	}
 
 	public void clearPlayerAudioQueue(String username) {
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			for (String audioQueueName : pipers.get(modelLocal).getAudioQueues().keySet()) {
+			for (String audioQueueName : pipers.get(modelLocal).getNamedAudioQueueMap().keySet()) {
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-				if (audioQueueName.equals(username)) pipers.get(modelLocal).getAudioQueues().get(audioQueueName).queue.clear();
+				if (audioQueueName.equals(username)) pipers.get(modelLocal).getNamedAudioQueueMap().get(audioQueueName).queue.clear();
 			}
 		}
 	}

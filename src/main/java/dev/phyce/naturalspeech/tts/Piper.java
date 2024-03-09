@@ -2,6 +2,8 @@ package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
@@ -9,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -18,9 +18,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Slf4j
 public class Piper {
 	@Getter
-	private final List<PiperProcess> instances = new ArrayList<>();
+	private final Map<Long, PiperProcess> instances = new HashMap<>();
 	@Getter
-	private final ConcurrentHashMap<String, AudioQueue> audioQueues = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, AudioQueue> namedAudioQueueMap = new ConcurrentHashMap<>();
 	private final ConcurrentLinkedQueue<PiperTask> piperTaskQueue = new ConcurrentLinkedQueue<>();
 	private final AudioPlayer audioPlayer;
 
@@ -39,13 +39,17 @@ public class Piper {
 		audioPlayer = new AudioPlayer();
 
 		//Instance count should not be more than 2
-		for (int index = 0; index < instanceCount; index++) {
+		for(int index = 0; index < instanceCount; index++) {
+			PiperProcess instance;
 			try {
-				PiperProcess instance = PiperProcess.start(piperPath, modelLocal.getOnnx().toPath());
-				instances.add(instance);
-			} catch (IOException e) {
+				instance = PiperProcess.start(piperPath, modelLocal.getOnnx().toPath());
+			} catch(IOException e) {
+				// clean-up stray instances before throwing
+				instances.forEach((pid, piperProcess) -> piperProcess.stop());
+				instances.clear();
 				throw e;
 			}
+			instances.put(instance.getPid(), instance);
 		}
 
 		processPiperTaskThread = new Thread(this::processPiperTask);
@@ -62,17 +66,30 @@ public class Piper {
 
 	//Process message queue
 	public void processPiperTask() {
-		while (!processPiperTaskThread.isInterrupted()) {
-			if (piperTaskQueue.isEmpty()) continue;
+		while(!processPiperTaskThread.isInterrupted()) {
+			if(piperTaskQueue.isEmpty()) {
+				synchronized(piperTaskQueue) {
+					try {
+						piperTaskQueue.wait();
+					} catch(InterruptedException e) {
+						return; // just exit on interrupt
+					}
+				}
+				continue; // double check emptiness after notify.
+			}
 
 			PiperTask task = piperTaskQueue.poll();
 
-			for (PiperProcess instance : instances) {
-				if (!instance.getPiperLocked().get()) {
+			for(PiperProcess instance : instances.values()) {
+				if(!instance.getPiperLocked().get()) {
 					byte[] audioClip = instance.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
-					if (audioClip != null && audioClip.length > 0) {
-						AudioQueue audioQueue = audioQueues.computeIfAbsent(task.audioQueueName, audioQueueName -> new AudioQueue());
+					if(audioClip != null && audioClip.length > 0) {
+						AudioQueue audioQueue =
+							namedAudioQueueMap.computeIfAbsent(task.audioQueueName, audioQueueName -> new AudioQueue());
 						audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getVolume()));
+
+						synchronized(namedAudioQueueMap) {namedAudioQueueMap.notify();}
+
 						break; // will only break for the nearest scoped loop, aka the for, not while
 					}
 				}
@@ -81,14 +98,26 @@ public class Piper {
 	}
 
 	public void processAudioQueue() {
-		while (!processAudioQueueThread.isInterrupted()) {
-			audioQueues.forEach((queueName, audioQueue) -> {
-				if (!audioQueue.queue.isEmpty() && !audioQueue.isPlaying().get()) {
+		while(!processAudioQueueThread.isInterrupted()) {
+
+			synchronized(namedAudioQueueMap) {
+				try {
+					namedAudioQueueMap.wait();
+				} catch(InterruptedException e) {
+					return;
+				}
+			}
+
+			namedAudioQueueMap.forEach((queueName, audioQueue) -> {
+
+				if(!audioQueue.isPlaying() && !audioQueue.queue.isEmpty()) {
 					audioQueue.setPlaying(true);
+
+					// start a thread for each named audio queue
 					new Thread(() -> {
 						try {
 							AudioQueue.AudioTask task;
-							while ((task = audioQueue.queue.poll()) != null) {
+							while((task = audioQueue.queue.poll()) != null) {
 								audioPlayer.playClip(task.getAudioClip(), task.getVolume());
 							}
 						} finally {
@@ -96,52 +125,49 @@ public class Piper {
 						}
 					}).start();
 				}
-			});
 
-			try {
-				Thread.sleep(25);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				return;
-			}
+			});
 		}
 	}
 
 	// Refactored to decouple from dependencies
 	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
-		if (countAlive() == 0) throw new IOException("No active PiperProcess instances running");
-		if (piperTaskQueue.size() > 10) {
+		if(countAlive() == 0) {
+			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
+		}
+
+		if(piperTaskQueue.size() > 10) {
 			log.info("Cleared queue because queue size is too large. (more then 10)");
 			clearQueue();
 		}
 
 		piperTaskQueue.add(new PiperTask(text, voiceID, volume, audioQueueName));
+		synchronized(piperTaskQueue) {piperTaskQueue.notify();}
 	}
 
 	public void clearQueue() {
-		if (!piperTaskQueue.isEmpty()) piperTaskQueue.clear();
-		audioQueues.values().forEach(audioQueue -> {
-			if (!audioQueue.queue.isEmpty()) audioQueue.queue.clear();
+		piperTaskQueue.clear();
+		namedAudioQueueMap.values().forEach(audioQueue -> {
+			audioQueue.queue.clear();
 		});
 	}
 
 	public int countAlive() {
 		int result = 0;
-		if (!instances.isEmpty()) {
-			for (PiperProcess instance : instances) {
-				if (instance.isAlive()) result++;
-			}
+		for(PiperProcess instance : instances.values()) {
+			if(instance.isAlive()) result++;
 		}
 		return result;
 	}
 
 	public void stopAll() {
 		audioPlayer.stop();
-		if (!instances.isEmpty()) {
-			for (PiperProcess instance : instances) {
-				instance.stop();
-			}
+
+		for(PiperProcess instance : instances.values()) {
+			instance.stop();
 		}
+		instances.clear();
+
 		processAudioQueueThread.interrupt();
 		processPiperTaskThread.interrupt();
 	}
