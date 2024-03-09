@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.sound.sampled.LineUnavailableException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -136,8 +135,8 @@ public class Piper {
 		return result;
 	}
 
-	public void shutDown() {
-		audioPlayer.shutDown();
+	public void stopAll() {
+		audioPlayer.stop();
 		if (!instances.isEmpty()) {
 			for (PiperProcess instance : instances) {
 				instance.stop();

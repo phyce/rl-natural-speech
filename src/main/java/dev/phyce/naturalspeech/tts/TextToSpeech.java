@@ -146,7 +146,7 @@ public class TextToSpeech {
 
 	public void shutDownAllPipers() {
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			pipers.get(modelLocal).shutDown();
+			pipers.get(modelLocal).stopAll();
 		}
 	}
 

@@ -28,7 +28,7 @@ class AudioPlayer {
 		}
 	}
 
-	public void shutDown() {
+	public void stop() {
 	}
 
 	// decoupled audio system from plugin logic
