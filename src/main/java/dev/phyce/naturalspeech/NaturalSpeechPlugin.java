@@ -98,7 +98,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	public void stopTextToSpeech() {
-		textToSpeech.shutDownAllPipers();
+		textToSpeech.stopAllPipers();
 	}
 	//<editor-fold desc="> Override Methods">
 	@Override
@@ -144,7 +144,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	protected void shutDown() {
-		if (textToSpeech != null) textToSpeech.shutDownAllPipers();
+		if (textToSpeech != null) textToSpeech.stopAllPipers();
 		clientToolbar.removeNavigation(navButton);
 
 		textToSpeech.saveVoiceConfig();

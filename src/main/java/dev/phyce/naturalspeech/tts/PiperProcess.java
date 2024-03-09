@@ -63,14 +63,18 @@ public class PiperProcess {
 
 	public void stop() {
 		piperLocked.set(true);
-		try {
-			if (processStdIn != null) processStdIn.close();
-			processStdErrThread.interrupt();
-			processStdInThread.interrupt();
-			if (process != null) process.destroy();
-		} catch (IOException exception) {
-			log.error("{} failed shutting down", this, exception);
+		processStdErrThread.interrupt();
+		processStdInThread.interrupt();
+
+		if (process != null && process.isAlive()) {
+			try {
+				if (processStdIn != null) processStdIn.close();
+			} catch (IOException exception) {
+				log.error("{} failed closing processStdIn on stop.", this, exception);
+			}
+			process.destroy();
 		}
+
 	}
 
 	//Capture audio stream
@@ -105,7 +109,7 @@ public class PiperProcess {
 	}
 
 	// refactor: inlined the speak(TTSItem) method into one generateAudio function
-	public byte[] generateAudio(String text, int piperVoiceID) {
+	public byte[] generateAudio(String text, int piperVoiceID) throws IOException, InterruptedException {
 		piperLocked.set(true);
 		byte[] audioClip;
 		try {
@@ -129,8 +133,6 @@ public class PiperProcess {
 			}
 
 			audioClip = result;
-		} catch (IOException | InterruptedException exception) {
-			throw new RuntimeException(exception);
 		} finally {
 			piperLocked.set(false);
 		}
@@ -145,8 +147,10 @@ public class PiperProcess {
 		return process.pid();
 	}
 
-	public CompletableFuture<Process> onExit() {
-		return process.onExit();
+	public CompletableFuture<PiperProcess> onExit() {
+		CompletableFuture<PiperProcess> piperOnExit = new CompletableFuture<PiperProcess>();
+		process.onExit().thenRun(() -> piperOnExit.complete(this));
+		return piperOnExit;
 	}
 
 	private static String stripPiperLogPrefix(String piperLog) {

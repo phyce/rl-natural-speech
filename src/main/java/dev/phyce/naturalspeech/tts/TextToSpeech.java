@@ -14,12 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 
-import javax.sound.sampled.LineUnavailableException;
 import java.io.IOException;
 import java.util.*;
 
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
+import net.runelite.client.eventbus.EventBus;
 
 // Renamed from TTSManager
 @Slf4j
@@ -28,19 +28,23 @@ public class TextToSpeech {
 	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
 	private final ConfigManager configManager;
 	private final ModelRepository modelRepository;
-	/** Model ShortName -> PiperRunner */
+	/**
+	 * Model ShortName -> PiperRunner
+	 */
 	private final Map<ModelRepository.ModelLocal, Piper> pipers = new HashMap<>();
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private VoiceConfig voiceConfig;
+	private final EventBus eventbus;
 
 	@Inject
 	private TextToSpeech(
-			NaturalSpeechRuntimeConfig runtimeConfig,
-			ConfigManager configManager,
-			ModelRepository modelRepository) {
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		ConfigManager configManager,
+		ModelRepository modelRepository, EventBus eventbus) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.modelRepository = modelRepository;
+		this.eventbus = eventbus;
 
 		loadVoiceConfig(); // throws on err
 	}
@@ -51,36 +55,36 @@ public class TextToSpeech {
 		voiceConfig = new VoiceConfig(voiceSettingsJSON);
 
 
-//		//String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
-//		try {
-//			if (!Files.exists(Paths.get(voiceSettingsJSON))) {
-//				saveSpeakerConfigurations(new HashMap<String, SpeakerConfiguration>());
-//			}
-//			try (FileReader reader = new FileReader(speakerConfig)) {
-//				Type listType = new TypeToken<List<SpeakerConfiguration>>() {}.getType();
-//				List<SpeakerConfiguration> configs = new Gson().fromJson(reader, listType);
-//				if (configs != null) {
-//					configs.forEach(config -> speakerConfigurations.put(config.getName(), config));
-//				}
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-////		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
-//
-//		voiceConfig = new VoiceConfig(voiceSettingsJSON);
+		//		//String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
+		//		try {
+		//			if (!Files.exists(Paths.get(voiceSettingsJSON))) {
+		//				saveSpeakerConfigurations(new HashMap<String, SpeakerConfiguration>());
+		//			}
+		//			try (FileReader reader = new FileReader(speakerConfig)) {
+		//				Type listType = new TypeToken<List<SpeakerConfiguration>>() {}.getType();
+		//				List<SpeakerConfiguration> configs = new Gson().fromJson(reader, listType);
+		//				if (configs != null) {
+		//					configs.forEach(config -> speakerConfigurations.put(config.getName(), config));
+		//				}
+		//			}
+		//		} catch (Exception e) {
+		//			e.printStackTrace();
+		//		}
+		////		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
+		//
+		//		voiceConfig = new VoiceConfig(voiceSettingsJSON);
 	}
 
-//	private void saveSpeakerConfigurations(HashMap<String, SpeakerConfiguration> configs) {
-//		try (FileWriter writer = new FileWriter(speakerConfig)) {
-//			new Gson().toJson(configs, writer);
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-//	public void saveSpeakerConfigurations() {
-//		saveSpeakerConfigurations(speakerConfigurations);
-//	}
+	//	private void saveSpeakerConfigurations(HashMap<String, SpeakerConfiguration> configs) {
+	//		try (FileWriter writer = new FileWriter(speakerConfig)) {
+	//			new Gson().toJson(configs, writer);
+	//		} catch (Exception e) {
+	//			e.printStackTrace();
+	//		}
+	//	}
+	//	public void saveSpeakerConfigurations() {
+	//		saveSpeakerConfigurations(speakerConfigurations);
+	//	}
 
 
 	public void saveVoiceConfig() {
@@ -103,9 +107,8 @@ public class TextToSpeech {
 
 	/**
 	 * Starts Piper for specific ModelLocal
-	 * @param modelLocal
 	 */
-	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws LineUnavailableException, IOException {
+	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws IOException {
 		if (pipers.get(modelLocal) != null) {
 			pipers.remove(modelLocal).stopAll();
 		}
@@ -117,7 +120,7 @@ public class TextToSpeech {
 	}
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
-			throws ModelLocalUnavailableException, PiperNotAvailableException {
+		throws ModelLocalUnavailableException, PiperNotAvailableException {
 
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
@@ -148,7 +151,7 @@ public class TextToSpeech {
 		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
 	}
 
-	public void shutDownAllPipers() {
+	public void stopAllPipers() {
 		for (Piper piper : pipers.values()) {
 			piper.stopAll();
 		}
@@ -180,27 +183,33 @@ public class TextToSpeech {
 		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 			for (String audioQueueName : pipers.get(modelLocal).getNamedAudioQueueMap().keySet()) {
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-				if (audioQueueName.equals(username)) pipers.get(modelLocal).getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+				if (audioQueueName.equals(username)) {
+					pipers.get(modelLocal).getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+				}
 			}
 		}
 	}
 
 	public VoiceID[] getModelAndVoiceFromChatMessage(ChatMessage message) {
-		VoiceID []results = {};
-		if(message.getName().equals(PluginHelper.getClientUsername())) results = voiceConfig.getPlayerVoiceIDs(message.getName());
-		else switch(message.getType()) {
-			case DIALOG:
-				//TODO add way to find out NPC ID
-				results = voiceConfig.getNpcVoiceIDs(message.getName());
-				break;
-			default:
-				results = voiceConfig.getPlayerVoiceIDs(message.getName());
-				break;
+		VoiceID[] results = {};
+		if (message.getName().equals(PluginHelper.getClientUsername())) {
+			results = voiceConfig.getPlayerVoiceIDs(message.getName());
 		}
-		if(results == null) {
+		else {
+			switch (message.getType()) {
+				case DIALOG:
+					//TODO add way to find out NPC ID
+					results = voiceConfig.getNpcVoiceIDs(message.getName());
+					break;
+				default:
+					results = voiceConfig.getPlayerVoiceIDs(message.getName());
+					break;
+			}
+		}
+		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 				Piper model = pipers.get(modelLocal);
-				results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
+				results = new VoiceID[] {model.getModelLocal().calculateVoice(message.getName())};
 			}
 		}
 		return results;
