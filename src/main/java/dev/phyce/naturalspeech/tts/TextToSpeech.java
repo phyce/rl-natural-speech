@@ -34,7 +34,8 @@ public class TextToSpeech {
 	private final Map<ModelRepository.ModelLocal, Piper> pipers = new HashMap<>();
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private VoiceConfig voiceConfig;
-	private final EventBus eventbus;
+
+	private final List<PiperLifetimeListener> piperLifetimeListeners = new ArrayList<>();
 
 	@Inject
 	private TextToSpeech(
@@ -44,7 +45,6 @@ public class TextToSpeech {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.modelRepository = modelRepository;
-		this.eventbus = eventbus;
 
 		loadVoiceConfig(); // throws on err
 	}
@@ -105,20 +105,6 @@ public class TextToSpeech {
 		return result;
 	}
 
-	/**
-	 * Starts Piper for specific ModelLocal
-	 */
-	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws IOException {
-		if (pipers.get(modelLocal) != null) {
-			pipers.remove(modelLocal).stopAll();
-		}
-
-		// @FIXME Make instanceCount configurable
-		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
-
-		pipers.put(modelLocal, piper);
-	}
-
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotAvailableException {
 
@@ -144,6 +130,7 @@ public class TextToSpeech {
 	}
 
 	// Extracted distance volume algorithm from AudioPlayer
+
 	public float getVolumeWithDistance(int distance) {
 		if (distance <= 1) {
 			return 0;
@@ -151,9 +138,40 @@ public class TextToSpeech {
 		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
 	}
 
+	/**
+	 * Starts Piper for specific ModelLocal
+	 */
+	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws IOException {
+		if (pipers.get(modelLocal) != null) {
+			log.warn("Starting piper for {} when there are already pipers running for the model.",
+				modelLocal.getModelName());
+			pipers.remove(modelLocal).stop();
+		}
+
+		// @FIXME Make instanceCount configurable
+		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
+
+		pipers.put(modelLocal, piper);
+
+		triggerOnPiperStart(piper);
+	}
+
+	public void stopPiperForModelLocal(ModelRepository.ModelLocal modelLocal)
+		throws PiperNotAvailableException {
+		Piper piper;
+		if ((piper = pipers.remove(modelLocal)) != null) {
+			piper.stop();
+			triggerOnPiperExit(piper);
+		}
+		else {
+			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
+		}
+	}
+
 	public void stopAllPipers() {
 		for (Piper piper : pipers.values()) {
-			piper.stopAll();
+			piper.stop();
+			triggerOnPiperExit(piper);
 		}
 		pipers.clear();
 	}
@@ -213,5 +231,31 @@ public class TextToSpeech {
 			}
 		}
 		return results;
+	}
+
+	public void triggerOnPiperStart(Piper piper) {
+		for (PiperLifetimeListener listener : piperLifetimeListeners) {
+			listener.onPiperStart(piper);
+		}
+	}
+
+	public void triggerOnPiperExit(Piper piper) {
+		for (PiperLifetimeListener listener : piperLifetimeListeners) {
+			listener.onPiperExit(piper);
+		}
+	}
+
+	public void addPiperLifetimeListener(PiperLifetimeListener listener) {
+		piperLifetimeListeners.add(listener);
+	}
+
+	public void removePiperLifetimeListener(PiperLifetimeListener listener) {
+		piperLifetimeListeners.remove(listener);
+	}
+
+	public interface PiperLifetimeListener {
+		default void onPiperStart(Piper piper) {}
+
+		default void onPiperExit(Piper piper) {}
 	}
 }

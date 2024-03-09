@@ -34,7 +34,7 @@ public class Piper {
 	private final Thread processPiperTaskThread;
 	private final Thread processAudioQueueThread;
 
-	private final List<PiperProcessListener> piperProcessListeners = new ArrayList<>();
+	private final List<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new ArrayList<>();
 
 	/**
 	 * Create a piper and immediately start
@@ -75,7 +75,6 @@ public class Piper {
 				throw e;
 			}
 			process.onExit().thenAccept((PiperProcess p) -> {
-				log.info("{} exited.", p);
 				triggerOnPiperProcessExit(p);
 			});
 			processMap.put(process.getPid(), process);
@@ -192,7 +191,7 @@ public class Piper {
 		return result;
 	}
 
-	public void stopAll() {
+	public void stop() {
 		audioPlayer.stop();
 
 		for(PiperProcess instance : processMap.values()) {
@@ -204,25 +203,30 @@ public class Piper {
 		processPiperTaskThread.interrupt();
 	}
 
-	public void addPiperListener(PiperProcessListener listener) {
-		piperProcessListeners.add(listener);
+	public void addPiperListener(PiperProcessLifetimeListener listener) {
+		piperProcessLifetimeListeners.add(listener);
 	}
 
-	public void removePiperListener(PiperProcessListener listener) {
-		piperProcessListeners.remove(listener);
+	public void removePiperListener(PiperProcessLifetimeListener listener) {
+		piperProcessLifetimeListeners.remove(listener);
 	}
 
 
 	private void triggerOnPiperProcessStart(PiperProcess process) {
-		for(PiperProcessListener listener : piperProcessListeners) {
+		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
 			listener.onPiperProcessStart(process);
 		}
 	}
 
 	private void triggerOnPiperProcessExit(PiperProcess process) {
-		for(PiperProcessListener listener : piperProcessListeners) {
+		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
 			listener.onPiperProcessExit(process);
 		}
+	}
+
+	@Override
+	public String toString() {
+		return String.format("Piper for %s with %d active processes", getModelLocal().getModelName(), countAlive());
 	}
 
 	// Renamed from TTSItem, decoupled from dependencies
@@ -235,7 +239,7 @@ public class Piper {
 		String audioQueueName;
 	}
 
-	public interface PiperProcessListener {
+	public interface PiperProcessLifetimeListener {
 		default void onPiperProcessStart(PiperProcess process) {};
 
 		default void onPiperProcessExit(PiperProcess process) {};

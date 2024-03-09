@@ -46,7 +46,7 @@ public class PiperProcess {
 		processStdErrThread = new Thread(this::processStdErr);
 		processStdErrThread.start();
 
-		log.info("{}: Started...", this);
+//		log.debug("{}: Started...", this);
 	}
 
 	@Override
@@ -101,7 +101,7 @@ public class PiperProcess {
 						streamCapture.notify();
 					}
 				}
-				log.info("{}: {}", this, stripPiperLogPrefix(line));
+				log.info("[pid:{}-StdErr]: {}", this.getPid(), stripPiperLogPrefix(line));
 			}
 		} catch (IOException e) {
 			log.error("{}: readStdErr threw exception", this, e);
