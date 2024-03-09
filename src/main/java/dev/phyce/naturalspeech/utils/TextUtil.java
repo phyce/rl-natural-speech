@@ -67,7 +67,6 @@ public final class TextUtil {
 		List<String> tokens = tokenize(text);
 		StringBuilder parsedMessage = new StringBuilder();
 
-		System.out.println(phrases);
 		for (String token : tokens) {
 			String key = token.replaceAll("\\p{Punct}", "").toLowerCase();
 

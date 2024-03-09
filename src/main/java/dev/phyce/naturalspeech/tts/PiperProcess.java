@@ -1,6 +1,8 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.utils.TextUtil;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,10 +15,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 // Renamed from TTSEngine
 @Slf4j
 public class PiperProcess {
+	public static final Pattern piperLogMatcher = Pattern.compile("\\[.+] \\[piper] \\[info] (.+)");
 	private final ProcessBuilder processBuilder;
 	@Getter
 	private final AtomicBoolean piperLocked = new AtomicBoolean(false);
 	private final ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
+	private final Path modelPath;
 	private Process process;
 	private BufferedWriter processStdin;
 	@Getter
@@ -24,6 +28,7 @@ public class PiperProcess {
 	private Thread readStdErrThread;
 
 	public PiperProcess(Path piperPath, Path modelPath) throws IOException, LineUnavailableException {
+		this.modelPath = modelPath;
 		processBuilder = new ProcessBuilder(
 				piperPath.toString(),
 				"--model", modelPath.toString(),
@@ -33,16 +38,18 @@ public class PiperProcess {
 
 		startTTSProcess();
 		if (process == null || !process.isAlive()) {
-			log.error("TTS failed to launch: {}", this);
+			log.error("{} failed to launch", this);
 			return;
 		}
-		log.info("TTSEngine Started: {}", this);
+		log.info("{} started", this);
 	}
 
 	@Override
 	public String toString() {
-		return String.format("PiperProcess with command: %s",
-				processBuilder.command().stream().reduce((a, b) -> a + " " + b).orElse(""));
+		if (process.isAlive())
+			return String.format("pid:%s model:%s", process.pid(), modelPath.getFileName());
+		else
+			return String.format("pid:dead model:%s", modelPath.getFileName());
 	}
 
 	public synchronized void startTTSProcess() throws IOException {
@@ -54,7 +61,7 @@ public class PiperProcess {
 			try {
 				processStdin.close();
 			} catch (IOException e) {
-				log.error("tts process error", e);
+				log.error("{}: Error", this, e);
 				throw e;
 			}
 		}
@@ -63,7 +70,7 @@ public class PiperProcess {
 			process = processBuilder.start();
 			processStdin = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 		} catch (IOException e) {
-			log.error("PiperProcess error", e);
+			log.error("{}: Error", this, e);
 			throw e;
 		}
 
@@ -72,7 +79,7 @@ public class PiperProcess {
 		readStdErrThread = new Thread(this::readStdErr);
 		readStdErrThread.start();
 
-		log.info("TTSProcess Started...");
+		log.info("{}: Started...", this);
 	}
 
 	public void shutDown() {
@@ -82,7 +89,7 @@ public class PiperProcess {
 			if (process != null) process.destroy();
 
 		} catch (IOException exception) {
-			log.error("TTSEngine failed shutting down", exception);
+			log.error("{} failed shutting down", this, exception);
 		}
 	}
 
@@ -97,7 +104,7 @@ public class PiperProcess {
 				}
 			}
 		} catch (IOException e) {
-			log.error("readStdIn for {} threw", this, e);
+			log.error("{}: readStdIn threw", this, e);
 		}
 	}
 
@@ -110,9 +117,10 @@ public class PiperProcess {
 						streamCapture.notify();
 					}
 				}
+				log.info("{}: {}", this, stripPiperLogPrefix(line));
 			}
 		} catch (IOException e) {
-			log.error("readStdErr for {} threw", this, e);
+			log.error("{}: readStdErr threw exception", this, e);
 		}
 	}
 
@@ -151,5 +159,17 @@ public class PiperProcess {
 
 	public boolean isProcessAlive() {
 		return process.isAlive();
+	}
+
+	private static String stripPiperLogPrefix(String piperLog) {
+		// [2024-03-08 16:07:17.781] [piper] [info] Real-time factor: 0.45758559656250003 (infer=0.6640698 sec, audio=1.4512471655328798 sec)
+		// ->
+		// Real-time factor: 0.45758559656250003 (infer=0.6640698 sec, audio=1.4512471655328798 sec)
+		Matcher match;
+		if ((match = piperLogMatcher.matcher(piperLog)).matches()) {
+			return match.group(1);
+		} else {
+			return piperLog;
+		}
 	}
 }
