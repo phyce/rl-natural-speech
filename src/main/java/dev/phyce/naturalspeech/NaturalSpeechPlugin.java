@@ -20,8 +20,11 @@ import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.MenuOpened;
+import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
@@ -229,25 +232,26 @@ public class NaturalSpeechPlugin extends Plugin {
 //		}
 //		return names;
 //	}
+	@Subscribe(priority = -1)
+	public void onOverheadTextChanged(OverheadTextChanged event) {
+		if (!config.dialogEnabled()) return;
 
-	@Subscribe
+		if (event.getActor() instanceof NPC) {
+			NPC npc = (NPC) event.getActor();
+			textToSpeech.speak(npc, event.getActor().getName());
+		}
+	}
+
+	@Subscribe(priority = -2)
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+//		System.out.println(message);
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
 		if (message.getType() == ChatMessageType.AUTOTYPER) return;
 		patchChatMessage(message);
 		if (!isMessageProcessable(message))return;
-
-		String text = isPlayerChatMessage(message) ? expandShortenedPhrases(message.getMessage()) : message.getMessage();
-		VoiceID[] voiceIDs = textToSpeech.getModelAndVoiceFromChatMessage(message);
 		int distance = getSpeakerDistance(message);
-		//TODO: I feel like this could be simplified
-		//System.out.println(message);
-		textToSpeech.speak(
-			textToSpeech.getModelAndVoiceFromChatMessage(message)[0],
-			text.toLowerCase(),
-			distance,
-			message.getName()
-		);
+
+		textToSpeech.speak(message, distance);
 	}
 
 	public boolean isMessageProcessable(ChatMessage message) {

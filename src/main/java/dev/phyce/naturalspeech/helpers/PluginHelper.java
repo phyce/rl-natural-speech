@@ -4,6 +4,7 @@ import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import lombok.Getter;
 import lombok.NonNull;
 import net.runelite.api.Client;
+import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.util.Text;
@@ -70,6 +71,20 @@ public final class PluginHelper {
 		return localPlayer
 				.getWorldLocation()
 				.distanceTo(targetPlayer.getWorldLocation());
+	}
+
+	public static int getNPCDistance(@NonNull NPC npc) {
+		Player localPlayer = instance.client.getLocalPlayer();
+
+		if (localPlayer == null) return 0;
+
+		int distance = localPlayer
+			.getWorldLocation()
+			.distanceTo(npc.getWorldLocation());
+
+		if( distance < 0 || 15 < distance ) return 0;
+
+		return distance;
 	}
 
 	public static boolean isBeingListened(@NonNull String username) {

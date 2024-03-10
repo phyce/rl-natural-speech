@@ -17,6 +17,7 @@ import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.PlayerNameVoiceConfigDa
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.VoiceConfigDatum;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
+import net.runelite.api.NPC;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 
@@ -127,7 +128,19 @@ public class TextToSpeech {
 		}
 	}
 
-	// Extracted distance volume algorithm from AudioPlayer
+	public void speak(ChatMessage message, int distance)
+		throws
+			ModelLocalUnavailableException,
+			PiperNotAvailableException {
+		VoiceID voiceId = getModelAndVoiceFromChatMessage(message)[0];
+		speak(voiceId, message.getMessage().toLowerCase(), distance, message.getName());
+	}
+
+	public void speak(NPC npc, String actorName) {
+		int distance = PluginHelper.getNPCDistance(npc);
+		VoiceID voiceId = getModelAndVoiceFromNPC(npc)[0];
+		speak(voiceId, npc.getOverheadText(), distance, actorName);
+	}
 
 	public float getVolumeWithDistance(int distance) {
 		if (distance <= 1) {
@@ -232,6 +245,19 @@ public class TextToSpeech {
 				else results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
 			}
 		}
+		return results;
+	}
+
+	public VoiceID[] getModelAndVoiceFromNPC(NPC npc) {
+		VoiceID []results = {};
+		//TODO get custom VoiceID results first
+		results = voiceConfig.getNpcVoiceIDs(npc.getName());
+
+		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+			Piper model = pipers.get(modelLocal);
+			results = new VoiceID[]{model.getModelLocal().calculateVoice(npc.getName())};
+		}
+
 		return results;
 	}
 

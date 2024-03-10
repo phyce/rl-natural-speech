@@ -62,17 +62,15 @@ public class VoiceConfig {
 	}
 
 	public String readFileToString(String resourceName) {
-		// Use getResourceAsStream to read from resources folder
 		try (InputStream is = Objects.requireNonNull(
 			this.getClass().getClassLoader().getResourceAsStream(resourceName),
 			"Resource not found: " + resourceName);
 			 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
-			// Stream lines from the BufferedReader instance and join them
 			return reader.lines().collect(Collectors.joining(System.lineSeparator()));
 		} catch (IOException | NullPointerException e) {
 			System.err.println("Error reading resource: " + e.getMessage());
-			return ""; // Consider appropriate error handling
+			return "";
 		}
 	}
 
