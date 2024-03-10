@@ -156,7 +156,9 @@ public class TextToSpeech {
 		if (pipers.get(modelLocal) != null) {
 			log.warn("Starting piper for {} when there are already pipers running for the model.",
 				modelLocal.getModelName());
-			pipers.remove(modelLocal).stop();
+			Piper duplicate = pipers.remove(modelLocal);
+			duplicate.stop();
+			triggerOnPiperExit(duplicate);
 		}
 
 		// @FIXME Make instanceCount configurable

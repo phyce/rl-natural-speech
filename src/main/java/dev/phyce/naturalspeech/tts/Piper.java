@@ -54,10 +54,10 @@ public class Piper {
 
 		startMore(instanceCount);
 
-		processPiperTaskThread = new Thread(this::processPiperTask);
+		processPiperTaskThread = new Thread(this::processPiperTask, String.format("[%s] Piper::processPiperTask Thread", this));
 		processPiperTaskThread.start();
 
-		processAudioQueueThread = new Thread(this::processAudioQueue);
+		processAudioQueueThread = new Thread(this::processAudioQueue, String.format("[%s] Piper::processAudioQueue Thread", this));
 		processAudioQueueThread.start();
 	}
 
@@ -74,9 +74,7 @@ public class Piper {
 				processMap.clear();
 				throw e;
 			}
-			process.onExit().thenAccept((PiperProcess p) -> {
-				triggerOnPiperProcessExit(p);
-			});
+			process.onExit().thenAccept(this::triggerOnPiperProcessExit);
 			processMap.put(process.getPid(), process);
 		}
 	}
@@ -101,16 +99,26 @@ public class Piper {
 			Iterator<Long> iter = processMap.keySet().iterator();
 			while(iter.hasNext()) {
 				long pid = iter.next();
-				PiperProcess instance = processMap.get(pid);
+				PiperProcess process = processMap.get(pid);
 
-				if(!instance.getPiperLocked().get()) {
+				if (!process.isAlive()) {
+					iter.remove();
+					triggerOnPiperProcessCrash(process);
+					continue;
+				}
+
+				if(!process.getPiperLocked().get()) {
 					byte[] audioClip;
 					try {
-						audioClip = instance.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
+						triggerOnPiperProcessBusy(process);
+						audioClip = process.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
+						triggerOnPiperProcessDone(process);
 					} catch(IOException | InterruptedException e) {
-						// PiperProcess exited unexpectedly, remove the instance
-						log.error("{} had an unexpected exited, either crashed or terminated by user.", instance);
-						instance.stop();
+						// PiperProcess exited unexpectedly, remove the process
+						log.error("{} had an unexpected exited, either crashed or terminated by user.", process);
+						triggerOnPiperProcessCrash(process);
+
+						process.stop();
 						iter.remove();
 						continue;
 					}
@@ -121,7 +129,7 @@ public class Piper {
 
 						synchronized(namedAudioQueueMap) {namedAudioQueueMap.notify();}
 
-						break; // will only break for the nearest scoped loop, aka the for, not while
+						break;
 					}
 				}
 			}
@@ -154,7 +162,7 @@ public class Piper {
 						} finally {
 							audioQueue.setPlaying(false);
 						}
-					}).start();
+					}, String.format("[%s] AudioPlayer Thread for %s", this, queueName)).start();
 				}
 
 			});
@@ -211,6 +219,23 @@ public class Piper {
 		piperProcessLifetimeListeners.remove(listener);
 	}
 
+	private void triggerOnPiperProcessBusy(PiperProcess process) {
+		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+			listener.onPiperProcessBusy(process);
+		}
+	}
+
+	private void triggerOnPiperProcessCrash(PiperProcess process) {
+		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+			listener.onPiperProcessCrash(process);
+		}
+	}
+
+	private void triggerOnPiperProcessDone(PiperProcess process) {
+		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+			listener.onPiperProcessDone(process);
+		}
+	}
 
 	private void triggerOnPiperProcessStart(PiperProcess process) {
 		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
@@ -240,9 +265,17 @@ public class Piper {
 	}
 
 	public interface PiperProcessLifetimeListener {
-		default void onPiperProcessStart(PiperProcess process) {};
+		default void onPiperProcessStart(PiperProcess process) {}
 
-		default void onPiperProcessExit(PiperProcess process) {};
+		default void onPiperProcessExit(PiperProcess process) {}
+
+		// Busy generating voices
+		default void onPiperProcessBusy(PiperProcess process) {}
+
+		// Done generating voices
+		default void onPiperProcessDone(PiperProcess process) {}
+
+		default void onPiperProcessCrash(PiperProcess process) {}
 	}
 
 

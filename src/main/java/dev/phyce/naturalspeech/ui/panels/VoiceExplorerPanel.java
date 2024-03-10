@@ -209,14 +209,14 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionListPanel.add(section);
 	}
 
-	void searchFilter(String nameSearch) {
-		if (nameSearch.isEmpty()) {
+	void searchFilter(String searchInput) {
+		if (searchInput.isEmpty()) {
 			for (VoiceListItem speakerItems : voiceListItems) speakerItems.setVisible(true);
 			return;
 		}
 
 		// split search by space and comma
-		Set<String> searchTerms = Arrays.stream(nameSearch.toLowerCase().split("[,\\s]+"))
+		Set<String> searchTerms = Arrays.stream(searchInput.toLowerCase().split("[,\\s]+"))
 				.filter(s -> !s.isEmpty())
 				.map(String::trim)
 				.map(String::toLowerCase).collect(Collectors.toSet());
@@ -235,7 +235,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			}
 		}
 
-		nameSearch = StringUtils.join(searchTerms, " ");
+		searchInput = StringUtils.join(searchTerms, " ");
 
 		for (VoiceListItem speakerItem : voiceListItems) {
 			ModelRepository.VoiceMetadata voiceMetadata = speakerItem.getVoiceMetadata();
@@ -243,9 +243,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 			boolean visible = genderSearch == null || genderSearch.equals(voiceMetadata.getGender());
 
 			// name search
-			if (!nameSearch.isEmpty()) {
+			if (!searchInput.isEmpty()) {
 				boolean term_matched = false;
-				if (!searchTerms.isEmpty() && voiceMetadata.getName().toLowerCase().contains(nameSearch)) term_matched = true;
+				if (!searchTerms.isEmpty() && voiceMetadata.getName().toLowerCase().contains(searchInput)) term_matched = true;
 
 				if (!term_matched) visible = false;
 			}

@@ -41,9 +41,9 @@ public class PiperProcess {
 
 		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 
-		processStdInThread = new Thread(this::processStdIn);
+		processStdInThread = new Thread(this::processStdIn, String.format("[%s] PiperProcess::processStdIn Thread", this));
 		processStdInThread.start();
-		processStdErrThread = new Thread(this::processStdErr);
+		processStdErrThread = new Thread(this::processStdErr, String.format("[%s] PiperProcess::processStdErr Thread", this));
 		processStdErrThread.start();
 
 //		log.debug("{}: Started...", this);

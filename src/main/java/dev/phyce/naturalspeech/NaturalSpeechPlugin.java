@@ -97,7 +97,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		Path piperPath = runtimeConfig.getPiperPath();
 
 		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-			log.error("Invalid Piper exectuable path: {}", piperPath);
+			log.error("Invalid Piper executable path: {}", piperPath);
 			throw new RuntimeException("Invalid Piper executable path " + piperPath);
 		}
 
