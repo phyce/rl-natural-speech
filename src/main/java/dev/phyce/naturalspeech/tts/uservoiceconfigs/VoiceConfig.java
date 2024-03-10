@@ -62,9 +62,10 @@ public class VoiceConfig {
 	}
 
 	public String readFileToString(String resourceName) {
+		String resourcePath = "dev/phyce/naturalspeech/" + resourceName;
 		try (InputStream is = Objects.requireNonNull(
-			this.getClass().getClassLoader().getResourceAsStream(resourceName),
-			"Resource not found: " + resourceName);
+			Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath),
+			"Resource not found: " + resourcePath);
 			 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
 			return reader.lines().collect(Collectors.joining(System.lineSeparator()));
