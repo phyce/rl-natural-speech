@@ -4,12 +4,17 @@ import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.ModelRepository;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.exceptions.PiperNotAvailableException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceConfig;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
+import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCIDVoiceConfigDatum;
+import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCNameVoiceConfigDatum;
+import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.PlayerNameVoiceConfigDatum;
+import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.VoiceConfigDatum;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
@@ -21,7 +26,6 @@ import java.util.*;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import net.runelite.client.eventbus.EventBus;
-import net.runelite.client.plugins.Plugin;
 
 // Renamed from TTSManager
 @Slf4j
@@ -53,41 +57,33 @@ public class TextToSpeech {
 
 	public void loadVoiceConfig() throws JsonSyntaxException {
 		// FIXME(Louis): Reading from local file but saving to runtimeConfig right now
-		String voiceSettingsJSON = "./speaker_config.json";
-		voiceConfig = new VoiceConfig(voiceSettingsJSON);
+		//fetch from config manager
+		//if empty, load in the
+		voiceConfig = new VoiceConfig(VOICE_CONFIG_FILE);
 
+		VoiceConfig customConfig = runtimeConfig.getCustomVoices();
 
-		//		//String voiceSettingsJSON = configManager.getConfiguration(CONFIG_GROUP, "VoiceConfig");
-		//		try {
-		//			if (!Files.exists(Paths.get(voiceSettingsJSON))) {
-		//				saveSpeakerConfigurations(new HashMap<String, SpeakerConfiguration>());
-		//			}
-		//			try (FileReader reader = new FileReader(speakerConfig)) {
-		//				Type listType = new TypeToken<List<SpeakerConfiguration>>() {}.getType();
-		//				List<SpeakerConfiguration> configs = new Gson().fromJson(reader, listType);
-		//				if (configs != null) {
-		//					configs.forEach(config -> speakerConfigurations.put(config.getName(), config));
-		//				}
-		//			}
-		//		} catch (Exception e) {
-		//			e.printStackTrace();
-		//		}
-		////		if (voiceSettingsJSON == null) voiceSettingsJSON = "{}";
-		//
-		//		voiceConfig = new VoiceConfig(voiceSettingsJSON);
+		if(customConfig != null) {
+			for(String key : voiceConfig.player.keySet()) {
+				PlayerNameVoiceConfigDatum customDatum = customConfig.player.remove(key);
+				if (customDatum != null) voiceConfig.player.put(key, customDatum);
+			}
+
+			for(Integer key : voiceConfig.npcID.keySet()) {
+				NPCIDVoiceConfigDatum customDatum = customConfig.npcID.remove(key);
+				if (customDatum != null) voiceConfig.npcID.put(key, customDatum);
+			}
+
+			for(String key : voiceConfig.npcName.keySet()) {
+				NPCNameVoiceConfigDatum customDatum = customConfig.npcName.remove(key);
+				if (customDatum != null) voiceConfig.npcName.put(key, customDatum);
+			}
+
+			voiceConfig.player.putAll(customConfig.player);
+			voiceConfig.npcID.putAll(customConfig.npcID);
+			voiceConfig.npcName.putAll(customConfig.npcName);
+		}
 	}
-
-	//	private void saveSpeakerConfigurations(HashMap<String, SpeakerConfiguration> configs) {
-	//		try (FileWriter writer = new FileWriter(speakerConfig)) {
-	//			new Gson().toJson(configs, writer);
-	//		} catch (Exception e) {
-	//			e.printStackTrace();
-	//		}
-	//	}
-	//	public void saveSpeakerConfigurations() {
-	//		saveSpeakerConfigurations(speakerConfigurations);
-	//	}
-
 
 	public void saveVoiceConfig() {
 		configManager.setConfiguration(CONFIG_GROUP, "VoiceConfig", voiceConfig.exportJSON());

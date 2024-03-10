@@ -51,6 +51,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	public final static String CONFIG_GROUP = "NaturalSpeech";
 	public final static String MODEL_REPO_FILENAME = "model_repository.json";
 	public final static String MODEL_FOLDER_NAME = "models";
+
+	public final static String VOICE_CONFIG_FILE = "speaker_config.json";
 	//</editor-fold>
 
 	//<editor-fold desc="> RuneLite Dependencies">

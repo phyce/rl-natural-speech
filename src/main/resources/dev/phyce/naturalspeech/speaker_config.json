@@ -1,0 +1,46 @@
+{
+  "playerNameVoiceConfigData": [
+    {
+      "voiceIDs": [
+        {
+          "modelName": "libritts",
+          "piperVoiceID": 399,
+          "priority": 0
+        }
+      ],
+      "playerName": "phyce"
+    },
+    {
+      "voiceIDs": [
+        {
+          "modelName": "libritts",
+          "piperVoiceID": 360,
+          "priority": 0
+        }
+      ],
+      "playerName": "dawncore"
+    }
+  ],
+  "npcIDVoiceConfigData": [{
+    "voiceIDs": [
+      {
+        "modelName": "libritts",
+        "piperVoiceID": 100,
+        "priority": 0
+      }
+    ],
+    "npcId": 10
+  }],
+  "npcNameVoiceConfigData": [
+    {
+      "voiceIDs": [
+        {
+          "modelName": "libritts",
+          "piperVoiceID": 883,
+          "priority": 0
+        }
+      ],
+      "npcName": "benny"
+    }
+  ]
+}

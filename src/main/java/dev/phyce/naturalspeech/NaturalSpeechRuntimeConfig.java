@@ -2,12 +2,14 @@ package dev.phyce.naturalspeech;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
+import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceConfig;
+import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.VoiceConfigDatum;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import net.runelite.client.config.ConfigManager;
 
 import java.nio.file.Path;
-
-import static net.runelite.client.config.RuneLiteConfig.GROUP_NAME;
 
 /**
  * Runtime Configs are serialized configurations invisible to the player but used at plugin runtime.
@@ -21,8 +23,9 @@ public class NaturalSpeechRuntimeConfig {
 		this.configManager = configManager;
 	}
 
+
 	public Path getPiperPath() {
-		String pathString = configManager.getConfiguration(GROUP_NAME, KEY_TTS_ENGINE_PATH);
+		String pathString = configManager.getConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH);
 
 		Path path;
 		if (pathString != null) path = Path.of(pathString);
@@ -35,13 +38,19 @@ public class NaturalSpeechRuntimeConfig {
 		return path;
 	}
 
+	public VoiceConfig getCustomVoices() {
+		//fetch from config manager
+		String json = configManager.getConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE);
+		if (json != null) return new VoiceConfig(json);
+		return null;
+	}
+
 	public void setPiperPath(Path path) {
-		configManager.setConfiguration(GROUP_NAME, KEY_TTS_ENGINE_PATH, path.toString());
+		configManager.setConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH, path.toString());
 	}
 
 	public void reset() {
-		configManager.unsetConfiguration(GROUP_NAME, KEY_TTS_ENGINE_PATH);
-		setPiperPath(getPiperPath()); // reset
+		configManager.unsetConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH);
+		setPiperPath(getPiperPath());
 	}
-
 }

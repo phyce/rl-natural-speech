@@ -6,10 +6,16 @@ import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.PlayerNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.VoiceConfigDatum;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 
@@ -17,17 +23,16 @@ import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.util.HashMap;
 
 public class VoiceConfig {
-	private final HashMap<String, PlayerNameVoiceConfigDatum> playerNameToPlayerNameVoiceConfigData;
-	private final HashMap<Integer, NPCIDVoiceConfigDatum> npcidToVoiceConfigDataHashMap;
-	private final HashMap<String, NPCNameVoiceConfigDatum> npcNameToNPCNameVoiceConfigDataHashMap;
-	private final Gson gson;
-
+	public HashMap<String, PlayerNameVoiceConfigDatum> player;
+	public HashMap<Integer, NPCIDVoiceConfigDatum> npcID;
+	public HashMap<String, NPCNameVoiceConfigDatum> npcName;
+	public Gson gson;
 
 	public VoiceConfig(@NonNull VoiceConfigDatum data) {
 
-		playerNameToPlayerNameVoiceConfigData = new HashMap<>();
-		npcidToVoiceConfigDataHashMap = new HashMap<>();
-		npcNameToNPCNameVoiceConfigDataHashMap = new HashMap<>();
+		player = new HashMap<>();
+		npcID = new HashMap<>();
+		npcName = new HashMap<>();
 		gson = new Gson();
 
 		loadDatum(data);
@@ -35,9 +40,9 @@ public class VoiceConfig {
 
 	public VoiceConfig(@NonNull String path) throws JsonSyntaxException {
 
-		playerNameToPlayerNameVoiceConfigData = new HashMap<>();
-		npcidToVoiceConfigDataHashMap = new HashMap<>();
-		npcNameToNPCNameVoiceConfigDataHashMap = new HashMap<>();
+		player = new HashMap<>();
+		npcID = new HashMap<>();
+		npcName = new HashMap<>();
 		gson = new Gson();
 		String jsonContent = readFileToString(path);
 		loadJSON(jsonContent);
@@ -56,15 +61,19 @@ public class VoiceConfig {
 		}
 	}
 
-	public String readFileToString(String filePath) {
-		String content = "";
-		try {
-			content = new String(Files.readAllBytes(Paths.get(filePath)));
-		} catch (IOException e) {
-			System.err.println("Error reading file: " + e.getMessage());
-			// Handle the error or rethrow as needed
+	public String readFileToString(String resourceName) {
+		// Use getResourceAsStream to read from resources folder
+		try (InputStream is = Objects.requireNonNull(
+			this.getClass().getClassLoader().getResourceAsStream(resourceName),
+			"Resource not found: " + resourceName);
+			 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+
+			// Stream lines from the BufferedReader instance and join them
+			return reader.lines().collect(Collectors.joining(System.lineSeparator()));
+		} catch (IOException | NullPointerException e) {
+			System.err.println("Error reading resource: " + e.getMessage());
+			return ""; // Consider appropriate error handling
 		}
-		return content;
 	}
 
 	public void GetCurrentWorkingDirectory() {
@@ -76,28 +85,28 @@ public class VoiceConfig {
 	}
 
 	public void loadDatum(VoiceConfigDatum data) {
-		playerNameToPlayerNameVoiceConfigData.clear();
-		npcidToVoiceConfigDataHashMap.clear();
-		npcNameToNPCNameVoiceConfigDataHashMap.clear();
+		player.clear();
+		npcID.clear();
+		npcName.clear();
 
 		for (PlayerNameVoiceConfigDatum datum : data.getPlayerNameVoiceConfigData()) {
-			playerNameToPlayerNameVoiceConfigData.put(datum.getPlayerName(), datum);
+			player.put(datum.getPlayerName(), datum);
 		}
 
 		for (NPCIDVoiceConfigDatum datum : data.getNpcIDVoiceConfigData()) {
-			npcidToVoiceConfigDataHashMap.put(datum.getNpcId(), datum);
+			npcID.put(datum.getNpcId(), datum);
 		}
 
 		for (NPCNameVoiceConfigDatum datum : data.getNpcNameVoiceConfigData()) {
-			npcNameToNPCNameVoiceConfigDataHashMap.put(datum.getNpcName(), datum);
+			npcName.put(datum.getNpcName(), datum);
 		}
 	}
 
 	public VoiceConfigDatum exportDatum() {
 		VoiceConfigDatum voiceConfigDatum = new VoiceConfigDatum();
-		voiceConfigDatum.getPlayerNameVoiceConfigData().addAll(playerNameToPlayerNameVoiceConfigData.values());
-		voiceConfigDatum.getNpcIDVoiceConfigData().addAll(npcidToVoiceConfigDataHashMap.values());
-		voiceConfigDatum.getNpcNameVoiceConfigData().addAll(npcNameToNPCNameVoiceConfigDataHashMap.values());
+		voiceConfigDatum.getPlayerNameVoiceConfigData().addAll(player.values());
+		voiceConfigDatum.getNpcIDVoiceConfigData().addAll(npcID.values());
+		voiceConfigDatum.getNpcNameVoiceConfigData().addAll(npcName.values());
 		return voiceConfigDatum;
 	}
 
@@ -119,7 +128,7 @@ public class VoiceConfig {
 			if(voice != null) return new VoiceID[]{voice};
 //			return new VoiceID[] {voice};
 		}
-		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = playerNameToPlayerNameVoiceConfigData.get(playerUserName.toLowerCase());
+		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = player.get(playerUserName.toLowerCase());
 
 		if (playerNameVoiceConfigDatum == null) return null;
 
@@ -127,7 +136,7 @@ public class VoiceConfig {
 	}
 
 	public VoiceID[] findVoiceIDsWithNPCID(int npcID) {
-		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = npcidToVoiceConfigDataHashMap.get(npcID);
+		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcID.get(npcID);
 
 		if (npcIDVoiceConfigDatum == null) return null;
 
@@ -135,7 +144,7 @@ public class VoiceConfig {
 	}
 
 	public VoiceID[] getNpcVoiceIDs(String npcName) {
-		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = npcNameToNPCNameVoiceConfigDataHashMap.get(npcName.toLowerCase());
+		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcName.get(npcName.toLowerCase());
 
 		if (npcNameVoiceConfigDatum == null) return null;
 
