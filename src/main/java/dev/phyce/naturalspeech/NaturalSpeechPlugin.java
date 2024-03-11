@@ -106,24 +106,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	private String lastPlayerDialogText = "";
 	private Actor actorInteractedWith = null;
 	//</editor-fold>
-	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
-		// FIXME(Louis) Need to modify to load in all ModelLocal configured
-		ModelRepository.ModelLocal librittsLocal = modelRepository.getModelLocal("libritts");
-
-		Path piperPath = runtimeConfig.getPiperPath();
-
-		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-			log.error("Invalid Piper exectuable path: {}", piperPath);
-			throw new RuntimeException("Invalid Piper executable path " + piperPath);
-		}
-
-		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
-		textToSpeech.startPiperForModelLocal(librittsLocal);
-	}
-
-	public void stopTextToSpeech() {
-		textToSpeech.stopAllPipers();
-	}
 
 	//<editor-fold desc="> Override Methods">
 	@Override
