@@ -44,7 +44,7 @@ public class VoiceConfig {
 		npcID = new HashMap<>();
 		npcName = new HashMap<>();
 		gson = new Gson();
-		String jsonContent = readFileToString(path);
+		String jsonContent = loadResourceFile(path);
 		loadJSON(jsonContent);
 	}
 
@@ -61,6 +61,30 @@ public class VoiceConfig {
 		}
 	}
 
+	public static String loadResourceFile(String fileName) {
+		String fullPath = "/dev/phyce/naturalspeech/" + fileName;
+//		System.out.println("full path");
+//		System.out.println(fullPath);
+		InputStream inputStream = VoiceConfig.class.getResourceAsStream(fullPath);
+//		System.out.println(inputStream);
+		if (inputStream == null) {
+			throw new IllegalArgumentException("File not found! " + fullPath);
+		} else {
+			try (InputStreamReader streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+				BufferedReader reader = new BufferedReader(streamReader)) {
+//				System.out.println("Reader");
+				StringBuilder result = new StringBuilder();
+				for(String line = reader.readLine(); line != null; line = reader.readLine()){
+					result.append(line);
+//					System.out.println(line);
+				}
+//				System.out.println(result.toString());
+				return result.toString();
+			} catch (Exception e) {
+				throw new RuntimeException("Failed to read the resource file: " + fullPath, e);
+			}
+		}
+	}
 	public String readFileToString(String resourceName) {
 		String resourcePath = "dev/phyce/naturalspeech/" + resourceName;
 		try (InputStream is = Objects.requireNonNull(
@@ -134,7 +158,7 @@ public class VoiceConfig {
 		return playerNameVoiceConfigDatum.getVoiceIDs();
 	}
 
-	public VoiceID[] findVoiceIDsWithNPCID(int npcID) {
+	public VoiceID[] getNpcVoiceIDs(int npcID) {
 		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcID.get(npcID);
 
 		if (npcIDVoiceConfigDatum == null) return null;
@@ -144,9 +168,24 @@ public class VoiceConfig {
 
 	public VoiceID[] getNpcVoiceIDs(String npcName) {
 		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcName.get(npcName.toLowerCase());
+		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcID.get(npcName.toLowerCase());
 
-		if (npcNameVoiceConfigDatum == null) return null;
+		if (npcNameVoiceConfigDatum == null && npcIDVoiceConfigDatum == null) return null;
 
-		return npcNameVoiceConfigDatum.getVoiceIDs();
+		VoiceID[] nameBasedVoices = npcNameVoiceConfigDatum != null ? npcNameVoiceConfigDatum.getVoiceIDs() : new VoiceID[0];
+		VoiceID[] idBasedVoices = npcIDVoiceConfigDatum != null ? npcIDVoiceConfigDatum.getVoiceIDs() : new VoiceID[0];
+
+		VoiceID[] combinedVoices = new VoiceID[nameBasedVoices.length + idBasedVoices.length];
+		System.arraycopy(nameBasedVoices, 0, combinedVoices, 0, nameBasedVoices.length);
+		System.arraycopy(idBasedVoices, 0, combinedVoices, nameBasedVoices.length, idBasedVoices.length);
+
+		return combinedVoices;
 	}
+//	public VoiceID[] getNpcVoiceIDs(String npcName) {
+//		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcName.get(npcName.toLowerCase());
+//
+//		if (npcNameVoiceConfigDatum == null) return null;
+//
+//		return npcNameVoiceConfigDatum.getVoiceIDs();
+//	}
 }

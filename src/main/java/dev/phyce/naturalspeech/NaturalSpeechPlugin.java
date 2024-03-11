@@ -12,10 +12,14 @@ import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
+import dev.phyce.naturalspeech.ui.game.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import dev.phyce.naturalspeech.utils.TextUtil;
+import java.awt.Dialog;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
@@ -23,15 +27,24 @@ import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.MenuOpened;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.OverheadTextChanged;
+import net.runelite.api.events.WidgetLoaded;
+import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetID;
+import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.wiki.WikiSearchChatboxTextInput;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
@@ -54,7 +67,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	public final static String CONFIG_GROUP = "NaturalSpeech";
 	public final static String MODEL_REPO_FILENAME = "model_repository.json";
 	public final static String MODEL_FOLDER_NAME = "models";
-
 	public final static String VOICE_CONFIG_FILE = "speaker_config.json";
 	//</editor-fold>
 
@@ -79,6 +91,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	private TextToSpeech textToSpeech;
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
+	@Inject
+	private Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider;
 	//</editor-fold>
 
 	//<editor-fold desc="> Runtime Variables">
@@ -87,27 +101,11 @@ public class NaturalSpeechPlugin extends Plugin {
 	private Map<String, String> shortenedPhrases;
 	private NavigationButton navButton;
 	private TextToSpeech.PiperLifetimeListener piperLifetimeListener;
-	private Set<String> ignoreListSnapshot = new HashSet<>();
-
+	private final Map<Actor, Integer> lastMessageTickTime = new HashMap<>();
+	private String lastNpcDialogText = "";
+	private String lastPlayerDialogText = "";
+	private Actor actorInteractedWith = null;
 	//</editor-fold>
-	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
-		// FIXME(Louis) Need to modify to load in all ModelLocal configured
-		ModelRepository.ModelLocal librittsLocal = modelRepository.getModelLocal("libritts");
-
-		Path piperPath = runtimeConfig.getPiperPath();
-
-		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-			log.error("Invalid Piper exectuable path: {}", piperPath);
-			throw new RuntimeException("Invalid Piper executable path " + piperPath);
-		}
-
-		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
-		textToSpeech.startPiperForModelLocal(librittsLocal);
-	}
-
-	public void stopTextToSpeech() {
-		textToSpeech.stopAllPipers();
-	}
 
 	//<editor-fold desc="> Override Methods">
 	@Override
@@ -170,9 +168,38 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		log.info("NaturalSpeech plugin has shutDown");
 	}
+
+	@Override
+	public void resetConfiguration() {
+		runtimeConfig.reset();
+	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
+	@Subscribe(priority = -1)
+	public void onOverheadTextChanged(OverheadTextChanged event) {
+		if (!config.dialogEnabled()) return;
+
+		if (event.getActor() instanceof NPC) {
+			NPC npc = (NPC) event.getActor();
+			int distance = PluginHelper.getNPCDistance(npc);
+
+			textToSpeech.speak(npc.getId(), event.getActor().getName(), distance, npc.getOverheadText());
+		}
+	}
+
+	@Subscribe(priority = -2)
+	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+		if (textToSpeech.activePiperInstanceCount() == 0) return;
+		if (message.getType() == ChatMessageType.AUTOTYPER) return;
+
+		patchChatMessage(message);
+
+		if (!isMessageProcessable(message))return;
+		int distance = getSpeakerDistance(message);
+
+		textToSpeech.speak(message, distance);
+	}
 	@Subscribe
 	public void onMenuOpened(MenuOpened event) {
 		final MenuEntry[] entries = event.getMenuEntries();
@@ -190,9 +217,59 @@ public class NaturalSpeechPlugin extends Plugin {
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
 
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) {drawOptions(entry, index);}
+			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
+			else if (entry.getType() == MenuAction.EXAMINE_NPC) drawOptions(entry, index);
 			else if (interfaces.contains(groupId) && entry.getOption().equals("Report")) drawOptions(entry, index);
 		}
+	}
+
+	@Subscribe
+	public void onInteractingChanged(InteractingChanged event) {
+		if (event.getTarget() == null || event.getSource() != client.getLocalPlayer()) {
+			return;
+		}
+		// Reset dialog text on new interactions to indicate no active dialog
+		lastNpcDialogText = "";
+		lastPlayerDialogText = "";
+
+		actorInteractedWith = event.getTarget();
+	}
+	@Subscribe(priority = -1)
+	public void onGameTick(GameTick event) {
+		if (!config.dialogEnabled() || actorInteractedWith == null) return;
+
+		int playerGroupId = WidgetInfo.DIALOG_PLAYER_TEXT.getGroupId();
+		Widget playerDialogTextWidget = client.getWidget(playerGroupId, WidgetInfo.DIALOG_PLAYER_TEXT.getChildId());
+
+		if (playerDialogTextWidget != null) {
+			String dialogText = playerDialogTextWidget.getText();
+			if (!dialogText.equals(lastPlayerDialogText)) {
+				lastPlayerDialogText = dialogText;
+
+				dialogText = dialogText.replace("<br>", " ");
+				textToSpeech.speak(dialogText);
+			}
+		} else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
+
+		int npcGroupId = WidgetInfo.DIALOG_NPC_TEXT.getGroupId();
+		Widget npcDialogTextWidget = client.getWidget(npcGroupId, WidgetInfo.DIALOG_NPC_TEXT.getChildId());
+
+		if (npcDialogTextWidget != null) {
+			String dialogText = npcDialogTextWidget.getText();
+			if (!dialogText.equals(lastNpcDialogText)) {
+				lastNpcDialogText = dialogText;
+				Widget nameTextWidget = client.getWidget(npcGroupId, WidgetInfo.DIALOG_NPC_NAME.getChildId());
+				Widget modelWidget = client.getWidget(npcGroupId, WidgetInfo.DIALOG_NPC_HEAD_MODEL.getChildId());
+
+				if (nameTextWidget != null && modelWidget != null) {
+					String npcName = nameTextWidget.getText();
+					int modelId = modelWidget.getModelId();
+
+					dialogText = dialogText.replace("<br>", " ");
+					textToSpeech.speak(modelId, npcName,  1, dialogText);
+				}
+			}
+		} else if (!lastNpcDialogText.isEmpty()) lastNpcDialogText = "";
 	}
 
 	@Subscribe
@@ -214,46 +291,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 	//</editor-fold>
 
-//	@Subscribe
-//	public void onMenuOptionClicked(MenuOptionClicked event) {
-//		System.out.println(event);
-		//Need to listen to user input when adding users to ignore list. unless there is a better way?
-//		if(event.getMenuOption().equals("Add Name")) snapshotIgnoreList();
-//		else if(event.getMenuOption().equals("Cancel")) ignoreListSnapshot.clear();
-//	}
-
-//	private Set<String> getIgnoreListNames() {
-//		Set<String> names = new HashSet<>();
-//		NameableContainer<Ignore> ignoreContainer = client.getIgnoreContainer();
-//		Ignore[] ignores = ignoreContainer.getMembers();
-//
-//		for (Ignore ignore : ignores) {
-//			if (ignore != null) names.add(ignore.getName());
-//		}
-//		return names;
-//	}
-	@Subscribe(priority = -1)
-	public void onOverheadTextChanged(OverheadTextChanged event) {
-		if (!config.dialogEnabled()) return;
-
-		if (event.getActor() instanceof NPC) {
-			NPC npc = (NPC) event.getActor();
-			textToSpeech.speak(npc, event.getActor().getName());
-		}
-	}
-
-	@Subscribe(priority = -2)
-	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-//		System.out.println(message);
-		if (textToSpeech.activePiperInstanceCount() == 0) return;
-		if (message.getType() == ChatMessageType.AUTOTYPER) return;
-		patchChatMessage(message);
-		if (!isMessageProcessable(message))return;
-		int distance = getSpeakerDistance(message);
-
-		textToSpeech.speak(message, distance);
-	}
-
+	//<editor-fold desc="> ChatMessage">
 	public boolean isMessageProcessable(ChatMessage message) {
 		if (isMessageTypeDisabledInConfig(message)) return false;
 		if (checkMuteAllowAndBlockList(message)) return false;
@@ -262,10 +300,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (isMutingOthers(message)) return false;
 		if (checkMuteLevelThreshold(message)) return false;
 
-		return true;
-	}
-
-	//<editor-fold desc="> ChatMessage">
+	return true;
+}
 	public boolean isMessageTypeDisabledInConfig(ChatMessage message) {
 		switch (message.getType()) {
 			case PUBLICCHAT:
@@ -290,7 +326,8 @@ public class NaturalSpeechPlugin extends Plugin {
 				if (!config.examineChatEnabled()) return true;
 				break;
 			case DIALOG:
-				if (!config.dialogEnabled()) return true;
+				return true;
+//				if (!config.dialogEnabled()) return true;
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
@@ -372,7 +409,6 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 		}
 	}
-
 	//</editor-fold>
 
 	//<editor-fold desc="> Other">
@@ -445,6 +481,16 @@ public class NaturalSpeechPlugin extends Plugin {
 				getAllowList().clear();
 			}));
 		}
+
+		muteOptions.addChild(new CustomMenuEntry("Configure Voice", -1, function -> {
+			voiceConfigChatboxTextInputProvider.get()
+				.insertActor(entry.getActor())
+				.build();
+
+			Actor actor = entry.getActor();
+			NPC npc = ((NPC) actor);
+		}));
+
 		muteOptions.addTo(client);
 	}
 
@@ -459,7 +505,24 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
+	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
+		// FIXME(Louis) Need to modify to load in all ModelLocal configured
+		ModelRepository.ModelLocal librittsLocal = modelRepository.getModelLocal("libritts");
 
+		Path piperPath = runtimeConfig.getPiperPath();
+
+		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
+			log.error("Invalid Piper exectuable path: {}", piperPath);
+			throw new RuntimeException("Invalid Piper executable path " + piperPath);
+		}
+
+		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
+		textToSpeech.startPiperForModelLocal(librittsLocal);
+	}
+
+	public void stopTextToSpeech() {
+		textToSpeech.stopAllPipers();
+	}
 	//</editor-fold>
 
 	// FIXME(Louis) Implement new status update in new MainSettingsPanel
@@ -485,15 +548,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	//        }
 	//	}
 
-
-	@Override
-	public void resetConfiguration() {
-		runtimeConfig.reset();
-	}
-
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);
 	}
-
 }
