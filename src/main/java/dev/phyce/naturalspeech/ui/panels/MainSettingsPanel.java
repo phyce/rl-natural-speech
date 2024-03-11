@@ -6,7 +6,11 @@ import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.tts.Piper;
+import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.ColorScheme;
@@ -35,12 +39,14 @@ import java.nio.file.Path;
 public class MainSettingsPanel extends PluginPanel {
 
 	static {
-		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
+		BufferedImage sectionRetractIcon =
+			ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
 		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
 		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
 		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
 		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
 	}
+
 	public static final ImageIcon SECTION_EXPAND_ICON;
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
 	private static final ImageIcon SECTION_RETRACT_ICON;
@@ -55,14 +61,15 @@ public class MainSettingsPanel extends PluginPanel {
 	private final ConfigManager configManager;
 	private final Downloader downloader;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
+
 	@Inject
 	public MainSettingsPanel(
-			NaturalSpeechConfig config,
-			NaturalSpeechPlugin plugin,
-			ConfigManager configManager,
-			Downloader downloader,
-			ModelRepository modelRepository,
-			NaturalSpeechRuntimeConfig runtimeConfig
+		NaturalSpeechConfig config,
+		NaturalSpeechPlugin plugin,
+		ConfigManager configManager,
+		Downloader downloader,
+		ModelRepository modelRepository,
+		NaturalSpeechRuntimeConfig runtimeConfig
 	) {
 		super(false);
 		this.config = config;
@@ -103,7 +110,8 @@ public class MainSettingsPanel extends PluginPanel {
 		mainContentPanel.add(titleLabel);
 
 		// Instructions Link
-		JLabel instructionsLink = new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
+		JLabel instructionsLink =
+			new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
 		instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		instructionsLink.addMouseListener(new MouseAdapter() {
 			@Override
@@ -231,6 +239,36 @@ public class MainSettingsPanel extends PluginPanel {
 
 		JPanel piperFileChoosePanel = buildPiperFileChoose();
 		sectionContent.add(piperFileChoosePanel);
+
+		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
+		sectionContent.add(piperProcessMonitorPanel);
+	}
+
+	private JPanel buildPiperProcessMonitorPanel() {
+		JPanel panel = new JPanel();
+		panel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
+		panel.setBorder(new EmptyBorder(5, 0, 5, 0));
+
+		plugin.getTextToSpeech().addPiperLifetimeListener(
+			new TextToSpeech.PiperLifetimeListener() {
+				private Map<Piper, PiperListItem> piperItemList = new HashMap<>();
+
+				@Override
+				public void onPiperStart(Piper piper) {
+					PiperListItem piperItem = new PiperListItem(piper);
+					piperItemList.put(piper, piperItem);
+					panel.add(piperItem);
+					panel.revalidate();
+				}
+
+				@Override
+				public void onPiperExit(Piper piper) {
+					panel.remove(piperItemList.remove(piper));
+					panel.revalidate();
+				}
+			}
+		);
+		return panel;
 	}
 
 	private JPanel buildPiperStatusPanel() {
@@ -245,6 +283,28 @@ public class MainSettingsPanel extends PluginPanel {
 		statusLabel.setBackground(Color.DARK_GRAY);
 
 		statusPanel.add(statusLabel, BorderLayout.NORTH);
+
+		plugin.getTextToSpeech().addPiperLifetimeListener(
+			new TextToSpeech.PiperLifetimeListener() {
+				@Override
+				public void onPiperStart(Piper piper) {
+					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
+					// not just one starting piper
+					statusLabel.setText("Status: Running");
+					statusLabel.setBackground(Color.GREEN.darker());
+					statusLabel.setForeground(Color.WHITE);
+				}
+
+				@Override
+				public void onPiperExit(Piper piper) {
+					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
+					// not just one starting piper
+					statusLabel.setText("Status: Stopped");
+					statusLabel.setBackground(Color.DARK_GRAY);
+					statusLabel.setForeground(null);
+				}
+			}
+		);
 
 		// Button Panel
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
@@ -312,8 +372,8 @@ public class MainSettingsPanel extends PluginPanel {
 	private void toggleSection(JButton toggleButton, JPanel sectionContent) {
 		boolean newState = !sectionContent.isVisible();
 		sectionContent.setVisible(newState);
-		toggleButton.setIcon(newState ? SECTION_RETRACT_ICON : SECTION_EXPAND_ICON);
-		toggleButton.setToolTipText(newState ? "Retract" : "Expand");
+		toggleButton.setIcon(newState? SECTION_RETRACT_ICON: SECTION_EXPAND_ICON);
+		toggleButton.setToolTipText(newState? "Retract": "Expand");
 		SwingUtilities.invokeLater(sectionContent::revalidate);
 	}
 
@@ -327,7 +387,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private void startEngine() throws LineUnavailableException, IOException {
 		try {
 			plugin.startTextToSpeech();
-		} catch (RuntimeException | IOException | LineUnavailableException e) {
+		} catch (IOException | LineUnavailableException e) {
 			log.error("Error starting TextToSpeech", e);
 			throw e;
 		}
@@ -335,7 +395,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 	private void stopEngine() throws IOException {
 		plugin.stopTextToSpeech();
-//		updateStatus(1);
+		//		updateStatus(1);
 	}
 
 	@Override
