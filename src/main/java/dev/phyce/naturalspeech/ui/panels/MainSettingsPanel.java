@@ -284,6 +284,28 @@ public class MainSettingsPanel extends PluginPanel {
 
 		statusPanel.add(statusLabel, BorderLayout.NORTH);
 
+		plugin.getTextToSpeech().addPiperLifetimeListener(
+			new TextToSpeech.PiperLifetimeListener() {
+				@Override
+				public void onPiperStart(Piper piper) {
+					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
+					// not just one starting piper
+					statusLabel.setText("Status: Running");
+					statusLabel.setBackground(Color.GREEN.darker());
+					statusLabel.setForeground(Color.WHITE);
+				}
+
+				@Override
+				public void onPiperExit(Piper piper) {
+					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
+					// not just one starting piper
+					statusLabel.setText("Status: Stopped");
+					statusLabel.setBackground(Color.DARK_GRAY);
+					statusLabel.setForeground(null);
+				}
+			}
+		);
+
 		// Button Panel
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
 

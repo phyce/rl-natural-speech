@@ -95,6 +95,9 @@ public class Piper {
 
 			PiperTask task = piperTaskQueue.poll();
 
+			if (processMap.isEmpty()) {
+			}
+
 			// using iterator to loop, so if an invalid PiperProcess is found we can remove.
 			Iterator<Long> iter = processMap.keySet().iterator();
 			while(iter.hasNext()) {
