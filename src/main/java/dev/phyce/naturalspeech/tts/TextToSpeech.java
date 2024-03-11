@@ -18,11 +18,16 @@ import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDat
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
 import lombok.Getter;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.NPC;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.api.widgets.ComponentID;
 
 import java.io.IOException;
 import java.util.*;
@@ -30,6 +35,7 @@ import java.util.*;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.plugins.Plugin;
 
 // Renamed from TTSManager
 @Slf4j
@@ -39,9 +45,7 @@ public class TextToSpeech {
 	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
 	private final ConfigManager configManager;
 	private final ModelRepository modelRepository;
-	/**
-	 * Model ShortName -> PiperRunner
-	 */
+	//Model ShortName -> PiperRunner
 	private final Map<ModelRepository.ModelLocal, Piper> pipers = new HashMap<>();
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private VoiceConfig voiceConfig;
@@ -97,6 +101,8 @@ public class TextToSpeech {
 		//fetch from config manager
 		//if empty, load in the
 		voiceConfig = new VoiceConfig(VOICE_CONFIG_FILE);
+		System.out.println("Custom voice Config");
+		System.out.println(voiceConfig.toJson());
 
 		VoiceConfig customConfig = null;
 		//fetch from config manager
@@ -127,8 +133,29 @@ public class TextToSpeech {
 		}
 	}
 
+	public void setActorVoiceID(Actor actor, String model, int voiceId) {
+		if (actor instanceof NPC) {
+			NPC npc = ((NPC) actor);
+
+			NPCIDVoiceConfigDatum voiceConfigDatum = new NPCIDVoiceConfigDatum(
+				new VoiceID[]{new VoiceID(model, voiceId)},
+				npc.getId()
+			);
+
+			voiceConfig.npcID.put(npc.getId(), voiceConfigDatum);
+		} else {
+			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
+				new VoiceID[]{new VoiceID(model, voiceId)},
+				actor.getName()
+			);
+
+			voiceConfig.player.put(actor.getName(), voiceConfigDatum);
+		}
+	}
+
 	public void saveVoiceConfig() {
-		configManager.setConfiguration(CONFIG_GROUP, "VoiceConfig", voiceConfig.toJson());
+		System.out.println(voiceConfig.toJson());
+		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.toJson());
 	}
 
 	public void loadModelConfig() {
@@ -196,10 +223,21 @@ public class TextToSpeech {
 		speak(voiceId, message.getMessage().toLowerCase(), distance, message.getName());
 	}
 
-	public void speak(NPC npc, String actorName) {
-		int distance = PluginHelper.getNPCDistance(npc);
-		VoiceID voiceId = getModelAndVoiceFromNPC(npc)[0];
-		speak(voiceId, npc.getOverheadText(), distance, actorName);
+//	public void speak(NPC npc, String npcName) {
+//
+//		VoiceID voiceId = getModelAndVoiceFromNPC(npc)[0];
+//		speak(voiceId, npc.getOverheadText(), distance, npcName);
+//	}
+
+	public void speak(int npcId, String npcName, int distance, String message) {
+		VoiceID voiceId = getModelAndVoiceFromNPCId(npcId, npcName)[0];
+		speak(voiceId, message, distance, npcName);
+	}
+
+	public void speak(String message) {
+		String username = PluginHelper.getClientUsername();
+		VoiceID voiceId = getModelAndVoiceFromUsername(username)[0];
+		speak(voiceId, message.toLowerCase(), 0, username);
 	}
 
 	public float getVolumeWithDistance(int distance) {
@@ -287,25 +325,20 @@ public class TextToSpeech {
 	}
 
 	public VoiceID[] getModelAndVoiceFromChatMessage(ChatMessage message) {
-		VoiceID[] results = {};
-		if (message.getName().equals(PluginHelper.getClientUsername())) {
-			results = voiceConfig.getPlayerVoiceIDs(message.getName());
+		VoiceID []results;
+		if(message.getName().equals(PluginHelper.getClientUsername())) results = voiceConfig.getPlayerVoiceIDs(message.getName());
+		else switch(message.getType()) {
+//			case DIALOG:
+			case WELCOME:
+			case GAMEMESSAGE:
+			case CONSOLE:
+				results = voiceConfig.getNpcVoiceIDs(message.getName());
+				break;
+			default:
+				results = voiceConfig.getPlayerVoiceIDs(message.getName());
+				break;
 		}
-		else {
-			switch (message.getType()) {
-				case DIALOG:
-				case WELCOME:
-				case GAMEMESSAGE:
-				case CONSOLE:
-					//TODO add way to find out NPC ID
-					results = voiceConfig.getNpcVoiceIDs(message.getName());
-					break;
-				default:
-					results = voiceConfig.getPlayerVoiceIDs(message.getName());
-					break;
-			}
-		}
-		if (results == null) {
+		if(results == null) {
 			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 				Piper model = pipers.get(modelLocal);
 
@@ -319,6 +352,20 @@ public class TextToSpeech {
 		return results;
 	}
 
+	public VoiceID[] getModelAndVoiceFromNPCId(int npcId, String npcName) {
+		VoiceID []results = {};
+		results = voiceConfig.getNpcVoiceIDs(npcId);
+
+		if(results == null) results = voiceConfig.getNpcVoiceIDs(npcName);
+
+		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+			Piper model = pipers.get(modelLocal);
+			results = new VoiceID[]{model.getModelLocal().calculateVoice(npcName)};
+		}
+
+		return results;
+	}
+
 	public VoiceID[] getModelAndVoiceFromNPC(NPC npc) {
 		VoiceID[] results = {};
 		//TODO get custom VoiceID results first
@@ -329,6 +376,18 @@ public class TextToSpeech {
 				Piper model = pipers.get(modelLocal);
 				results = new VoiceID[] {model.getModelLocal().calculateVoice(npc.getName())};
 			}
+		}
+
+		return results;
+	}
+
+	public VoiceID[] getModelAndVoiceFromUsername(String username) {
+		VoiceID []results = {};
+		results = voiceConfig.getPlayerVoiceIDs(username);
+
+		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+			Piper model = pipers.get(modelLocal);
+			results = new VoiceID[]{model.getModelLocal().calculateVoice(username)};
 		}
 
 		return results;
