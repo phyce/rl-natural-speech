@@ -65,6 +65,8 @@ public class TextToSpeech {
 		//fetch from config manager
 		//if empty, load in the
 		voiceConfig = new VoiceConfig(VOICE_CONFIG_FILE);
+		System.out.println("Custom voice Config");
+		System.out.println(voiceConfig.exportJSON());
 
 		VoiceConfig customConfig = runtimeConfig.getCustomVoices();
 
@@ -111,7 +113,8 @@ public class TextToSpeech {
 	}
 
 	public void saveVoiceConfig() {
-		configManager.setConfiguration(CONFIG_GROUP, "VoiceConfig", voiceConfig.exportJSON());
+		System.out.println(voiceConfig.exportJSON());
+		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.exportJSON());
 	}
 
 	public boolean isPiperForModelRunning(ModelRepository.ModelLocal modelLocal) {

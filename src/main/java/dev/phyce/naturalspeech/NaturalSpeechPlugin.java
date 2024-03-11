@@ -119,6 +119,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	protected void startUp() {
+
 		// Have to lazy-load config panel after RuneLite UI is initialized, cannot field @Inject
 		topLevelPanel = topLevelPanelProvider.get();
 
@@ -152,8 +153,19 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		// Load ShortenedPhrases is a method that can be called later when configs are changed
 		loadShortenedPhrases();
-
 		log.info("NaturalSpeech plugin has started");
+
+		if(config.autoStart()) {
+			try {
+				this.startTextToSpeech();
+			}
+			catch(IOException e) {
+				throw new RuntimeException(e);
+			}
+			catch(LineUnavailableException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	@Override
@@ -178,6 +190,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Hooks">
 	@Subscribe(priority = -1)
 	public void onOverheadTextChanged(OverheadTextChanged event) {
+		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (!config.dialogEnabled()) return;
 
 		if (event.getActor() instanceof NPC) {
@@ -190,6 +203,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe(priority = -2)
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
 		if (message.getType() == ChatMessageType.AUTOTYPER) return;
 
@@ -202,6 +216,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 	@Subscribe
 	public void onMenuOpened(MenuOpened event) {
+		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		final MenuEntry[] entries = event.getMenuEntries();
 
 		Set<Integer> interfaces = new HashSet<>();
@@ -225,6 +240,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	public void onInteractingChanged(InteractingChanged event) {
+		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (event.getTarget() == null || event.getSource() != client.getLocalPlayer()) {
 			return;
 		}
@@ -236,6 +252,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 	@Subscribe(priority = -1)
 	public void onGameTick(GameTick event) {
+		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (!config.dialogEnabled() || actorInteractedWith == null) return;
 
 		int playerGroupId = WidgetInfo.DIALOG_PLAYER_TEXT.getGroupId();
@@ -274,6 +291,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
+		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
 			switch (event.getKey()) {
 				case "muteSelf":

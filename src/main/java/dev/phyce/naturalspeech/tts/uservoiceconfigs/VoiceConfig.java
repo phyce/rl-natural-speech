@@ -38,14 +38,20 @@ public class VoiceConfig {
 		loadDatum(data);
 	}
 
-	public VoiceConfig(@NonNull String path) throws JsonSyntaxException {
+	public VoiceConfig(@NonNull String json) throws JsonSyntaxException {
 
 		player = new HashMap<>();
 		npcID = new HashMap<>();
 		npcName = new HashMap<>();
 		gson = new Gson();
-		String jsonContent = loadResourceFile(path);
-		loadJSON(jsonContent);
+
+		try {
+		    VoiceConfigDatum data = gson.fromJson(json, VoiceConfigDatum.class);
+			loadDatum(data);
+		} catch (JsonSyntaxException e) {
+			json = loadResourceFile(json);
+			loadJSON(json);
+		}
 	}
 
 	public void loadJSON(String jsonString) {

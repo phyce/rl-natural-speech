@@ -286,6 +286,7 @@ public interface NaturalSpeechConfig extends Config {
 			"ggwp=good game well played\n" +
 			"rn=right now\n" +
 			"fr=for real\n" +
+			"nmz=nightmare zone\n" +
 			"ge=grand exchange\n";
 	}
 	//</editor-fold>
