@@ -2,30 +2,20 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.ModelRepository;
-import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.NaturalSpeechRuntimeConfig;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
-import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
-import java.util.HashMap;
-import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.config.ConfigManager;
-import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
-import net.runelite.client.ui.FontManager;
-import net.runelite.client.ui.PluginPanel;
-import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.SwingUtil;
-
-import javax.sound.sampled.LineUnavailableException;
-import javax.swing.*;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -34,6 +24,32 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.sound.sampled.LineUnavailableException;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.DynamicGridLayout;
+import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.SwingUtil;
 
 @Slf4j
 public class MainSettingsPanel extends PluginPanel {
@@ -68,7 +84,6 @@ public class MainSettingsPanel extends PluginPanel {
 		NaturalSpeechPlugin plugin,
 		ConfigManager configManager,
 		Downloader downloader,
-		ModelRepository modelRepository,
 		NaturalSpeechRuntimeConfig runtimeConfig
 	) {
 		super(false);
@@ -76,23 +91,28 @@ public class MainSettingsPanel extends PluginPanel {
 		this.plugin = plugin;
 		this.configManager = configManager;
 		this.downloader = downloader;
-		this.modelRepository = modelRepository;
+		this.modelRepository = plugin.getModelRepository();
 		this.runtimeConfig = runtimeConfig;
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 
+		// This panel is where the actual content lives.
 		mainContentPanel = new FixedWidthPanel();
-		mainContentPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
+		mainContentPanel.setBorder(BORDER_PADDING);
 		mainContentPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
 		mainContentPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+		// wrap for scrolling, fixed to NORTH in-order to grow southward
 		JPanel mainContentNorthWrapper = new FixedWidthPanel();
 		mainContentNorthWrapper.setLayout(new BorderLayout());
 		mainContentNorthWrapper.add(mainContentPanel, BorderLayout.NORTH);
 
+		// scroll pane
 		scrollPane = new JScrollPane(mainContentNorthWrapper);
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		// Can't use Short.MAX_VALUE like the docs say because of JDK-8079640
+		scrollPane.setPreferredSize(new Dimension(0x7000, 0x7000));
 
 		this.add(scrollPane);
 
@@ -160,7 +180,7 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionHeader.add(sectionName, BorderLayout.CENTER);
 
 		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
+		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
 		section.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
@@ -180,6 +200,12 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
+
+		List<ModelRepository.ModelURL> modelURLS = modelRepository.getModelURLS();
+		for (ModelRepository.ModelURL modelUrl : modelURLS) {
+			ModelListItem listItem = new ModelListItem(plugin.getTextToSpeech(), modelRepository, modelUrl);
+			sectionContent.add(listItem);
+		}
 	}
 
 	public void buildPiperStatusSection() {
@@ -249,8 +275,8 @@ public class MainSettingsPanel extends PluginPanel {
 		panel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
 		panel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-		plugin.getTextToSpeech().addPiperLifetimeListener(
-			new TextToSpeech.PiperLifetimeListener() {
+		plugin.getTextToSpeech().addTextToSpeechListener(
+			new TextToSpeech.TextToSpeechListener() {
 				private Map<Piper, PiperListItem> piperItemList = new HashMap<>();
 
 				@Override
@@ -276,32 +302,58 @@ public class MainSettingsPanel extends PluginPanel {
 		statusPanel.setLayout(new BorderLayout());
 		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-		JLabel statusLabel = new JLabel("Status: Unknown", SwingConstants.CENTER);
+		JLabel statusLabel = new JLabel("Not Running", SwingConstants.CENTER);
 		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
 		statusLabel.setOpaque(true); // Needed to show background color
 		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50)); // Set preferred height
 		statusLabel.setBackground(Color.DARK_GRAY);
+		statusPanel.setToolTipText("Press start to begin text to speech.");
 
 		statusPanel.add(statusLabel, BorderLayout.NORTH);
 
-		plugin.getTextToSpeech().addPiperLifetimeListener(
-			new TextToSpeech.PiperLifetimeListener() {
+		plugin.getTextToSpeech().addTextToSpeechListener(
+			new TextToSpeech.TextToSpeechListener() {
 				@Override
 				public void onPiperStart(Piper piper) {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					statusLabel.setText("Status: Running");
+					statusLabel.setText("Running");
 					statusLabel.setBackground(Color.GREEN.darker());
 					statusLabel.setForeground(Color.WHITE);
+					statusPanel.setToolTipText("Text to speech is running.");
 				}
 
 				@Override
 				public void onPiperExit(Piper piper) {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					statusLabel.setText("Status: Stopped");
+					if (plugin.getTextToSpeech().isStarted() && plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
+						statusLabel.setText("No Models Enabled");
+						statusLabel.setBackground(Color.ORANGE.darker());
+						statusLabel.setForeground(Color.WHITE);
+						statusPanel.setToolTipText("Download and enable a model.");
+					}
+				}
+
+				@Override
+				public void onStart() {
+					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
+					// not just one starting piper
+					if (plugin.getTextToSpeech().isStarted() && plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
+						statusLabel.setText("No Models Enabled");
+						statusLabel.setBackground(Color.ORANGE.darker());
+						statusLabel.setForeground(Color.WHITE);
+						statusPanel.setToolTipText("Download and enable a model.");
+					}
+
+				}
+
+				@Override
+				public void onStop() {
+					statusLabel.setText("Not running");
 					statusLabel.setBackground(Color.DARK_GRAY);
 					statusLabel.setForeground(null);
+					statusPanel.setToolTipText("Press start to begin text to speech.");
 				}
 			}
 		);
@@ -358,7 +410,7 @@ public class MainSettingsPanel extends PluginPanel {
 			if (returnValue == JFileChooser.APPROVE_OPTION) {
 				String newPath = fileChooser.getSelectedFile().getPath();
 				filePathField.setText(newPath);
-				runtimeConfig.setPiperPath(Path.of(newPath));
+				runtimeConfig.savePiperPath(Path.of(newPath));
 			}
 		});
 

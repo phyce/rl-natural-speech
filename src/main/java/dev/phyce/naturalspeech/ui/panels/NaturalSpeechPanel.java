@@ -2,7 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.NaturalSpeechRuntimeConfig;
+import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.PluginPanel;
@@ -38,6 +38,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 	private JTextField voiceModelStatus, filePathField;
 
 
+	@Deprecated(since="Replaced by MainSettingsPanel")
 	@Inject
 	public NaturalSpeechPanel(
 			NaturalSpeechPlugin plugin,
@@ -138,7 +139,7 @@ public class NaturalSpeechPanel extends PluginPanel {
 				if (returnValue == JFileChooser.APPROVE_OPTION) {
 					String newPath = fileChooser.getSelectedFile().getPath();
 					filePathField.setText(newPath);
-					runtimeConfig.setPiperPath(Path.of(newPath));
+					runtimeConfig.savePiperPath(Path.of(newPath));
 				}
 			}
 		});

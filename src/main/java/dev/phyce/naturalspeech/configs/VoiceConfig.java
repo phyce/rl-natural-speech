@@ -1,18 +1,17 @@
-package dev.phyce.naturalspeech.tts.uservoiceconfigs;
+package dev.phyce.naturalspeech.configs;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCIDVoiceConfigDatum;
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCNameVoiceConfigDatum;
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.PlayerNameVoiceConfigDatum;
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.VoiceConfigDatum;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.VoiceConfigDatum;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -79,7 +78,7 @@ public class VoiceConfig {
 		String currentWorkingDirectory = System.getProperty("user.dir");
 	}
 
-	public String exportJSON() {
+	public String toJson() {
 		return gson.toJson(exportDatum());
 	}
 

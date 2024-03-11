@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech.configs;
 
 import net.runelite.client.config.*;
 

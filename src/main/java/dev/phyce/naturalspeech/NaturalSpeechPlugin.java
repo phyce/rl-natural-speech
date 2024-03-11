@@ -4,6 +4,8 @@ import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import static dev.phyce.naturalspeech.enums.Locations.*;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
@@ -11,7 +13,6 @@ import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import lombok.Getter;
@@ -21,7 +22,6 @@ import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
-import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.OverheadTextChanged;
@@ -39,7 +39,6 @@ import net.runelite.client.util.ImageUtil;
 import javax.sound.sampled.LineUnavailableException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -72,41 +71,45 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Internal Dependencies">
 	@Inject
 	private NaturalSpeechRuntimeConfig runtimeConfig;
+
 	@Inject
-	private ModelRepository modelRepository;
-	@Getter
-	@Inject
-	private TextToSpeech textToSpeech;
+	private Provider<TextToSpeech> textToSpeechProvider;
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
+	@Inject
+	private Provider<ModelRepository> modelRepositoryProvider;
 	//</editor-fold>
 
 	//<editor-fold desc="> Runtime Variables">
 	@Getter
 	private TopLevelPanel topLevelPanel;
+	@Getter
+	private TextToSpeech textToSpeech;
+	@Getter
+	private ModelRepository modelRepository;
 	private Map<String, String> shortenedPhrases;
 	private NavigationButton navButton;
-	private TextToSpeech.PiperLifetimeListener piperLifetimeListener;
+	private TextToSpeech.TextToSpeechListener textToSpeechListener;
 	private Set<String> ignoreListSnapshot = new HashSet<>();
 
 	//</editor-fold>
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
-		// FIXME(Louis) Need to modify to load in all ModelLocal configured
-		ModelRepository.ModelLocal librittsLocal = modelRepository.getModelLocal("libritts");
-
-		Path piperPath = runtimeConfig.getPiperPath();
-
-		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-			log.error("Invalid Piper executable path: {}", piperPath);
-			throw new RuntimeException("Invalid Piper executable path " + piperPath);
-		}
+//		// FIXME(Louis) Need to modify to load in all ModelLocal configured
+//		ModelRepository.ModelLocal librittsLocal = modelRepository.loadModelLocal("libritts");
+//
+//		Path piperPath = runtimeConfig.getPiperPath();
+//
+//		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
+//			log.error("Invalid Piper executable path: {}", piperPath);
+//			throw new RuntimeException("Invalid Piper executable path " + piperPath);
+//		}
 
 		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
-		textToSpeech.startPiperForModelLocal(librittsLocal);
+		textToSpeech.start();
 	}
 
 	public void stopTextToSpeech() {
-		textToSpeech.stopAllPipers();
+		textToSpeech.stop();
 	}
 
 	//<editor-fold desc="> Override Methods">
@@ -121,10 +124,13 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	protected void startUp() {
+		modelRepository = modelRepositoryProvider.get();
+		textToSpeech = textToSpeechProvider.get();
 		// Have to lazy-load config panel after RuneLite UI is initialized, cannot field @Inject
 		topLevelPanel = topLevelPanelProvider.get();
 
-		piperLifetimeListener = new TextToSpeech.PiperLifetimeListener() {
+
+		textToSpeechListener = new TextToSpeech.TextToSpeechListener() {
 			@Override
 			public void onPiperStart(Piper piper) {
 				log.info("Plugin hears that {} has started", piper);
@@ -136,8 +142,8 @@ public class NaturalSpeechPlugin extends Plugin {
 			}
 		};
 
-		textToSpeech.addPiperLifetimeListener(
-			piperLifetimeListener
+		textToSpeech.addTextToSpeechListener(
+			textToSpeechListener
 		);
 
 			// Build navButton
@@ -161,12 +167,13 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Override
 	protected void shutDown() {
 		if (textToSpeech != null) {
-			textToSpeech.stopAllPipers();
-			textToSpeech.removePiperLifetimeListener(piperLifetimeListener);
+			textToSpeech.stop();
+			textToSpeech.removeTextToSpeechListener(textToSpeechListener);
 		}
 		clientToolbar.removeNavigation(navButton);
 
 		textToSpeech.saveVoiceConfig();
+		textToSpeech.saveModelConfig();
 
 		log.info("NaturalSpeech plugin has shutDown");
 	}

@@ -58,8 +58,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 
 	@Inject
-	public VoiceExplorerPanel(ModelRepository modelRepository, NaturalSpeechPlugin plugin) {
-		this.modelRepository = modelRepository;
+	public VoiceExplorerPanel(NaturalSpeechPlugin plugin) {
+		this.modelRepository = plugin.getModelRepository();
 		this.plugin = plugin;
 
 		this.setLayout(new BorderLayout());
@@ -125,12 +125,25 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		this.add(speakerScrollPane);
 
+		this.modelRepository.addRepositoryChangedListener(
+			new ModelRepository.ModelRepositoryListener() {
+				@Override
+				public void onRepositoryChanged(String modelName) {
+					SwingUtilities.invokeLater(() -> buildSpeakerList());
+				}
+			}
+		);
+
 		buildSpeakerList();
 	}
 
 	void buildSpeakerList() {
+		sectionListPanel.removeAll();
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
-			if (modelURL.isLocalFileAvailable()) buildSpeakerSegmentForVoice(modelURL.getModelName());
+			try {
+				if (modelRepository.hasModelLocal(modelURL.getModelName())) buildSpeakerSegmentForVoice(modelURL.getModelName());
+			} catch (IOException ignore) {
+			}
 		}
 	}
 
@@ -143,6 +156,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	private void buildSpeakerSegmentForVoice(String voice_name) {
+
 		final JPanel section = new JPanel();
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
@@ -193,8 +207,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionHeader.addMouseListener(adapter);
 
 		try {
-			// TODO(Louis) loadPiper actually downloads the voice if local files don't exist
-			ModelRepository.ModelLocal modelLocal = modelRepository.getModelLocal(voice_name);
+			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voice_name);
 
 			Arrays.stream(modelLocal.getVoiceMetadata())
 					.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))

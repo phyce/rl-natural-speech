@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.exceptions;
 
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
+import dev.phyce.naturalspeech.tts.VoiceID;
 
 public class PiperNotAvailableException extends RuntimeException {
 	public PiperNotAvailableException(VoiceID voiceID) {

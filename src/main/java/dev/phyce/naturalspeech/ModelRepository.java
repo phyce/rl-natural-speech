@@ -5,24 +5,24 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.helpers.PluginHelper;
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.plugins.Plugin;
 import okhttp3.HttpUrl;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.Objects;
 
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
@@ -40,12 +40,19 @@ public class ModelRepository {
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Getter
-	private final HashSet<ModelURL> modelURLS;
+	private final List<ModelURL> modelURLS;
+
+	@Getter
+	private final ScheduledExecutorService executor;
+
+	private final List<ModelRepositoryListener> changeListeners = new ArrayList<>();
 
 	private final Gson gson;
 
 	@Inject
-	public ModelRepository(Downloader downloader, NaturalSpeechRuntimeConfig runtimeConfig) throws IOException {
+	public ModelRepository(Downloader downloader, NaturalSpeechRuntimeConfig runtimeConfig,
+						   ScheduledExecutorService executor) throws IOException {
+		this.executor = executor;
 
 		this.gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
 
@@ -55,22 +62,11 @@ public class ModelRepository {
 		try {
 			InputStream is = Objects.requireNonNull(this.getClass().getResource(MODEL_REPO_FILENAME)).openStream();
 			// read dictionary index as name
-			modelURLS = gson.fromJson(new InputStreamReader(is), new TypeToken<HashSet<ModelURL>>() {
+			modelURLS = gson.fromJson(new InputStreamReader(is), new TypeToken<List<ModelURL>>() {
 			}.getType());
 
-			// check for local files availability
-			for (ModelURL modelURL : modelURLS) {
-				modelURL.setLocalFileAvailable(hasModelLocal(modelURL.modelName));
-			}
-
-			log.info(modelURLS.toString());
-
 			log.info("Loaded voice repository with " + modelURLS.size() + " voices");
-
-			// log voices
-			for (ModelURL modelURL : modelURLS) {
-				log.info("Voice: " + modelURL);
-			}
+			modelURLS.forEach(modelURL -> log.info("Found: " + modelURL));
 
 		} catch (IOException e) {
 			log.error("Could not read voice repository file: " + MODEL_REPO_FILENAME);
@@ -89,6 +85,10 @@ public class ModelRepository {
 
 	public boolean hasModelLocal(VoiceID voiceID) throws IOException {
 		return hasModelLocal(voiceID.modelName);
+	}
+
+	public boolean hasModelLocal(ModelURL modelURL) throws IOException {
+		return hasModelLocal(modelURL.getModelName());
 	}
 
 	public boolean hasModelLocal(String modelName) throws IOException {
@@ -119,11 +119,38 @@ public class ModelRepository {
 		return localVoiceValid;
 	}
 
-	public ModelLocal getModelLocal(VoiceID voiceID) throws IOException {
-		return getModelLocal(voiceID.modelName);
+	public ModelLocal loadModelLocal(VoiceID voiceID) throws IOException {
+		return loadModelLocal(voiceID.modelName);
 	}
 
-	public ModelLocal getModelLocal(String modelName) throws IOException {
+	public void deleteModelLocal(ModelLocal modelLocal) {
+		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelLocal.getModelName());
+		if (voiceFolder.toFile().exists()) {
+			// Check voice is missing any files
+			File onnxFile = voiceFolder.resolve(modelLocal.getModelName() + EXTENSION).toFile();
+			if (!onnxFile.delete()) {
+				log.error("Failed to delete onnx file: {}", onnxFile.getPath());
+			}
+			// Check if onnx metadata exists
+			File onnxMeta = voiceFolder.resolve(modelLocal.getModelName() + MODEL_METADATA_EXTENSION).toFile();
+			if (!onnxMeta.delete()) {
+				log.error("Failed to delete onnx metadata file: {}", onnxMeta.getPath());
+			}
+			// Check if speakers metadata exists
+			File voiceMeta = voiceFolder.resolve(modelLocal.getModelName() + METADATA_EXTENSION).toFile();
+			if (!voiceMeta.delete()) {
+				log.error("Failed to delete voice speakers file: {}", voiceMeta.getPath());
+			}
+			if (!voiceFolder.toFile().delete()) {
+				log.error("Failed to delete voice folder: {}", voiceFolder);
+			}
+			triggerOnRepositoryChanged(modelLocal.getModelName());
+		}
+		log.info("ModalLocal Deleted {}", modelLocal.getModelName());
+	}
+
+
+	public ModelLocal loadModelLocal(String modelName) throws IOException {
 		boolean localVoiceValid = true;
 
 		// First check if voice folder exist
@@ -159,26 +186,25 @@ public class ModelRepository {
 
 		// if local voice files weren't valid, clear the folder and re-download.
 		if (!localVoiceValid) {
-			log.info("Local voice files are invalid, re-downloading.");
+			log.info("downloading... {}", modelName);
 
 			// download voice files
 			DownloadTask onnxTask = downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(modelName + EXTENSION));
 			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL), voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION));
 			DownloadTask speakersTask = downloader.create(HttpUrl.get(modelURL.metadataURL), voiceFolder.resolve(modelName + METADATA_EXTENSION));
-			log.info("modelURL.metadataURL");
-			log.info(modelURL.metadataURL);
 
 			// thread blocking download
 			File onnx = onnxTask.get();
 			File onnxMetadata = onnxMetadataTask.get();
-			log.info("22222222222222222222222222222");
 			File speakers = speakersTask.get();
-			log.info("33333333333333333333333333333");
 
 			if (!onnx.exists() || !onnxMetadata.exists() || !speakers.exists()) {
 				// if any of the files doesn't exist after validation, throw
 				throw new IOException("Voice files downloaded are missing.");
 			}
+
+			log.info("done... {}", modelName);
+			triggerOnRepositoryChanged(modelName);
 		}
 
 		// Read Speaker File into an HashSet of Array of Speaker
@@ -203,6 +229,20 @@ public class ModelRepository {
 		}
 	}
 
+	public void addRepositoryChangedListener(ModelRepositoryListener listener) {
+		changeListeners.add(listener);
+	}
+
+	public void removeRepositoryChangedListener(ModelRepositoryListener listener) {
+		changeListeners.remove(listener);
+	}
+
+	private void triggerOnRepositoryChanged(String modelName) {
+		for (ModelRepositoryListener changeListener : changeListeners) {
+			changeListener.onRepositoryChanged(modelName);
+		}
+	}
+
 	// Partially Serialized JSON Object
 	@Data
 	public static class ModelURL {
@@ -215,10 +255,10 @@ public class ModelRepository {
 		String onnxMetadataURL;
 		@Expose
 		String metadataURL;
-
-		// Not part of JSON
-		// Whether local model files are available for immediate use
-		boolean localFileAvailable;
+		@Expose
+		String description;
+		@Expose
+		String memorySize;
 	}
 
 
@@ -281,5 +321,9 @@ public class ModelRepository {
 
 			return new VoiceID(modelName, selectedVoiceID);
 		}
+	}
+
+	public interface ModelRepositoryListener {
+		default void onRepositoryChanged(String modelName) {}
 	}
 }

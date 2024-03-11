@@ -3,6 +3,8 @@ package dev.phyce.naturalspeech.ui.panels;
 import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
+import dev.phyce.naturalspeech.tts.Piper;
+import dev.phyce.naturalspeech.tts.TextToSpeech;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
@@ -22,8 +24,20 @@ public class VoiceListItem extends JPanel {
 	private final ModelRepository.VoiceMetadata voiceMetadata;
 	private final ModelRepository.ModelLocal modelLocal;
 
+	private static final ImageIcon PLAY_BUTTON;
+	private static final ImageIcon PLAY_BUTTON_DISABLED;
 
-	public VoiceListItem(VoiceExplorerPanel voiceExplorerPanel, NaturalSpeechPlugin plugin, ModelRepository.VoiceMetadata voiceMetadata, ModelRepository.ModelLocal modelLocal) {
+	static {
+		BufferedImage image = ImageUtil.loadImageResource(VoiceListItem.class, "start.png");
+		PLAY_BUTTON = new ImageIcon(image.getScaledInstance(25, 25, Image.SCALE_SMOOTH));
+		PLAY_BUTTON_DISABLED = new ImageIcon(
+			ImageUtil.luminanceScale(ImageUtil.grayscaleImage(image), 0.61f)
+			.getScaledInstance(25, 25, Image.SCALE_SMOOTH));
+
+	}
+
+	public VoiceListItem(VoiceExplorerPanel voiceExplorerPanel, NaturalSpeechPlugin plugin,
+						 ModelRepository.VoiceMetadata voiceMetadata, ModelRepository.ModelLocal modelLocal) {
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.plugin = plugin;
 		this.voiceMetadata = voiceMetadata;
@@ -31,7 +45,8 @@ public class VoiceListItem extends JPanel {
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("%s %s (%s)", voiceMetadata.getPiperVoiceID(), voiceMetadata.getName(), voiceMetadata.getGender()));
+		this.setToolTipText(String.format("%s %s (%s)", voiceMetadata.getPiperVoiceID(), voiceMetadata.getName(),
+			voiceMetadata.getGender()));
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
@@ -68,12 +83,10 @@ public class VoiceListItem extends JPanel {
 			.addGap(5));
 
 
-		BufferedImage image = ImageUtil.loadImageResource(VoiceListItem.class, "start.png");
-		Image scaledImg = image.getScaledInstance(25, 25, Image.SCALE_SMOOTH);
-		ImageIcon playIcon = new ImageIcon(scaledImg);
-		JButton playButton = new JButton(playIcon);
+		JButton playButton = new JButton(PLAY_BUTTON_DISABLED);
 		SwingUtil.removeButtonDecorations(playButton);
-		playButton.setPreferredSize(new Dimension(playIcon.getIconWidth(), playIcon.getIconHeight()));
+		playButton.setPreferredSize(
+			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
 		playButton.addActionListener(event -> {
 			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().activePiperInstanceCount() > 0) {
 				try {
@@ -83,7 +96,8 @@ public class VoiceListItem extends JPanel {
 							plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
 							0,
 							"&VoiceExplorer");
-					} else {
+					}
+					else {
 						log.info("Model {} is currently not running.", modelLocal.getModelName());
 					}
 				} catch (ModelLocalUnavailableException e) {
@@ -91,6 +105,7 @@ public class VoiceListItem extends JPanel {
 				}
 			}
 		});
+		playButton.setEnabled(false);
 
 		BorderLayout rootLayout = new BorderLayout();
 		this.setLayout(rootLayout);
@@ -98,5 +113,25 @@ public class VoiceListItem extends JPanel {
 		this.add(playButton, BorderLayout.EAST);
 
 		revalidate();
+
+		plugin.getTextToSpeech().addTextToSpeechListener(
+			new TextToSpeech.TextToSpeechListener() {
+				@Override
+				public void onPiperStart(Piper piper) {
+					if (piper.getModelLocal().getModelName().equals(modelLocal.getModelName())) {
+						playButton.setIcon(PLAY_BUTTON);
+						playButton.setEnabled(true);
+					}
+				}
+
+				@Override
+				public void onPiperExit(Piper piper) {
+					if (piper.getModelLocal().getModelName().equals(modelLocal.getModelName())) {
+						playButton.setIcon(PLAY_BUTTON_DISABLED);
+						playButton.setEnabled(false);
+					}
+				}
+			}
+		);
 	}
 }
