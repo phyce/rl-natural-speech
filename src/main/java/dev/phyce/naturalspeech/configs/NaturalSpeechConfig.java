@@ -289,7 +289,8 @@ public interface NaturalSpeechConfig extends Config {
 			"nmz=nightmare zone\n" +
 			"ge=grand exchange\n" +
 			"ppl=people\n" +
-			"gtfo=get the fuck out\n";
+			"gtfo=get the fuck out\n" +
+			"tbh=to be honest\n";
 	}
 	//</editor-fold>
 }
