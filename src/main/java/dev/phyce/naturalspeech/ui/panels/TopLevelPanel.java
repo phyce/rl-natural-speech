@@ -23,7 +23,8 @@ public class TopLevelPanel extends PluginPanel {
 	private final MainSettingsPanel mainSettingsPanel;
 	@Getter
 	private final VoiceExplorerPanel voiceExplorerPanel;
-//	@Getter
+	private final MaterialTab mainSettingsTab;
+	//	@Getter
 //	private final EditorPanel editorPanel;
 
 	private boolean active = false;
@@ -60,7 +61,7 @@ public class TopLevelPanel extends PluginPanel {
 
 		// Main Settings Panel Tab
 //		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
-		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech Settings");
+		mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech Settings");
 		tabGroup.select(mainSettingsTab);
 
 		// Speaker Explorer Panel Tab
@@ -133,7 +134,10 @@ public class TopLevelPanel extends PluginPanel {
 		// Despite the code running water tight, strange behavior.
 		// Possible that super onActivate sets visibility
 		active = true;
-		current.onActivate();
+		current.onDeactivate();
+		// FIXME(Louis): Temporary workaround the issue where the main tab rendering on top after toggling panel
+		// Might as well just select it automatically so intended "correct" behavior for now.
+		tabGroup.select(mainSettingsTab);
 	}
 
 	@Override

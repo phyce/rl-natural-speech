@@ -287,7 +287,10 @@ public interface NaturalSpeechConfig extends Config {
 			"rn=right now\n" +
 			"fr=for real\n" +
 			"nmz=nightmare zone\n" +
-			"ge=grand exchange\n";
+			"ge=grand exchange\n" +
+			"ppl=people\n" +
+			"gtfo=get the fuck out\n" +
+			"tbh=to be honest\n";
 	}
 	//</editor-fold>
 }
