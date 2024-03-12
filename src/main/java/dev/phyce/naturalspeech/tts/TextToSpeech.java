@@ -123,24 +123,24 @@ public class TextToSpeech {
 		VoiceConfig customConfig = runtimeConfig.getCustomVoices();
 
 		if(customConfig != null) {
-			for(String key : voiceConfig.player.keySet()) {
-				PlayerNameVoiceConfigDatum customDatum = customConfig.player.remove(key);
-				if (customDatum != null) voiceConfig.player.put(key, customDatum);
+			for(String key : voiceConfig.playerVoices.keySet()) {
+				PlayerNameVoiceConfigDatum customDatum = customConfig.playerVoices.remove(key);
+				if (customDatum != null) voiceConfig.playerVoices.put(key, customDatum);
 			}
 
-			for(Integer key : voiceConfig.npcID.keySet()) {
-				NPCIDVoiceConfigDatum customDatum = customConfig.npcID.remove(key);
-				if (customDatum != null) voiceConfig.npcID.put(key, customDatum);
+			for(Integer key : voiceConfig.npcIDVoices.keySet()) {
+				NPCIDVoiceConfigDatum customDatum = customConfig.npcIDVoices.remove(key);
+				if (customDatum != null) voiceConfig.npcIDVoices.put(key, customDatum);
 			}
 
-			for(String key : voiceConfig.npcName.keySet()) {
-				NPCNameVoiceConfigDatum customDatum = customConfig.npcName.remove(key);
-				if (customDatum != null) voiceConfig.npcName.put(key, customDatum);
+			for(String key : voiceConfig.npcNameVoices.keySet()) {
+				NPCNameVoiceConfigDatum customDatum = customConfig.npcNameVoices.remove(key);
+				if (customDatum != null) voiceConfig.npcNameVoices.put(key, customDatum);
 			}
 
-			voiceConfig.player.putAll(customConfig.player);
-			voiceConfig.npcID.putAll(customConfig.npcID);
-			voiceConfig.npcName.putAll(customConfig.npcName);
+			voiceConfig.playerVoices.putAll(customConfig.playerVoices);
+			voiceConfig.npcIDVoices.putAll(customConfig.npcIDVoices);
+			voiceConfig.npcNameVoices.putAll(customConfig.npcNameVoices);
 		}
 	}
 	public void saveVoiceConfig() {
@@ -226,14 +226,14 @@ public class TextToSpeech {
 				npc.getId()
 			);
 
-			voiceConfig.npcID.put(npc.getId(), voiceConfigDatum);
+			voiceConfig.npcIDVoices.put(npc.getId(), voiceConfigDatum);
 		} else {
 			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
 				new VoiceID[]{new VoiceID(model, voiceId)},
 				actor.getName().toLowerCase()
 			);
 
-			voiceConfig.player.put(actor.getName().toLowerCase(), voiceConfigDatum);
+			voiceConfig.playerVoices.put(actor.getName().toLowerCase(), voiceConfigDatum);
 		}
 	}
 	//</editor-fold>
