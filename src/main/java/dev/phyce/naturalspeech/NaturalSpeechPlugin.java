@@ -41,6 +41,7 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.OverheadTextChanged;
+import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
@@ -281,13 +282,23 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		actorInteractedWith = event.getTarget();
 	}
+
+	private int getGroupId(int component) {
+		return component >> 16;
+	}
+
+	private int getChildId(int component) {
+		return component & '\uffff';
+	}
+
 	@Subscribe(priority = -1)
 	public void onGameTick(GameTick event) {
 		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (!config.dialogEnabled() || actorInteractedWith == null) return;
 
-		int playerGroupId = WidgetInfo.DIALOG_PLAYER_TEXT.getGroupId();
-		Widget playerDialogTextWidget = client.getWidget(playerGroupId, WidgetInfo.DIALOG_PLAYER_TEXT.getChildId());
+		int playerGroupId = getGroupId(ComponentID.DIALOG_PLAYER_TEXT);
+//		int playerGroupId = WidgetInfo.DIALOG_PLAYER_TEXT.getGroupId();
+		Widget playerDialogTextWidget = client.getWidget(playerGroupId, getChildId(ComponentID.DIALOG_PLAYER_TEXT));
 
 		if (playerDialogTextWidget != null) {
 			String dialogText = playerDialogTextWidget.getText();
@@ -299,15 +310,16 @@ public class NaturalSpeechPlugin extends Plugin {
 			}
 		} else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
 
-		int npcGroupId = WidgetInfo.DIALOG_NPC_TEXT.getGroupId();
-		Widget npcDialogTextWidget = client.getWidget(npcGroupId, WidgetInfo.DIALOG_NPC_TEXT.getChildId());
+//		int npcGroupId = WidgetInfo.DIALOG_NPC_TEXT.getGroupId();
+		int npcGroupId = getGroupId(ComponentID.DIALOG_NPC_TEXT);
+		Widget npcDialogTextWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_TEXT));
 
 		if (npcDialogTextWidget != null) {
 			String dialogText = npcDialogTextWidget.getText();
 			if (!dialogText.equals(lastNpcDialogText)) {
 				lastNpcDialogText = dialogText;
-				Widget nameTextWidget = client.getWidget(npcGroupId, WidgetInfo.DIALOG_NPC_NAME.getChildId());
-				Widget modelWidget = client.getWidget(npcGroupId, WidgetInfo.DIALOG_NPC_HEAD_MODEL.getChildId());
+				Widget nameTextWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_NAME));
+				Widget modelWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_HEAD_MODEL));
 
 				if (nameTextWidget != null && modelWidget != null) {
 					String npcName = nameTextWidget.getText().toLowerCase();
