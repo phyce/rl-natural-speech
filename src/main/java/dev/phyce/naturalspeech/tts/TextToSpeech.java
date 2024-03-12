@@ -122,96 +122,107 @@ public class TextToSpeech {
 
 		VoiceConfig customConfig = runtimeConfig.getCustomVoices();
 
-		if(customConfig != null) {
-			for(String key : voiceConfig.player.keySet()) {
-				PlayerNameVoiceConfigDatum customDatum = customConfig.player.remove(key);
-				if (customDatum != null) voiceConfig.player.put(key, customDatum);
+		if (customConfig != null) {
+			for (String key : voiceConfig.playerVoices.keySet()) {
+				PlayerNameVoiceConfigDatum customDatum = customConfig.playerVoices.remove(key);
+				if (customDatum != null) voiceConfig.playerVoices.put(key, customDatum);
 			}
 
-			for(Integer key : voiceConfig.npcID.keySet()) {
-				NPCIDVoiceConfigDatum customDatum = customConfig.npcID.remove(key);
-				if (customDatum != null) voiceConfig.npcID.put(key, customDatum);
+			for (Integer key : voiceConfig.npcIDVoices.keySet()) {
+				NPCIDVoiceConfigDatum customDatum = customConfig.npcIDVoices.remove(key);
+				if (customDatum != null) voiceConfig.npcIDVoices.put(key, customDatum);
 			}
 
-			for(String key : voiceConfig.npcName.keySet()) {
-				NPCNameVoiceConfigDatum customDatum = customConfig.npcName.remove(key);
-				if (customDatum != null) voiceConfig.npcName.put(key, customDatum);
+			for (String key : voiceConfig.npcNameVoices.keySet()) {
+				NPCNameVoiceConfigDatum customDatum = customConfig.npcNameVoices.remove(key);
+				if (customDatum != null) voiceConfig.npcNameVoices.put(key, customDatum);
 			}
 
-			voiceConfig.player.putAll(customConfig.player);
-			voiceConfig.npcID.putAll(customConfig.npcID);
-			voiceConfig.npcName.putAll(customConfig.npcName);
+			voiceConfig.playerVoices.putAll(customConfig.playerVoices);
+			voiceConfig.npcIDVoices.putAll(customConfig.npcIDVoices);
+			voiceConfig.npcNameVoices.putAll(customConfig.npcNameVoices);
 		}
 	}
+
 	public void saveVoiceConfig() {
 		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.toJson());
 	}
 
 	public VoiceID[] getVoiceIDFromChatMessage(ChatMessage message) {
-		VoiceID []results;
-		if(message.getName().equals(PluginHelper.getClientUsername())) results = voiceConfig.getPlayerVoiceIDs(message.getName());
-		else switch(message.getType()) {
-			//			case DIALOG:
-			case WELCOME:
-			case GAMEMESSAGE:
-			case CONSOLE:
-				results = voiceConfig.getNpcVoiceIDs(message.getName());
-				break;
-			default:
-				results = voiceConfig.getPlayerVoiceIDs(message.getName());
-				break;
+		VoiceID[] results;
+		if (message.getName().equals(PluginHelper.getClientUsername())) {
+			results = voiceConfig.getPlayerVoiceIDs(message.getName());
+		} else {
+			switch (message.getType()) {
+				//			case DIALOG:
+				case WELCOME:
+				case GAMEMESSAGE:
+				case CONSOLE:
+					results = voiceConfig.getNpcVoiceIDs(message.getName());
+					break;
+				default:
+					results = voiceConfig.getPlayerVoiceIDs(message.getName());
+					break;
+			}
 		}
-		if(results == null) {
+		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 				Piper model = pipers.get(modelLocal);
 
-				if(message.getType() == ChatMessageType.PUBLICCHAT) {
+				if (message.getType() == ChatMessageType.PUBLICCHAT) {
 					Player user = PluginHelper.getFromUsername(message.getName());
-					if(user != null) {
+					if (user != null) {
 						int gender = user.getPlayerComposition().getGender();
-						results = new VoiceID[]{model.getModelLocal().calculateGenderedVoice(message.getName(), gender)};
+						results =
+							new VoiceID[] {model.getModelLocal().calculateGenderedVoice(message.getName(), gender)};
 						break;
 					}
 				}
-				results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
+				results = new VoiceID[] {model.getModelLocal().calculateVoice(message.getName())};
 			}
 		}
 		return results;
 	}
 
 	public VoiceID[] getVoiceIDFromNPCId(int npcId, String npcName) {
-		VoiceID []results = {};
+		VoiceID[] results = {};
 		results = voiceConfig.getNpcVoiceIDs(npcId);
 
-		if(results == null) results = voiceConfig.getNpcVoiceIDs(npcName);
+		if (results == null) results = voiceConfig.getNpcVoiceIDs(npcName);
 
-		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper model = pipers.get(modelLocal);
-			results = new VoiceID[]{model.getModelLocal().calculateVoice(npcName)};
+		if (results == null) {
+			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+				Piper model = pipers.get(modelLocal);
+				results = new VoiceID[] {model.getModelLocal().calculateVoice(npcName)};
+			}
 		}
 
 		return results;
 	}
 
 	public VoiceID[] getVoiceIDFromNPC(NPC npc) {
-		VoiceID []results = {};
+		VoiceID[] results = {};
 		results = voiceConfig.getNpcVoiceIDs(npc.getName());
 
-		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper model = pipers.get(modelLocal);
-			results = new VoiceID[]{model.getModelLocal().calculateVoice(npc.getName())};
+		if (results == null) {
+			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+				Piper model = pipers.get(modelLocal);
+				results = new VoiceID[] {model.getModelLocal().calculateVoice(npc.getName())};
+			}
 		}
 
 		return results;
 	}
 
 	public VoiceID[] getVoiceIDFromUsername(String username) {
-		VoiceID []results = {};
+		VoiceID[] results = {};
 		results = voiceConfig.getPlayerVoiceIDs(username);
 
-		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper model = pipers.get(modelLocal);
-			results = new VoiceID[]{model.getModelLocal().calculateVoice(username)};
+		if (results == null) {
+			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+				Piper model = pipers.get(modelLocal);
+				results = new VoiceID[] {model.getModelLocal().calculateVoice(username)};
+			}
 		}
 
 		return results;
@@ -222,18 +233,18 @@ public class TextToSpeech {
 			NPC npc = ((NPC) actor);
 
 			NPCIDVoiceConfigDatum voiceConfigDatum = new NPCIDVoiceConfigDatum(
-				new VoiceID[]{new VoiceID(model, voiceId)},
+				new VoiceID[] {new VoiceID(model, voiceId)},
 				npc.getId()
 			);
 
-			voiceConfig.npcID.put(npc.getId(), voiceConfigDatum);
+			voiceConfig.npcIDVoices.put(npc.getId(), voiceConfigDatum);
 		} else {
 			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
-				new VoiceID[]{new VoiceID(model, voiceId)},
+				new VoiceID[] {new VoiceID(model, voiceId)},
 				actor.getName().toLowerCase()
 			);
 
-			voiceConfig.player.put(actor.getName().toLowerCase(), voiceConfigDatum);
+			voiceConfig.playerVoices.put(actor.getName().toLowerCase(), voiceConfigDatum);
 		}
 	}
 	//</editor-fold>
@@ -277,6 +288,7 @@ public class TextToSpeech {
 	//</editor-fold>
 
 	//<editor-fold desc="> Piper">
+
 	/**
 	 * Starts Piper for specific ModelLocal
 	 */
@@ -315,8 +327,7 @@ public class TextToSpeech {
 		if ((piper = pipers.remove(modelLocal)) != null) {
 			piper.stop();
 			//			triggerOnPiperExit(piper);
-		}
-		else {
+		} else {
 			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
 		}
 	}
@@ -363,6 +374,7 @@ public class TextToSpeech {
 		}
 		triggerOnStart();
 	}
+
 	public void stop() {
 		started = false;
 		for (Piper piper : pipers.values()) {
@@ -382,8 +394,7 @@ public class TextToSpeech {
 			ModelConfigDatum datum = new ModelConfigDatum();
 			datum.getPiperConfigData().add(new PiperConfigDatum("libritts", true, 1));
 			this.modelConfig = ModelConfig.fromDatum(datum);
-		}
-		else { // has existing config, just load the json
+		} else { // has existing config, just load the json
 			this.modelConfig = ModelConfig.fromJson(json);
 		}
 	}

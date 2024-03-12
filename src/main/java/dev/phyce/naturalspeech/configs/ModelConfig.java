@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -79,6 +80,22 @@ public class ModelConfig {
 	}
 
 	private void initializePiperConfig(String modelName) {
+		// existing config wasn't found, make new
+		PiperConfigDatum piperDatum = new PiperConfigDatum(modelName, false, 1);
+		piperConfigs.add(PiperConfig.fromDatum(piperDatum));
+	}
+
+	public void resetPiperConfig(String modelName) {
+		// look for existing config
+		Iterator<PiperConfig> iter = piperConfigs.iterator();
+		while (iter.hasNext()) {
+			PiperConfig piperConfig = iter.next();
+			if (piperConfig.getModelName().equals(modelName)) {
+				iter.remove();
+				break;
+			}
+		}
+
 		// existing config wasn't found, make new
 		PiperConfigDatum piperDatum = new PiperConfigDatum(modelName, false, 1);
 		piperConfigs.add(PiperConfig.fromDatum(piperDatum));

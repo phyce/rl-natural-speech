@@ -136,7 +136,11 @@ public class ModelListItem extends JPanel {
 
 			modelRepository.getExecutor().execute(() -> {
 				try {
-					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelUrl.getModelName());
+					// reset model configs, in case there are previous settings
+					textToSpeech.getModelConfig().resetPiperConfig(modelUrl.getModelName());
+
+					modelRepository.loadModelLocal(modelUrl.getModelName());
+
 				} catch (IOException ignored) {
 					SwingUtilities.invokeLater(this::rebuild);
 				}
@@ -202,8 +206,8 @@ public class ModelListItem extends JPanel {
 						textToSpeech.stopPiperForModelLocal(modelLocal);
 					}
 
-					// disable the model in configs
-					textToSpeech.getModelConfig().setModelEnabled(modelLocal.getModelName(), false);
+					// reset the model configs
+					textToSpeech.getModelConfig().resetPiperConfig(modelUrl.getModelName());
 
 					// delete the files
 					modelRepository.deleteModelLocal(modelLocal);

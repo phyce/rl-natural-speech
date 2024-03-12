@@ -13,7 +13,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
@@ -22,27 +21,25 @@ import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.util.HashMap;
 
 public class VoiceConfig {
-	public HashMap<String, PlayerNameVoiceConfigDatum> player;
-	public HashMap<Integer, NPCIDVoiceConfigDatum> npcID;
-	public HashMap<String, NPCNameVoiceConfigDatum> npcName;
-	public Gson gson;
+	public HashMap<String, PlayerNameVoiceConfigDatum> playerVoices;
+	public HashMap<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
+	public HashMap<String, NPCNameVoiceConfigDatum> npcNameVoices;
+	public final static Gson gson = new Gson();
 
 	public VoiceConfig(@NonNull VoiceConfigDatum data) {
 
-		player = new HashMap<>();
-		npcID = new HashMap<>();
-		npcName = new HashMap<>();
-		gson = new Gson();
+		playerVoices = new HashMap<>();
+		npcIDVoices = new HashMap<>();
+		npcNameVoices = new HashMap<>();
 
 		loadDatum(data);
 	}
 
 	public VoiceConfig(@NonNull String json) throws JsonSyntaxException {
 
-		player = new HashMap<>();
-		npcID = new HashMap<>();
-		npcName = new HashMap<>();
-		gson = new Gson();
+		playerVoices = new HashMap<>();
+		npcIDVoices = new HashMap<>();
+		npcNameVoices = new HashMap<>();
 
 		try {
 		    VoiceConfigDatum data = gson.fromJson(json, VoiceConfigDatum.class);
@@ -107,28 +104,28 @@ public class VoiceConfig {
 	}
 
 	public void loadDatum(VoiceConfigDatum data) {
-		player.clear();
-		npcID.clear();
-		npcName.clear();
+		playerVoices.clear();
+		npcIDVoices.clear();
+		npcNameVoices.clear();
 
 		for (PlayerNameVoiceConfigDatum datum : data.getPlayerNameVoiceConfigData()) {
-			player.put(datum.getPlayerName(), datum);
+			playerVoices.put(datum.getPlayerName(), datum);
 		}
 
 		for (NPCIDVoiceConfigDatum datum : data.getNpcIDVoiceConfigData()) {
-			npcID.put(datum.getNpcId(), datum);
+			npcIDVoices.put(datum.getNpcId(), datum);
 		}
 
 		for (NPCNameVoiceConfigDatum datum : data.getNpcNameVoiceConfigData()) {
-			npcName.put(datum.getNpcName(), datum);
+			npcNameVoices.put(datum.getNpcName(), datum);
 		}
 	}
 
 	public VoiceConfigDatum exportDatum() {
 		VoiceConfigDatum voiceConfigDatum = new VoiceConfigDatum();
-		voiceConfigDatum.getPlayerNameVoiceConfigData().addAll(player.values());
-		voiceConfigDatum.getNpcIDVoiceConfigData().addAll(npcID.values());
-		voiceConfigDatum.getNpcNameVoiceConfigData().addAll(npcName.values());
+		voiceConfigDatum.getPlayerNameVoiceConfigData().addAll(playerVoices.values());
+		voiceConfigDatum.getNpcIDVoiceConfigData().addAll(npcIDVoices.values());
+		voiceConfigDatum.getNpcNameVoiceConfigData().addAll(npcNameVoices.values());
 		return voiceConfigDatum;
 	}
 
@@ -137,7 +134,7 @@ public class VoiceConfig {
 			VoiceID voice = VoiceID.fromIDString(PluginHelper.getConfig().personalVoiceID());
 			if(voice != null) return new VoiceID[]{voice};
 		}
-		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = this.player.get(playerUserName.toLowerCase());
+		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = this.playerVoices.get(playerUserName.toLowerCase());
 
 		if (playerNameVoiceConfigDatum == null) return null;
 
@@ -145,7 +142,7 @@ public class VoiceConfig {
 	}
 
 	public VoiceID[] getNpcVoiceIDs(int npcID) {
-		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcID.get(npcID);
+		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcIDVoices.get(npcID);
 
 		if (npcIDVoiceConfigDatum == null) return null;
 
@@ -153,10 +150,10 @@ public class VoiceConfig {
 	}
 
 	public VoiceID[] getNpcVoiceIDs(String npcName) {
-		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcName.get(npcName.toLowerCase());
+		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcNameVoices.get(npcName.toLowerCase());
 
 		//TODO loop through and see if there are any entries with the same name in NPCIDs
-		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcID.get(npcName.toLowerCase());
+		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcIDVoices.get(npcName.toLowerCase());
 
 		if (npcNameVoiceConfigDatum == null && npcIDVoiceConfigDatum == null) return null;
 
