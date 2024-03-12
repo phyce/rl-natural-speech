@@ -1,7 +1,6 @@
 package dev.phyce.naturalspeech.configs;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
@@ -9,13 +8,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
 public class ModelConfig {
 
 	private final List<PiperConfig> piperConfigs;
-
-	private static final Gson gson = new GsonBuilder().create();
 
 	public static ModelConfig fromDatum(ModelConfigDatum datum) {
 		return new ModelConfig(datum);
@@ -29,17 +27,22 @@ public class ModelConfig {
 	}
 
 	public static ModelConfig fromJson(String json) throws JsonSyntaxException {
-		ModelConfigDatum datum = gson.fromJson(json, ModelConfigDatum.class);
+		ModelConfigDatum datum = RuneLiteAPI.GSON.fromJson(json, ModelConfigDatum.class);
 		return new ModelConfig(datum);
 	}
 
 	public String toJson() {
-		return gson.toJson(toDatum());
+		return RuneLiteAPI.GSON.toJson(toDatum());
 	}
 
 	private ModelConfig(ModelConfigDatum datum) {
 		piperConfigs = datum.getPiperConfigData().stream().map(PiperConfig::fromDatum).collect(Collectors.toList());
 	}
+
+	public void saveModelConfig() {
+
+	}
+
 
 	public int getModelProcessCount(String modelName) {
 		return piperConfigs.stream()

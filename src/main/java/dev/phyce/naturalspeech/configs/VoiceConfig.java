@@ -19,13 +19,12 @@ import dev.phyce.naturalspeech.helpers.PluginHelper;
 
 
 import java.util.HashMap;
+import net.runelite.http.api.RuneLiteAPI;
 
 public class VoiceConfig {
 	public HashMap<String, PlayerNameVoiceConfigDatum> playerVoices;
 	public HashMap<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
 	public HashMap<String, NPCNameVoiceConfigDatum> npcNameVoices;
-	public final static Gson gson = new Gson();
-
 	public VoiceConfig(@NonNull VoiceConfigDatum data) {
 
 		playerVoices = new HashMap<>();
@@ -42,7 +41,7 @@ public class VoiceConfig {
 		npcNameVoices = new HashMap<>();
 
 		try {
-		    VoiceConfigDatum data = gson.fromJson(json, VoiceConfigDatum.class);
+		    VoiceConfigDatum data = RuneLiteAPI.GSON.fromJson(json, VoiceConfigDatum.class);
 			loadDatum(data);
 		} catch (JsonSyntaxException e) {
 			json = loadResourceFile(json);
@@ -52,7 +51,7 @@ public class VoiceConfig {
 
 	public void loadJSON(String jsonString) {
 		try {
-			VoiceConfigDatum data = gson.fromJson(jsonString, VoiceConfigDatum.class);
+			VoiceConfigDatum data = RuneLiteAPI.GSON.fromJson(jsonString, VoiceConfigDatum.class);
 			loadDatum(data);
 		} catch (JsonSyntaxException e) {
 			System.err.println("JSON syntax error: " + e.getMessage());
@@ -100,7 +99,7 @@ public class VoiceConfig {
 	}
 
 	public String toJson() {
-		return gson.toJson(exportDatum());
+		return RuneLiteAPI.GSON.toJson(exportDatum());
 	}
 
 	public void loadDatum(VoiceConfigDatum data) {

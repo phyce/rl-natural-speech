@@ -1,11 +1,9 @@
 package dev.phyce.naturalspeech;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
@@ -51,10 +49,9 @@ public class ModelRepository {
 
 	@Inject
 	public ModelRepository(Downloader downloader, NaturalSpeechRuntimeConfig runtimeConfig,
-						   ScheduledExecutorService executor) throws IOException {
+						   ScheduledExecutorService executor, Gson gson) throws IOException {
 		this.executor = executor;
-
-		this.gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
+		this.gson = gson;
 
 		this.downloader = downloader;
 		this.runtimeConfig = runtimeConfig;
