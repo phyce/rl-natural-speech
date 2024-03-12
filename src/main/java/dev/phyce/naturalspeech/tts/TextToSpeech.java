@@ -152,8 +152,7 @@ public class TextToSpeech {
 		VoiceID[] results;
 		if (message.getName().equals(PluginHelper.getClientUsername())) {
 			results = voiceConfig.getPlayerVoiceIDs(message.getName());
-		}
-		else {
+		} else {
 			switch (message.getType()) {
 				//			case DIALOG:
 				case WELCOME:
@@ -239,8 +238,7 @@ public class TextToSpeech {
 			);
 
 			voiceConfig.npcIDVoices.put(npc.getId(), voiceConfigDatum);
-		}
-		else {
+		} else {
 			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
 				new VoiceID[] {new VoiceID(model, voiceId)},
 				actor.getName().toLowerCase()
@@ -329,8 +327,7 @@ public class TextToSpeech {
 		if ((piper = pipers.remove(modelLocal)) != null) {
 			piper.stop();
 			//			triggerOnPiperExit(piper);
-		}
-		else {
+		} else {
 			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
 		}
 	}
@@ -397,8 +394,7 @@ public class TextToSpeech {
 			ModelConfigDatum datum = new ModelConfigDatum();
 			datum.getPiperConfigData().add(new PiperConfigDatum("libritts", true, 1));
 			this.modelConfig = ModelConfig.fromDatum(datum);
-		}
-		else { // has existing config, just load the json
+		} else { // has existing config, just load the json
 			this.modelConfig = ModelConfig.fromJson(json);
 		}
 	}
