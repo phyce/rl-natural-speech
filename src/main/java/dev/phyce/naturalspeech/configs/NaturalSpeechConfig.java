@@ -288,7 +288,8 @@ public interface NaturalSpeechConfig extends Config {
 			"fr=for real\n" +
 			"nmz=nightmare zone\n" +
 			"ge=grand exchange\n" +
-			"ppl=people\n";
+			"ppl=people\n" +
+			"gtfo=get the fuck out\n";
 	}
 	//</editor-fold>
 }
