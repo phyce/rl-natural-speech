@@ -197,7 +197,7 @@ public class NaturalSpeechPlugin extends Plugin {
 			NPC npc = (NPC) event.getActor();
 			int distance = PluginHelper.getNPCDistance(npc);
 
-			textToSpeech.speak(npc.getId(), event.getActor().getName(), distance, npc.getOverheadText());
+			textToSpeech.speak(npc.getId(), event.getActor().getName().toLowerCase(), distance, npc.getOverheadText());
 		}
 	}
 
@@ -211,6 +211,11 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		if (!isMessageProcessable(message))return;
 		int distance = getSpeakerDistance(message);
+
+		//This can't go into patchChatMessage unfortunately
+		message.setName(message.getName()
+			.replaceAll("[\\p{C}\\p{Z}]", " ")
+			.toLowerCase());
 
 		textToSpeech.speak(message, distance);
 	}
@@ -279,7 +284,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				Widget modelWidget = client.getWidget(npcGroupId, WidgetInfo.DIALOG_NPC_HEAD_MODEL.getChildId());
 
 				if (nameTextWidget != null && modelWidget != null) {
-					String npcName = nameTextWidget.getText();
+					String npcName = nameTextWidget.getText().toLowerCase();
 					int modelId = modelWidget.getModelId();
 
 					dialogText = dialogText.replace("<br>", " ");
@@ -425,7 +430,9 @@ public class NaturalSpeechPlugin extends Plugin {
 				message.setMessage(TextUtil.removeTags(message.getMessage()));
 				message.setName("_system_");
 				break;
+
 		}
+		message.setMessage(expandShortenedPhrases(message.getMessage()));
 	}
 	//</editor-fold>
 
@@ -504,9 +511,6 @@ public class NaturalSpeechPlugin extends Plugin {
 			voiceConfigChatboxTextInputProvider.get()
 				.insertActor(entry.getActor())
 				.build();
-
-			Actor actor = entry.getActor();
-			NPC npc = ((NPC) actor);
 		}));
 
 		muteOptions.addTo(client);

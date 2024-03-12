@@ -69,22 +69,16 @@ public class VoiceConfig {
 
 	public static String loadResourceFile(String fileName) {
 		String fullPath = "/dev/phyce/naturalspeech/" + fileName;
-//		System.out.println("full path");
-//		System.out.println(fullPath);
 		InputStream inputStream = VoiceConfig.class.getResourceAsStream(fullPath);
-//		System.out.println(inputStream);
 		if (inputStream == null) {
 			throw new IllegalArgumentException("File not found! " + fullPath);
 		} else {
 			try (InputStreamReader streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
 				BufferedReader reader = new BufferedReader(streamReader)) {
-//				System.out.println("Reader");
 				StringBuilder result = new StringBuilder();
 				for(String line = reader.readLine(); line != null; line = reader.readLine()){
 					result.append(line);
-//					System.out.println(line);
 				}
-//				System.out.println(result.toString());
 				return result.toString();
 			} catch (Exception e) {
 				throw new RuntimeException("Failed to read the resource file: " + fullPath, e);
@@ -141,23 +135,10 @@ public class VoiceConfig {
 
 	public VoiceID[] getPlayerVoiceIDs(String playerUserName) {
 		if (PluginHelper.getClientUsername().equals(playerUserName)) {
-			Supplier<VoiceID> voiceIDSupplier = () -> {
-				String personalVoiceID = PluginHelper.getConfig().personalVoiceID();
-				try {
-					String[] parts = personalVoiceID.split(":");
-					if (parts.length == 2) {
-						String modelName = parts[0];
-						int piperVoiceID = Integer.parseInt(parts[1]);
-						return new VoiceID(modelName, piperVoiceID);
-					}
-				} catch (Exception e) {}
-				return null;
-			};
-			VoiceID voice = voiceIDSupplier.get();
+			VoiceID voice = VoiceID.fromIDString(PluginHelper.getConfig().personalVoiceID());
 			if(voice != null) return new VoiceID[]{voice};
-//			return new VoiceID[] {voice};
 		}
-		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = player.get(playerUserName.toLowerCase());
+		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = this.player.get(playerUserName.toLowerCase());
 
 		if (playerNameVoiceConfigDatum == null) return null;
 
@@ -174,6 +155,8 @@ public class VoiceConfig {
 
 	public VoiceID[] getNpcVoiceIDs(String npcName) {
 		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcName.get(npcName.toLowerCase());
+
+		//TODO loop through and see if there are any entries with the same name in NPCIDs
 		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcID.get(npcName.toLowerCase());
 
 		if (npcNameVoiceConfigDatum == null && npcIDVoiceConfigDatum == null) return null;
@@ -187,11 +170,5 @@ public class VoiceConfig {
 
 		return combinedVoices;
 	}
-//	public VoiceID[] getNpcVoiceIDs(String npcName) {
-//		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcName.get(npcName.toLowerCase());
-//
-//		if (npcNameVoiceConfigDatum == null) return null;
-//
-//		return npcNameVoiceConfigDatum.getVoiceIDs();
-//	}
+
 }

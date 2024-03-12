@@ -14,17 +14,13 @@ import dev.phyce.naturalspeech.tts.uservoiceconfigs.VoiceID;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.PlayerNameVoiceConfigDatum;
-import dev.phyce.naturalspeech.tts.uservoiceconfigs.json.VoiceConfigDatum;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.api.widgets.ComponentID;
 
 import java.io.IOException;
 import java.util.*;
@@ -32,12 +28,13 @@ import java.util.*;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import net.runelite.client.eventbus.EventBus;
-import net.runelite.client.plugins.Plugin;
 
 // Renamed from TTSManager
 @Slf4j
 @Singleton
 public class TextToSpeech {
+
+	//<editor-fold desc="> Properties">
 	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
 	private final ConfigManager configManager;
 	private final ModelRepository modelRepository;
@@ -47,6 +44,7 @@ public class TextToSpeech {
 	private VoiceConfig voiceConfig;
 
 	private final List<PiperLifetimeListener> piperLifetimeListeners = new ArrayList<>();
+	//</editor-fold>
 
 	@Inject
 	private TextToSpeech(
@@ -60,13 +58,56 @@ public class TextToSpeech {
 		loadVoiceConfig();
 	}
 
+	//<editor-fold desc="> Speak">
+	public void speak(ChatMessage message, int distance)
+		throws
+		ModelLocalUnavailableException,
+		PiperNotAvailableException {
+		VoiceID voiceId = getVoiceIDFromChatMessage(message)[0];
+		speak(voiceId, message.getMessage().toLowerCase(), distance, message.getName());
+	}
+	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
+		throws ModelLocalUnavailableException, PiperNotAvailableException {
+
+		try {
+			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
+				throw new ModelLocalUnavailableException(text, voiceID);
+			}
+
+			ModelRepository.ModelLocal modelLocal = modelRepository.getModelLocal(voiceID);
+
+			// Check if the piper for the model is running, if not, throw
+			if (!isPiperForModelRunning(modelLocal)) {
+				throw new PiperNotAvailableException(text, voiceID);
+			}
+
+			List<String> fragments = splitSentence(text);
+			for (String sentence : fragments) {
+				pipers.get(modelLocal).speak(sentence, voiceID, getVolumeWithDistance(distance), audioQueueName);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException("Error loading " + voiceID, e);
+		}
+	}
+
+	public void speak(int npcId, String npcName, int distance, String message) {
+		VoiceID voiceId = getVoiceIDFromNPCId(npcId, npcName)[0];
+		speak(voiceId, message, distance, npcName);
+	}
+
+	public void speak(String message) {
+		String username = PluginHelper.getClientUsername();
+		VoiceID voiceId = getVoiceIDFromUsername(username)[0];
+		speak(voiceId, message.toLowerCase(), 0, username);
+	}
+	//</editor-fold>
+
+	//<editor-fold desc="> Voice">
 	public void loadVoiceConfig() throws JsonSyntaxException {
 		// FIXME(Louis): Reading from local file but saving to runtimeConfig right now
 		//fetch from config manager
 		//if empty, load in the
 		voiceConfig = new VoiceConfig(VOICE_CONFIG_FILE);
-		System.out.println("Custom voice Config");
-		System.out.println(voiceConfig.exportJSON());
 
 		VoiceConfig customConfig = runtimeConfig.getCustomVoices();
 
@@ -92,6 +133,79 @@ public class TextToSpeech {
 		}
 	}
 
+	public void saveVoiceConfig() {
+		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.exportJSON());
+	}
+	public VoiceID[] getVoiceIDFromChatMessage(ChatMessage message) {
+		VoiceID []results;
+		if(message.getName().equals(PluginHelper.getClientUsername())) results = voiceConfig.getPlayerVoiceIDs(message.getName());
+		else switch(message.getType()) {
+			//			case DIALOG:
+			case WELCOME:
+			case GAMEMESSAGE:
+			case CONSOLE:
+				results = voiceConfig.getNpcVoiceIDs(message.getName());
+				break;
+			default:
+				results = voiceConfig.getPlayerVoiceIDs(message.getName());
+				break;
+		}
+		if(results == null) {
+			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+				Piper model = pipers.get(modelLocal);
+
+				if(message.getType() == ChatMessageType.PUBLICCHAT) {
+					Player user = PluginHelper.getFromUsername(message.getName());
+					if(user != null) {
+						int gender = user.getPlayerComposition().getGender();
+						results = new VoiceID[]{model.getModelLocal().calculateGenderedVoice(message.getName(), gender)};
+						break;
+					}
+				}
+				results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
+			}
+		}
+		return results;
+	}
+
+	public VoiceID[] getVoiceIDFromNPCId(int npcId, String npcName) {
+		VoiceID []results = {};
+		results = voiceConfig.getNpcVoiceIDs(npcId);
+
+		if(results == null) results = voiceConfig.getNpcVoiceIDs(npcName);
+
+		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+			Piper model = pipers.get(modelLocal);
+			results = new VoiceID[]{model.getModelLocal().calculateVoice(npcName)};
+		}
+
+		return results;
+	}
+
+	public VoiceID[] getVoiceIDFromNPC(NPC npc) {
+		VoiceID []results = {};
+		results = voiceConfig.getNpcVoiceIDs(npc.getName());
+
+		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+			Piper model = pipers.get(modelLocal);
+			results = new VoiceID[]{model.getModelLocal().calculateVoice(npc.getName())};
+		}
+
+		return results;
+	}
+
+	public VoiceID[] getVoiceIDFromUsername(String username) {
+		VoiceID []results = {};
+		results = voiceConfig.getPlayerVoiceIDs(username);
+
+		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+			Piper model = pipers.get(modelLocal);
+			results = new VoiceID[]{model.getModelLocal().calculateVoice(username)};
+		}
+
+		return results;
+	}
+
 	public void setActorVoiceID(Actor actor, String model, int voiceId) {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
@@ -105,126 +219,20 @@ public class TextToSpeech {
 		} else {
 			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
 				new VoiceID[]{new VoiceID(model, voiceId)},
-				actor.getName()
+				actor.getName().toLowerCase()
 			);
 
-			voiceConfig.player.put(actor.getName(), voiceConfigDatum);
+			voiceConfig.player.put(actor.getName().toLowerCase(), voiceConfigDatum);
 		}
 	}
+	//</editor-fold>
 
-	public void saveVoiceConfig() {
-		System.out.println(voiceConfig.exportJSON());
-		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.exportJSON());
-	}
-
-	public boolean isPiperForModelRunning(ModelRepository.ModelLocal modelLocal) {
-		Piper piper = pipers.get(modelLocal);
-		return piper != null && piper.countAlive() > 0;
-	}
-
-	public int activePiperInstanceCount() {
-		int result = 0;
-		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper model = pipers.get(modelLocal);
-			result += model.countAlive();
-		}
-		return result;
-	}
-
-	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
-		throws ModelLocalUnavailableException, PiperNotAvailableException {
-
-		try {
-			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
-				throw new ModelLocalUnavailableException(text, voiceID);
-			}
-
-			ModelRepository.ModelLocal modelLocal = modelRepository.getModelLocal(voiceID);
-
-			// Check if the piper for the model is running, if not, throw
-			if (!isPiperForModelRunning(modelLocal)) {
-				throw new PiperNotAvailableException(text, voiceID);
-			}
-
-			List<String> fragments = splitSentence(text);
-			for (String sentence : fragments) {
-				pipers.get(modelLocal).speak(sentence, voiceID, getVolumeWithDistance(distance), audioQueueName);
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("Error loading " + voiceID, e);
-		}
-	}
-
-	public void speak(ChatMessage message, int distance)
-		throws
-			ModelLocalUnavailableException,
-			PiperNotAvailableException {
-		VoiceID voiceId = getModelAndVoiceFromChatMessage(message)[0];
-		speak(voiceId, message.getMessage().toLowerCase(), distance, message.getName());
-	}
-
-//	public void speak(NPC npc, String npcName) {
-//
-//		VoiceID voiceId = getModelAndVoiceFromNPC(npc)[0];
-//		speak(voiceId, npc.getOverheadText(), distance, npcName);
-//	}
-
-	public void speak(int npcId, String npcName, int distance, String message) {
-		VoiceID voiceId = getModelAndVoiceFromNPCId(npcId, npcName)[0];
-		speak(voiceId, message, distance, npcName);
-	}
-
-	public void speak(String message) {
-		String username = PluginHelper.getClientUsername();
-		VoiceID voiceId = getModelAndVoiceFromUsername(username)[0];
-		speak(voiceId, message.toLowerCase(), 0, username);
-	}
-
+	//<editor-fold desc="> Audio">
 	public float getVolumeWithDistance(int distance) {
 		if (distance <= 1) {
 			return 0;
 		}
 		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
-	}
-
-	/**
-	 * Starts Piper for specific ModelLocal
-	 */
-	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws IOException {
-		if (pipers.get(modelLocal) != null) {
-			log.warn("Starting piper for {} when there are already pipers running for the model.",
-				modelLocal.getModelName());
-			Piper duplicate = pipers.remove(modelLocal);
-			duplicate.stop();
-			triggerOnPiperExit(duplicate);
-		}
-
-		// @FIXME Make instanceCount configurable
-		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
-
-		pipers.put(modelLocal, piper);
-
-		triggerOnPiperStart(piper);
-	}
-
-	public void stopPiperForModelLocal(ModelRepository.ModelLocal modelLocal)
-		throws PiperNotAvailableException {
-		Piper piper;
-		if ((piper = pipers.remove(modelLocal)) != null) {
-			piper.stop();
-			triggerOnPiperExit(piper);
-		}
-		else {
-			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
-		}
-	}
-
-	public void stopAllPipers() {
-		for (Piper piper : pipers.values()) {
-			piper.stop();
-			triggerOnPiperExit(piper);
-		}
-		pipers.clear();
 	}
 
 	/**
@@ -258,72 +266,60 @@ public class TextToSpeech {
 			}
 		}
 	}
+	//</editor-fold>
 
-	public VoiceID[] getModelAndVoiceFromChatMessage(ChatMessage message) {
-		VoiceID []results;
-		if(message.getName().equals(PluginHelper.getClientUsername())) results = voiceConfig.getPlayerVoiceIDs(message.getName());
-		else switch(message.getType()) {
-//			case DIALOG:
-			case WELCOME:
-			case GAMEMESSAGE:
-			case CONSOLE:
-				results = voiceConfig.getNpcVoiceIDs(message.getName());
-				break;
-			default:
-				results = voiceConfig.getPlayerVoiceIDs(message.getName());
-				break;
+	//<editor-fold desc="> Piper">
+	/**
+	 * Starts Piper for specific ModelLocal
+	 */
+	public void startPiperForModelLocal(ModelRepository.ModelLocal modelLocal) throws IOException {
+		if (pipers.get(modelLocal) != null) {
+			log.warn("Starting piper for {} when there are already pipers running for the model.",
+				modelLocal.getModelName());
+			Piper duplicate = pipers.remove(modelLocal);
+			duplicate.stop();
+			triggerOnPiperExit(duplicate);
 		}
-		if(results == null) {
-			for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-				Piper model = pipers.get(modelLocal);
 
-				if(message.getType() == ChatMessageType.PUBLICCHAT) {
-					int gender = PluginHelper.getFromUsername(message.getName()).getPlayerComposition().getGender();
-					results = new VoiceID[]{model.getModelLocal().calculateGenderedVoice(message.getName(), gender)};
-				}
-				else results = new VoiceID[]{model.getModelLocal().calculateVoice(message.getName())};
-			}
-		}
-		return results;
+		// @FIXME Make instanceCount configurable
+		Piper piper = Piper.start(modelLocal, runtimeConfig.getPiperPath(), 2);
+
+		pipers.put(modelLocal, piper);
+
+		triggerOnPiperStart(piper);
 	}
 
-	public VoiceID[] getModelAndVoiceFromNPCId(int npcId, String npcName) {
-		VoiceID []results = {};
-		results = voiceConfig.getNpcVoiceIDs(npcId);
-
-		if(results == null) results = voiceConfig.getNpcVoiceIDs(npcName);
-
-		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper model = pipers.get(modelLocal);
-			results = new VoiceID[]{model.getModelLocal().calculateVoice(npcName)};
+	public void stopPiperForModelLocal(ModelRepository.ModelLocal modelLocal)
+		throws PiperNotAvailableException {
+		Piper piper;
+		if ((piper = pipers.remove(modelLocal)) != null) {
+			piper.stop();
+			triggerOnPiperExit(piper);
 		}
-
-		return results;
+		else {
+			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
+		}
+	}
+	public void stopAllPipers() {
+		for (Piper piper : pipers.values()) {
+			piper.stop();
+			triggerOnPiperExit(piper);
+		}
+		pipers.clear();
 	}
 
-	public VoiceID[] getModelAndVoiceFromNPC(NPC npc) {
-		VoiceID []results = {};
-		//TODO get custom VoiceID results first
-		results = voiceConfig.getNpcVoiceIDs(npc.getName());
-
-		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
+	public int activePiperInstanceCount() {
+		int result = 0;
+		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
 			Piper model = pipers.get(modelLocal);
-			results = new VoiceID[]{model.getModelLocal().calculateVoice(npc.getName())};
+			result += model.countAlive();
 		}
-
-		return results;
+		return result;
 	}
 
-	public VoiceID[] getModelAndVoiceFromUsername(String username) {
-		VoiceID []results = {};
-		results = voiceConfig.getPlayerVoiceIDs(username);
-
-		if(results == null) for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper model = pipers.get(modelLocal);
-			results = new VoiceID[]{model.getModelLocal().calculateVoice(username)};
-		}
-
-		return results;
+	public boolean isPiperForModelRunning(ModelRepository.ModelLocal modelLocal) {
+		Piper piper = pipers.get(modelLocal);
+		return piper != null && piper.countAlive() > 0;
 	}
 
 	public void triggerOnPiperStart(Piper piper) {
@@ -351,4 +347,5 @@ public class TextToSpeech {
 
 		default void onPiperExit(Piper piper) {}
 	}
+	//</editor-fold>
 }

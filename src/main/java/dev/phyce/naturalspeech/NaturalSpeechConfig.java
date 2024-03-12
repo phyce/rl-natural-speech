@@ -15,15 +15,6 @@ public interface NaturalSpeechConfig extends Config {
 	String generalSettingsSection = "generalSettingsSection";
 	@ConfigItem(
 		position = 1,
-		keyName = "autoStart",
-		name = "Autostart the TTS engine",
-		description = "If executable and voice models available, autostart the TTS engine when the plugin loads.",
-		section = generalSettingsSection
-	)
-	default boolean autoStart() { return true; }
-
-	@ConfigItem(
-		position = 3,
 		keyName = "personalVoice",
 		name = "Personal voice ID",
 		description = "Choose one of the 903 voices for your character, example: libritts:0",
@@ -35,7 +26,16 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position = 4,
+		position = 2,
+		keyName = "autoStart",
+		name = "Autostart the TTS engine",
+		description = "If executable and voice models available, autostart the TTS engine when the plugin loads.",
+		section = generalSettingsSection
+	)
+	default boolean autoStart() { return true; }
+
+	@ConfigItem(
+		position = 3,
 		keyName = "distanceFade",
 		name = "Fade distant sound",
 		description = "Players standing further away will sound quieter.",

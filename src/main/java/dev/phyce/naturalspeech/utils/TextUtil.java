@@ -84,6 +84,7 @@ public final class TextUtil {
 
 		return tokens;
 	}
+
 	public static String escape(String text) {
 		return text.replace("\\", "\\\\")
 				.replace("\"", "\\\"")

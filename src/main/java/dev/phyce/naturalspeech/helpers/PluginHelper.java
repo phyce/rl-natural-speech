@@ -45,7 +45,9 @@ public final class PluginHelper {
 		if (instance.client.getLocalPlayer() == null) {
 			return null;
 		}
-		return instance.client.getLocalPlayer().getName();
+		String name = instance.client.getLocalPlayer().getName();
+		if (name != null) name = name.toLowerCase();
+		return name;
 	}
 
 	public static Player getFromUsername(@NonNull String username) {
