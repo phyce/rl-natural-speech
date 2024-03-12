@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.helpers;
 
-import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import lombok.Getter;
 import lombok.NonNull;
 import net.runelite.api.Client;

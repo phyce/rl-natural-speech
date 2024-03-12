@@ -33,6 +33,7 @@ public class DownloadTask implements Supplier<File> {
 	@Getter
 	private volatile int error = 0;
 
+	// TODO(Louis) Add a callback that updates the download progress
 	public DownloadTask(OkHttpClient httpClient, Path destination, HttpUrl url, boolean overwrite) {
 		this.destination = destination;
 		this.url = url;

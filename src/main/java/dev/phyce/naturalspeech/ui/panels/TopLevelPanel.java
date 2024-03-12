@@ -14,7 +14,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-@Singleton
 public class TopLevelPanel extends PluginPanel {
 	private final MaterialTabGroup tabGroup;
 	private final CardLayout layout;
@@ -24,8 +23,8 @@ public class TopLevelPanel extends PluginPanel {
 	private final MainSettingsPanel mainSettingsPanel;
 	@Getter
 	private final VoiceExplorerPanel voiceExplorerPanel;
-	@Getter
-	private final EditorPanel editorPanel;
+//	@Getter
+//	private final EditorPanel editorPanel;
 
 	private boolean active = false;
 	private PluginPanel current;
@@ -37,15 +36,15 @@ public class TopLevelPanel extends PluginPanel {
 	TopLevelPanel(
 			EventBus eventBus,
 			MainSettingsPanel  mainSettingsPanel,
-			VoiceExplorerPanel voiceExplorerPanel,
-			EditorPanel editorPanel
+			VoiceExplorerPanel voiceExplorerPanel
+//			EditorPanel editorPanel
 	) {
 		super(false);
 
 		this.eventBus = eventBus;
 		this.mainSettingsPanel = mainSettingsPanel;
 		this.voiceExplorerPanel = voiceExplorerPanel;
-		this.editorPanel = editorPanel;
+//		this.editorPanel = editorPanel;
 
 		tabGroup = new MaterialTabGroup();
 		tabGroup.setLayout(new GridLayout(1, 0, 7, 7));
@@ -68,7 +67,7 @@ public class TopLevelPanel extends PluginPanel {
 		addTab(voiceExplorerPanel, "profile_icon.png", "Voice Explorer");
 
 		// Editor Panel Tab
-		addTab(editorPanel, "plugin_hub_icon.png", "Editor");
+//		addTab(editorPanel, "plugin_hub_icon.png", "Editor");
 
 	}
 

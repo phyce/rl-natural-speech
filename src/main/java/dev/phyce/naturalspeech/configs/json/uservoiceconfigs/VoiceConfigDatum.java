@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.tts.uservoiceconfigs.json;
+package dev.phyce.naturalspeech.configs.json.uservoiceconfigs;
 
 
 import lombok.Value;
