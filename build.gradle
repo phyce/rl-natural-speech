@@ -25,7 +25,7 @@ dependencies {
 }
 
 group = 'dev.phyce.naturalspeech'
-version = '0.9.8'
+version = '0.9.9'
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
