@@ -234,7 +234,9 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		//This can't go into patchChatMessage unfortunately
 		message.setName(message.getName()
-			.replaceAll("[\\p{C}\\p{Z}]", " ")
+			.replaceAll("<[^>]+>", "") // Remove all tags
+			.replaceAll("[\\p{C}\\p{Z}]+", " ") // Replace control characters and any kind of separator with a space
+//			.replaceAll("[^\\p{L}\\p{Nd} ]+", "") // Remove non-letter, non-digit characters except spaces
 			.toLowerCase());
 
 		message.setMessage(message.getMessage()
