@@ -18,16 +18,16 @@
     },
     {
         "modelName": "thorstenemo",
-        "onnxURL": "https://huggingface.co/rhasspy/piper-voices/blob/main/de/de_DE/thorsten_emotional/medium/de_DE-thorsten_emotional-medium.onnx?download=true",
-        "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/blob/main/de/de_DE/thorsten_emotional/medium/de_DE-thorsten_emotional-medium.onnx.json?download=true",
+        "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten_emotional/medium/de_DE-thorsten_emotional-medium.onnx?download=true",
+        "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten_emotional/medium/de_DE-thorsten_emotional-medium.onnx.json?download=true",
         "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/thorstenemo.metadata.json",
         "description": "Thorsten Muller (German Emotional) 8 different emotions.",
         "memorySize": "size:76MB"
     },
     {
         "modelName": "sharvard",
-        "onnxURL": "https://huggingface.co/rhasspy/piper-voices/blob/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx?download=true",
-        "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/blob/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json?download=true",
+        "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx?download=true",
+        "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json?download=true",
         "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/sharvard.metadata.json",
         "description": "Spanish. 2 voices.",
         "memorySize": "size:73MB"

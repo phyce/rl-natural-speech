@@ -46,7 +46,7 @@ public class PiperProcess {
 		processStdErrThread = new Thread(this::processStdErr, String.format("[%s] PiperProcess::processStdErr Thread", this));
 		processStdErrThread.start();
 
-//		log.debug("{}: Started...", this);
+		log.info("{}", processBuilder.command().stream().reduce((a, b) -> a + " " + b).orElse(""));
 	}
 
 	@Override
