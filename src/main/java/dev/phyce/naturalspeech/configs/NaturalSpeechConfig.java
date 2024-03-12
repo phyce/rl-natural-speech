@@ -287,7 +287,8 @@ public interface NaturalSpeechConfig extends Config {
 			"rn=right now\n" +
 			"fr=for real\n" +
 			"nmz=nightmare zone\n" +
-			"ge=grand exchange\n";
+			"ge=grand exchange\n" +
+			"ppl=people\n";
 	}
 	//</editor-fold>
 }
