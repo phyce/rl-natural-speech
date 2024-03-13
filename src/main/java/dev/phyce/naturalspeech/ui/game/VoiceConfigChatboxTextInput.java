@@ -3,8 +3,10 @@ package dev.phyce.naturalspeech.ui.game;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.runelite.api.Actor;
@@ -38,16 +40,12 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		lines(1);
 		prompt("Enter voice in model:id format. Example: libritts:120");
 
-		onDone(string ->
+		onDone((Consumer<String>) string ->
 		{
-			if (string != null && string.length() > 0) {
-				Pattern pattern = Pattern.compile("^(.*?):(\\d+)$");
-				Matcher matcher = pattern.matcher(string);
-				if (matcher.find()) {
-					String model = matcher.group(1);
-					int id = Integer.parseInt(matcher.group(2));
-
-					voiceManager.setActorVoiceID(actor, model, id);
+			if (string != null && !string.isEmpty()) {
+				VoiceID voiceId = VoiceID.fromIDString(string);
+				if (voiceId != null) {
+					voiceManager.setActorVoiceID(actor, voiceId);
 					voiceManager.saveVoiceConfig();
 				}
 			}

@@ -9,7 +9,6 @@ import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
-import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.IOException;
@@ -61,7 +60,7 @@ public class VoiceManager {
 	}
 
 	public VoiceID getVoiceIDFromChatMessage(ChatMessage message) {
-		VoiceID[] results;
+		List<VoiceID> results;
 		if (message.getName().equals(PluginHelper.getLocalPlayerUsername())) {
 			results = voiceConfig.getWithUsername(message.getName());
 		}
@@ -88,41 +87,42 @@ public class VoiceManager {
 							ModelRepository.Gender.parseInt(user.getPlayerComposition().getGender());
 
 						results =
-							new VoiceID[] {calculateGenderedVoice(modelLocal, message.getName(), gender)};
+							List.of(calculateGenderedVoice(modelLocal, message.getName(), gender));
 						break;
 					}
 				}
-				results = new VoiceID[] {calculateVoice(modelLocal, message.getName())};
+				results = List.of(calculateVoice(modelLocal, message.getName()));
 			}
 		}
-		return results[0];
+		assert results != null;
+		return results.get(0);
 	}
 
 	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) {
 		npcName = npcName.toLowerCase();
-		VoiceID[] results = {};
+		List<VoiceID> results;
 		results = voiceConfig.getWithNpcId(npcId);
 
 		if (results == null) results = voiceConfig.getWithNpcName(npcName);
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = new VoiceID[] {calculateVoice(modelLocal, npcName)};
+				results = List.of(new VoiceID[] {calculateVoice(modelLocal, npcName)});
 			}
 		}
 
 		// FIXME(Louis) Fix getVoiceIDFromNPCId to consider all options
-		return results[0];
+		return results.get(0);
 	}
 
-	public VoiceID[] getVoiceIDFromNPC(@NonNull NPC npc) {
-		VoiceID[] results = {};
+	public List<VoiceID> getVoiceIDFromNPC(@NonNull NPC npc) {
+		List<VoiceID> results;
 		//noinspection DataFlowIssue Lombok already nullchecks, intellij still warns
 		results = voiceConfig.getWithNpcName(npc.getName());
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = new VoiceID[] {calculateVoice(modelLocal, npc.getName())};
+				results = List.of(new VoiceID[] {calculateVoice(modelLocal, npc.getName())});
 			}
 		}
 
@@ -134,16 +134,16 @@ public class VoiceManager {
 	}
 
 	public VoiceID getVoiceIDFromUsername(String username) {
-		VoiceID[] results = {};
-		results = voiceConfig.getWithUsername(username);
+		List<VoiceID> results = voiceConfig.getWithUsername(username);
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = new VoiceID[] {calculateVoice(modelLocal, username)};
+				results = List.of(calculateVoice(modelLocal, username));
 			}
 		}
 
-		return results[0];
+		assert results != null;
+		return results.get(0);
 	}
 
 	public void loadVoiceConfig() {
@@ -153,13 +153,15 @@ public class VoiceManager {
 			try {
 				voiceConfig.loadJSON(json);
 				log.info("Loaded {} voice config entries from existing VoiceConfig JSON from ConfigManager.",
-					voiceConfig.npcIDVoices.size() + voiceConfig.npcNameVoices.size() + voiceConfig.playerVoices.size());
+					voiceConfig.npcIDVoices.size() + voiceConfig.npcNameVoices.size() +
+						voiceConfig.playerVoices.size());
 				return;
 			} catch (JsonSyntaxException ignored) {
 				// fallback to default json
 				log.error("Invalid voiceConfig stored in ConfigManager, falling back to default: {}", json);
 			}
-		} else {
+		}
+		else {
 			log.error("No existing voiceConfig stored in ConfigManager, falling back to default");
 		}
 
@@ -185,20 +187,14 @@ public class VoiceManager {
 		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.toJson());
 	}
 
-	public void setActorVoiceID(Actor actor, String model, int voiceId) {
+	public void setActorVoiceID(@NonNull Actor actor, VoiceID voiceId) {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
 
-			NPCIDVoiceConfigDatum voiceConfigDatum = new NPCIDVoiceConfigDatum(
-				new VoiceID[] {new VoiceID(model, voiceId)},
-				npc.getId()
-			);
-
-			voiceConfig.npcIDVoices.put(npc.getId(), voiceConfigDatum);
+			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
 		}
 		else {
 			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
-				new VoiceID[] {new VoiceID(model, voiceId)},
 				actor.getName().toLowerCase()
 			);
 

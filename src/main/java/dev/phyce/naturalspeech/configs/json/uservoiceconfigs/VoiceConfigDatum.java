@@ -9,14 +9,8 @@ import lombok.Value;
 @Value
 public class VoiceConfigDatum {
 
-	public List<PlayerNameVoiceConfigDatum> playerNameVoiceConfigData;
-	public List<NPCIDVoiceConfigDatum> npcIDVoiceConfigData;
-	public List<NPCNameVoiceConfigDatum> npcNameVoiceConfigData;
-
-	public VoiceConfigDatum() {
-		this.playerNameVoiceConfigData = new ArrayList<>();
-		this.npcIDVoiceConfigData = new ArrayList<>();
-		this.npcNameVoiceConfigData = new ArrayList<>();
-	}
+	public List<PlayerNameVoiceConfigDatum> playerNameVoiceConfigData = new ArrayList<>();
+	public List<NPCIDVoiceConfigDatum> npcIDVoiceConfigData = new ArrayList<>();
+	public List<NPCNameVoiceConfigDatum> npcNameVoiceConfigData = new ArrayList<>();
 
 }
