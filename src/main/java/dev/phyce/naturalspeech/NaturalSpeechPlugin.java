@@ -48,6 +48,7 @@ import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ClientShutdown;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -200,6 +201,13 @@ public class NaturalSpeechPlugin extends Plugin {
 		textToSpeech.saveModelConfig();
 
 		log.info("NaturalSpeech plugin has shutDown");
+	}
+
+	@Subscribe
+	private void onClientShutdown(ClientShutdown e)
+	{
+		textToSpeech.saveVoiceConfig();
+		textToSpeech.saveModelConfig();
 	}
 
 	@Override
