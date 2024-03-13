@@ -17,6 +17,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
@@ -114,8 +115,9 @@ public class VoiceManager {
 		return results[0];
 	}
 
-	public VoiceID[] getVoiceIDFromNPC(NPC npc) {
+	public VoiceID[] getVoiceIDFromNPC(@NonNull NPC npc) {
 		VoiceID[] results = {};
+		//noinspection DataFlowIssue Lombok already nullchecks, intellij still warns
 		results = voiceConfig.getWithNpcName(npc.getName());
 
 		if (results == null) {
