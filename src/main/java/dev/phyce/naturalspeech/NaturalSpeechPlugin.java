@@ -116,7 +116,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
 		//		// FIXME(Louis) Need to modify to load in all ModelLocal configured
 		//		ModelRepository.ModelLocal librittsLocal = modelRepository.loadModelLocal("libritts");
-		//
+		//ttsConfig
 		//		Path piperPath = runtimeConfig.getPiperPath();
 		//
 		//		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {

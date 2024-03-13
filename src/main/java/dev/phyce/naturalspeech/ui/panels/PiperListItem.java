@@ -53,7 +53,7 @@ public class PiperListItem extends JPanel {
 		}
 
 		public void AddProcess(PiperProcess process) {
-			log.info("Labeling process {}", process);
+			log.debug("Labeling process {}", process);
 			JLabel processLabel = new JLabel(process.toString());
 			labelMap.put(process, processLabel);
 			processListPanel.add(processLabel);
@@ -61,7 +61,7 @@ public class PiperListItem extends JPanel {
 		}
 
 		private void RemoveProcess(PiperProcess process) {
-			log.info("Removing label for process {}", process);
+			log.debug("Removing label for process {}", process);
 			JLabel label = labelMap.remove(process);
 			processListPanel.remove(label);
 			processListPanel.revalidate();

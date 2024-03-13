@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.tts;
 
+import com.google.common.io.Resources;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -9,10 +10,15 @@ import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
-import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.NPC;
@@ -21,10 +27,11 @@ import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 
 
+@Slf4j
 @Singleton
 public class VoiceManager {
 
-	private VoiceConfig voiceConfig;
+	private final VoiceConfig voiceConfig;
 	private final TextToSpeech textToSpeech;
 	private final ConfigManager configManager;
 	private final GenderedVoiceMap genderedVoiceMap;
@@ -49,6 +56,7 @@ public class VoiceManager {
 			}
 		);
 
+		voiceConfig = new VoiceConfig();
 		loadVoiceConfig();
 	}
 
@@ -137,38 +145,38 @@ public class VoiceManager {
 		return results[0];
 	}
 
-	public void loadVoiceConfig() throws JsonSyntaxException {
-		// FIXME(Louis): Reading from local file but saving to runtimeConfig right now
-		//fetch from config manager
-		//if empty, load in the
-		voiceConfig = new VoiceConfig(VOICE_CONFIG_FILE);
-
-		VoiceConfig customConfig = null;
-		//fetch from config manager
+	public void loadVoiceConfig() {
+		// try to load from existing json in configManager
 		String json = configManager.getConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE);
 		if (json != null) {
-			customConfig = new VoiceConfig(json);
+			try {
+				voiceConfig.loadJSON(json);
+				log.info("Loaded {} voice config entries from existing VoiceConfig JSON from ConfigManager.",
+					voiceConfig.npcIDVoices.size() + voiceConfig.npcNameVoices.size() + voiceConfig.playerVoices.size());
+				return;
+			} catch (JsonSyntaxException ignored) {
+				// fallback to default json
+				log.error("Invalid voiceConfig stored in ConfigManager, falling back to default: {}", json);
+			}
+		} else {
+			log.error("No existing voiceConfig stored in ConfigManager, falling back to default");
 		}
 
-		if (customConfig != null) {
-			for (String key : voiceConfig.playerVoices.keySet()) {
-				PlayerNameVoiceConfigDatum customDatum = customConfig.playerVoices.remove(key);
-				if (customDatum != null) voiceConfig.playerVoices.put(key, customDatum);
-			}
+		// if configManager fails, load default from resources
+		try {
+			URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(VOICE_CONFIG_FILE));
+			//noinspection UnstableApiUsage
+			json = Resources.toString(resourceUrl, StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new RuntimeException("Default voice config file failed to load. " +
+				"Either JSON is incorrect, file path is incorrect, or the file doesn't exist.");
+		}
 
-			for (Integer key : voiceConfig.npcIDVoices.keySet()) {
-				NPCIDVoiceConfigDatum customDatum = customConfig.npcIDVoices.remove(key);
-				if (customDatum != null) voiceConfig.npcIDVoices.put(key, customDatum);
-			}
-
-			for (String key : voiceConfig.npcNameVoices.keySet()) {
-				NPCNameVoiceConfigDatum customDatum = customConfig.npcNameVoices.remove(key);
-				if (customDatum != null) voiceConfig.npcNameVoices.put(key, customDatum);
-			}
-
-			voiceConfig.playerVoices.putAll(customConfig.playerVoices);
-			voiceConfig.npcIDVoices.putAll(customConfig.npcIDVoices);
-			voiceConfig.npcNameVoices.putAll(customConfig.npcNameVoices);
+		try {
+			voiceConfig.loadJSON(json);
+			log.info("Loaded default JSON from ResourceFile " + VOICE_CONFIG_FILE);
+		} catch (JsonSyntaxException e) {
+			throw new RuntimeException("Failed to parse the default voice config JSON: " + json, e);
 		}
 	}
 

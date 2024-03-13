@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.configs;
 
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
@@ -13,99 +14,53 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import net.runelite.http.api.RuneLiteAPI;
 
 public class VoiceConfig {
-	public HashMap<String, PlayerNameVoiceConfigDatum> playerVoices;
-	public HashMap<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
-	public HashMap<String, NPCNameVoiceConfigDatum> npcNameVoices;
+	public final Map<String, PlayerNameVoiceConfigDatum> playerVoices;
+	public final Map<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
+	public final Map<String, NPCNameVoiceConfigDatum> npcNameVoices;
 
-	public VoiceConfig(@NonNull VoiceConfigDatum data) {
-
+	public VoiceConfig() {
 		playerVoices = new HashMap<>();
 		npcIDVoices = new HashMap<>();
 		npcNameVoices = new HashMap<>();
-
-		loadDatum(data);
 	}
 
-	public VoiceConfig(@NonNull String json) throws JsonSyntaxException {
-
-		playerVoices = new HashMap<>();
-		npcIDVoices = new HashMap<>();
-		npcNameVoices = new HashMap<>();
-
-		try {
-			VoiceConfigDatum data = RuneLiteAPI.GSON.fromJson(json, VoiceConfigDatum.class);
-			loadDatum(data);
-		} catch (JsonSyntaxException e) {
-			json = loadResourceFile(json);
-			loadJSON(json);
-		}
+	public static VoiceConfig fromDatum(@NonNull VoiceConfigDatum data) {
+		VoiceConfig voiceConfig = new VoiceConfig();
+		voiceConfig.loadDatum(data);
+		return voiceConfig;
 	}
 
-	public void loadJSON(String jsonString) {
-		try {
-			VoiceConfigDatum data = RuneLiteAPI.GSON.fromJson(jsonString, VoiceConfigDatum.class);
-			loadDatum(data);
-		} catch (JsonSyntaxException e) {
-			System.err.println("JSON syntax error: " + e.getMessage());
-		} catch (IllegalStateException e) {
-			System.err.println("Illegal state encountered during JSON parsing: " + e.getMessage());
-		} catch (Exception e) {
-			System.err.println("An unexpected error occurred during JSON parsing: " + e.getMessage());
-		}
+	public static VoiceConfig fromJson(@NonNull String json) throws JsonSyntaxException {
+		VoiceConfigDatum datum = RuneLiteAPI.GSON.fromJson(json, VoiceConfigDatum.class);
+		return fromDatum(datum);
 	}
 
-	public static String loadResourceFile(String fileName) {
-		String fullPath = "/dev/phyce/naturalspeech/" + fileName;
-		InputStream inputStream = VoiceConfig.class.getResourceAsStream(fullPath);
-		if (inputStream == null) {
-			throw new IllegalArgumentException("File not found! " + fullPath);
-		}
-		else {
-			try (InputStreamReader streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-				 BufferedReader reader = new BufferedReader(streamReader)) {
-				StringBuilder result = new StringBuilder();
-				for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-					result.append(line);
-				}
-				return result.toString();
-			} catch (Exception e) {
-				throw new RuntimeException("Failed to read the resource file: " + fullPath, e);
-			}
-		}
-	}
-
-	public String readFileToString(String resourceName) {
-		String resourcePath = "dev/phyce/naturalspeech/" + resourceName;
-		try (InputStream is = Objects.requireNonNull(
-			Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath),
-			"Resource not found: " + resourcePath);
-			 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-
-			return reader.lines().collect(Collectors.joining(System.lineSeparator()));
-		} catch (IOException | NullPointerException e) {
-			System.err.println("Error reading resource: " + e.getMessage());
-			return "";
-		}
-	}
-
-	public void GetCurrentWorkingDirectory() {
-		String currentWorkingDirectory = System.getProperty("user.dir");
-	}
-
-	public String toJson() {
-		return RuneLiteAPI.GSON.toJson(exportDatum());
-	}
-
-	public void loadDatum(VoiceConfigDatum data) {
+	public void clear() {
 		playerVoices.clear();
 		npcIDVoices.clear();
 		npcNameVoices.clear();
+	}
+
+	public void loadJSON(String jsonString) throws JsonSyntaxException {
+		clear();
+
+		VoiceConfigDatum data = RuneLiteAPI.GSON.fromJson(jsonString, VoiceConfigDatum.class);
+		loadDatum(data);
+	}
+
+	public String toJson() {
+		return RuneLiteAPI.GSON.toJson(toDatum());
+	}
+
+	public void loadDatum(VoiceConfigDatum data) {
+		clear();
 
 		for (PlayerNameVoiceConfigDatum datum : data.getPlayerNameVoiceConfigData()) {
 			playerVoices.put(datum.getPlayerName(), datum);
@@ -120,7 +75,7 @@ public class VoiceConfig {
 		}
 	}
 
-	public VoiceConfigDatum exportDatum() {
+	public VoiceConfigDatum toDatum() {
 		VoiceConfigDatum voiceConfigDatum = new VoiceConfigDatum();
 		voiceConfigDatum.getPlayerNameVoiceConfigData().addAll(playerVoices.values());
 		voiceConfigDatum.getNpcIDVoiceConfigData().addAll(npcIDVoices.values());
@@ -128,8 +83,8 @@ public class VoiceConfig {
 		return voiceConfigDatum;
 	}
 
-	public VoiceID[] getPlayerVoiceIDs(String playerUserName) {
-		if (PluginHelper.getLocalPlayerUsername().equals(playerUserName)) {
+	public VoiceID[] getPlayerVoiceIDs(@NonNull String playerUserName) {
+		if (Objects.equals(PluginHelper.getLocalPlayerUsername(), playerUserName)) {
 			VoiceID voice = VoiceID.fromIDString(PluginHelper.getConfig().personalVoiceID());
 			if (voice != null) return new VoiceID[] {voice};
 		}
@@ -148,7 +103,7 @@ public class VoiceConfig {
 		return npcIDVoiceConfigDatum.getVoiceIDs();
 	}
 
-	public VoiceID[] getNpcVoiceIDs(String npcName) {
+	public VoiceID[] getNpcVoiceIDs(@NonNull String npcName) {
 		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcNameVoices.get(npcName.toLowerCase());
 
 		//TODO loop through and see if there are any entries with the same name in NPCIDs
