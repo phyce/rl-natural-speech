@@ -381,7 +381,7 @@ public class MainSettingsPanel extends PluginPanel {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
 					if (plugin.getTextToSpeech().isStarted() &&
-						plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
+						plugin.getTextToSpeech().activePiperProcessCount() == 0) {
 						statusLabel.setText("No Models Enabled");
 						statusLabel.setBackground(Color.ORANGE.darker());
 						statusLabel.setForeground(Color.WHITE);
@@ -394,7 +394,7 @@ public class MainSettingsPanel extends PluginPanel {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
 					if (plugin.getTextToSpeech().isStarted() &&
-						plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
+						plugin.getTextToSpeech().activePiperProcessCount() == 0) {
 						statusLabel.setText("No Models Enabled");
 						statusLabel.setBackground(Color.ORANGE.darker());
 						statusLabel.setForeground(Color.WHITE);

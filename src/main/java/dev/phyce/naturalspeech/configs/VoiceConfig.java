@@ -129,7 +129,7 @@ public class VoiceConfig {
 	}
 
 	public VoiceID[] getPlayerVoiceIDs(String playerUserName) {
-		if (PluginHelper.getClientUsername().equals(playerUserName)) {
+		if (PluginHelper.getLocalPlayerUsername().equals(playerUserName)) {
 			VoiceID voice = VoiceID.fromIDString(PluginHelper.getConfig().personalVoiceID());
 			if (voice != null) return new VoiceID[] {voice};
 		}

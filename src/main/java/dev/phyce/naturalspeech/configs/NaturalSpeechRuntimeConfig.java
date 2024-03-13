@@ -37,12 +37,7 @@ public class NaturalSpeechRuntimeConfig {
 		return path;
 	}
 
-	public VoiceConfig getCustomVoices() {
-		//fetch from config manager
-		String json = configManager.getConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE);
-		if (json != null) return new VoiceConfig(json);
-		return null;
-	}
+
 
 	public void savePiperPath(Path path) {
 		configManager.setConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH, path.toString());

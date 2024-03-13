@@ -94,9 +94,9 @@ public class VoiceListItem extends JPanel {
 		playButton.setPreferredSize(
 			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
 		playButton.addActionListener(event -> {
-			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().activePiperInstanceCount() > 0) {
+			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().activePiperProcessCount() > 0) {
 				try {
-					if (plugin.getTextToSpeech().isPiperForModelRunning(modelLocal)) {
+					if (plugin.getTextToSpeech().isPiperForModelActive(modelLocal)) {
 						plugin.getTextToSpeech().speak(
 							voiceMetadata.toVoiceID(),
 							plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),

@@ -13,8 +13,11 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
+import dev.phyce.naturalspeech.intruments.VoiceLogger;
 import dev.phyce.naturalspeech.tts.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceID;
+import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.game.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import dev.phyce.naturalspeech.utils.TextUtil;
@@ -82,6 +85,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	private NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Inject
+	private Provider<VoiceManager> voiceManagerProvider;
+	@Inject
 	private Provider<TextToSpeech> textToSpeechProvider;
 	@Inject
 	private Provider<TopLevelPanel> topLevelPanelProvider;
@@ -94,6 +99,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Runtime Variables">
 	@Getter
 	private TopLevelPanel topLevelPanel;
+	@Getter
+	private VoiceManager voiceManager;
 	@Getter
 	private TextToSpeech textToSpeech;
 	@Getter
@@ -133,6 +140,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		binder.bind(PluginHelper.class).asEagerSingleton();
 		// Downloader has all dependencies from RuneLite, eager load
 		binder.bind(Downloader.class).asEagerSingleton();
+		binder.bind(VoiceLogger.class).asEagerSingleton();
 	}
 
 	@Override
@@ -141,6 +149,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		textToSpeech = textToSpeechProvider.get();
 		// Have to lazy-load config panel after RuneLite UI is initialized, cannot field @Inject
 		topLevelPanel = topLevelPanelProvider.get();
+		voiceManager = voiceManagerProvider.get();
 
 
 		textToSpeechListener = new TextToSpeech.TextToSpeechListener() {
@@ -192,7 +201,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 		clientToolbar.removeNavigation(navButton);
 
-		textToSpeech.saveVoiceConfig();
+		voiceManager.saveVoiceConfig();
 		textToSpeech.saveModelConfig();
 
 		log.info("NaturalSpeech plugin has shutDown");
@@ -200,7 +209,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	private void onClientShutdown(ClientShutdown e) {
-		textToSpeech.saveVoiceConfig();
+		voiceManager.saveVoiceConfig();
 		textToSpeech.saveModelConfig();
 	}
 
@@ -213,21 +222,22 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Hooks">
 	@Subscribe(priority=-1)
 	public void onOverheadTextChanged(OverheadTextChanged event) {
-		if (textToSpeech.activePiperInstanceCount() < 1) return;
+		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (!config.dialogEnabled()) return;
 
 		if (event.getActor() instanceof NPC) {
 			NPC npc = (NPC) event.getActor();
 			int distance = PluginHelper.getNPCDistance(npc);
 
-			textToSpeech.speak(npc.getId(), event.getActor().getName().toLowerCase(), distance, npc.getOverheadText());
+			VoiceID voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
+			textToSpeech.speak(voiceID, event.getOverheadText(), distance, npc.getName());
 		}
 	}
 
 	@Subscribe(priority=-2)
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		if (textToSpeech.activePiperInstanceCount() < 1) return;
-		if (textToSpeech.activePiperInstanceCount() == 0) return;
+		if (textToSpeech.activePiperProcessCount() < 1) return;
+		if (textToSpeech.activePiperProcessCount() == 0) return;
 		if (message.getType() == ChatMessageType.AUTOTYPER) return;
 
 		patchChatMessage(message);
@@ -246,12 +256,13 @@ public class NaturalSpeechPlugin extends Plugin {
 			.toLowerCase()
 		);
 
-		textToSpeech.speak(message, distance);
+		VoiceID voiceID = voiceManager.getVoiceIDFromChatMessage(message);
+		textToSpeech.speak(voiceID, message.getMessage(), distance, message.getName());
 	}
 
 	@Subscribe
 	public void onMenuOpened(MenuOpened event) {
-		if (textToSpeech.activePiperInstanceCount() < 1) return;
+		if (textToSpeech.activePiperProcessCount() < 1) return;
 		final MenuEntry[] entries = event.getMenuEntries();
 
 		Set<Integer> interfaces = new HashSet<>();
@@ -275,7 +286,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	public void onInteractingChanged(InteractingChanged event) {
-		if (textToSpeech.activePiperInstanceCount() < 1) return;
+		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getTarget() == null || event.getSource() != client.getLocalPlayer()) {
 			return;
 		}
@@ -296,7 +307,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe(priority=-1)
 	public void onGameTick(GameTick event) {
-		if (textToSpeech.activePiperInstanceCount() < 1) return;
+		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (!config.dialogEnabled() || actorInteractedWith == null) return;
 
 		int playerGroupId = getGroupId(ComponentID.DIALOG_PLAYER_TEXT);
@@ -309,7 +320,8 @@ public class NaturalSpeechPlugin extends Plugin {
 				lastPlayerDialogText = dialogText;
 
 				dialogText = dialogText.replace("<br>", " ");
-				textToSpeech.speak(dialogText);
+				VoiceID voiceID = voiceManager.getVoiceIdForLocalPlayer();
+				textToSpeech.speak(voiceID, dialogText, 0, PluginHelper.getLocalPlayerUsername());
 			}
 		}
 		else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
@@ -330,7 +342,9 @@ public class NaturalSpeechPlugin extends Plugin {
 					int modelId = modelWidget.getModelId();
 
 					dialogText = dialogText.replace("<br>", " ");
-					textToSpeech.speak(modelId, npcName, 1, dialogText);
+
+					VoiceID voiceID = voiceManager.getVoiceIDFromNPCId(modelId, npcName);
+					textToSpeech.speak(voiceID, dialogText, 1, dialogText);
 				}
 			}
 		}
@@ -339,15 +353,15 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
-		if (textToSpeech.activePiperInstanceCount() < 1) return;
+		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
 			switch (event.getKey()) {
 				case "muteSelf":
-					textToSpeech.clearPlayerAudioQueue(getClientUsername());
+					textToSpeech.clearPlayerAudioQueue(getLocalPlayerUsername());
 					break;
 
 				case "muteOthers":
-					textToSpeech.clearOtherPlayersAudioQueue(getClientUsername());
+					textToSpeech.clearOtherPlayersAudioQueue(getLocalPlayerUsername());
 					break;
 				case "shortenedPhrases":
 					loadShortenedPhrases();
@@ -356,6 +370,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 	//</editor-fold>
+
+
 
 	//<editor-fold desc="> ChatMessage">
 	public boolean isMessageProcessable(ChatMessage message) {

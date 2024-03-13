@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.ui.game;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceManager;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,17 +23,18 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private static final int CHATBOX_HEIGHT = 120;
 	private final ChatboxPanelManager chatboxPanelManager;
 	private Actor actor;
-	@Inject
-	private TextToSpeech textToSpeech;
+	@SuppressWarnings("FieldCanBeLocal")
+	private final VoiceManager voiceManager;
 
 	@Inject
 	public VoiceConfigChatboxTextInput(
 		ChatboxPanelManager chatboxPanelManager,
 		ClientThread clientThread,
 		ScheduledExecutorService scheduledExecutorService,
-		OkHttpClient okHttpClient, Gson gson) {
+		OkHttpClient okHttpClient, Gson gson, TextToSpeech textToSpeech, VoiceManager voiceManager) {
 		super(chatboxPanelManager, clientThread);
 		this.chatboxPanelManager = chatboxPanelManager;
+		this.voiceManager = voiceManager;
 		lines(1);
 		prompt("Enter voice in model:id format. Example: libritts:120");
 
@@ -45,8 +47,8 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 					String model = matcher.group(1);
 					int id = Integer.parseInt(matcher.group(2));
 
-					textToSpeech.setActorVoiceID(actor, model, id);
-					textToSpeech.saveVoiceConfig();
+					voiceManager.setActorVoiceID(actor, model, id);
+					voiceManager.saveVoiceConfig();
 				}
 			}
 		});

@@ -37,7 +37,7 @@ public final class PluginHelper {
 		return instance.config;
 	}
 
-	public static String getClientUsername() {
+	public static String getLocalPlayerUsername() {
 		if (instance.client.getLocalPlayer() == null) {
 			return null;
 		}
