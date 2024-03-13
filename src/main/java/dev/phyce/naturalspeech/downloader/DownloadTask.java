@@ -1,12 +1,5 @@
 package dev.phyce.naturalspeech.downloader;
 
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +9,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 @Slf4j
 public class DownloadTask implements Supplier<File> {
@@ -60,7 +59,8 @@ public class DownloadTask implements Supplier<File> {
 
 				// try-with-resources to ensure the input stream is closed
 				try (InputStream in = response.body().byteStream();
-					 OutputStream out = Files.newOutputStream(destination, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+					 OutputStream out = Files.newOutputStream(destination, StandardOpenOption.CREATE,
+						 StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
 					byte[] buffer = new byte[1024];
 					int bytesRead;
 					int totalRead = 0;

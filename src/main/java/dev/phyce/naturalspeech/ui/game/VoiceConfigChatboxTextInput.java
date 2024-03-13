@@ -7,7 +7,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.runelite.api.Actor;
-import net.runelite.api.NPC;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.api.widgets.WidgetSizeMode;
@@ -25,6 +24,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private Actor actor;
 	@Inject
 	private TextToSpeech textToSpeech;
+
 	@Inject
 	public VoiceConfigChatboxTextInput(
 		ChatboxPanelManager chatboxPanelManager,
@@ -58,8 +58,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	}
 
 	@Override
-	protected void update()
-	{
+	protected void update() {
 		Widget container = chatboxPanelManager.getContainerWidget();
 		container.deleteAllChildren();
 

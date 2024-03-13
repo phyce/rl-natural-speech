@@ -1,10 +1,9 @@
 package dev.phyce.naturalspeech.configs.json.uservoiceconfigs;
 
 
-import lombok.Value;
-
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Value;
 
 // Used for JSON Serialization
 @Value

@@ -1,6 +1,5 @@
 package dev.phyce.naturalspeech.configs;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;

@@ -1,20 +1,19 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.ModelRepository;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 // Renamed from TTSModel
 @Slf4j
@@ -53,21 +52,23 @@ public class Piper {
 
 		startMore(instanceCount);
 
-		processPiperTaskThread = new Thread(this::processPiperTask, String.format("[%s] Piper::processPiperTask Thread", this));
+		processPiperTaskThread =
+			new Thread(this::processPiperTask, String.format("[%s] Piper::processPiperTask Thread", this));
 		processPiperTaskThread.start();
 
-		processAudioQueueThread = new Thread(this::processAudioQueue, String.format("[%s] Piper::processAudioQueue Thread", this));
+		processAudioQueueThread =
+			new Thread(this::processAudioQueue, String.format("[%s] Piper::processAudioQueue Thread", this));
 		processAudioQueueThread.start();
 	}
 
 	public void startMore(int instanceCount) throws IOException {
 		//Instance count should not be more than 2
-		for(int index = 0; index < instanceCount; index++) {
+		for (int index = 0; index < instanceCount; index++) {
 			PiperProcess process;
 			try {
 				process = PiperProcess.start(piperPath, modelLocal.getOnnx().toPath());
 				triggerOnPiperProcessStart(process);
-			} catch(IOException e) {
+			} catch (IOException e) {
 				// clean-up stray instances before throwing
 				processMap.forEach((pid, piperProcess) -> piperProcess.stop());
 				processMap.clear();
@@ -80,12 +81,12 @@ public class Piper {
 
 	//Process message queue
 	public void processPiperTask() {
-		while(!processPiperTaskThread.isInterrupted()) {
-			if(piperTaskQueue.isEmpty()) {
-				synchronized(piperTaskQueue) {
+		while (!processPiperTaskThread.isInterrupted()) {
+			if (piperTaskQueue.isEmpty()) {
+				synchronized (piperTaskQueue) {
 					try {
 						piperTaskQueue.wait();
-					} catch(InterruptedException e) {
+					} catch (InterruptedException e) {
 						return; // just exit on interrupt
 					}
 				}
@@ -99,7 +100,7 @@ public class Piper {
 
 			// using iterator to loop, so if an invalid PiperProcess is found we can remove.
 			Iterator<Long> iter = processMap.keySet().iterator();
-			while(iter.hasNext()) {
+			while (iter.hasNext()) {
 				long pid = iter.next();
 				PiperProcess process = processMap.get(pid);
 
@@ -109,13 +110,13 @@ public class Piper {
 					continue;
 				}
 
-				if(!process.getPiperLocked().get()) {
+				if (!process.getPiperLocked().get()) {
 					byte[] audioClip;
 					try {
 						triggerOnPiperProcessBusy(process);
 						audioClip = process.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
 						triggerOnPiperProcessDone(process);
-					} catch(IOException | InterruptedException e) {
+					} catch (IOException | InterruptedException e) {
 						// PiperProcess exited unexpectedly, remove the process
 						log.error("{} had an unexpected exited, either crashed or terminated by user.", process);
 						triggerOnPiperProcessCrash(process);
@@ -124,12 +125,12 @@ public class Piper {
 						iter.remove();
 						continue;
 					}
-					if(audioClip != null && audioClip.length > 0) {
+					if (audioClip != null && audioClip.length > 0) {
 						AudioQueue audioQueue =
 							namedAudioQueueMap.computeIfAbsent(task.audioQueueName, audioQueueName -> new AudioQueue());
 						audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getVolume()));
 
-						synchronized(namedAudioQueueMap) {namedAudioQueueMap.notify();}
+						synchronized (namedAudioQueueMap) {namedAudioQueueMap.notify();}
 
 						break;
 					}
@@ -139,26 +140,26 @@ public class Piper {
 	}
 
 	public void processAudioQueue() {
-		while(!processAudioQueueThread.isInterrupted()) {
+		while (!processAudioQueueThread.isInterrupted()) {
 
-			synchronized(namedAudioQueueMap) {
+			synchronized (namedAudioQueueMap) {
 				try {
 					namedAudioQueueMap.wait();
-				} catch(InterruptedException e) {
+				} catch (InterruptedException e) {
 					return;
 				}
 			}
 
 			namedAudioQueueMap.forEach((queueName, audioQueue) -> {
 
-				if(!audioQueue.isPlaying() && !audioQueue.queue.isEmpty()) {
+				if (!audioQueue.isPlaying() && !audioQueue.queue.isEmpty()) {
 					audioQueue.setPlaying(true);
 
 					// start a thread for each named audio queue
 					new Thread(() -> {
 						try {
 							AudioQueue.AudioTask task;
-							while((task = audioQueue.queue.poll()) != null) {
+							while ((task = audioQueue.queue.poll()) != null) {
 								audioPlayer.playClip(task.getAudioClip(), task.getVolume());
 							}
 						} finally {
@@ -173,17 +174,17 @@ public class Piper {
 
 	// Refactored to decouple from dependencies
 	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
-		if(countAlive() == 0) {
+		if (countAlive() == 0) {
 			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
 		}
 
-		if(piperTaskQueue.size() > 10) {
+		if (piperTaskQueue.size() > 10) {
 			log.info("Cleared queue because queue size is too large. (more then 10)");
 			clearQueue();
 		}
 
 		piperTaskQueue.add(new PiperTask(text, voiceID, volume, audioQueueName));
-		synchronized(piperTaskQueue) {piperTaskQueue.notify();}
+		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 	}
 
 	public void clearQueue() {
@@ -195,8 +196,8 @@ public class Piper {
 
 	public int countAlive() {
 		int result = 0;
-		for(PiperProcess process : processMap.values()) {
-			if(process.isAlive()) result++;
+		for (PiperProcess process : processMap.values()) {
+			if (process.isAlive()) result++;
 		}
 		return result;
 	}
@@ -204,7 +205,7 @@ public class Piper {
 	public void stop() {
 		audioPlayer.stop();
 
-		for(PiperProcess instance : processMap.values()) {
+		for (PiperProcess instance : processMap.values()) {
 			instance.stop();
 		}
 		processMap.clear();
@@ -222,31 +223,31 @@ public class Piper {
 	}
 
 	private void triggerOnPiperProcessBusy(PiperProcess process) {
-		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+		for (PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
 			listener.onPiperProcessBusy(process);
 		}
 	}
 
 	private void triggerOnPiperProcessCrash(PiperProcess process) {
-		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+		for (PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
 			listener.onPiperProcessCrash(process);
 		}
 	}
 
 	private void triggerOnPiperProcessDone(PiperProcess process) {
-		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+		for (PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
 			listener.onPiperProcessDone(process);
 		}
 	}
 
 	private void triggerOnPiperProcessStart(PiperProcess process) {
-		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+		for (PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
 			listener.onPiperProcessStart(process);
 		}
 	}
 
 	private void triggerOnPiperProcessExit(PiperProcess process) {
-		for(PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
+		for (PiperProcessLifetimeListener listener : piperProcessLifetimeListeners) {
 			listener.onPiperProcessExit(process);
 		}
 	}

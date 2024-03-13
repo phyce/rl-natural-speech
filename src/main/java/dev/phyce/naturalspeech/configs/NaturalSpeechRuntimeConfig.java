@@ -5,9 +5,8 @@ import com.google.inject.Singleton;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.utils.OSValidator;
-import net.runelite.client.config.ConfigManager;
-
 import java.nio.file.Path;
+import net.runelite.client.config.ConfigManager;
 
 /**
  * Runtime Configs are serialized configurations invisible to the player but used at plugin runtime.
@@ -26,10 +25,12 @@ public class NaturalSpeechRuntimeConfig {
 		String pathString = configManager.getConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH);
 
 		Path path;
-		if (pathString != null) path = Path.of(pathString);
+		if (pathString != null) {path = Path.of(pathString);}
 		else {
-			if (OSValidator.IS_MAC || OSValidator.IS_UNIX) path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper");
-			else path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper.exe");
+			if (OSValidator.IS_MAC || OSValidator.IS_UNIX) {
+				path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper");
+			}
+			else {path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper.exe");}
 			savePiperPath(path);
 		}
 

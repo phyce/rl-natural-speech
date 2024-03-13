@@ -1,11 +1,10 @@
 package dev.phyce.naturalspeech.downloader;
 
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-
+import java.nio.file.Path;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.nio.file.Path;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
 
 @Singleton
 public class Downloader {

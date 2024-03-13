@@ -1,30 +1,28 @@
 package dev.phyce.naturalspeech.configs;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.VoiceConfigDatum;
+import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.NonNull;
-import dev.phyce.naturalspeech.helpers.PluginHelper;
-
-
-import java.util.HashMap;
 import net.runelite.http.api.RuneLiteAPI;
 
 public class VoiceConfig {
 	public HashMap<String, PlayerNameVoiceConfigDatum> playerVoices;
 	public HashMap<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
 	public HashMap<String, NPCNameVoiceConfigDatum> npcNameVoices;
+
 	public VoiceConfig(@NonNull VoiceConfigDatum data) {
 
 		playerVoices = new HashMap<>();
@@ -41,7 +39,7 @@ public class VoiceConfig {
 		npcNameVoices = new HashMap<>();
 
 		try {
-		    VoiceConfigDatum data = RuneLiteAPI.GSON.fromJson(json, VoiceConfigDatum.class);
+			VoiceConfigDatum data = RuneLiteAPI.GSON.fromJson(json, VoiceConfigDatum.class);
 			loadDatum(data);
 		} catch (JsonSyntaxException e) {
 			json = loadResourceFile(json);
@@ -67,11 +65,12 @@ public class VoiceConfig {
 		InputStream inputStream = VoiceConfig.class.getResourceAsStream(fullPath);
 		if (inputStream == null) {
 			throw new IllegalArgumentException("File not found! " + fullPath);
-		} else {
+		}
+		else {
 			try (InputStreamReader streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
-				BufferedReader reader = new BufferedReader(streamReader)) {
+				 BufferedReader reader = new BufferedReader(streamReader)) {
 				StringBuilder result = new StringBuilder();
-				for(String line = reader.readLine(); line != null; line = reader.readLine()){
+				for (String line = reader.readLine(); line != null; line = reader.readLine()) {
 					result.append(line);
 				}
 				return result.toString();
@@ -80,6 +79,7 @@ public class VoiceConfig {
 			}
 		}
 	}
+
 	public String readFileToString(String resourceName) {
 		String resourcePath = "dev/phyce/naturalspeech/" + resourceName;
 		try (InputStream is = Objects.requireNonNull(
@@ -131,7 +131,7 @@ public class VoiceConfig {
 	public VoiceID[] getPlayerVoiceIDs(String playerUserName) {
 		if (PluginHelper.getClientUsername().equals(playerUserName)) {
 			VoiceID voice = VoiceID.fromIDString(PluginHelper.getConfig().personalVoiceID());
-			if(voice != null) return new VoiceID[]{voice};
+			if (voice != null) return new VoiceID[] {voice};
 		}
 		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = this.playerVoices.get(playerUserName.toLowerCase());
 
@@ -156,8 +156,9 @@ public class VoiceConfig {
 
 		if (npcNameVoiceConfigDatum == null && npcIDVoiceConfigDatum == null) return null;
 
-		VoiceID[] nameBasedVoices = npcNameVoiceConfigDatum != null ? npcNameVoiceConfigDatum.getVoiceIDs() : new VoiceID[0];
-		VoiceID[] idBasedVoices = npcIDVoiceConfigDatum != null ? npcIDVoiceConfigDatum.getVoiceIDs() : new VoiceID[0];
+		VoiceID[] nameBasedVoices =
+			npcNameVoiceConfigDatum != null? npcNameVoiceConfigDatum.getVoiceIDs(): new VoiceID[0];
+		VoiceID[] idBasedVoices = npcIDVoiceConfigDatum != null? npcIDVoiceConfigDatum.getVoiceIDs(): new VoiceID[0];
 
 		VoiceID[] combinedVoices = new VoiceID[nameBasedVoices.length + idBasedVoices.length];
 		System.arraycopy(nameBasedVoices, 0, combinedVoices, 0, nameBasedVoices.length);

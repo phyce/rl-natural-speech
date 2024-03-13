@@ -163,10 +163,10 @@ public class ModelListItem extends JPanel {
 
 		layout.setHorizontalGroup(layout
 			.createParallelGroup()
-				.addGroup(layout.createSequentialGroup()
-					.addComponent(name, 0, GroupLayout.PREFERRED_SIZE, 0x7000)
-					.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 0x7000)
-				)
+			.addGroup(layout.createSequentialGroup()
+				.addComponent(name, 0, GroupLayout.PREFERRED_SIZE, 0x7000)
+				.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 0x7000)
+			)
 			.addComponent(description, 0, GroupLayout.PREFERRED_SIZE, 0x7000)
 			.addGroup(layout.createSequentialGroup()
 				.addComponent(memorySize)
@@ -179,10 +179,10 @@ public class ModelListItem extends JPanel {
 		int lineHeight = description.getFontMetrics(description.getFont()).getHeight();
 		layout.setVerticalGroup(layout
 			.createSequentialGroup()
-				.addGap(2)
-				.addGroup(layout.createParallelGroup()
-					.addComponent(name)
-				)
+			.addGap(2)
+			.addGroup(layout.createParallelGroup()
+				.addComponent(name)
+			)
 			.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 100)
 			.addComponent(description, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight * 4)
 			.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 100)

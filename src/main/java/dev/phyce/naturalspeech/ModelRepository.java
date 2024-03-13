@@ -4,27 +4,29 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.VoiceID;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
-
-import java.io.*;
-import java.nio.file.Path;
-import java.util.Objects;
-
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
 
 @Slf4j
 public class ModelRepository {
@@ -108,7 +110,8 @@ public class ModelRepository {
 				localVoiceValid = false;
 			}
 			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
-		} else { // voices folder don't exist, so no voices can exist
+		}
+		else { // voices folder don't exist, so no voices can exist
 			localVoiceValid = false;
 		}
 
@@ -121,7 +124,8 @@ public class ModelRepository {
 	}
 
 	public void deleteModelLocal(ModelLocal modelLocal) {
-		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelLocal.getModelName());
+		Path voiceFolder =
+			runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelLocal.getModelName());
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
 			File onnxFile = voiceFolder.resolve(modelLocal.getModelName() + EXTENSION).toFile();
@@ -166,7 +170,8 @@ public class ModelRepository {
 				localVoiceValid = false;
 			}
 			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
-		} else { // voices folder don't exist, so no voices can exist
+		}
+		else { // voices folder don't exist, so no voices can exist
 			localVoiceValid = false;
 			// create the folder
 			if (!voiceFolder.toFile().mkdirs()) {
@@ -186,9 +191,12 @@ public class ModelRepository {
 			log.info("downloading... {}", modelName);
 
 			// download voice files
-			DownloadTask onnxTask = downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(modelName + EXTENSION));
-			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL), voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION));
-			DownloadTask speakersTask = downloader.create(HttpUrl.get(modelURL.metadataURL), voiceFolder.resolve(modelName + METADATA_EXTENSION));
+			DownloadTask onnxTask =
+				downloader.create(HttpUrl.get(modelURL.onnxURL), voiceFolder.resolve(modelName + EXTENSION));
+			DownloadTask onnxMetadataTask = downloader.create(HttpUrl.get(modelURL.onnxMetadataURL),
+				voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION));
+			DownloadTask speakersTask = downloader.create(HttpUrl.get(modelURL.metadataURL),
+				voiceFolder.resolve(modelName + METADATA_EXTENSION));
 
 			// thread blocking download
 			File onnx = onnxTask.get();
@@ -206,8 +214,9 @@ public class ModelRepository {
 
 		// Read Speaker File into an HashSet of Array of Speaker
 		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(modelName + METADATA_EXTENSION).toFile())) {
-			VoiceMetadata[] voiceMetadatas = gson.fromJson(new InputStreamReader(fis), new TypeToken<VoiceMetadata[]>() {
-			}.getType());
+			VoiceMetadata[] voiceMetadatas =
+				gson.fromJson(new InputStreamReader(fis), new TypeToken<VoiceMetadata[]>() {
+				}.getType());
 
 			for (VoiceMetadata voiceMetadata : voiceMetadatas) {
 				voiceMetadata.setModelName(modelURL.getModelName());
@@ -294,7 +303,7 @@ public class ModelRepository {
 		private void categorizeVoicesByGender() {
 			genderCategorizedVoices = new HashMap<>();
 			for (VoiceMetadata voice : voiceMetadata) {
-				int genderKey = voice.gender.equals("M") ? 0 : 1;
+				int genderKey = voice.gender.equals("M")? 0: 1;
 				genderCategorizedVoices.putIfAbsent(genderKey, new ArrayList<>());
 				genderCategorizedVoices.get(genderKey).add(voice.piperVoiceID);
 			}

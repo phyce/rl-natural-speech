@@ -26,6 +26,35 @@
  */
 package dev.phyce.naturalspeech.ui.components;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import javax.swing.OverlayLayout;
+import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.ListDataEvent;
+import javax.swing.event.ListDataListener;
+import javax.swing.text.Document;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.runelite.client.ui.ColorScheme;
@@ -33,17 +62,6 @@ import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.components.FlatTextField;
 import net.runelite.client.util.SwingUtil;
 import org.apache.commons.lang3.StringUtils;
-
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.ListDataEvent;
-import javax.swing.event.ListDataListener;
-import javax.swing.text.Document;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * This component is a FlatTextField with an icon on its left side, and a clear button (×) on its right side.
@@ -133,7 +151,7 @@ public class IconTextField extends JPanel {
 		clearButton.addActionListener(evt -> {
 			setText(null);
 
-			for (Runnable listener : clearListeners) listener.run();
+			for (Runnable listener : clearListeners) {listener.run();}
 		});
 
 		suggestionListModel = new DefaultListModel<>();
@@ -174,12 +192,13 @@ public class IconTextField extends JPanel {
 		popup.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent e) {
-			popup.setVisible(false);
-			suggestionList.clearSelection();
+				popup.setVisible(false);
+				suggestionList.clearSelection();
 			}
 		});
 
-		suggestionButton = createRHSButton(ColorScheme.LIGHT_GRAY_COLOR, ColorScheme.MEDIUM_GRAY_COLOR, FontManager.getDefaultBoldFont());
+		suggestionButton = createRHSButton(ColorScheme.LIGHT_GRAY_COLOR, ColorScheme.MEDIUM_GRAY_COLOR,
+			FontManager.getDefaultBoldFont());
 		suggestionButton.setText("▾");
 		suggestionButton.addActionListener(e -> {
 			suggestionList.setPreferredSize(new Dimension(getWidth(), suggestionList.getPreferredSize().height));

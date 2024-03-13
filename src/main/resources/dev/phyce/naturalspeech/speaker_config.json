@@ -21,16 +21,18 @@
       "playerName": "dawncore"
     }
   ],
-  "npcIDVoiceConfigData": [{
-    "voiceIDs": [
-      {
-        "modelName": "libritts",
-        "piperVoiceID": 100,
-        "priority": 0
-      }
-    ],
-    "npcId": 10
-  }],
+  "npcIDVoiceConfigData": [
+    {
+      "voiceIDs": [
+        {
+          "modelName": "libritts",
+          "piperVoiceID": 100,
+          "priority": 0
+        }
+      ],
+      "npcId": 10
+    }
+  ],
   "npcNameVoiceConfigData": [
     {
       "voiceIDs": [

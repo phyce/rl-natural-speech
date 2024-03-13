@@ -1,15 +1,20 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.utils.TextUtil;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.*;
-import java.nio.file.Path;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 // Renamed from TTSEngine
@@ -41,9 +46,11 @@ public class PiperProcess {
 
 		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 
-		processStdInThread = new Thread(this::processStdIn, String.format("[%s] PiperProcess::processStdIn Thread", this));
+		processStdInThread =
+			new Thread(this::processStdIn, String.format("[%s] PiperProcess::processStdIn Thread", this));
 		processStdInThread.start();
-		processStdErrThread = new Thread(this::processStdErr, String.format("[%s] PiperProcess::processStdErr Thread", this));
+		processStdErrThread =
+			new Thread(this::processStdErr, String.format("[%s] PiperProcess::processStdErr Thread", this));
 		processStdErrThread.start();
 
 		log.info("{}", processBuilder.command().stream().reduce((a, b) -> a + " " + b).orElse(""));
@@ -51,10 +58,8 @@ public class PiperProcess {
 
 	@Override
 	public String toString() {
-		if (process.isAlive())
-			return String.format("pid:%s model:%s", process.pid(), modelPath.getFileName());
-		else
-			return String.format("pid:dead model:%s", modelPath.getFileName());
+		if (process.isAlive()) {return String.format("pid:%s model:%s", process.pid(), modelPath.getFileName());}
+		else {return String.format("pid:dead model:%s", modelPath.getFileName());}
 	}
 
 	public static PiperProcess start(Path piperPath, Path modelPath) throws IOException {
@@ -97,7 +102,7 @@ public class PiperProcess {
 			String line;
 			while (!processStdErrThread.isInterrupted() && (line = reader.readLine()) != null) {
 				if (line.endsWith(" sec)")) {
-					synchronized(streamCapture) {
+					synchronized (streamCapture) {
 						streamCapture.notify();
 					}
 				}
@@ -124,7 +129,7 @@ public class PiperProcess {
 			processStdIn.newLine();
 			processStdIn.flush();
 
-			synchronized(streamCapture) {
+			synchronized (streamCapture) {
 				streamCapture.wait();
 
 				if (!valid) {
@@ -160,7 +165,8 @@ public class PiperProcess {
 		Matcher match;
 		if ((match = piperLogMatcher.matcher(piperLog)).matches()) {
 			return match.group(1);
-		} else {
+		}
+		else {
 			return piperLog;
 		}
 	}

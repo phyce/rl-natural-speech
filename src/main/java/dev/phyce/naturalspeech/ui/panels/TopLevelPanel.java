@@ -2,17 +2,18 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.Singleton;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.GridLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 import lombok.Getter;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
 import net.runelite.client.util.ImageUtil;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
 
 public class TopLevelPanel extends PluginPanel {
 	private final MaterialTabGroup tabGroup;
@@ -25,7 +26,7 @@ public class TopLevelPanel extends PluginPanel {
 	private final VoiceExplorerPanel voiceExplorerPanel;
 	private final MaterialTab mainSettingsTab;
 	//	@Getter
-//	private final EditorPanel editorPanel;
+	//	private final EditorPanel editorPanel;
 
 	private boolean active = false;
 	private PluginPanel current;
@@ -35,17 +36,17 @@ public class TopLevelPanel extends PluginPanel {
 
 	@Inject
 	TopLevelPanel(
-			EventBus eventBus,
-			MainSettingsPanel  mainSettingsPanel,
-			VoiceExplorerPanel voiceExplorerPanel
-//			EditorPanel editorPanel
+		EventBus eventBus,
+		MainSettingsPanel mainSettingsPanel,
+		VoiceExplorerPanel voiceExplorerPanel
+		//			EditorPanel editorPanel
 	) {
 		super(false);
 
 		this.eventBus = eventBus;
 		this.mainSettingsPanel = mainSettingsPanel;
 		this.voiceExplorerPanel = voiceExplorerPanel;
-//		this.editorPanel = editorPanel;
+		//		this.editorPanel = editorPanel;
 
 		tabGroup = new MaterialTabGroup();
 		tabGroup.setLayout(new GridLayout(1, 0, 7, 7));
@@ -60,7 +61,7 @@ public class TopLevelPanel extends PluginPanel {
 		add(content, BorderLayout.CENTER);
 
 		// Main Settings Panel Tab
-//		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
+		//		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
 		mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech Settings");
 		tabGroup.select(mainSettingsTab);
 
@@ -68,7 +69,7 @@ public class TopLevelPanel extends PluginPanel {
 		addTab(voiceExplorerPanel, "profile_icon.png", "Voice Explorer");
 
 		// Editor Panel Tab
-//		addTab(editorPanel, "plugin_hub_icon.png", "Editor");
+		//		addTab(editorPanel, "plugin_hub_icon.png", "Editor");
 
 	}
 

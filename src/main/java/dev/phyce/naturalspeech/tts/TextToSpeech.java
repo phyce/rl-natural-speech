@@ -5,18 +5,25 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
-import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
-import dev.phyce.naturalspeech.exceptions.PiperNotAvailableException;
-import dev.phyce.naturalspeech.helpers.PluginHelper;
-import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
+import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
+import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
+import dev.phyce.naturalspeech.exceptions.PiperNotAvailableException;
+import dev.phyce.naturalspeech.helpers.PluginHelper;
+import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
@@ -25,12 +32,6 @@ import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
-
-import java.io.IOException;
-import java.util.*;
-
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
-import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import net.runelite.client.eventbus.EventBus;
 
 // Renamed from TTSManager
@@ -70,9 +71,7 @@ public class TextToSpeech {
 
 	//<editor-fold desc="> Speak">
 	public void speak(ChatMessage message, int distance)
-		throws
-		ModelLocalUnavailableException,
-		PiperNotAvailableException {
+		throws ModelLocalUnavailableException, PiperNotAvailableException {
 		VoiceID voiceId = getVoiceIDFromChatMessage(message)[0];
 		speak(voiceId, message.getMessage(), distance, message.getName());
 	}
@@ -152,7 +151,8 @@ public class TextToSpeech {
 		VoiceID[] results;
 		if (message.getName().equals(PluginHelper.getClientUsername())) {
 			results = voiceConfig.getPlayerVoiceIDs(message.getName());
-		} else {
+		}
+		else {
 			switch (message.getType()) {
 				//			case DIALOG:
 				case WELCOME:
@@ -238,7 +238,8 @@ public class TextToSpeech {
 			);
 
 			voiceConfig.npcIDVoices.put(npc.getId(), voiceConfigDatum);
-		} else {
+		}
+		else {
 			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
 				new VoiceID[] {new VoiceID(model, voiceId)},
 				actor.getName().toLowerCase()
@@ -327,7 +328,8 @@ public class TextToSpeech {
 		if ((piper = pipers.remove(modelLocal)) != null) {
 			piper.stop();
 			//			triggerOnPiperExit(piper);
-		} else {
+		}
+		else {
 			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
 		}
 	}
@@ -394,7 +396,8 @@ public class TextToSpeech {
 			ModelConfigDatum datum = new ModelConfigDatum();
 			datum.getPiperConfigData().add(new PiperConfigDatum("libritts", true, 1));
 			this.modelConfig = ModelConfig.fromDatum(datum);
-		} else { // has existing config, just load the json
+		}
+		else { // has existing config, just load the json
 			this.modelConfig = ModelConfig.fromJson(json);
 		}
 	}

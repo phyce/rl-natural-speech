@@ -104,17 +104,18 @@ public class NaturalSpeechPlugin extends Plugin {
 	private String lastNpcDialogText = "";
 	private String lastPlayerDialogText = "";
 	private Actor actorInteractedWith = null;
+
 	//</editor-fold>
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
-//		// FIXME(Louis) Need to modify to load in all ModelLocal configured
-//		ModelRepository.ModelLocal librittsLocal = modelRepository.loadModelLocal("libritts");
-//
-//		Path piperPath = runtimeConfig.getPiperPath();
-//
-//		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-//			log.error("Invalid Piper executable path: {}", piperPath);
-//			throw new RuntimeException("Invalid Piper executable path " + piperPath);
-//		}
+		//		// FIXME(Louis) Need to modify to load in all ModelLocal configured
+		//		ModelRepository.ModelLocal librittsLocal = modelRepository.loadModelLocal("libritts");
+		//
+		//		Path piperPath = runtimeConfig.getPiperPath();
+		//
+		//		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
+		//			log.error("Invalid Piper executable path: {}", piperPath);
+		//			throw new RuntimeException("Invalid Piper executable path " + piperPath);
+		//		}
 
 		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
 		textToSpeech.start();
@@ -158,7 +159,7 @@ public class NaturalSpeechPlugin extends Plugin {
 			textToSpeechListener
 		);
 
-			// Build navButton
+		// Build navButton
 		{
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 			navButton = NavigationButton.builder()
@@ -174,11 +175,10 @@ public class NaturalSpeechPlugin extends Plugin {
 		loadShortenedPhrases();
 		log.info("NaturalSpeech plugin has started");
 
-		if(config.autoStart()) {
+		if (config.autoStart()) {
 			try {
 				this.startTextToSpeech();
-			}
-			catch(IOException | LineUnavailableException e) {
+			} catch (IOException | LineUnavailableException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -199,8 +199,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	@Subscribe
-	private void onClientShutdown(ClientShutdown e)
-	{
+	private void onClientShutdown(ClientShutdown e) {
 		textToSpeech.saveVoiceConfig();
 		textToSpeech.saveModelConfig();
 	}
@@ -212,7 +211,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
-	@Subscribe(priority = -1)
+	@Subscribe(priority=-1)
 	public void onOverheadTextChanged(OverheadTextChanged event) {
 		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (!config.dialogEnabled()) return;
@@ -225,7 +224,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
-	@Subscribe(priority = -2)
+	@Subscribe(priority=-2)
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (textToSpeech.activePiperInstanceCount() == 0) return;
@@ -233,14 +232,14 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		patchChatMessage(message);
 
-		if (!isMessageProcessable(message))return;
+		if (!isMessageProcessable(message)) return;
 		int distance = getSpeakerDistance(message);
 
 		//This can't go into patchChatMessage unfortunately
 		message.setName(message.getName()
 			.replaceAll("<[^>]+>", "") // Remove all tags
 			.replaceAll("[\\p{C}\\p{Z}]+", " ") // Replace control characters and any kind of separator with a space
-//			.replaceAll("[^\\p{L}\\p{Nd} ]+", "") // Remove non-letter, non-digit characters except spaces
+			//			.replaceAll("[^\\p{L}\\p{Nd} ]+", "") // Remove non-letter, non-digit characters except spaces
 			.toLowerCase());
 
 		message.setMessage(message.getMessage()
@@ -249,6 +248,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		textToSpeech.speak(message, distance);
 	}
+
 	@Subscribe
 	public void onMenuOpened(MenuOpened event) {
 		if (textToSpeech.activePiperInstanceCount() < 1) return;
@@ -267,8 +267,8 @@ public class NaturalSpeechPlugin extends Plugin {
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
 
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) drawOptions(entry, index);
-			else if (entry.getType() == MenuAction.EXAMINE_NPC) drawOptions(entry, index);
+			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) {drawOptions(entry, index);}
+			else if (entry.getType() == MenuAction.EXAMINE_NPC) {drawOptions(entry, index);}
 			else if (interfaces.contains(groupId) && entry.getOption().equals("Report")) drawOptions(entry, index);
 		}
 	}
@@ -294,13 +294,13 @@ public class NaturalSpeechPlugin extends Plugin {
 		return component & '\uffff';
 	}
 
-	@Subscribe(priority = -1)
+	@Subscribe(priority=-1)
 	public void onGameTick(GameTick event) {
 		if (textToSpeech.activePiperInstanceCount() < 1) return;
 		if (!config.dialogEnabled() || actorInteractedWith == null) return;
 
 		int playerGroupId = getGroupId(ComponentID.DIALOG_PLAYER_TEXT);
-//		int playerGroupId = WidgetInfo.DIALOG_PLAYER_TEXT.getGroupId();
+		//		int playerGroupId = WidgetInfo.DIALOG_PLAYER_TEXT.getGroupId();
 		Widget playerDialogTextWidget = client.getWidget(playerGroupId, getChildId(ComponentID.DIALOG_PLAYER_TEXT));
 
 		if (playerDialogTextWidget != null) {
@@ -311,9 +311,10 @@ public class NaturalSpeechPlugin extends Plugin {
 				dialogText = dialogText.replace("<br>", " ");
 				textToSpeech.speak(dialogText);
 			}
-		} else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
+		}
+		else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
 
-//		int npcGroupId = WidgetInfo.DIALOG_NPC_TEXT.getGroupId();
+		//		int npcGroupId = WidgetInfo.DIALOG_NPC_TEXT.getGroupId();
 		int npcGroupId = getGroupId(ComponentID.DIALOG_NPC_TEXT);
 		Widget npcDialogTextWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_TEXT));
 
@@ -329,10 +330,11 @@ public class NaturalSpeechPlugin extends Plugin {
 					int modelId = modelWidget.getModelId();
 
 					dialogText = dialogText.replace("<br>", " ");
-					textToSpeech.speak(modelId, npcName,  1, dialogText);
+					textToSpeech.speak(modelId, npcName, 1, dialogText);
 				}
 			}
-		} else if (!lastNpcDialogText.isEmpty()) lastNpcDialogText = "";
+		}
+		else if (!lastNpcDialogText.isEmpty()) lastNpcDialogText = "";
 	}
 
 	@Subscribe
@@ -364,8 +366,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (isMutingOthers(message)) return false;
 		if (checkMuteLevelThreshold(message)) return false;
 
-	return true;
-}
+		return true;
+	}
+
 	public boolean isMessageTypeDisabledInConfig(ChatMessage message) {
 		switch (message.getType()) {
 			case PUBLICCHAT:
@@ -391,7 +394,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 			case DIALOG:
 				return true;
-//				if (!config.dialogEnabled()) return true;
+			//				if (!config.dialogEnabled()) return true;
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
@@ -443,7 +446,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	 * EXAMINE has null for name field<br>
 	 * DIALOG has name in `name|message` format with null for name field<br>
 	 * GAMEMESSAGE & CONSOLE can sometimes have tags which need to be removed<br>
-	 *
 	 * <p>
 	 * This method takes in message reference and patches the name field with correct value<br>
 	 *
@@ -456,15 +458,15 @@ public class NaturalSpeechPlugin extends Plugin {
 			case OBJECT_EXAMINE:
 				message.setName(client.getLocalPlayer().getName());
 				break;
-//			case DIALOG:
-//				String[] parts = message.getMessage().split("\\|", 2);
-//				if (parts.length == 2) {
-//					message.setName(parts[0]);
-//					message.setMessage(parts[1]);
-//				} else {
-//					throw new RuntimeException("Unknown NPC dialog format: " + message.getMessage());
-//				}
-//				break;
+			//			case DIALOG:
+			//				String[] parts = message.getMessage().split("\\|", 2);
+			//				if (parts.length == 2) {
+			//					message.setName(parts[0]);
+			//					message.setMessage(parts[1]);
+			//				} else {
+			//					throw new RuntimeException("Unknown NPC dialog format: " + message.getMessage());
+			//				}
+			//				break;
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:

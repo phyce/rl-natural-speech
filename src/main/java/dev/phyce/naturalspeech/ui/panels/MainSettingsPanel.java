@@ -119,8 +119,62 @@ public class MainSettingsPanel extends PluginPanel {
 		buildHeaderSegment();
 		buildPiperStatusSection();
 		buildVoiceRepositorySegment();
+		buildVoiceHistorySegment();
 
 		this.revalidate();
+	}
+
+	private void buildVoiceHistorySegment() {
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "History";
+		final String description = "The history of played voices played.";
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		mainContentPanel.add(section);
+
+		// Toggle section action listeners
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
 	}
 
 	public void buildHeaderSegment() {
@@ -169,7 +223,6 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionToggle.setToolTipText("Retract");
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
 
 		final String name = "Voice Repository";
 		final String description = "Manage your voice models.";
@@ -327,7 +380,8 @@ public class MainSettingsPanel extends PluginPanel {
 				public void onPiperExit(Piper piper) {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					if (plugin.getTextToSpeech().isStarted() && plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
+					if (plugin.getTextToSpeech().isStarted() &&
+						plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
 						statusLabel.setText("No Models Enabled");
 						statusLabel.setBackground(Color.ORANGE.darker());
 						statusLabel.setForeground(Color.WHITE);
@@ -339,7 +393,8 @@ public class MainSettingsPanel extends PluginPanel {
 				public void onStart() {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					if (plugin.getTextToSpeech().isStarted() && plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
+					if (plugin.getTextToSpeech().isStarted() &&
+						plugin.getTextToSpeech().activePiperInstanceCount() == 0) {
 						statusLabel.setText("No Models Enabled");
 						statusLabel.setBackground(Color.ORANGE.darker());
 						statusLabel.setForeground(Color.WHITE);

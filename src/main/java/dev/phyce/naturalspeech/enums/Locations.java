@@ -27,6 +27,7 @@ public enum Locations {
 	public boolean isWorldPointInside2D(WorldPoint worldPoint) {
 		return isWorldPointInside2D(worldPoint, start, end);
 	}
+
 	public static boolean isWorldPointInside2D(WorldPoint position, WorldPoint start, WorldPoint end) {
 		int minX = Math.min(start.getX(), end.getX());
 		int maxX = Math.max(start.getX(), end.getX());
@@ -34,7 +35,7 @@ public enum Locations {
 		int maxY = Math.max(start.getY(), end.getY());
 
 		return position.getX() >= minX && position.getX() <= maxX
-				&& position.getY() >= minY && position.getY() <= maxY;
+			&& position.getY() >= minY && position.getY() <= maxY;
 	}
 
 	public static boolean inGrandExchange(WorldPoint position) {

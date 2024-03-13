@@ -1,6 +1,10 @@
 package dev.phyce.naturalspeech.ui.layouts;
 
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.util.function.Function;
 
 public class OnlyVisibleGridLayout extends GridLayout {
@@ -20,7 +24,7 @@ public class OnlyVisibleGridLayout extends GridLayout {
 	// Pretends invisible components don't exist during layout
 	private int getVisibleComponentCount(Container parent) {
 		int count = 0;
-		for (Component component : parent.getComponents()) if (component.isVisible()) count++;
+		for (Component component : parent.getComponents()) {if (component.isVisible()) count++;}
 		return count;
 	}
 
@@ -49,8 +53,8 @@ public class OnlyVisibleGridLayout extends GridLayout {
 
 			if (visibleComponentCount == 0) return;
 
-			if (rowCount > 0) columnCount = (visibleComponentCount + rowCount - 1) / rowCount;
-			else rowCount = (visibleComponentCount + columnCount - 1) / columnCount;
+			if (rowCount > 0) {columnCount = (visibleComponentCount + rowCount - 1) / rowCount;}
+			else {rowCount = (visibleComponentCount + columnCount - 1) / columnCount;}
 
 			final int horizontalGap = getHgap();
 			final int verticalGap = getVgap();
@@ -60,8 +64,10 @@ public class OnlyVisibleGridLayout extends GridLayout {
 			final Insets parentInsets = parent.getInsets();
 			int widthBorder = parentInsets.left + parentInsets.right;
 			int heightBorder = parentInsets.top + parentInsets.bottom;
-			final double widthScale = (1.0 * parent.getWidth() - widthBorder) / (preferredDimension.width - widthBorder);
-			final double heightScale = (1.0 * parent.getHeight() - heightBorder) / (preferredDimension.height - heightBorder);
+			final double widthScale =
+				(1.0 * parent.getWidth() - widthBorder) / (preferredDimension.width - widthBorder);
+			final double heightScale =
+				(1.0 * parent.getHeight() - heightBorder) / (preferredDimension.height - heightBorder);
 
 			final int[] widths = new int[columnCount];
 			final int[] heights = new int[rowCount];
@@ -120,6 +126,7 @@ public class OnlyVisibleGridLayout extends GridLayout {
 	 *
 	 * @param parent parent component
 	 * @param sizer  functioning returning dimension of the child component
+	 *
 	 * @return outer size
 	 */
 	private Dimension calculateSize(final Container parent, final Function<Component, Dimension> sizer) {
@@ -128,8 +135,8 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		int rowCount = getRows();
 		int columnCount = getColumns();
 
-		if (rowCount > 0) columnCount = (visibleComponentCount + rowCount - 1) / rowCount;
-		else rowCount = (visibleComponentCount + columnCount - 1) / columnCount;
+		if (rowCount > 0) {columnCount = (visibleComponentCount + rowCount - 1) / rowCount;}
+		else {rowCount = (visibleComponentCount + columnCount - 1) / columnCount;}
 
 		final int[] width = new int[columnCount];
 		final int[] height = new int[rowCount];
@@ -159,11 +166,11 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		// Calculate total width and height of the layout
 		int netWidth = 0;
 
-		for (int j = 0; j < columnCount; j++) netWidth += width[j];
+		for (int j = 0; j < columnCount; j++) {netWidth += width[j];}
 
 		int netHeight = 0;
 
-		for (int i = 0; i < rowCount; i++) netHeight += height[i];
+		for (int i = 0; i < rowCount; i++) {netHeight += height[i];}
 
 		final Insets insets = parent.getInsets();
 

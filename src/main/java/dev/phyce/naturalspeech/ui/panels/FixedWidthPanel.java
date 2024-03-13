@@ -24,10 +24,9 @@
  */
 package dev.phyce.naturalspeech.ui.panels;
 
+import java.awt.Dimension;
+import javax.swing.JPanel;
 import net.runelite.client.ui.PluginPanel;
-
-import javax.swing.*;
-import java.awt.*;
 
 class FixedWidthPanel extends JPanel {
 	@Override

@@ -1,9 +1,8 @@
 package dev.phyce.naturalspeech.tts;
 
-import lombok.Value;
-
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.Value;
 
 public class AudioQueue {
 	private final AtomicBoolean playing = new AtomicBoolean(false);

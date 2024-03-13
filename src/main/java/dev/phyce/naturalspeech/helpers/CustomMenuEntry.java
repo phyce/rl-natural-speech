@@ -1,14 +1,13 @@
 package dev.phyce.naturalspeech.helpers;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
 
 @Slf4j
 public class CustomMenuEntry {
@@ -27,28 +26,32 @@ public class CustomMenuEntry {
 		};
 		this.index = index;
 	}
+
 	public CustomMenuEntry(String text, int index, Consumer<CustomMenuEntry> action) {
 		this.text = text;
 		this.action = action;
 		this.index = index;
 	}
+
 	public void addChild(CustomMenuEntry child) {
 		children.add(child);
 	}
-	public void addMenuEntry(Client client, String option, Consumer<CustomMenuEntry> action, CustomMenuEntry[] children) {
+
+	public void addMenuEntry(Client client, String option, Consumer<CustomMenuEntry> action,
+							 CustomMenuEntry[] children) {
 
 		MenuEntry parentEntry = client.createMenuEntry(this.index)
-				.setOption(option)
-				.setTarget("")
-				.setType(MenuAction.RUNELITE)
-				.onClick(consumer -> action.accept(this));
+			.setOption(option)
+			.setTarget("")
+			.setType(MenuAction.RUNELITE)
+			.onClick(consumer -> action.accept(this));
 
 		for (CustomMenuEntry child : children) {
 			MenuEntry childEntry = client.createMenuEntry(child.index)
-					.setOption(child.text)
-					.setTarget("")
-					.setType(MenuAction.RUNELITE)
-					.onClick(consumer -> child.action.accept(child));
+				.setOption(child.text)
+				.setTarget("")
+				.setType(MenuAction.RUNELITE)
+				.onClick(consumer -> child.action.accept(child));
 
 			childEntry.setParent(parentEntry);
 		}

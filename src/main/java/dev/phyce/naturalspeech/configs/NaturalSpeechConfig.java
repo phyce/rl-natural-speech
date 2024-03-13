@@ -1,24 +1,28 @@
 package dev.phyce.naturalspeech.configs;
 
-import net.runelite.client.config.*;
-
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import net.runelite.client.config.Config;
+import net.runelite.client.config.ConfigGroup;
+import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
+import net.runelite.client.config.Range;
 
 @ConfigGroup(CONFIG_GROUP)
 public interface NaturalSpeechConfig extends Config {
 	//<editor-fold desc="> General Settings">
 	@ConfigSection(
-		name = "General",
-		description = "General settings",
-		position = 0
+		name="General",
+		description="General settings",
+		position=0
 	)
 	String generalSettingsSection = "generalSettingsSection";
+
 	@ConfigItem(
-		position = 1,
-		keyName = "personalVoice",
-		name = "Personal voice ID",
-		description = "Choose one of the 903 voices for your character, example: libritts:0",
-		section = generalSettingsSection
+		position=1,
+		keyName="personalVoice",
+		name="Personal voice ID",
+		description="Choose one of the 903 voices for your character, example: libritts:0",
+		section=generalSettingsSection
 
 	)
 	default String personalVoiceID() {
@@ -26,20 +30,20 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position = 2,
-		keyName = "autoStart",
-		name = "Autostart the TTS engine",
-		description = "If executable and voice models available, autostart the TTS engine when the plugin loads.",
-		section = generalSettingsSection
+		position=2,
+		keyName="autoStart",
+		name="Autostart the TTS engine",
+		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
+		section=generalSettingsSection
 	)
-	default boolean autoStart() { return true; }
+	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position = 3,
-		keyName = "distanceFade",
-		name = "Fade distant sound",
-		description = "Players standing further away will sound quieter.",
-		section = generalSettingsSection
+		position=3,
+		keyName="distanceFade",
+		name="Fade distant sound",
+		description="Players standing further away will sound quieter.",
+		section=generalSettingsSection
 
 	)
 	default boolean distanceFadeEnabled() {
@@ -49,117 +53,118 @@ public interface NaturalSpeechConfig extends Config {
 
 	//<editor-fold desc="> Speech Generation Settings">
 	@ConfigSection(
-		name = "Speech generation",
-		description = "Settings to choose which messages should be played",
-		position = 1
+		name="Speech generation",
+		description="Settings to choose which messages should be played",
+		position=1
 	)
 	String ttsOptionsSection = "ttsOptionsSection";
+
 	@ConfigItem(
-		keyName = "publicChat",
-		name = "Public messages",
-		description = "Enable text-to-speech to the public chat messages.",
-		section = ttsOptionsSection,
-		position = 1
+		keyName="publicChat",
+		name="Public messages",
+		description="Enable text-to-speech to the public chat messages.",
+		section=ttsOptionsSection,
+		position=1
 	)
 	default boolean publicChatEnabled() {
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "privateChat",
-		name = "Private received messages",
-		description = "Enable text-to-speech to the received private chat messages.",
-		section = ttsOptionsSection,
-		position = 2
+		keyName="privateChat",
+		name="Private received messages",
+		description="Enable text-to-speech to the received private chat messages.",
+		section=ttsOptionsSection,
+		position=2
 	)
 	default boolean privateChatEnabled() {
 		return false;
 	}
 
 	@ConfigItem(
-		keyName = "privateOutChat",
-		name = "Private sent out messages",
-		description = "Enable text-to-speech to the sent out private chat messages.",
-		section = ttsOptionsSection
+		keyName="privateOutChat",
+		name="Private sent out messages",
+		description="Enable text-to-speech to the sent out private chat messages.",
+		section=ttsOptionsSection
 		,
-		position = 3
+		position=3
 	)
 	default boolean privateOutChatEnabled() {
 		return false;
 	}
 
 	@ConfigItem(
-		keyName = "friendsChat",
-		name = "Friends chat",
-		description = "Enable text-to-speech to friends chat messages.",
-		section = ttsOptionsSection,
-		position = 4
+		keyName="friendsChat",
+		name="Friends chat",
+		description="Enable text-to-speech to friends chat messages.",
+		section=ttsOptionsSection,
+		position=4
 	)
 	default boolean friendsChatEnabled() {
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "clanChat",
-		name = "Clan chat",
-		description = "Enable text-to-speech to the clan chat messages.",
-		section = ttsOptionsSection,
-		position = 5
+		keyName="clanChat",
+		name="Clan chat",
+		description="Enable text-to-speech to the clan chat messages.",
+		section=ttsOptionsSection,
+		position=5
 	)
 	default boolean clanChatEnabled() {
 		return false;
 	}
 
 	@ConfigItem(
-		keyName = "clanGuestChat",
-		name = "Guest clan chat",
-		description = "Enable text-to-speech to the guest clan chat messages.",
-		section = ttsOptionsSection,
-		position = 6
+		keyName="clanGuestChat",
+		name="Guest clan chat",
+		description="Enable text-to-speech to the guest clan chat messages.",
+		section=ttsOptionsSection,
+		position=6
 	)
 	default boolean clanGuestChatEnabled() {
 		return false;
 	}
 
 	@ConfigItem(
-		keyName = "examineChat",
-		name = "Examine text",
-		description = "Enable text-to-speech to the 'Examine' messages.",
-		section = ttsOptionsSection,
-		position = 7
+		keyName="examineChat",
+		name="Examine text",
+		description="Enable text-to-speech to the 'Examine' messages.",
+		section=ttsOptionsSection,
+		position=7
 	)
 	default boolean examineChatEnabled() {
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "dialog",
-		name = "Dialogs",
-		description = "Enable text-to-speech to dialog text.",
-		section = ttsOptionsSection,
-		position = 8
+		keyName="dialog",
+		name="Dialogs",
+		description="Enable text-to-speech to dialog text.",
+		section=ttsOptionsSection,
+		position=8
 	)
 	default boolean dialogEnabled() {
 		return true;
 	}
 
 	@ConfigItem(
-		keyName = "requests",
-		name = "Trade/Challenge requests",
-		description = "Enable text-to-speech to trade and challenge requests.",
-		section = ttsOptionsSection,
-		position = 8
+		keyName="requests",
+		name="Trade/Challenge requests",
+		description="Enable text-to-speech to trade and challenge requests.",
+		section=ttsOptionsSection,
+		position=8
 	)
 	default boolean requestsEnabled() {
 		return false;
 	}
 
 	@ConfigItem(
-		keyName = "systemMesages",
-		name = "System messages",
-		description = "Generate text-to-speech to game's messages",
-		section = ttsOptionsSection,
-		position = 8
+		keyName="systemMesages",
+		name="System messages",
+		description="Generate text-to-speech to game's messages",
+		section=ttsOptionsSection,
+		position=8
 	)
 	default boolean systemMesagesEnabled() {
 		return true;
@@ -168,38 +173,41 @@ public interface NaturalSpeechConfig extends Config {
 
 	//<editor-fold desc="> Mute Options">
 	@ConfigSection(
-		name = "Mute",
-		description = "Change mute settings here",
-		position = 2
+		name="Mute",
+		description="Change mute settings here",
+		position=2
 	)
 	String muteOptionsSection = "muteOptionsSection";
+
 	@ConfigItem(
-		position = 1,
-		keyName = "muteGrandExchange",
-		name = "Mute in Grand Exchange",
-		description = "Disable text-to-speech in the grand exchange area.",
-		section = muteOptionsSection
+		position=1,
+		keyName="muteGrandExchange",
+		name="Mute in Grand Exchange",
+		description="Disable text-to-speech in the grand exchange area.",
+		section=muteOptionsSection
 	)
 	default boolean muteGrandExchange() {
 		return true;
 	}
+
 	@ConfigItem(
-		position = 4,
-		keyName = "muteSelf",
-		name = "Mute yourself",
-		description = "Do not generate text-to-speech for messages that you send.",
-		section = muteOptionsSection
+		position=4,
+		keyName="muteSelf",
+		name="Mute yourself",
+		description="Do not generate text-to-speech for messages that you send.",
+		section=muteOptionsSection
 
 	)
 	default boolean muteSelf() {
 		return false;
 	}
+
 	@ConfigItem(
-		position = 5,
-		keyName = "muteOthers",
-		name = "Mute others",
-		description = "Do not generate text-to-speech for messages from other players.",
-		section = muteOptionsSection
+		position=5,
+		keyName="muteOthers",
+		name="Mute others",
+		description="Do not generate text-to-speech for messages from other players.",
+		section=muteOptionsSection
 
 	)
 	default boolean muteOthers() {
@@ -207,13 +215,13 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position = 6,
-		keyName = "muteLevelThreshold",
-		name = "Mute below level",
-		description = "Do not generate text-to-speech for messages from players with levels lower than this value.",
-		section = muteOptionsSection
+		position=6,
+		keyName="muteLevelThreshold",
+		name="Mute below level",
+		description="Do not generate text-to-speech for messages from players with levels lower than this value.",
+		section=muteOptionsSection
 	)
-	@Range(min = 3, max = 126)
+	@Range(min=3, max=126)
 	default int muteLevelThreshold() {
 		return 3;
 	}
@@ -221,17 +229,18 @@ public interface NaturalSpeechConfig extends Config {
 
 	//<editor-fold desc="> Other Settings">
 	@ConfigSection(
-		name = "Other",
-		description = "Other settings",
-		position = 3
+		name="Other",
+		description="Other settings",
+		position=3
 	)
 	String otherOptionsSection = "otherOptionsSection";
+
 	@ConfigItem(
-		position = 4,
-		keyName = "shortenedPhrases",
-		name = "Shortened phrases",
-		description = "Replace commonly used shortened sentences with whole words",
-		section = otherOptionsSection
+		position=4,
+		keyName="shortenedPhrases",
+		name="Shortened phrases",
+		description="Replace commonly used shortened sentences with whole words",
+		section=otherOptionsSection
 	)
 	default String shortenedPhrases() {
 		return "ags=armadyl godsword\n" +

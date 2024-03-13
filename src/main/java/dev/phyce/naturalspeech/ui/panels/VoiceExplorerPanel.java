@@ -6,6 +6,34 @@ import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
@@ -15,29 +43,15 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.swing.*;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.List;
-import java.util.*;
-import java.util.stream.Collectors;
-
 public class VoiceExplorerPanel extends EditorPanel {
 
 	public static final ImageIcon SECTION_EXPAND_ICON;
 	private static final ImageIcon SECTION_RETRACT_ICON;
-	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male","Female");
+	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
 
 	static {
-		BufferedImage sectionRetractIcon = ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
+		BufferedImage sectionRetractIcon =
+			ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
 		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
 		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
 		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
@@ -141,7 +155,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionListPanel.removeAll();
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 			try {
-				if (modelRepository.hasModelLocal(modelURL.getModelName())) buildSpeakerSegmentForVoice(modelURL.getModelName());
+				if (modelRepository.hasModelLocal(modelURL.getModelName())) {
+					buildSpeakerSegmentForVoice(modelURL.getModelName());
+				}
 			} catch (IOException ignore) {
 			}
 		}
@@ -150,8 +166,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
 		boolean newState = !sectionContent.isVisible();
 		sectionContent.setVisible(newState);
-		toggleButton.setIcon(newState ? SECTION_RETRACT_ICON : SECTION_EXPAND_ICON);
-		toggleButton.setToolTipText(newState ? "Retract" : "Expand");
+		toggleButton.setIcon(newState? SECTION_RETRACT_ICON: SECTION_EXPAND_ICON);
+		toggleButton.setToolTipText(newState? "Retract": "Expand");
 		SwingUtilities.invokeLater(sectionContent::revalidate);
 	}
 
@@ -210,29 +226,29 @@ public class VoiceExplorerPanel extends EditorPanel {
 			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voice_name);
 
 			Arrays.stream(modelLocal.getVoiceMetadata())
-					.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
-					.forEach((voiceMetadata) -> {
-						VoiceListItem speakerItem = new VoiceListItem(this, plugin, voiceMetadata, modelLocal);
-						voiceListItems.add(speakerItem);
-						sectionContent.add(speakerItem);
-					});
+				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
+				.forEach((voiceMetadata) -> {
+					VoiceListItem speakerItem = new VoiceListItem(this, plugin, voiceMetadata, modelLocal);
+					voiceListItems.add(speakerItem);
+					sectionContent.add(speakerItem);
+				});
 
-		} catch (IOException e) { throw new RuntimeException(e); }
+		} catch (IOException e) {throw new RuntimeException(e);}
 
 		sectionListPanel.add(section);
 	}
 
 	void searchFilter(String searchInput) {
 		if (searchInput.isEmpty()) {
-			for (VoiceListItem speakerItems : voiceListItems) speakerItems.setVisible(true);
+			for (VoiceListItem speakerItems : voiceListItems) {speakerItems.setVisible(true);}
 			return;
 		}
 
 		// split search by space and comma
 		Set<String> searchTerms = Arrays.stream(searchInput.toLowerCase().split("[,\\s]+"))
-				.filter(s -> !s.isEmpty())
-				.map(String::trim)
-				.map(String::toLowerCase).collect(Collectors.toSet());
+			.filter(s -> !s.isEmpty())
+			.map(String::trim)
+			.map(String::toLowerCase).collect(Collectors.toSet());
 
 		String genderSearch = null;
 		Iterator<String> iterator = searchTerms.iterator();
@@ -242,7 +258,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 			if (List.of("m", "male", "guy").contains(searchTerm)) {
 				genderSearch = "M";
 				iterator.remove();
-			} else if (List.of("f", "female", "girl").contains(searchTerm)) {
+			}
+			else if (List.of("f", "female", "girl").contains(searchTerm)) {
 				genderSearch = "F";
 				iterator.remove();
 			}
@@ -258,7 +275,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 			// name search
 			if (!searchInput.isEmpty()) {
 				boolean term_matched = false;
-				if (!searchTerms.isEmpty() && voiceMetadata.getName().toLowerCase().contains(searchInput)) term_matched = true;
+				if (!searchTerms.isEmpty() && voiceMetadata.getName().toLowerCase().contains(searchInput)) {
+					term_matched = true;
+				}
 
 				if (!term_matched) visible = false;
 			}

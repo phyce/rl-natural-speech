@@ -5,15 +5,21 @@ import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import javax.swing.GroupLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 
 @Slf4j
 public class VoiceListItem extends JPanel {
@@ -32,7 +38,7 @@ public class VoiceListItem extends JPanel {
 		PLAY_BUTTON = new ImageIcon(image.getScaledInstance(25, 25, Image.SCALE_SMOOTH));
 		PLAY_BUTTON_DISABLED = new ImageIcon(
 			ImageUtil.luminanceScale(ImageUtil.grayscaleImage(image), 0.61f)
-			.getScaledInstance(25, 25, Image.SCALE_SMOOTH));
+				.getScaledInstance(25, 25, Image.SCALE_SMOOTH));
 
 	}
 

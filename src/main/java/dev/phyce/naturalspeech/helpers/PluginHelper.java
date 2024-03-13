@@ -1,6 +1,11 @@
 package dev.phyce.naturalspeech.helpers;
 
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import lombok.Getter;
 import lombok.NonNull;
 import net.runelite.api.Client;
@@ -8,12 +13,6 @@ import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.client.util.Text;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 // renamed: PlayerCommon
 @Singleton
@@ -50,8 +49,9 @@ public final class PluginHelper {
 	public static Player getFromUsername(@NonNull String username) {
 		String sanitized = Text.sanitize(username);
 		for (net.runelite.api.Player player : instance.client.getCachedPlayers()) {
-			if (player != null && player.getName() != null && Text.sanitize(player.getName()).equals(sanitized))
+			if (player != null && player.getName() != null && Text.sanitize(player.getName()).equals(sanitized)) {
 				return player;
+			}
 		}
 		return null;
 	}
@@ -71,8 +71,8 @@ public final class PluginHelper {
 		if (localPlayer == null || targetPlayer == null) return 0;
 
 		return localPlayer
-				.getWorldLocation()
-				.distanceTo(targetPlayer.getWorldLocation());
+			.getWorldLocation()
+			.distanceTo(targetPlayer.getWorldLocation());
 	}
 
 	public static int getNPCDistance(@NonNull NPC npc) {
@@ -84,7 +84,7 @@ public final class PluginHelper {
 			.getWorldLocation()
 			.distanceTo(npc.getWorldLocation());
 
-		if( distance < 0 || 15 < distance ) return 0;
+		if (distance < 0 || 15 < distance) return 0;
 
 		return distance;
 	}
@@ -145,10 +145,11 @@ public final class PluginHelper {
 			case FRIENDSCHAT:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
-				if (!PluginHelper.getAllowList().isEmpty() && !PluginHelper.getAllowList().contains(message.getName()))
+				if (!PluginHelper.getAllowList().isEmpty() &&
+					!PluginHelper.getAllowList().contains(message.getName())) {return true;}
+				if (!PluginHelper.getBlockList().isEmpty() && PluginHelper.getBlockList().contains(message.getName())) {
 					return true;
-				if (!PluginHelper.getBlockList().isEmpty() && PluginHelper.getBlockList().contains(message.getName()))
-					return true;
+				}
 		}
 		return false;
 	}

@@ -10,6 +10,7 @@ public class VoiceID {
 	public VoiceID() {
 
 	}
+
 	public VoiceID(String modelName, int piperVoiceID) {
 		this.modelName = modelName;
 		this.piperVoiceID = piperVoiceID;
@@ -19,7 +20,6 @@ public class VoiceID {
 	 * Returns the ModelAndVoice in the format of "modelShortName:VoiceID",
 	 * ex libritts:360
 	 *
-	 * @param idString
 	 * @return null if format is invalid, ModelAndVoice otherwise.
 	 * Does not verify Model and Voice's actual existence.
 	 */

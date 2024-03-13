@@ -1,10 +1,9 @@
 package dev.phyce.naturalspeech.ui.panels;
 
-import net.runelite.client.ui.PluginPanel;
-
-import javax.swing.*;
+import java.awt.Font;
+import javax.swing.JLabel;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import net.runelite.client.ui.PluginPanel;
 
 public class EditorPanel extends PluginPanel {
 	public EditorPanel() {
