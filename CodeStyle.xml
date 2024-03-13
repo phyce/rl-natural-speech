@@ -32,13 +32,6 @@
   <codeStyleSettings language="JAVA">
     <option name="KEEP_FIRST_COLUMN_COMMENT" value="false" />
     <option name="ELSE_ON_NEW_LINE" value="true" />
-    <option name="SPACE_BEFORE_IF_PARENTHESES" value="false" />
-    <option name="SPACE_BEFORE_WHILE_PARENTHESES" value="false" />
-    <option name="SPACE_BEFORE_FOR_PARENTHESES" value="false" />
-    <option name="SPACE_BEFORE_TRY_PARENTHESES" value="false" />
-    <option name="SPACE_BEFORE_CATCH_PARENTHESES" value="false" />
-    <option name="SPACE_BEFORE_SWITCH_PARENTHESES" value="false" />
-    <option name="SPACE_BEFORE_SYNCHRONIZED_PARENTHESES" value="false" />
     <option name="SPACE_BEFORE_ARRAY_INITIALIZER_LBRACE" value="true" />
     <option name="SPACE_BEFORE_QUEST" value="false" />
     <option name="SPACE_BEFORE_COLON" value="false" />
