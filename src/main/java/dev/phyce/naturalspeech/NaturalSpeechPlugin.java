@@ -44,7 +44,6 @@ import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -102,7 +101,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	private Map<String, String> shortenedPhrases;
 	private NavigationButton navButton;
 	private TextToSpeech.TextToSpeechListener textToSpeechListener;
-	private final Map<Actor, Integer> lastMessageTickTime = new HashMap<>();
 	private String lastNpcDialogText = "";
 	private String lastPlayerDialogText = "";
 	private Actor actorInteractedWith = null;
@@ -180,10 +178,7 @@ public class NaturalSpeechPlugin extends Plugin {
 			try {
 				this.startTextToSpeech();
 			}
-			catch(IOException e) {
-				throw new RuntimeException(e);
-			}
-			catch(LineUnavailableException e) {
+			catch(IOException | LineUnavailableException e) {
 				throw new RuntimeException(e);
 			}
 		}

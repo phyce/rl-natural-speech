@@ -277,7 +277,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		plugin.getTextToSpeech().addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
-				private Map<Piper, PiperListItem> piperItemList = new HashMap<>();
+				private final Map<Piper, PiperListItem> piperItemList = new HashMap<>();
 
 				@Override
 				public void onPiperStart(Piper piper) {
