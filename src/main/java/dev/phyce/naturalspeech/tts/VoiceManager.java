@@ -1,5 +1,7 @@
 package dev.phyce.naturalspeech.tts;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.io.Resources;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
@@ -9,13 +11,13 @@ import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
-import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
@@ -35,6 +37,8 @@ public class VoiceManager {
 	private final ConfigManager configManager;
 	private final GenderedVoiceMap genderedVoiceMap;
 
+	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
+
 	@Inject
 	public VoiceManager(NaturalSpeechPlugin plugin, ConfigManager configManager) {
 		this.textToSpeech = plugin.getTextToSpeech();
@@ -45,12 +49,17 @@ public class VoiceManager {
 			new TextToSpeech.TextToSpeechListener() {
 				@Override
 				public void onPiperStart(Piper piper) {
-					genderedVoiceMap.addModel(piper.getModelLocal());
+					ModelRepository.ModelLocal modelLocal = piper.getModelLocal();
+					genderedVoiceMap.addModel(modelLocal);
+					for (ModelRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
+						activeVoiceMap.put(modelLocal, voiceMetadata.toVoiceID());
+					}
 				}
 
 				@Override
 				public void onPiperExit(Piper piper) {
 					genderedVoiceMap.removeModel(piper.getModelLocal());
+					activeVoiceMap.removeAll(piper.getModelLocal());
 				}
 			}
 		);
@@ -78,23 +87,17 @@ public class VoiceManager {
 			}
 		}
 		if (results == null) {
-			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
+			if (message.getType() == ChatMessageType.PUBLICCHAT) {
+				Player user = PluginHelper.getFromUsername(message.getName());
+				if (user != null) {
+					ModelRepository.Gender gender =
+						ModelRepository.Gender.parseInt(user.getPlayerComposition().getGender());
 
-				if (message.getType() == ChatMessageType.PUBLICCHAT) {
-					Player user = PluginHelper.getFromUsername(message.getName());
-					if (user != null) {
-						ModelRepository.Gender gender =
-							ModelRepository.Gender.parseInt(user.getPlayerComposition().getGender());
-
-						results =
-							List.of(calculateGenderedVoice(modelLocal, message.getName(), gender));
-						break;
-					}
+					results = List.of(randomGenderedVoice(message.getName(), gender));
 				}
-				results = List.of(calculateVoice(modelLocal, message.getName()));
 			}
+			results = List.of(randomVoiceFromActiveModels(message.getName()));
 		}
-		assert results != null;
 		return results.get(0);
 	}
 
@@ -106,9 +109,7 @@ public class VoiceManager {
 		if (results == null) results = voiceConfig.getWithNpcName(npcName);
 
 		if (results == null) {
-			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = List.of(new VoiceID[] {calculateVoice(modelLocal, npcName)});
-			}
+			results = List.of(randomVoiceFromActiveModels(npcName));
 		}
 
 		// FIXME(Louis) Fix getVoiceIDFromNPCId to consider all options
@@ -121,9 +122,7 @@ public class VoiceManager {
 		results = voiceConfig.getWithNpcName(npc.getName());
 
 		if (results == null) {
-			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = List.of(new VoiceID[] {calculateVoice(modelLocal, npc.getName())});
-			}
+			results = List.of(randomVoiceFromActiveModels(npc.getName()));
 		}
 
 		return results;
@@ -137,9 +136,7 @@ public class VoiceManager {
 		List<VoiceID> results = voiceConfig.getWithUsername(username);
 
 		if (results == null) {
-			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = List.of(calculateVoice(modelLocal, username));
-			}
+			results = List.of(randomVoiceFromActiveModels(username));
 		}
 
 		assert results != null;
@@ -191,21 +188,26 @@ public class VoiceManager {
 			NPC npc = ((NPC) actor);
 			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
 		}
-		else if (actor instanceof Player){
+		else if (actor instanceof Player) {
 			voiceConfig.setDefaultPlayerVoice(Objects.requireNonNull(actor.getName()), voiceId);
-		} else {
+		}
+		else {
 			log.error("Tried setting a voice for neither NPC or player. Possibly for an object.");
 		}
 	}
 
 
-	public VoiceID calculateVoice(ModelRepository.ModelLocal modelLocal, String username) {
+	public VoiceID randomVoiceFromActiveModels(String username) {
 		int hashCode = username.hashCode();
-		return new VoiceID(modelLocal.getModelName(), Math.abs(hashCode) % modelLocal.getVoiceMetadata().length);
+
+		long count = activeVoiceMap.values().size();
+		Optional<VoiceID> first = activeVoiceMap.values().stream().skip(Math.abs(hashCode) % count).findFirst();
+
+		return first.orElse(null);
 	}
 
-	public VoiceID calculateGenderedVoice(ModelRepository.ModelLocal modelLocal, String username,
-										  ModelRepository.Gender gender) {
+	public VoiceID randomGenderedVoice(String username,
+									   ModelRepository.Gender gender) {
 		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
 		if (voiceIDs == null || voiceIDs.isEmpty()) {
 			throw new IllegalArgumentException("No voices available for the specified gender");

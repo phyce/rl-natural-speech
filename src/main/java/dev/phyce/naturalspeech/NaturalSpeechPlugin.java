@@ -236,7 +236,6 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe(priority=-2)
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 		if (message.getType() == ChatMessageType.AUTOTYPER) return;
 		// console messages seems to be errors and warnings from other plugins, mute
