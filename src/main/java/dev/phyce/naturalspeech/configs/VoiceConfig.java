@@ -15,9 +15,9 @@ import lombok.NonNull;
 import net.runelite.http.api.RuneLiteAPI;
 
 public class VoiceConfig {
-	public final Map<String, PlayerNameVoiceConfigDatum> playerVoices;
-	public final Map<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
-	public final Map<String, NPCNameVoiceConfigDatum> npcNameVoices;
+	private final Map<String, PlayerNameVoiceConfigDatum> playerVoices;
+	private final Map<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
+	private final Map<String, NPCNameVoiceConfigDatum> npcNameVoices;
 
 	public VoiceConfig() {
 		playerVoices = new HashMap<>();
@@ -26,6 +26,7 @@ public class VoiceConfig {
 	}
 
 	public void setDefaultPlayerVoice(@NonNull String username, VoiceID voiceID) {
+		username = username.toLowerCase();
 		playerVoices.putIfAbsent(username, new PlayerNameVoiceConfigDatum(username));
 		PlayerNameVoiceConfigDatum datum = playerVoices.get(username);
 		if (datum.getVoiceIDs().isEmpty()) {
@@ -106,6 +107,10 @@ public class VoiceConfig {
 	public static VoiceConfig fromJson(@NonNull String json) throws JsonSyntaxException {
 		VoiceConfigDatum datum = RuneLiteAPI.GSON.fromJson(json, VoiceConfigDatum.class);
 		return fromDatum(datum);
+	}
+
+	public int countAll() {
+		return playerVoices.size() + npcIDVoices.size() + npcNameVoices.size();
 	}
 
 	public void clear() {

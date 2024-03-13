@@ -153,8 +153,7 @@ public class VoiceManager {
 			try {
 				voiceConfig.loadJSON(json);
 				log.info("Loaded {} voice config entries from existing VoiceConfig JSON from ConfigManager.",
-					voiceConfig.npcIDVoices.size() + voiceConfig.npcNameVoices.size() +
-						voiceConfig.playerVoices.size());
+					voiceConfig.countAll());
 				return;
 			} catch (JsonSyntaxException ignored) {
 				// fallback to default json
@@ -190,15 +189,12 @@ public class VoiceManager {
 	public void setActorVoiceID(@NonNull Actor actor, VoiceID voiceId) {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
-
 			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
 		}
-		else {
-			PlayerNameVoiceConfigDatum voiceConfigDatum = new PlayerNameVoiceConfigDatum(
-				actor.getName().toLowerCase()
-			);
-
-			voiceConfig.playerVoices.put(actor.getName().toLowerCase(), voiceConfigDatum);
+		else if (actor instanceof Player){
+			voiceConfig.setDefaultPlayerVoice(Objects.requireNonNull(actor.getName()), voiceId);
+		} else {
+			log.error("Tried setting a voice for neither NPC or player. Possibly for an object.");
 		}
 	}
 

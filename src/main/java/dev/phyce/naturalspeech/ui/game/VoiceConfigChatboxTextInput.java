@@ -40,7 +40,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		lines(1);
 		prompt("Enter voice in model:id format. Example: libritts:120");
 
-		onDone((Consumer<String>) string ->
+		onDone(string ->
 		{
 			if (string != null && !string.isEmpty()) {
 				VoiceID voiceId = VoiceID.fromIDString(string);
