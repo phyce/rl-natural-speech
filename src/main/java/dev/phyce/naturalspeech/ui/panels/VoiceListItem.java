@@ -64,12 +64,19 @@ public class VoiceListItem extends JPanel {
 		JLabel nameLabel = new JLabel(voiceMetadata.getName());
 		nameLabel.setForeground(Color.white);
 
-		JLabel sexLabel = new JLabel(voiceMetadata.getGender().replaceFirst("M", "(M)").replaceFirst("F", "(F)"));
-		sexLabel.setForeground(Color.white);
+		String genderString;
+		if (voiceMetadata.getGender() == ModelRepository.Gender.MALE) {
+			genderString = "(M)";
+		} else if (voiceMetadata.getGender() == ModelRepository.Gender.FEMALE) {
+			genderString = "(F)";
+		} else {
+			genderString = "(?)";
+		}
+
+		JLabel genderLabel = new JLabel(genderString);
+		genderLabel.setForeground(Color.white);
 
 		JLabel piperIdLabel = new JLabel(String.format("ID%d", voiceMetadata.getPiperVoiceID()));
-		sexLabel.setForeground(Color.white);
-
 
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
@@ -77,7 +84,7 @@ public class VoiceListItem extends JPanel {
 			.addComponent(piperIdLabel, 35, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
 			.addGap(5)
 			.addComponent(nameLabel)
-			.addGap(5).addComponent(sexLabel));
+			.addGap(5).addComponent(genderLabel));
 
 		int lineHeight = (int) (nameLabel.getFontMetrics(nameLabel.getFont()).getHeight() * 1.5);
 
@@ -85,7 +92,7 @@ public class VoiceListItem extends JPanel {
 			.addGap(5)
 			.addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
-			.addComponent(sexLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
+			.addComponent(genderLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addGap(5));
 
 

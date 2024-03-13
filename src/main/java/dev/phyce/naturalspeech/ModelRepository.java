@@ -1,7 +1,14 @@
 package dev.phyce.naturalspeech;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
@@ -15,11 +22,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.AllArgsConstructor;
@@ -275,8 +281,8 @@ public class ModelRepository {
 		@Expose
 		String name;
 		// (Serialized in JSON) M, F, ...
-		@Expose
-		String gender;
+		@JsonAdapter(GenderStringSerializer.class)
+		Gender gender;
 		// (Serialized in JSON) The Model ID from the data set
 		@Expose
 		int piperVoiceID;
@@ -289,6 +295,31 @@ public class ModelRepository {
 		}
 	}
 
+	private static class GenderStringSerializer implements JsonSerializer<Gender>, JsonDeserializer<Gender> {
+		@Override
+		public JsonElement serialize(Gender gender, Type type, JsonSerializationContext jsonSerializationContext) {
+			if (gender == Gender.MALE) {
+				return jsonSerializationContext.serialize("M");
+			} else if (gender == Gender.FEMALE) {
+				return jsonSerializationContext.serialize("F");
+			} else {
+				return jsonSerializationContext.serialize("OTHER");
+			}
+		}
+
+		@Override
+		public Gender deserialize(JsonElement jsonElement, Type type,
+								  JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
+			if (jsonElement.getAsString().equals("M")) {
+				return Gender.MALE;
+			} else if (jsonElement.getAsString().equals("F")) {
+				return Gender.FEMALE;
+			} else {
+				return Gender.OTHER;
+			}
+		}
+	}
+
 	// Not a Serialized JSON Object
 	@Data
 	@AllArgsConstructor
@@ -297,36 +328,23 @@ public class ModelRepository {
 		File onnx;
 		File onnxMetadata;
 		VoiceMetadata[] voiceMetadata;
+	}
 
-		private static Map<Integer, List<Integer>> genderCategorizedVoices;
+	public enum Gender {
+		OTHER,
+		MALE,
+		FEMALE;
 
-		private void categorizeVoicesByGender() {
-			genderCategorizedVoices = new HashMap<>();
-			for (VoiceMetadata voice : voiceMetadata) {
-				int genderKey = voice.gender.equals("M")? 0: 1;
-				genderCategorizedVoices.putIfAbsent(genderKey, new ArrayList<>());
-				genderCategorizedVoices.get(genderKey).add(voice.piperVoiceID);
+		public static Gender parseInt(int id) {
+			if (id == 0) {
+				return MALE;
+			} else if (id == 1) {
+				return FEMALE;
+			} else {
+				return OTHER;
 			}
 		}
 
-		public VoiceID calculateVoice(String username) {
-			int hashCode = username.hashCode();
-			return new VoiceID(modelName, Math.abs(hashCode) % voiceMetadata.length);
-		}
-
-		public VoiceID calculateGenderedVoice(String username, int gender) {
-			if (genderCategorizedVoices == null) categorizeVoicesByGender();
-
-			List<Integer> voiceIDs = genderCategorizedVoices.get(gender);
-			if (voiceIDs == null || voiceIDs.isEmpty()) {
-				throw new IllegalArgumentException("No voices available for the specified gender");
-			}
-			int hashCode = username.hashCode();
-			int voiceIDIndex = Math.abs(hashCode) % voiceIDs.size();
-			int selectedVoiceID = voiceIDs.get(voiceIDIndex);
-
-			return new VoiceID(modelName, selectedVoiceID);
-		}
 	}
 
 	public interface ModelRepositoryListener {

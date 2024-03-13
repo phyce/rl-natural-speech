@@ -12,6 +12,7 @@ import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDat
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import java.util.List;
 import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.NPC;
@@ -26,11 +27,27 @@ public class VoiceManager {
 	private VoiceConfig voiceConfig;
 	private final TextToSpeech textToSpeech;
 	private final ConfigManager configManager;
+	private final GenderedVoiceMap genderedVoiceMap;
 
 	@Inject
 	public VoiceManager(NaturalSpeechPlugin plugin, ConfigManager configManager) {
 		this.textToSpeech = plugin.getTextToSpeech();
 		this.configManager = configManager;
+		this.genderedVoiceMap = new GenderedVoiceMap();
+
+		textToSpeech.addTextToSpeechListener(
+			new TextToSpeech.TextToSpeechListener() {
+				@Override
+				public void onPiperStart(Piper piper) {
+					genderedVoiceMap.addModel(piper.getModelLocal());
+				}
+
+				@Override
+				public void onPiperExit(Piper piper) {
+					genderedVoiceMap.removeModel(piper.getModelLocal());
+				}
+			}
+		);
 
 		loadVoiceConfig();
 	}
@@ -59,13 +76,15 @@ public class VoiceManager {
 				if (message.getType() == ChatMessageType.PUBLICCHAT) {
 					Player user = PluginHelper.getFromUsername(message.getName());
 					if (user != null) {
-						int gender = user.getPlayerComposition().getGender();
+						ModelRepository.Gender gender =
+							ModelRepository.Gender.parseInt(user.getPlayerComposition().getGender());
+
 						results =
-							new VoiceID[] {modelLocal.calculateGenderedVoice(message.getName(), gender)};
+							new VoiceID[] {calculateGenderedVoice(modelLocal, message.getName(), gender)};
 						break;
 					}
 				}
-				results = new VoiceID[] {modelLocal.calculateVoice(message.getName())};
+				results = new VoiceID[] {calculateVoice(modelLocal, message.getName())};
 			}
 		}
 		return results[0];
@@ -80,7 +99,7 @@ public class VoiceManager {
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = new VoiceID[] {modelLocal.calculateVoice(npcName)};
+				results = new VoiceID[] {calculateVoice(modelLocal, npcName)};
 			}
 		}
 
@@ -94,7 +113,7 @@ public class VoiceManager {
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = new VoiceID[] {modelLocal.calculateVoice(npc.getName())};
+				results = new VoiceID[] {calculateVoice(modelLocal, npc.getName())};
 			}
 		}
 
@@ -111,7 +130,7 @@ public class VoiceManager {
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
-				results = new VoiceID[] {modelLocal.calculateVoice(username)};
+				results = new VoiceID[] {calculateVoice(modelLocal, username)};
 			}
 		}
 
@@ -176,5 +195,23 @@ public class VoiceManager {
 
 			voiceConfig.playerVoices.put(actor.getName().toLowerCase(), voiceConfigDatum);
 		}
+	}
+
+
+	public VoiceID calculateVoice(ModelRepository.ModelLocal modelLocal, String username) {
+		int hashCode = username.hashCode();
+		return new VoiceID(modelLocal.getModelName(), Math.abs(hashCode) % modelLocal.getVoiceMetadata().length);
+	}
+
+	public VoiceID calculateGenderedVoice(ModelRepository.ModelLocal modelLocal, String username,
+										  ModelRepository.Gender gender) {
+		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
+		if (voiceIDs == null || voiceIDs.isEmpty()) {
+			throw new IllegalArgumentException("No voices available for the specified gender");
+		}
+		int hashCode = username.hashCode();
+		int voice = Math.abs(hashCode) % voiceIDs.size();
+
+		return voiceIDs.get(voice);
 	}
 }

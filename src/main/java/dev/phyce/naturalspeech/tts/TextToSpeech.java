@@ -38,7 +38,6 @@ public class TextToSpeech {
 	//Model ShortName -> PiperRunner
 	private final Map<ModelRepository.ModelLocal, Piper> pipers = new HashMap<>();
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
-	private VoiceConfig voiceConfig;
 
 	@Getter
 	private ModelConfig modelConfig;
@@ -58,18 +57,6 @@ public class TextToSpeech {
 
 		loadModelConfig();
 	}
-
-	//<editor-fold desc="> Speak">
-//	public void speak(ChatMessage message, int distance)
-//		throws ModelLocalUnavailableException, PiperNotAvailableException {
-//		VoiceID voiceId = getVoiceIDFromChatMessage(message)[0];
-//		internal_speak(voiceId, message.getMessage(), distance, message.getName());
-//	}
-
-//	public void speak(int npcId, String npcName, int distance, String message) {
-//		VoiceID voiceId = getVoiceIDFromNPCId(npcId, npcName)[0];
-//		internal_speak(voiceId, message, distance, npcName);
-//	}
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotAvailableException {
@@ -95,11 +82,6 @@ public class TextToSpeech {
 		}
 	}
 
-//	public void speak(String message) {
-//		String username = PluginHelper.getClientUsername();
-//		VoiceID voiceId = getVoiceIDFromUsername(username)[0];
-//		speak(voiceId, message.toLowerCase(), 0, username);
-//	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Voice">
