@@ -1,6 +1,5 @@
 package dev.phyce.naturalspeech.configs;
 
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
@@ -8,15 +7,9 @@ import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConf
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.VoiceConfigDatum;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.VoiceID;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.NonNull;
 import net.runelite.http.api.RuneLiteAPI;
 
@@ -83,7 +76,7 @@ public class VoiceConfig {
 		return voiceConfigDatum;
 	}
 
-	public VoiceID[] getPlayerVoiceIDs(@NonNull String playerUserName) {
+	public VoiceID[] getWithUsername(@NonNull String playerUserName) {
 		if (Objects.equals(PluginHelper.getLocalPlayerUsername(), playerUserName)) {
 			VoiceID voice = VoiceID.fromIDString(PluginHelper.getConfig().personalVoiceID());
 			if (voice != null) return new VoiceID[] {voice};
@@ -95,7 +88,7 @@ public class VoiceConfig {
 		return playerNameVoiceConfigDatum.getVoiceIDs();
 	}
 
-	public VoiceID[] getNpcVoiceIDs(int npcID) {
+	public VoiceID[] getWithNpcId(int npcID) {
 		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcIDVoices.get(npcID);
 
 		if (npcIDVoiceConfigDatum == null) return null;
@@ -103,23 +96,12 @@ public class VoiceConfig {
 		return npcIDVoiceConfigDatum.getVoiceIDs();
 	}
 
-	public VoiceID[] getNpcVoiceIDs(@NonNull String npcName) {
+	public VoiceID[] getWithNpcName(@NonNull String npcName) {
 		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcNameVoices.get(npcName.toLowerCase());
 
-		//TODO loop through and see if there are any entries with the same name in NPCIDs
-		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcIDVoices.get(npcName.toLowerCase());
+		if (npcNameVoiceConfigDatum == null) return null;
 
-		if (npcNameVoiceConfigDatum == null && npcIDVoiceConfigDatum == null) return null;
-
-		VoiceID[] nameBasedVoices =
-			npcNameVoiceConfigDatum != null? npcNameVoiceConfigDatum.getVoiceIDs(): new VoiceID[0];
-		VoiceID[] idBasedVoices = npcIDVoiceConfigDatum != null? npcIDVoiceConfigDatum.getVoiceIDs(): new VoiceID[0];
-
-		VoiceID[] combinedVoices = new VoiceID[nameBasedVoices.length + idBasedVoices.length];
-		System.arraycopy(nameBasedVoices, 0, combinedVoices, 0, nameBasedVoices.length);
-		System.arraycopy(idBasedVoices, 0, combinedVoices, nameBasedVoices.length, idBasedVoices.length);
-
-		return combinedVoices;
+		return npcNameVoiceConfigDatum.getVoiceIDs();
 	}
 
 }

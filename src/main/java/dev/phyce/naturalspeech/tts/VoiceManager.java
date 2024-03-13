@@ -14,7 +14,6 @@ import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConf
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
@@ -63,7 +62,7 @@ public class VoiceManager {
 	public VoiceID getVoiceIDFromChatMessage(ChatMessage message) {
 		VoiceID[] results;
 		if (message.getName().equals(PluginHelper.getLocalPlayerUsername())) {
-			results = voiceConfig.getPlayerVoiceIDs(message.getName());
+			results = voiceConfig.getWithUsername(message.getName());
 		}
 		else {
 			switch (message.getType()) {
@@ -71,10 +70,10 @@ public class VoiceManager {
 				case WELCOME:
 				case GAMEMESSAGE:
 				case CONSOLE:
-					results = voiceConfig.getNpcVoiceIDs(message.getName());
+					results = voiceConfig.getWithNpcName(message.getName());
 					break;
 				default:
-					results = voiceConfig.getPlayerVoiceIDs(message.getName());
+					results = voiceConfig.getWithUsername(message.getName());
 					break;
 			}
 		}
@@ -101,9 +100,9 @@ public class VoiceManager {
 	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) {
 		npcName = npcName.toLowerCase();
 		VoiceID[] results = {};
-		results = voiceConfig.getNpcVoiceIDs(npcId);
+		results = voiceConfig.getWithNpcId(npcId);
 
-		if (results == null) results = voiceConfig.getNpcVoiceIDs(npcName);
+		if (results == null) results = voiceConfig.getWithNpcName(npcName);
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
@@ -117,7 +116,7 @@ public class VoiceManager {
 
 	public VoiceID[] getVoiceIDFromNPC(NPC npc) {
 		VoiceID[] results = {};
-		results = voiceConfig.getNpcVoiceIDs(npc.getName());
+		results = voiceConfig.getWithNpcName(npc.getName());
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
@@ -134,7 +133,7 @@ public class VoiceManager {
 
 	public VoiceID getVoiceIDFromUsername(String username) {
 		VoiceID[] results = {};
-		results = voiceConfig.getPlayerVoiceIDs(username);
+		results = voiceConfig.getWithUsername(username);
 
 		if (results == null) {
 			for (ModelRepository.ModelLocal modelLocal : textToSpeech.getActiveModels()) {
