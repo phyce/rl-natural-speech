@@ -67,9 +67,11 @@ public class VoiceListItem extends JPanel {
 		String genderString;
 		if (voiceMetadata.getGender() == ModelRepository.Gender.MALE) {
 			genderString = "(M)";
-		} else if (voiceMetadata.getGender() == ModelRepository.Gender.FEMALE) {
+		}
+		else if (voiceMetadata.getGender() == ModelRepository.Gender.FEMALE) {
 			genderString = "(F)";
-		} else {
+		}
+		else {
 			genderString = "(?)";
 		}
 
@@ -100,24 +102,28 @@ public class VoiceListItem extends JPanel {
 		SwingUtil.removeButtonDecorations(playButton);
 		playButton.setPreferredSize(
 			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
-		playButton.addActionListener(event -> {
-			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().activePiperProcessCount() > 0) {
-				try {
-					if (plugin.getTextToSpeech().isModelActive(modelLocal)) {
-						plugin.getTextToSpeech().speak(
-							voiceMetadata.toVoiceID(),
-							plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
-							0,
-							"&VoiceExplorer");
+		playButton.addActionListener(
+
+			event -> {
+				TextToSpeech textToSpeech = plugin.getTextToSpeech();
+				if (textToSpeech != null && textToSpeech.activePiperProcessCount() > 0) {
+					try {
+						if (textToSpeech.isModelActive(modelLocal)) {
+							textToSpeech.speak(
+								voiceMetadata.toVoiceID(),
+								textToSpeech.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
+								0,
+								"&VoiceExplorer");
+						}
+						else {
+							log.info("Model {} is currently not running.", modelLocal.getModelName());
+						}
+					} catch (ModelLocalUnavailableException e) {
+						throw new RuntimeException(e);
 					}
-					else {
-						log.info("Model {} is currently not running.", modelLocal.getModelName());
-					}
-				} catch (ModelLocalUnavailableException e) {
-					throw new RuntimeException(e);
 				}
-			}
-		});
+			});
+
 		playButton.setEnabled(false);
 
 		BorderLayout rootLayout = new BorderLayout();

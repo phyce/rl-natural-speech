@@ -6,12 +6,14 @@ import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,14 +35,16 @@ public class TextToSpeech {
 	//<editor-fold desc="> Properties">
 	private static final String CONFIG_KEY_MODEL_CONFIG = "ttsConfig";
 	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
-	private final ConfigManager configManager;
-	private final ModelRepository modelRepository;
-	//Model ShortName -> PiperRunner
-	private final Map<String, Piper> pipers = new HashMap<>();
-	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
+	private final ConfigManager configManager;
+	private final NaturalSpeechRuntimeConfig runtimeConfig;
+	private final ModelRepository modelRepository;
+	private final NaturalSpeechConfig config;
+
+	private Map<String, String> shortenedPhrases;
 	@Getter
 	private ModelConfig modelConfig;
+	private final Map<String, Piper> pipers = new HashMap<>();
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
@@ -50,13 +54,16 @@ public class TextToSpeech {
 	private TextToSpeech(
 		NaturalSpeechRuntimeConfig runtimeConfig,
 		ConfigManager configManager,
-		NaturalSpeechPlugin plugin, EventBus eventbus) {
+		NaturalSpeechPlugin plugin, EventBus eventbus, NaturalSpeechConfig config) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.modelRepository = plugin.getModelRepository();
+		this.config = config;
 
 		loadModelConfig();
 	}
+
+	// <editor-fold desc="> API">
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
@@ -83,9 +90,9 @@ public class TextToSpeech {
 		}
 	}
 
-	//</editor-fold>
-
-	//<editor-fold desc="> Voice">
+	public String expandShortenedPhrases(String text) {
+		return TextUtil.expandShortenedPhrases(text, shortenedPhrases);
+	}
 
 	//</editor-fold>
 
@@ -246,6 +253,17 @@ public class TextToSpeech {
 		}
 		else { // has existing config, just load the json
 			this.modelConfig = ModelConfig.fromJson(json);
+		}
+	}
+
+	// In method so we can load again when user changes config
+	public void loadShortenedPhrases() {
+		String phrases = config.shortenedPhrases();
+		shortenedPhrases = new HashMap<>();
+		String[] lines = phrases.split("\n");
+		for (String line : lines) {
+			String[] parts = line.split("=", 2);
+			if (parts.length == 2) shortenedPhrases.put(parts[0].trim(), parts[1].trim());
 		}
 	}
 

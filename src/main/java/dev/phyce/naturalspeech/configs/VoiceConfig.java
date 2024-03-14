@@ -24,10 +24,10 @@ public class VoiceConfig {
 		npcNameVoices = new HashMap<>();
 	}
 
-	public void setDefaultPlayerVoice(@NonNull String username, VoiceID voiceID) {
-		username = username.toLowerCase();
-		playerVoices.putIfAbsent(username, new PlayerNameVoiceConfigDatum(username));
-		PlayerNameVoiceConfigDatum datum = playerVoices.get(username);
+	public void setDefaultPlayerVoice(@NonNull String standardized_username, VoiceID voiceID) {
+		standardized_username = standardized_username.toLowerCase();
+		playerVoices.putIfAbsent(standardized_username, new PlayerNameVoiceConfigDatum(standardized_username));
+		PlayerNameVoiceConfigDatum datum = playerVoices.get(standardized_username);
 		if (datum.getVoiceIDs().isEmpty()) {
 			datum.getVoiceIDs().add(voiceID);
 		}
@@ -67,11 +67,11 @@ public class VoiceConfig {
 		}
 	}
 
-	public void removePlayerVoice(@NonNull String username, VoiceID voiceID) {
-		PlayerNameVoiceConfigDatum datum = playerVoices.get(username);
+	public void removePlayerVoice(@NonNull String standardized_username, VoiceID voiceID) {
+		PlayerNameVoiceConfigDatum datum = playerVoices.get(standardized_username);
 		if (datum == null) return;
 		datum.getVoiceIDs().remove(voiceID);
-		if (datum.getVoiceIDs().isEmpty()) playerVoices.remove(username);
+		if (datum.getVoiceIDs().isEmpty()) playerVoices.remove(standardized_username);
 	}
 
 	public void removeNpcIdVoice(int npcID, VoiceID voiceID) {
@@ -88,8 +88,8 @@ public class VoiceConfig {
 		if (datum.getVoiceIDs().isEmpty()) npcNameVoices.remove(npcName);
 	}
 
-	public void clearPlayerVoices(@NonNull String username) {
-		playerVoices.remove(username);
+	public void clearPlayerVoices(@NonNull String standardized_username) {
+		playerVoices.remove(standardized_username);
 	}
 
 	public void clearNpcIdVoices(int npcID) {

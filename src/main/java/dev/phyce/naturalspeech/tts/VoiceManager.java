@@ -27,6 +27,7 @@ import net.runelite.api.Actor;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.util.Text;
 
 
 @Slf4j
@@ -219,9 +220,12 @@ public class VoiceManager {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
 			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
+			log.debug("Setting Default NPC Voice for {} to {}", npc.getName(), voiceId);
 		}
 		else if (actor instanceof Player) {
-			voiceConfig.setDefaultPlayerVoice(Objects.requireNonNull(actor.getName()), voiceId);
+			String standardized_username = Text.standardize(Objects.requireNonNull(actor.getName()));
+			voiceConfig.setDefaultPlayerVoice(standardized_username, voiceId);
+			log.debug("Setting Default Player Voice for {} to {}", actor.getName(), voiceId);
 		}
 		else {
 			log.error("Tried setting a voice for neither NPC or player. Possibly for an object.");
