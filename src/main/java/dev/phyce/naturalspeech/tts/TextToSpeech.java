@@ -226,6 +226,7 @@ public class TextToSpeech {
 				}
 			} catch (IOException e) {
 				log.error("Failed to start {}", modelURL.getModelName(), e);
+				return;
 			}
 		}
 		triggerOnStart();

@@ -96,22 +96,12 @@ public class NaturalSpeechPlugin extends Plugin {
 	//</editor-fold>
 
 	//<editor-fold desc="> Runtime Variables">
-
-
 	private NavigationButton navButton;
 	//</editor-fold>
 
 	static {
 		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
 		logger.setLevel(Level.INFO);
-	}
-
-	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
-		textToSpeech.start();
-	}
-
-	public void stopTextToSpeech() {
-		textToSpeech.stop();
 	}
 
 	//<editor-fold desc="> Override Methods">
@@ -155,11 +145,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		textToSpeech.loadShortenedPhrases();
 
 		if (config.autoStart()) {
-			try {
-				this.startTextToSpeech();
-			} catch (IOException | LineUnavailableException e) {
-				throw new RuntimeException(e);
-			}
+			textToSpeech.start();
 		}
 		log.info("NaturalSpeech plugin has started");
 	}
@@ -190,8 +176,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
-
-
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
@@ -239,14 +223,12 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 	//</editor-fold>
 
-
 	//<editor-fold desc="> ChatMessage">
 
 	// FIXME Implement voice getter
 	//</editor-fold>
 
 	//<editor-fold desc="> Other">
-
 
 	//</editor-fold>
 

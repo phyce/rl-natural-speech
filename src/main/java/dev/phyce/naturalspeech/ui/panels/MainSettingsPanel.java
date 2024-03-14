@@ -492,17 +492,11 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	private void startEngine() throws LineUnavailableException, IOException {
-		try {
-			plugin.startTextToSpeech();
-		} catch (IOException | LineUnavailableException e) {
-			log.error("Error starting TextToSpeech", e);
-			throw e;
-		}
+		plugin.getTextToSpeech().start();
 	}
 
 	private void stopEngine() throws IOException {
-		plugin.stopTextToSpeech();
-		//		updateStatus(1);
+		plugin.getTextToSpeech().stop();
 	}
 
 	@Override
