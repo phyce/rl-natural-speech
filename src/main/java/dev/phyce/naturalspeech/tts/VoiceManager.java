@@ -251,6 +251,7 @@ public class VoiceManager {
 									   Gender gender) {
 		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
 		if (voiceIDs == null || voiceIDs.isEmpty()) {
+			// FIXME(Louis) return null instead
 			throw new IllegalArgumentException("No voices available for the specified gender");
 		}
 		int hashCode = username.hashCode();
