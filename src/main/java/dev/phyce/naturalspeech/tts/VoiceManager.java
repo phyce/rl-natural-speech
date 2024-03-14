@@ -176,6 +176,10 @@ public class VoiceManager {
 		}
 	}
 
+	public void setVoiceIDForUsername(@NonNull String username, VoiceID voiceID) {
+		voiceConfig.setDefaultPlayerVoice(username, voiceID);
+	}
+
 	public void loadVoiceConfig() {
 		// try to load from existing json in configManager
 		String json = configManager.getConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE);

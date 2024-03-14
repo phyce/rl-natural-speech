@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.Getter;
@@ -39,6 +40,7 @@ public final class PluginHelper {
 		return instance.config;
 	}
 
+	@CheckForNull
 	public static String getLocalPlayerUsername() {
 		if (instance.client.getLocalPlayer() == null || instance.client.getLocalPlayer().getName() == null) {
 			return null;
@@ -49,6 +51,7 @@ public final class PluginHelper {
 		return username;
 	}
 
+	@CheckForNull
 	public static ModelRepository.Gender getLocalPlayerGender() {
 		return ModelRepository.Gender.parseInt(instance.client.getLocalPlayer().getPlayerComposition().getGender());
 	}

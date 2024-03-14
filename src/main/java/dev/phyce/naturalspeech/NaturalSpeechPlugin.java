@@ -10,31 +10,21 @@ import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
-import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
+import static dev.phyce.naturalspeech.helpers.PluginHelper.getLocalPlayerUsername;
 import dev.phyce.naturalspeech.intruments.VoiceLogger;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
-import dev.phyce.naturalspeech.ui.game.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.sound.sampled.LineUnavailableException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
-import net.runelite.api.MenuAction;
-import net.runelite.api.MenuEntry;
+import net.runelite.api.GameState;
 import net.runelite.api.events.CommandExecuted;
-import net.runelite.api.events.MenuOpened;
-import net.runelite.api.widgets.InterfaceID;
-import net.runelite.api.widgets.WidgetUtil;
+import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ClientShutdown;
@@ -127,8 +117,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		speechEventHandlerProvider.get();
 		menuEventHandlerProvider.get();
 
-
-
 		// Build navButton
 		{
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
@@ -178,6 +166,13 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Hooks">
 
 	@Subscribe
+	private void onGameStateChanged(GameStateChanged event) {
+		if (event.getGameState() == GameState.LOGGED_IN) {
+
+		}
+	}
+
+	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
@@ -192,6 +187,21 @@ public class NaturalSpeechPlugin extends Plugin {
 				case "shortenedPhrases":
 					textToSpeech.loadShortenedPhrases();
 					break;
+				case "personalVoice":
+					String standardized_username = getLocalPlayerUsername();
+
+					// FIXME(Louis)
+					if (standardized_username == null)  {
+						log.error("Player isn't logged in, no username information available.");
+						break;
+					}
+
+					VoiceID voiceID = VoiceID.fromIDString(event.getNewValue());
+					if (voiceID == null) {
+						log.error("User attempting provided invalid Voice ID through RuneLite config panel.");
+					} else {
+						voiceManager.setVoiceIDForUsername(standardized_username, voiceID);
+					}
 			}
 		}
 	}
@@ -221,15 +231,6 @@ public class NaturalSpeechPlugin extends Plugin {
 			}
 		}
 	}
-	//</editor-fold>
-
-	//<editor-fold desc="> ChatMessage">
-
-	// FIXME Implement voice getter
-	//</editor-fold>
-
-	//<editor-fold desc="> Other">
-
 	//</editor-fold>
 
 	@Provides

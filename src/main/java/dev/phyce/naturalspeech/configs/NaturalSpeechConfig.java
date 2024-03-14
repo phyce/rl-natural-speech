@@ -20,7 +20,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=1,
 		keyName="personalVoice",
-		name="Personal voice ID",
+		name="Personal voice ID (must be logged in)",
 		description="Choose one of the 903 voices for your character, example: libritts:0",
 		section=generalSettingsSection
 
