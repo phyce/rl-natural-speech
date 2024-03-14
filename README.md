@@ -20,7 +20,7 @@ At the moment the only supported TTS engine is  [Piper](https://github.com/rhass
 3. Piper should now be ready to go.
 
 
-After Installing Piper you should be able to use TTS in-game once the voice modelLocal is downloaded, and the engine has been started.
+After Installing Piper you should be able to use TTS in-game once the voice model is downloaded, and the engine has been started.
 
 ## Setting up NaturalSpeech
 To set up NaturalSpeech, you will need to install a TTS engine, and download atleast one voice model through the plugin's panel.
