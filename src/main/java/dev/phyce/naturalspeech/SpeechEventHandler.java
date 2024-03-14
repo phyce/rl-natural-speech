@@ -275,15 +275,11 @@ public class SpeechEventHandler {
 			case GAMEMESSAGE:
 			case ENGINE:
 			case LOGINLOGOUTNOTIFICATION:
-			case FRIENDSCHATNOTIFICATION:
 			case BROADCAST:
-			case SNAPSHOTFEEDBACK:
-			case FRIENDNOTIFICATION:
 			case IGNORENOTIFICATION:
 			case CLAN_MESSAGE:
 			case CONSOLE:
 			case TRADE:
-			case SPAM:
 			case PLAYERRELATED:
 			case TENSECTIMEOUT:
 			case WELCOME:

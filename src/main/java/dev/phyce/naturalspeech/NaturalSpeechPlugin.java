@@ -90,9 +90,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Inject
 	private Provider<ModelRepository> modelRepositoryProvider;
 	@Inject
-	private Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider;
-	@Inject
 	private Provider<SpeechEventHandler> speechEventHandlerProvider;
+	@Inject
+	private Provider<MenuEventHandler> menuEventHandlerProvider;
 	//</editor-fold>
 
 	//<editor-fold desc="> Runtime Variables">
@@ -101,10 +101,10 @@ public class NaturalSpeechPlugin extends Plugin {
 	private NavigationButton navButton;
 	//</editor-fold>
 
-		static {
-			final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
-			logger.setLevel(Level.INFO);
-		}
+	static {
+		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
+		logger.setLevel(Level.INFO);
+	}
 
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
 		textToSpeech.start();
@@ -133,7 +133,10 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Have to lazy-load config panel after RuneLite UI is initialized, cannot field @Inject
 		topLevelPanel = topLevelPanelProvider.get();
 		voiceManager = voiceManagerProvider.get();
+
 		speechEventHandlerProvider.get();
+		menuEventHandlerProvider.get();
+
 
 
 		// Build navButton
@@ -188,29 +191,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	//<editor-fold desc="> Hooks">
 
-	@Subscribe
-	public void onMenuOpened(MenuOpened event) {
-		if (textToSpeech.activePiperProcessCount() < 1) return;
-		final MenuEntry[] entries = event.getMenuEntries();
 
-		Set<Integer> interfaces = new HashSet<>();
-		interfaces.add(InterfaceID.FRIEND_LIST);
-		interfaces.add(InterfaceID.FRIENDS_CHAT);
-		interfaces.add(InterfaceID.CHATBOX);
-		interfaces.add(InterfaceID.PRIVATE_CHAT);
-		interfaces.add(InterfaceID.GROUP_IRON);
-
-		for (int index = entries.length - 1; index >= 0; index--) {
-			MenuEntry entry = entries[index];
-
-			final int componentId = entry.getParam1();
-			final int groupId = WidgetUtil.componentToInterface(componentId);
-
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) {drawOptions(entry, index);}
-			else if (entry.getType() == MenuAction.EXAMINE_NPC) {drawOptions(entry, index);}
-			else if (interfaces.contains(groupId) && entry.getOption().equals("Report")) drawOptions(entry, index);
-		}
-	}
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
@@ -266,72 +247,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	//<editor-fold desc="> Other">
 
-	public synchronized void drawOptions(MenuEntry entry, int index) {
-		String regex = "<col=[0-9a-f]+>([^<]+)";
-		Pattern pattern = Pattern.compile(regex);
-		Matcher matcher = pattern.matcher(entry.getTarget());
 
-		matcher.find();
-		String username = matcher.group(1).trim();
-
-		String status;
-		if (isBeingListened(username)) {status = "<col=78B159>O";}
-		else {status = "<col=DD2E44>0";}
-
-		CustomMenuEntry muteOptions =
-			new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username),
-				index);
-
-		if (isBeingListened(username)) {
-			if (!getAllowList().isEmpty()) {
-				muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
-					unlisten(username);
-				}));
-			}
-			else {
-				muteOptions.addChild(new CustomMenuEntry("Mute", -1, function -> {
-					mute(username);
-				}));
-			}
-			if (getAllowList().isEmpty() && PluginHelper.getBlockList().isEmpty()) {
-				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
-					listen(username);
-					textToSpeech.clearOtherPlayersAudioQueue(username);
-				}));
-			}
-		}
-		else {
-			if (!PluginHelper.getBlockList().isEmpty()) {
-				muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
-					unmute(username);
-				}));
-			}
-			else {
-				muteOptions.addChild(new CustomMenuEntry("Listen", -1, function -> {
-					listen(username);
-				}));
-			}
-		}
-
-		if (!getBlockList().isEmpty()) {
-			muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
-				getBlockList().clear();
-			}));
-		}
-		else if (!getAllowList().isEmpty()) {
-			muteOptions.addChild(new CustomMenuEntry("Clear allow list", -1, function -> {
-				getAllowList().clear();
-			}));
-		}
-
-		muteOptions.addChild(new CustomMenuEntry("Configure Voice", -1, function -> {
-			voiceConfigChatboxTextInputProvider.get()
-				.insertActor(entry.getActor())
-				.build();
-		}));
-
-		muteOptions.addTo(client);
-	}
 	//</editor-fold>
 
 	@Provides
