@@ -106,7 +106,7 @@ public class PiperProcess {
 						streamCapture.notify();
 					}
 				}
-				log.info("[pid:{}-StdErr]: {}", this.getPid(), stripPiperLogPrefix(line));
+				log.trace("[pid:{}-StdErr]: {}", this.getPid(), stripPiperLogPrefix(line));
 			}
 		} catch (IOException e) {
 			log.error("{}: readStdErr threw exception", this, e);

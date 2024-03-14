@@ -1,5 +1,7 @@
 package dev.phyce.naturalspeech;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -41,6 +43,7 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.CommandExecuted;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.MenuOpened;
@@ -59,6 +62,7 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
+import org.slf4j.LoggerFactory;
 
 
 @Slf4j
@@ -114,6 +118,11 @@ public class NaturalSpeechPlugin extends Plugin {
 	private String lastPlayerDialogText = "";
 	private Actor actorInteractedWith = null;
 
+	static {
+		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
+		logger.setLevel(Level.INFO);
+	}
+
 	//</editor-fold>
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
 		textToSpeech.start();
@@ -136,6 +145,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	protected void startUp() {
+
 		modelRepository = modelRepositoryProvider.get();
 		textToSpeech = textToSpeechProvider.get();
 		// Have to lazy-load config panel after RuneLite UI is initialized, cannot field @Inject
@@ -240,7 +250,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		if (isMessageMuted(message)) return;
 
-		VoiceID voiceID;
+		VoiceID voiceId;
 		int distance;
 		String text;
 
@@ -248,9 +258,9 @@ public class NaturalSpeechPlugin extends Plugin {
 
 			if (isChatInnerVoice(message.getType())) {
 				distance = 0;
-				voiceID = voiceManager.getVoiceIDFromUsername(message.getName());
+				voiceId = voiceManager.getVoiceIDFromUsername(message.getName());
 				text = expandShortenedPhrases(message.getMessage());
-				log.info("Inner voice used for {} for {}. ", message.getType(), message.getName());
+				log.info("Inner voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
 			else if (isChatPlayerVoice(message.getType())) {
 				if (config.distanceFadeEnabled()) {
@@ -259,20 +269,20 @@ public class NaturalSpeechPlugin extends Plugin {
 				else {
 					distance = 0;
 				}
-				voiceID = voiceManager.getVoiceIDFromUsername(message.getName());
+				voiceId = voiceManager.getVoiceIDFromUsername(message.getName());
 				text = expandShortenedPhrases(message.getMessage());
-				log.info("Player voice used for {} for {}. ", message.getType(), message.getName());
+				log.info("Player voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
 			else if (isChatSystemVoice(message.getType())) {
 				distance = 0;
 				// TODO(Louis): System voice not implemented yet
-				voiceID = voiceManager.randomVoice();
-				if (voiceID == null) {
+				voiceId = voiceManager.randomVoice();
+				if (voiceId == null) {
 					throw new VoiceSelectionOutOfOption();
 				}
 
 				text = message.getMessage();
-				log.info("System voice used for {} for {}. ", message.getType(), message.getName());
+				log.info("System voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
 			else {
 				log.error("Unsupported ChatMessageType for text to speech found: " + message.getType());
@@ -285,64 +295,9 @@ public class NaturalSpeechPlugin extends Plugin {
 			return;
 		}
 
-		textToSpeech.speak(voiceID, text, distance, message.getName());
+		textToSpeech.speak(voiceId, text, distance, message.getName());
 	}
 
-	public static boolean isChatInnerVoice(ChatMessageType messageType) {
-		switch (messageType) {
-			case PRIVATECHATOUT:
-			case MODPRIVATECHAT:
-			case ITEM_EXAMINE:
-			case NPC_EXAMINE:
-			case OBJECT_EXAMINE:
-			case TRADEREQ:
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	public static boolean isChatPlayerVoice(ChatMessageType messageType) {
-		switch (messageType) {
-			case MODCHAT:
-			case PUBLICCHAT:
-			case PRIVATECHAT:
-			case MODPRIVATECHAT:
-			case FRIENDSCHAT:
-			case CLAN_CHAT:
-			case CLAN_GUEST_CHAT:
-			case TRADEREQ:
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	public static boolean isChatSystemVoice(ChatMessageType messageType) {
-		switch (messageType) {
-			case GAMEMESSAGE:
-			case ENGINE:
-			case LOGINLOGOUTNOTIFICATION:
-			case FRIENDSCHATNOTIFICATION:
-			case BROADCAST:
-			case SNAPSHOTFEEDBACK:
-			case FRIENDNOTIFICATION:
-			case IGNORENOTIFICATION:
-			case CLAN_MESSAGE:
-			case CONSOLE:
-			case TRADE:
-			case SPAM:
-			case PLAYERRELATED:
-			case TENSECTIMEOUT:
-			case WELCOME:
-			case CLAN_CREATION_INVITATION:
-			case CLAN_GIM_FORM_GROUP:
-			case CLAN_GIM_GROUP_WITH:
-				return true;
-			default:
-				return false;
-		}
-	}
 
 	@Subscribe
 	public void onMenuOpened(MenuOpened event) {
@@ -467,6 +422,34 @@ public class NaturalSpeechPlugin extends Plugin {
 			}
 		}
 	}
+
+	@Subscribe
+	public void onCommandExecuted(CommandExecuted commandExecuted) {
+		String[] args = commandExecuted.getArguments();
+
+		//noinspection SwitchStatementWithTooFewBranches
+		switch (commandExecuted.getCommand()) {
+			case "nslogger": {
+				final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
+				String message;
+				Level currentLoggerLevel = logger.getLevel();
+
+				if (args.length < 1)
+				{
+					message = "Logger level is currently set to " + currentLoggerLevel;
+				}
+				else
+				{
+					Level newLoggerLevel = Level.toLevel(args[0], currentLoggerLevel);
+					logger.setLevel(newLoggerLevel);
+					message = "Logger level has been set to " + newLoggerLevel;
+				}
+
+				client.addChatMessage(ChatMessageType.CONSOLE, "", message, null);
+				break;
+			}
+		}
+	}
 	//</editor-fold>
 
 
@@ -584,9 +567,67 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		}
 	}
+
+	public static boolean isChatInnerVoice(ChatMessageType messageType) {
+		switch (messageType) {
+			case PRIVATECHATOUT:
+			case MODPRIVATECHAT:
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
+			case OBJECT_EXAMINE:
+			case TRADEREQ:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public static boolean isChatPlayerVoice(ChatMessageType messageType) {
+		switch (messageType) {
+			case MODCHAT:
+			case PUBLICCHAT:
+			case PRIVATECHAT:
+			case MODPRIVATECHAT:
+			case FRIENDSCHAT:
+			case CLAN_CHAT:
+			case CLAN_GUEST_CHAT:
+			case TRADEREQ:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public static boolean isChatSystemVoice(ChatMessageType messageType) {
+		switch (messageType) {
+			case GAMEMESSAGE:
+			case ENGINE:
+			case LOGINLOGOUTNOTIFICATION:
+			case FRIENDSCHATNOTIFICATION:
+			case BROADCAST:
+			case SNAPSHOTFEEDBACK:
+			case FRIENDNOTIFICATION:
+			case IGNORENOTIFICATION:
+			case CLAN_MESSAGE:
+			case CONSOLE:
+			case TRADE:
+			case SPAM:
+			case PLAYERRELATED:
+			case TENSECTIMEOUT:
+			case WELCOME:
+			case CLAN_CREATION_INVITATION:
+			case CLAN_GIM_FORM_GROUP:
+			case CLAN_GIM_GROUP_WITH:
+				return true;
+			default:
+				return false;
+		}
+	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="> Other">
+
 	public String expandShortenedPhrases(String text) {
 		return TextUtil.expandShortenedPhrases(text, shortenedPhrases);
 	}
