@@ -66,16 +66,12 @@ public class MainSettingsPanel extends PluginPanel {
 	public static final ImageIcon SECTION_EXPAND_ICON;
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
 	private static final ImageIcon SECTION_RETRACT_ICON;
-	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
+//	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 
 	private final FixedWidthPanel mainContentPanel;
-	private final JScrollPane scrollPane;
 	private final ModelRepository modelRepository;
-	private final NaturalSpeechConfig config;
 	private final NaturalSpeechPlugin plugin;
-	private final ConfigManager configManager;
-	private final Downloader downloader;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Inject
@@ -87,10 +83,7 @@ public class MainSettingsPanel extends PluginPanel {
 		NaturalSpeechRuntimeConfig runtimeConfig
 	) {
 		super(false);
-		this.config = config;
 		this.plugin = plugin;
-		this.configManager = configManager;
-		this.downloader = downloader;
 		this.modelRepository = plugin.getModelRepository();
 		this.runtimeConfig = runtimeConfig;
 
@@ -109,7 +102,7 @@ public class MainSettingsPanel extends PluginPanel {
 		mainContentNorthWrapper.add(mainContentPanel, BorderLayout.NORTH);
 
 		// scroll pane
-		scrollPane = new JScrollPane(mainContentNorthWrapper);
+		JScrollPane scrollPane = new JScrollPane(mainContentNorthWrapper);
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		// Can't use Short.MAX_VALUE like the docs say because of JDK-8079640
 		scrollPane.setPreferredSize(new Dimension(0x7000, 0x7000));
@@ -420,29 +413,8 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton playButton = createButton("start.png", "Start");
 		JButton stopButton = createButton("stop.png", "Stop");
 
-		playButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					log.info("Play button pressed");
-					startEngine();
-				} catch (LineUnavailableException | IOException ex) {
-					log.error("Piper failed to start. ", ex);
-					throw new RuntimeException(ex);
-				}
-			}
-		});
-		stopButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					stopEngine();
-				} catch (IOException ex) {
-					log.error("Piper failed to stop. ", ex);
-					throw new RuntimeException(ex);
-				}
-			}
-		});
+		playButton.addActionListener(e -> plugin.getTextToSpeech().start());
+		stopButton.addActionListener(e -> plugin.getTextToSpeech().stop());
 
 		buttonPanel.add(playButton);
 		buttonPanel.add(stopButton);
@@ -491,13 +463,13 @@ public class MainSettingsPanel extends PluginPanel {
 		return button;
 	}
 
-	private void startEngine() throws LineUnavailableException, IOException {
-		plugin.getTextToSpeech().start();
-	}
-
-	private void stopEngine() throws IOException {
-		plugin.getTextToSpeech().stop();
-	}
+//	private void startEngine() throws LineUnavailableException, IOException {
+//		plugin.getTextToSpeech().start();
+//	}
+//
+//	private void stopEngine() throws IOException {
+//		plugin.getTextToSpeech().stop();
+//	}
 
 	@Override
 	public void onActivate() {
