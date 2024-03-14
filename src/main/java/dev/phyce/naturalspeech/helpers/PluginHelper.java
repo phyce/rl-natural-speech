@@ -1,7 +1,9 @@
 package dev.phyce.naturalspeech.helpers;
 
+import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
@@ -38,18 +40,23 @@ public final class PluginHelper {
 	}
 
 	public static String getLocalPlayerUsername() {
-		if (instance.client.getLocalPlayer() == null) {
+		if (instance.client.getLocalPlayer() == null || instance.client.getLocalPlayer().getName() == null) {
 			return null;
 		}
-		String name = instance.client.getLocalPlayer().getName();
-		if (name != null) name = name.toLowerCase();
-		return name;
+
+		String username = instance.client.getLocalPlayer().getName();
+		username = Text.standardize(username);
+		return username;
 	}
 
-	public static Player getFromUsername(@NonNull String username) {
-		String sanitized = Text.sanitize(username);
-		for (net.runelite.api.Player player : instance.client.getCachedPlayers()) {
-			if (player != null && player.getName() != null && Text.sanitize(player.getName()).equals(sanitized)) {
+	public static ModelRepository.Gender getLocalPlayerGender() {
+		return ModelRepository.Gender.parseInt(instance.client.getLocalPlayer().getPlayerComposition().getGender());
+	}
+
+	public static Player findPlayerWithUsername(@NonNull String username) {
+		username = Text.standardize(username);
+		for (Player player : instance.client.getCachedPlayers()) {
+			if (player != null && player.getName() != null && Text.standardize(player.getName()).equals(username)) {
 				return player;
 			}
 		}
@@ -57,7 +64,7 @@ public final class PluginHelper {
 	}
 
 	public static int getLevel(@NonNull String username) {
-		Player targetPlayer = getFromUsername(username);
+		Player targetPlayer = findPlayerWithUsername(username);
 
 		if (targetPlayer == null) return 0;
 
@@ -65,8 +72,11 @@ public final class PluginHelper {
 	}
 
 	public static int getDistance(@NonNull String username) {
+		// For local player distance is 0
+		if (Objects.equals(getLocalPlayerUsername(), username)) return 0;
+
 		Player localPlayer = instance.client.getLocalPlayer();
-		Player targetPlayer = getFromUsername(username);
+		Player targetPlayer = findPlayerWithUsername(username);
 
 		if (localPlayer == null || targetPlayer == null) return 0;
 
@@ -84,6 +94,7 @@ public final class PluginHelper {
 			.getWorldLocation()
 			.distanceTo(npc.getWorldLocation());
 
+		// FIXME(Louis) Over 15 would play at max volume
 		if (distance < 0 || 15 < distance) return 0;
 
 		return distance;

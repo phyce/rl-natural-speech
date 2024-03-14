@@ -103,7 +103,7 @@ public class VoiceListItem extends JPanel {
 		playButton.addActionListener(event -> {
 			if (plugin.getTextToSpeech() != null && plugin.getTextToSpeech().activePiperProcessCount() > 0) {
 				try {
-					if (plugin.getTextToSpeech().isPiperForModelActive(modelLocal)) {
+					if (plugin.getTextToSpeech().isModelActive(modelLocal)) {
 						plugin.getTextToSpeech().speak(
 							voiceMetadata.toVoiceID(),
 							plugin.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),

@@ -202,7 +202,7 @@ public class ModelListItem extends JPanel {
 					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelUrl.getModelName());
 
 					// stop the piper
-					if (textToSpeech.isStarted() && textToSpeech.isPiperForModelActive(modelLocal)) {
+					if (textToSpeech.isStarted() && textToSpeech.isModelActive(modelLocal)) {
 						textToSpeech.stopPiperForModel(modelLocal);
 					}
 

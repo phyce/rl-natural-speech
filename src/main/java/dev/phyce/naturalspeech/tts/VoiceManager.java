@@ -7,10 +7,12 @@ import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.ModelRepository;
+import dev.phyce.naturalspeech.ModelRepository.Gender;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
+import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.IOException;
 import java.net.URL;
@@ -18,13 +20,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.CheckForNull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
-import net.runelite.api.ChatMessageType;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
-import net.runelite.api.events.ChatMessage;
 import net.runelite.client.config.ConfigManager;
 
 
@@ -44,6 +45,7 @@ public class VoiceManager {
 		this.textToSpeech = plugin.getTextToSpeech();
 		this.configManager = configManager;
 		this.genderedVoiceMap = new GenderedVoiceMap();
+		voiceConfig = new VoiceConfig();
 
 		textToSpeech.addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
@@ -64,83 +66,113 @@ public class VoiceManager {
 			}
 		);
 
-		voiceConfig = new VoiceConfig();
 		loadVoiceConfig();
 	}
 
-	public VoiceID getVoiceIDFromChatMessage(ChatMessage message) {
-		List<VoiceID> results;
-		if (message.getName().equals(PluginHelper.getLocalPlayerUsername())) {
-			results = voiceConfig.getWithUsername(message.getName());
-		}
-		else {
-			switch (message.getType()) {
-				//			case DIALOG:
-				case WELCOME:
-				case GAMEMESSAGE:
-				case CONSOLE:
-					results = voiceConfig.getWithNpcName(message.getName());
-					break;
-				default:
-					results = voiceConfig.getWithUsername(message.getName());
-					break;
+	@CheckForNull
+	private VoiceID findFirstActiveVoice(@NonNull List<VoiceID> voiceIdAndFallbacks) {
+		for (VoiceID voiceID : voiceIdAndFallbacks) {
+			if (textToSpeech.isModelActive(voiceID.getModelName())) {
+				return voiceID;
 			}
 		}
-		if (results == null) {
-			if (message.getType() == ChatMessageType.PUBLICCHAT) {
-				Player user = PluginHelper.getFromUsername(message.getName());
-				if (user != null) {
-					ModelRepository.Gender gender =
-						ModelRepository.Gender.parseInt(user.getPlayerComposition().getGender());
-
-					results = List.of(randomGenderedVoice(message.getName(), gender));
-				}
-			}
-			results = List.of(randomVoiceFromActiveModels(message.getName()));
-		}
-		return results.get(0);
+		return null;
 	}
 
-	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) {
+	@NonNull
+	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) throws VoiceSelectionOutOfOption {
 		npcName = npcName.toLowerCase();
-		List<VoiceID> results;
-		results = voiceConfig.getWithNpcId(npcId);
 
-		if (results == null) results = voiceConfig.getWithNpcName(npcName);
+		VoiceID result;
+		{
+			List<VoiceID> results = voiceConfig.findNpcId(npcId);
+			if (results != null) {
+				result = findFirstActiveVoice(results);
+				if (result == null) {
+					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, but model is not active", npcId, npcName);
+				} else {
+					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, using {}",
+						npcId, npcName, result);
+				}
+			} else {
+				result = null;
+				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId, npcName);
+			}
 
-		if (results == null) {
-			results = List.of(randomVoiceFromActiveModels(npcName));
 		}
 
-		// FIXME(Louis) Fix getVoiceIDFromNPCId to consider all options
-		return results.get(0);
-	}
-
-	public List<VoiceID> getVoiceIDFromNPC(@NonNull NPC npc) {
-		List<VoiceID> results;
-		//noinspection DataFlowIssue Lombok already nullchecks, intellij still warns
-		results = voiceConfig.getWithNpcName(npc.getName());
-
-		if (results == null) {
-			results = List.of(randomVoiceFromActiveModels(npc.getName()));
+		if (result == null) {
+			List<VoiceID> results = voiceConfig.findNpcName(npcName);
+			if (results != null) {
+				result = findFirstActiveVoice(results);
+			}
+			if (result == null) {
+				log.debug("No NPC ID voice found, NPC Name is also not available for NPC id:{} npcName:{}",
+					npcId, npcName);
+			} else {
+				log.debug("No NPC ID voice found, falling back to NPC Name for NPC id:{} npcName:{}, using {}",
+					npcId, npcName, result);
+			}
 		}
 
-		return results;
-	}
-
-	public VoiceID getVoiceIdForLocalPlayer() {
-		return getVoiceIDFromUsername(PluginHelper.getLocalPlayerUsername());
-	}
-
-	public VoiceID getVoiceIDFromUsername(String username) {
-		List<VoiceID> results = voiceConfig.getWithUsername(username);
-
-		if (results == null) {
-			results = List.of(randomVoiceFromActiveModels(username));
+		if (result == null) {
+			result = randomVoiceFromActiveModels(npcName);
+			log.debug("NPC_ID:{} and NPC_Name:{} both unavailable, using random voice from active models",
+				npcId, npcName);
 		}
 
-		assert results != null;
-		return results.get(0);
+		if (result == null) {
+			throw new VoiceSelectionOutOfOption();
+		}
+
+		return result;
+	}
+
+	@NonNull
+	public VoiceID getVoiceIdForLocalPlayer() throws VoiceSelectionOutOfOption {
+		String localPlayerUsername = PluginHelper.getLocalPlayerUsername();
+		if (localPlayerUsername == null) {
+			log.debug("local player username was null, returning random voice.");
+			VoiceID voiceId = randomVoice();
+			if (voiceId == null) {
+				throw new VoiceSelectionOutOfOption();
+			}
+			return voiceId;
+		}
+		return getVoiceIDFromUsername(localPlayerUsername);
+	}
+
+	@NonNull
+	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
+		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
+
+		VoiceID result;
+		if (voiceAndFallback != null) {
+			result = findFirstActiveVoice(voiceAndFallback);
+		} else {
+			result = null;
+		}
+
+		if (result == null) {
+			Player player = PluginHelper.findPlayerWithUsername(standardized_username);
+			if (player != null) {
+				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
+				log.debug("No existing settings found for {}, using randomize gendered voice.", standardized_username);
+				return randomGenderedVoice(standardized_username, gender);
+			}
+			else {
+				log.debug("No Player object found with {}, using random voice.", standardized_username);
+				VoiceID voiceID = randomVoice();
+				if (voiceID == null) {
+					throw new VoiceSelectionOutOfOption();
+				}
+				return voiceID;
+			}
+		} else {
+			log.debug("Existing settings found for {} and model is active. using {}.",
+				standardized_username, result);
+			return result;
+		}
 	}
 
 	public void loadVoiceConfig() {
@@ -197,6 +229,7 @@ public class VoiceManager {
 	}
 
 
+	@CheckForNull
 	public VoiceID randomVoiceFromActiveModels(String username) {
 		int hashCode = username.hashCode();
 
@@ -207,7 +240,7 @@ public class VoiceManager {
 	}
 
 	public VoiceID randomGenderedVoice(String username,
-									   ModelRepository.Gender gender) {
+									   Gender gender) {
 		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
 		if (voiceIDs == null || voiceIDs.isEmpty()) {
 			throw new IllegalArgumentException("No voices available for the specified gender");
@@ -216,5 +249,14 @@ public class VoiceManager {
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
 		return voiceIDs.get(voice);
+	}
+
+	// Ultimate fallback
+	@CheckForNull
+	public VoiceID randomVoice() {
+		long count = activeVoiceMap.values().size();
+		Optional<VoiceID> first = activeVoiceMap.values().stream().skip((int) (Math.random() * count)).findFirst();
+
+		return first.orElse(null);
 	}
 }

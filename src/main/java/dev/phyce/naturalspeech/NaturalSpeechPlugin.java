@@ -10,6 +10,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import static dev.phyce.naturalspeech.enums.Locations.inGrandExchange;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
+import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
@@ -57,6 +58,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.Text;
 
 
 @Slf4j
@@ -114,17 +116,6 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	//</editor-fold>
 	public void startTextToSpeech() throws RuntimeException, IOException, LineUnavailableException {
-		//		// FIXME(Louis) Need to modify to load in all ModelLocal configured
-		//		ModelRepository.ModelLocal librittsLocal = modelRepository.loadModelLocal("libritts");
-		//ttsConfig
-		//		Path piperPath = runtimeConfig.getPiperPath();
-		//
-		//		if (!piperPath.toFile().exists() || !piperPath.toFile().canExecute()) {
-		//			log.error("Invalid Piper executable path: {}", piperPath);
-		//			throw new RuntimeException("Invalid Piper executable path " + piperPath);
-		//		}
-
-		// FIXME(Louis) Lazy load with new MainSettingsPanel, load with multiple models based on user config
 		textToSpeech.start();
 	}
 
@@ -182,7 +173,6 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		// Load ShortenedPhrases is a method that can be called later when configs are changed
 		loadShortenedPhrases();
-		log.info("NaturalSpeech plugin has started");
 
 		if (config.autoStart()) {
 			try {
@@ -191,6 +181,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				throw new RuntimeException(e);
 			}
 		}
+		log.info("NaturalSpeech plugin has started");
 	}
 
 	@Override
@@ -229,36 +220,128 @@ public class NaturalSpeechPlugin extends Plugin {
 			NPC npc = (NPC) event.getActor();
 			int distance = PluginHelper.getNPCDistance(npc);
 
-			VoiceID voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
-			textToSpeech.speak(voiceID, event.getOverheadText(), distance, npc.getName());
+			VoiceID voiceID = null;
+			try {
+				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
+				textToSpeech.speak(voiceID, event.getOverheadText(), distance, npc.getName());
+			} catch (VoiceSelectionOutOfOption e) {
+				log.error(
+					"Voice Selection ran out of options for NPC. No suitable active voice found NPC ID:{} NPC name:{}",
+					npc.getId(), npc.getName());
+			}
 		}
 	}
 
 	@Subscribe(priority=-2)
 	protected void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
-		if (message.getType() == ChatMessageType.AUTOTYPER) return;
-		// console messages seems to be errors and warnings from other plugins, mute
-		if (message.getType() == ChatMessageType.CONSOLE) return;
 
-		patchChatMessage(message);
+		patchAndSanitizeChatMessage(message);
 
-		if (!isMessageProcessable(message)) return;
-		int distance = getSpeakerDistance(message);
+		if (isMessageMuted(message)) return;
 
-		//This can't go into patchChatMessage unfortunately
-		message.setName(message.getName()
-			.replaceAll("<[^>]+>", "") // Remove all tags
-			.replaceAll("[\\p{C}\\p{Z}]+", " ") // Replace control characters and any kind of separator with a space
-			//			.replaceAll("[^\\p{L}\\p{Nd} ]+", "") // Remove non-letter, non-digit characters except spaces
-			.toLowerCase());
+		VoiceID voiceID;
+		int distance;
+		String text;
 
-		message.setMessage(message.getMessage()
-			.toLowerCase()
-		);
+		try {
 
-		VoiceID voiceID = voiceManager.getVoiceIDFromChatMessage(message);
-		textToSpeech.speak(voiceID, message.getMessage(), distance, message.getName());
+			if (isChatInnerVoice(message.getType())) {
+				distance = 0;
+				voiceID = voiceManager.getVoiceIDFromUsername(message.getName());
+				text = expandShortenedPhrases(message.getMessage());
+				log.info("Inner voice used for {} for {}. ", message.getType(), message.getName());
+			}
+			else if (isChatPlayerVoice(message.getType())) {
+				if (config.distanceFadeEnabled()) {
+					distance = getDistance(message.getName());
+				}
+				else {
+					distance = 0;
+				}
+				voiceID = voiceManager.getVoiceIDFromUsername(message.getName());
+				text = expandShortenedPhrases(message.getMessage());
+				log.info("Player voice used for {} for {}. ", message.getType(), message.getName());
+			}
+			else if (isChatSystemVoice(message.getType())) {
+				distance = 0;
+				// TODO(Louis): System voice not implemented yet
+				voiceID = voiceManager.randomVoice();
+				if (voiceID == null) {
+					throw new VoiceSelectionOutOfOption();
+				}
+
+				text = message.getMessage();
+				log.info("System voice used for {} for {}. ", message.getType(), message.getName());
+			}
+			else {
+				log.error("Unsupported ChatMessageType for text to speech found: " + message.getType());
+				throw new RuntimeException(
+					"Unsupported ChatMessageType for text to speech found: " + message.getType());
+			}
+		} catch (VoiceSelectionOutOfOption e) {
+			log.error("Voice Selection ran out of options. No suitable active voice found name:{} type:{}",
+				message.getName(), message.getType());
+			return;
+		}
+
+		textToSpeech.speak(voiceID, text, distance, message.getName());
+	}
+
+	public static boolean isChatInnerVoice(ChatMessageType messageType) {
+		switch (messageType) {
+			case PRIVATECHATOUT:
+			case MODPRIVATECHAT:
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
+			case OBJECT_EXAMINE:
+			case TRADEREQ:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public static boolean isChatPlayerVoice(ChatMessageType messageType) {
+		switch (messageType) {
+			case MODCHAT:
+			case PUBLICCHAT:
+			case PRIVATECHAT:
+			case MODPRIVATECHAT:
+			case FRIENDSCHAT:
+			case CLAN_CHAT:
+			case CLAN_GUEST_CHAT:
+			case TRADEREQ:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public static boolean isChatSystemVoice(ChatMessageType messageType) {
+		switch (messageType) {
+			case GAMEMESSAGE:
+			case ENGINE:
+			case LOGINLOGOUTNOTIFICATION:
+			case FRIENDSCHATNOTIFICATION:
+			case BROADCAST:
+			case SNAPSHOTFEEDBACK:
+			case FRIENDNOTIFICATION:
+			case IGNORENOTIFICATION:
+			case CLAN_MESSAGE:
+			case CONSOLE:
+			case TRADE:
+			case SPAM:
+			case PLAYERRELATED:
+			case TENSECTIMEOUT:
+			case WELCOME:
+			case CLAN_CREATION_INVITATION:
+			case CLAN_GIM_FORM_GROUP:
+			case CLAN_GIM_GROUP_WITH:
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	@Subscribe
@@ -321,7 +404,13 @@ public class NaturalSpeechPlugin extends Plugin {
 				lastPlayerDialogText = dialogText;
 
 				dialogText = dialogText.replace("<br>", " ");
-				VoiceID voiceID = voiceManager.getVoiceIdForLocalPlayer();
+				VoiceID voiceID = null;
+				try {
+					voiceID = voiceManager.getVoiceIdForLocalPlayer();
+				} catch (VoiceSelectionOutOfOption e) {
+					log.error("Voice Selection ran out of options. No suitable active voice found for: {}", dialogText);
+					return;
+				}
 				textToSpeech.speak(voiceID, dialogText, 0, PluginHelper.getLocalPlayerUsername());
 			}
 		}
@@ -344,7 +433,15 @@ public class NaturalSpeechPlugin extends Plugin {
 
 					dialogText = dialogText.replace("<br>", " ");
 
-					VoiceID voiceID = voiceManager.getVoiceIDFromNPCId(modelId, npcName);
+					VoiceID voiceID = null;
+					try {
+						voiceID = voiceManager.getVoiceIDFromNPCId(modelId, npcName);
+					} catch (VoiceSelectionOutOfOption e) {
+						log.error(
+							"Voice Selection ran out of options. No suitable active voice found for NPC ID: {} NPC Name:{}",
+							modelId, npcName);
+						return;
+					}
 					textToSpeech.speak(voiceID, dialogText, 1, dialogText);
 				}
 			}
@@ -373,17 +470,22 @@ public class NaturalSpeechPlugin extends Plugin {
 	//</editor-fold>
 
 
-
 	//<editor-fold desc="> ChatMessage">
-	public boolean isMessageProcessable(ChatMessage message) {
-		if (isMessageTypeDisabledInConfig(message)) return false;
-		if (checkMuteAllowAndBlockList(message)) return false;
-		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return false;
-		if (isSelfMuted(message)) return false;
-		if (isMutingOthers(message)) return false;
-		if (checkMuteLevelThreshold(message)) return false;
+	public boolean isMessageMuted(ChatMessage message) {
+		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
+		// console messages seems to be errors and warnings from other plugins, mute
+		if (message.getType() == ChatMessageType.CONSOLE) return true;
+		// dialog messages are handled in onGameTick
+		if (message.getType() == ChatMessageType.DIALOG) return true;
+		if (isMessageTypeDisabledInConfig(message)) return true;
+		if (checkMuteAllowAndBlockList(message)) return true;
+		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return true;
+		if (isSelfMuted(message)) return true;
+		if (isMutingOthers(message)) return true;
+		//noinspection RedundantIfStatement
+		if (checkMuteLevelThreshold(message)) return true;
 
-		return true;
+		return false;
 	}
 
 	public boolean isMessageTypeDisabledInConfig(ChatMessage message) {
@@ -427,14 +529,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		return false;
 	}
 
-	public int getSpeakerDistance(ChatMessage message) {
-		if (message.getType() == ChatMessageType.PUBLICCHAT && config.distanceFadeEnabled()) {
-			return getDistance(message.getName());
-		}
-		return 0;
-	}
-
 	private boolean isSelfMuted(ChatMessage message) {
+		//noinspection RedundantIfStatement
 		if (config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) return true;
 		return false;
 	}
@@ -452,6 +548,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
 		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
 		if (message.getType() == ChatMessageType.CLAN_GUEST_CHAT) return false;
+		//noinspection RedundantIfStatement
 		if (getLevel(message.getName()) < config.muteLevelThreshold()) return true;
 
 
@@ -468,31 +565,24 @@ public class NaturalSpeechPlugin extends Plugin {
 	 *
 	 * @param message reference passed in and modified
 	 */
-	private void patchChatMessage(ChatMessage message) {
+	private void patchAndSanitizeChatMessage(ChatMessage message) {
 		switch (message.getType()) {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
-				message.setName(client.getLocalPlayer().getName());
+				message.setName(PluginHelper.getLocalPlayerUsername());
 				break;
-			//			case DIALOG:
-			//				String[] parts = message.getMessage().split("\\|", 2);
-			//				if (parts.length == 2) {
-			//					message.setName(parts[0]);
-			//					message.setMessage(parts[1]);
-			//				} else {
-			//					throw new RuntimeException("Unknown NPC dialog format: " + message.getMessage());
-			//				}
-			//				break;
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
-				message.setMessage(TextUtil.removeTags(message.getMessage()));
-				message.setName("_system_");
+				message.setMessage(Text.sanitize(message.getMessage()));
+				message.setName("&system");
 				break;
+			case PUBLICCHAT:
+				message.setMessage(Text.sanitize(message.getMessage()));
+				message.setName(Text.standardize(message.getName()));
 
 		}
-		message.setMessage(expandShortenedPhrases(message.getMessage()));
 	}
 	//</editor-fold>
 
@@ -588,29 +678,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	//</editor-fold>
-
-	// FIXME(Louis) Implement new status update in new MainSettingsPanel
-	//	public void statusUpdates() {
-	//		boolean ttsRunning = false;
-	//		while (started) {
-	//			try {
-	//				Thread.sleep(500);
-	//
-	//				if(tts != null) {
-	//					if(ttsRunning != tts.isProcessing()) {
-	//						ttsRunning = tts.isProcessing();
-	//
-	//						if(ttsRunning) {
-	//                            panel.updateStatus(2);
-	//                        } else {
-	//                            panel.updateStatus(1);
-	//                        }
-	//					}
-	//				}
-	//
-	//			} catch (InterruptedException e) {return;}
-	//        }
-	//	}
 
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {

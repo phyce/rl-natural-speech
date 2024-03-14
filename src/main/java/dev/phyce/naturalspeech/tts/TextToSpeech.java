@@ -7,11 +7,10 @@ import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
-import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
-import dev.phyce.naturalspeech.exceptions.PiperNotAvailableException;
+import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.IOException;
@@ -19,8 +18,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
@@ -36,7 +36,7 @@ public class TextToSpeech {
 	private final ConfigManager configManager;
 	private final ModelRepository modelRepository;
 	//Model ShortName -> PiperRunner
-	private final Map<ModelRepository.ModelLocal, Piper> pipers = new HashMap<>();
+	private final Map<String, Piper> pipers = new HashMap<>();
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Getter
@@ -59,23 +59,24 @@ public class TextToSpeech {
 	}
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
-		throws ModelLocalUnavailableException, PiperNotAvailableException {
+		throws ModelLocalUnavailableException, PiperNotActiveException {
+		assert distance >= 0;
 
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
 				throw new ModelLocalUnavailableException(text, voiceID);
 			}
 
-			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voiceID);
-
-			// Check if the piper for the model is running, if not, throw
-			if (!isPiperForModelActive(modelLocal)) {
-				throw new PiperNotAvailableException(text, voiceID);
+			if (!isModelActive(voiceID.getModelName())) {
+				throw new PiperNotActiveException(text, voiceID);
 			}
+
+			// Piper should be guaranteed to be present due to checks above
+			Piper piper = pipers.get(voiceID.modelName);
 
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				pipers.get(modelLocal).speak(sentence, voiceID, getVolumeWithDistance(distance), audioQueueName);
+				piper.speak(sentence, voiceID, getVolumeWithDistance(distance), audioQueueName);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
@@ -97,14 +98,14 @@ public class TextToSpeech {
 	}
 
 	public void clearAllAudioQueues() {
-		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			pipers.get(modelLocal).clearQueue();
+		for (String modelName : pipers.keySet()) {
+			pipers.get(modelName).clearQueue();
 		}
 	}
 
 	public void clearOtherPlayersAudioQueue(String username) {
-		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper piper = pipers.get(modelLocal);
+		for (String modelName : pipers.keySet()) {
+			Piper piper = pipers.get(modelName);
 			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
 				if (audioQueueName.equals(PluginHelper.getLocalPlayerUsername())) continue;
@@ -115,11 +116,14 @@ public class TextToSpeech {
 	}
 
 	public void clearPlayerAudioQueue(String username) {
-		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			for (String audioQueueName : pipers.get(modelLocal).getNamedAudioQueueMap().keySet()) {
+		for (String modelName : pipers.keySet()) {
+			Piper piper = pipers.get(modelName);
+			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
+				// Don't clear dialogue
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
+
 				if (audioQueueName.equals(username)) {
-					pipers.get(modelLocal).getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+					piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
 				}
 			}
 		}
@@ -132,10 +136,10 @@ public class TextToSpeech {
 	 * Starts Piper for specific ModelLocal
 	 */
 	public void startPiperForModel(ModelRepository.ModelLocal modelLocal) throws IOException {
-		if (pipers.get(modelLocal) != null) {
+		if (pipers.get(modelLocal.getModelName()) != null) {
 			log.warn("Starting piper for {} when there are already pipers running for the model.",
 				modelLocal.getModelName());
-			Piper duplicate = pipers.remove(modelLocal);
+			Piper duplicate = pipers.remove(modelLocal.getModelName());
 			duplicate.stop();
 			triggerOnPiperExit(duplicate);
 		}
@@ -155,15 +159,15 @@ public class TextToSpeech {
 			}
 		);
 
-		pipers.put(modelLocal, piper);
+		pipers.put(modelLocal.getModelName(), piper);
 
 		triggerOnPiperStart(piper);
 	}
 
 	public void stopPiperForModel(ModelRepository.ModelLocal modelLocal)
-		throws PiperNotAvailableException {
+		throws PiperNotActiveException {
 		Piper piper;
-		if ((piper = pipers.remove(modelLocal)) != null) {
+		if ((piper = pipers.remove(modelLocal.getModelName())) != null) {
 			piper.stop();
 			//			triggerOnPiperExit(piper);
 		}
@@ -174,17 +178,22 @@ public class TextToSpeech {
 
 	public int activePiperProcessCount() {
 		int result = 0;
-		for (ModelRepository.ModelLocal modelLocal : pipers.keySet()) {
-			Piper model = pipers.get(modelLocal);
+		for (String modelName : pipers.keySet()) {
+			Piper model = pipers.get(modelName);
 			result += model.countAlive();
 		}
 		return result;
 	}
 
-	public boolean isPiperForModelActive(ModelRepository.ModelLocal modelLocal) {
-		Piper piper = pipers.get(modelLocal);
+	public boolean isModelActive(ModelRepository.ModelLocal modelLocal) {
+		return isModelActive(modelLocal.getModelName());
+	}
+
+	public boolean isModelActive(String modelName) {
+		Piper piper = pipers.get(modelName);
 		return piper != null && piper.countAlive() > 0;
 	}
+
 
 	public void triggerOnPiperStart(Piper piper) {
 		for (TextToSpeechListener listener : textToSpeechListeners) {
@@ -196,10 +205,6 @@ public class TextToSpeech {
 		for (TextToSpeechListener listener : textToSpeechListeners) {
 			listener.onPiperExit(piper);
 		}
-	}
-
-	public Set<ModelRepository.ModelLocal> getActiveModels() {
-		return pipers.keySet();
 	}
 	//</editor-fold>
 

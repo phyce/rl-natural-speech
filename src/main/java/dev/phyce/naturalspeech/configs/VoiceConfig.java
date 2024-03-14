@@ -5,12 +5,11 @@ import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDat
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.VoiceConfigDatum;
-import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import javax.annotation.CheckForNull;
 import lombok.NonNull;
 import net.runelite.http.api.RuneLiteAPI;
 
@@ -31,7 +30,8 @@ public class VoiceConfig {
 		PlayerNameVoiceConfigDatum datum = playerVoices.get(username);
 		if (datum.getVoiceIDs().isEmpty()) {
 			datum.getVoiceIDs().add(voiceID);
-		} else {
+		}
+		else {
 			// remove duplicates
 			datum.getVoiceIDs().remove(voiceID);
 			// prepend
@@ -44,7 +44,8 @@ public class VoiceConfig {
 		NPCIDVoiceConfigDatum datum = npcIDVoices.get(npcID);
 		if (datum.getVoiceIDs().isEmpty()) {
 			datum.getVoiceIDs().add(voiceID);
-		} else {
+		}
+		else {
 			// remove duplicates
 			datum.getVoiceIDs().remove(voiceID);
 			// prepend
@@ -57,7 +58,8 @@ public class VoiceConfig {
 		NPCNameVoiceConfigDatum datum = npcNameVoices.get(npcName);
 		if (datum.getVoiceIDs().isEmpty()) {
 			datum.getVoiceIDs().add(voiceID);
-		} else {
+		}
+		else {
 			// remove duplicates
 			datum.getVoiceIDs().remove(voiceID);
 			// prepend
@@ -154,31 +156,32 @@ public class VoiceConfig {
 		return voiceConfigDatum;
 	}
 
-	public List<VoiceID> getWithUsername(@NonNull String playerUserName) {
-		if (Objects.equals(PluginHelper.getLocalPlayerUsername(), playerUserName)) {
-			VoiceID voice = VoiceID.fromIDString(PluginHelper.getConfig().personalVoiceID());
-			// FIXME(Louis) Merge personal voice into player username
-			if (voice != null) return List.of(voice);
-		}
-		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = this.playerVoices.get(playerUserName.toLowerCase());
+	@CheckForNull
+	public List<VoiceID> findUsername(@NonNull String standardized_username) {
+		PlayerNameVoiceConfigDatum playerNameVoiceConfigDatum = this.playerVoices.get(standardized_username);
 
 		if (playerNameVoiceConfigDatum == null) return null;
+		if (playerNameVoiceConfigDatum.getVoiceIDs().isEmpty()) return null;
 
 		return playerNameVoiceConfigDatum.getVoiceIDs();
 	}
 
-	public List<VoiceID> getWithNpcId(int npcID) {
+	@CheckForNull
+	public List<VoiceID> findNpcId(int npcID) {
 		NPCIDVoiceConfigDatum npcIDVoiceConfigDatum = this.npcIDVoices.get(npcID);
 
 		if (npcIDVoiceConfigDatum == null) return null;
+		if (npcIDVoiceConfigDatum.getVoiceIDs().isEmpty()) return null;
 
 		return npcIDVoiceConfigDatum.getVoiceIDs();
 	}
 
-	public List<VoiceID> getWithNpcName(@NonNull String npcName) {
+	@CheckForNull
+	public List<VoiceID> findNpcName(@NonNull String npcName) {
 		NPCNameVoiceConfigDatum npcNameVoiceConfigDatum = this.npcNameVoices.get(npcName.toLowerCase());
 
 		if (npcNameVoiceConfigDatum == null) return null;
+		if (npcNameVoiceConfigDatum.getVoiceIDs().isEmpty()) return null;
 
 		return npcNameVoiceConfigDatum.getVoiceIDs();
 	}
