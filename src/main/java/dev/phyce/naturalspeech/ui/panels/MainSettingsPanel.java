@@ -73,20 +73,21 @@ public class MainSettingsPanel extends PluginPanel {
 	private final ClientThread clientThread;
 	private final FixedWidthPanel mainContentPanel;
 	private final ModelRepository modelRepository;
-	private final NaturalSpeechPlugin plugin;
+	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Inject
 	public MainSettingsPanel(
 		NaturalSpeechConfig config,
-		NaturalSpeechPlugin plugin,
+		ModelRepository modelRepository,
 		ConfigManager configManager,
 		Downloader downloader, ClientThread clientThread,
+		TextToSpeech textToSpeech,
 		NaturalSpeechRuntimeConfig runtimeConfig
 	) {
 		super(false);
-		this.plugin = plugin;
-		this.modelRepository = plugin.getModelRepository();
+		this.textToSpeech = textToSpeech;
+		this.modelRepository = modelRepository;
 		this.clientThread = clientThread;
 		this.runtimeConfig = runtimeConfig;
 
@@ -252,7 +253,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		List<ModelRepository.ModelURL> modelURLS = modelRepository.getModelURLS();
 		for (ModelRepository.ModelURL modelUrl : modelURLS) {
-			ModelListItem listItem = new ModelListItem(plugin.getTextToSpeech(), modelRepository, modelUrl);
+			ModelListItem listItem = new ModelListItem(textToSpeech, modelRepository, modelUrl);
 			sectionContent.add(listItem);
 		}
 	}
@@ -324,7 +325,7 @@ public class MainSettingsPanel extends PluginPanel {
 		panel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
 		panel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-		plugin.getTextToSpeech().addTextToSpeechListener(
+		textToSpeech.addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
 				private final Map<Piper, PiperListItem> piperItemList = new HashMap<>();
 
@@ -363,7 +364,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		statusPanel.add(statusLabel, BorderLayout.NORTH);
 
-		plugin.getTextToSpeech().addTextToSpeechListener(
+		textToSpeech.addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
 				@Override
 				public void onPiperStart(Piper piper) {
@@ -379,7 +380,6 @@ public class MainSettingsPanel extends PluginPanel {
 				public void onPiperExit(Piper piper) {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					TextToSpeech textToSpeech = plugin.getTextToSpeech();
 					if (textToSpeech.isStarted() && textToSpeech.activePiperProcessCount() == 0) {
 						// Detect if this was an unintended exit, because the model would still be enabled
 						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
@@ -401,8 +401,8 @@ public class MainSettingsPanel extends PluginPanel {
 				public void onStart() {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					if (plugin.getTextToSpeech().isStarted() &&
-						plugin.getTextToSpeech().activePiperProcessCount() == 0) {
+					if (textToSpeech.isStarted() &&
+						textToSpeech.activePiperProcessCount() == 0) {
 						statusLabel.setText("No Models Enabled");
 						statusLabel.setBackground(Color.ORANGE.darker());
 						statusLabel.setForeground(Color.WHITE);
@@ -430,12 +430,12 @@ public class MainSettingsPanel extends PluginPanel {
 
 		playButton.addActionListener(e -> {
 			clientThread.invokeLater(() -> {
-				plugin.getTextToSpeech().start();
+				textToSpeech.start();
 			});
 		});
 		stopButton.addActionListener(e -> {
 			clientThread.invokeLater(() -> {
-				plugin.getTextToSpeech().stop();
+				textToSpeech.stop();
 			});
 		});
 

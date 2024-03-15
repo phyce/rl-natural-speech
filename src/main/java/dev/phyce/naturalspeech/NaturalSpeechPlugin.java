@@ -4,7 +4,6 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
-import com.google.inject.Provider;
 import com.google.inject.Provides;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
@@ -12,13 +11,13 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.getLocalPlayerUsername;
-import dev.phyce.naturalspeech.intruments.VoiceLogger;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
-import lombok.Getter;
+import java.util.Arrays;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -26,6 +25,7 @@ import net.runelite.api.GameState;
 import net.runelite.api.events.CommandExecuted;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ClientShutdown;
 import net.runelite.client.events.ConfigChanged;
@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
+
 	//<editor-fold desc="> Misc">
 	public final static String CONFIG_GROUP = "NaturalSpeech";
 	public final static String MODEL_REPO_FILENAME = "model_repository.json";
@@ -56,38 +57,24 @@ public class NaturalSpeechPlugin extends Plugin {
 	private Client client;
 	@Inject
 	private NaturalSpeechConfig config;
+	@Inject
+	private EventBus eventBus;
 
 	//</editor-fold>
 
 	//<editor-fold desc="> Internal Dependencies">
-	@Inject
 	private NaturalSpeechRuntimeConfig runtimeConfig;
-	@Getter
-	private TopLevelPanel topLevelPanel;
-	@Getter
 	private VoiceManager voiceManager;
-	@Getter
 	private TextToSpeech textToSpeech;
-	@Getter
-	private ModelRepository modelRepository;
+	private SpeechEventHandler speechEventHandler;
+	private MenuEventHandler menuEventHandler;
 
-	@Inject
-	private Provider<VoiceManager> voiceManagerProvider;
-	@Inject
-	private Provider<TextToSpeech> textToSpeechProvider;
-	@Inject
-	private Provider<TopLevelPanel> topLevelPanelProvider;
-	@Inject
-	private Provider<ModelRepository> modelRepositoryProvider;
-	@Inject
-	private Provider<SpeechEventHandler> speechEventHandlerProvider;
-	@Inject
-	private Provider<MenuEventHandler> menuEventHandlerProvider;
 	//</editor-fold>
 
 	//<editor-fold desc="> Runtime Variables">
 	private NavigationButton navButton;
 	//</editor-fold>
+
 
 	static {
 		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
@@ -99,26 +86,30 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void configure(Binder binder) {
 		// Instantiate PluginHelper early, Plugin relies on static PluginHelper::Instance
 		// No cycling-dependencies back at NaturalSpeechPlugin allowed
+		// quality-of-life abstraction for coding
 		binder.bind(PluginHelper.class).asEagerSingleton();
 		// Downloader has all dependencies from RuneLite, eager load
 		binder.bind(Downloader.class).asEagerSingleton();
-		binder.bind(VoiceLogger.class).asEagerSingleton();
 	}
 
 	@Override
 	public void startUp() {
 
-		modelRepository = modelRepositoryProvider.get();
-		textToSpeech = textToSpeechProvider.get();
-		// Have to lazy-load config panel after RuneLite UI is initialized, cannot field @Inject
-		topLevelPanel = topLevelPanelProvider.get();
-		voiceManager = voiceManagerProvider.get();
+		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
+		textToSpeech = injector.getInstance(TextToSpeech.class);
+		voiceManager = injector.getInstance(VoiceManager.class);
 
-		speechEventHandlerProvider.get();
-		menuEventHandlerProvider.get();
+		// Abstracting the massive client event handlers into their own files
+		speechEventHandler = injector.getInstance(SpeechEventHandler.class);
+		menuEventHandler = injector.getInstance(MenuEventHandler.class);
 
-		// Build navButton
+		// registers to eventbus, make sure to unregister on shutdown()
+		eventBus.register(speechEventHandler);
+		eventBus.register(menuEventHandler);
+
+		// Build panel and navButton
 		{
+			TopLevelPanel topLevelPanel = injector.getInstance(TopLevelPanel.class);
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 			navButton = NavigationButton.builder()
 				.tooltip("Natural Speech")
@@ -140,6 +131,10 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	public void shutDown() {
+		// unregister eventBus so handlers do not run after shutdown.
+		eventBus.unregister(speechEventHandler);
+		eventBus.unregister(menuEventHandler);
+
 		if (textToSpeech != null) {
 			textToSpeech.stop();
 		}
@@ -152,7 +147,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	@Subscribe
-	public void onClientShutdown(ClientShutdown e) {
+	private void onClientShutdown(ClientShutdown e) {
+		// shutDown is not called on X button client exit, so we need to listen to clientShutdown
 		voiceManager.saveVoiceConfig();
 		textToSpeech.saveModelConfig();
 	}
@@ -166,14 +162,14 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Hooks">
 
 	@Subscribe
-	public void onGameStateChanged(GameStateChanged event) {
+	private void onGameStateChanged(GameStateChanged event) {
 		if (event.getGameState() == GameState.LOGGED_IN) {
 
 		}
 	}
 
 	@Subscribe
-	public void onConfigChanged(ConfigChanged event) {
+	private void onConfigChanged(ConfigChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
 			switch (event.getKey()) {
@@ -191,7 +187,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					String standardized_username = getLocalPlayerUsername();
 
 					// FIXME(Louis)
-					if (standardized_username == null)  {
+					if (standardized_username == null) {
 						log.error("Player isn't logged in, no username information available.");
 						break;
 					}
@@ -199,7 +195,8 @@ public class NaturalSpeechPlugin extends Plugin {
 					VoiceID voiceID = VoiceID.fromIDString(event.getNewValue());
 					if (voiceID == null) {
 						log.error("User attempting provided invalid Voice ID through RuneLite config panel.");
-					} else {
+					}
+					else {
 						voiceManager.setVoiceIDForUsername(standardized_username, voiceID);
 					}
 			}
@@ -207,7 +204,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	@Subscribe
-	public void onCommandExecuted(CommandExecuted commandExecuted) {
+	private void onCommandExecuted(CommandExecuted commandExecuted) {
 		String[] args = commandExecuted.getArguments();
 
 		//noinspection SwitchStatementWithTooFewBranches
@@ -229,6 +226,59 @@ public class NaturalSpeechPlugin extends Plugin {
 				client.addChatMessage(ChatMessageType.CONSOLE, "", message, null);
 				break;
 			}
+			case "setvoice": {
+				if (args.length < 2) {
+					client.addChatMessage(ChatMessageType.CONSOLE, "",
+						"use ::setvoice model:id username, for example ::setvoice libritts:2 Zezima", null);
+				}
+				else {
+					VoiceID voiceId = VoiceID.fromIDString(args[0]);
+					String username = Arrays.stream(args).skip(1).reduce((a, b) -> a + " " + b).orElse(args[1]);
+					if (voiceId == null) {
+						client.addChatMessage(ChatMessageType.CONSOLE, "", "voice id " + args[1] + " is invalid.",
+							null);
+					}
+					else {
+						voiceManager.setVoiceIDForUsername(username, voiceId);
+						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + args[0],
+							null);
+					}
+				}
+				break;
+			}
+			case "unsetvoice": {
+				if (args.length < 1) {
+					client.addChatMessage(ChatMessageType.CONSOLE, "",
+						"use ::unsetvoice username, for example ::unsetvoice Zezima", null);
+				}
+				else {
+					String username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
+					voiceManager.resetForUsername(username);
+					client.addChatMessage(ChatMessageType.CONSOLE, "",
+						"All voices are removed for " + username, null);
+				}
+				break;
+			}
+			case "checkvoice": {
+				if (args.length < 1) {
+					client.addChatMessage(ChatMessageType.CONSOLE, "",
+						"use ::checkvoice username, for example ::checkvoice Zezima", null);
+				}
+				else {
+					String username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
+					List<VoiceID> voiceIds = voiceManager.checkVoiceIDWithUsername(username);
+					if (voiceIds == null) {
+						client.addChatMessage(ChatMessageType.CONSOLE, "",
+							"There are no voices set for " + username + ".", null);
+					}
+					else {
+						String idStr = voiceIds.stream().map(VoiceID::toString).reduce((a, b) -> a + ", " + b)
+							.orElse("No voice set");
+						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + idStr, null);
+					}
+				}
+				break;
+			}
 		}
 	}
 	//</editor-fold>
@@ -237,4 +287,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);
 	}
+
+
 }

@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
@@ -20,6 +21,7 @@ import net.runelite.client.game.chatbox.ChatboxPanelManager;
 import net.runelite.client.game.chatbox.ChatboxTextInput;
 import okhttp3.OkHttpClient;
 
+@Slf4j
 public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private static final int LINE_HEIGHT = 20;
 	private static final int CHATBOX_HEIGHT = 120;
@@ -47,6 +49,8 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 				if (voiceId != null) {
 					voiceManager.setActorVoiceID(actor, voiceId);
 					voiceManager.saveVoiceConfig();
+				} else {
+					log.info("Attempting to set invalid voiceID with {}", string);
 				}
 			}
 		});

@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.Singleton;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.GridLayout;
@@ -15,6 +16,7 @@ import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
 import net.runelite.client.util.ImageUtil;
 
+@Singleton
 public class TopLevelPanel extends PluginPanel {
 	private final MaterialTabGroup tabGroup;
 	private final CardLayout layout;
@@ -32,18 +34,14 @@ public class TopLevelPanel extends PluginPanel {
 	private PluginPanel current;
 	private boolean removeOnTabChange;
 
-	private final EventBus eventBus;
-
 	@Inject
 	TopLevelPanel(
-		EventBus eventBus,
 		MainSettingsPanel mainSettingsPanel,
 		VoiceExplorerPanel voiceExplorerPanel
 		//			EditorPanel editorPanel
 	) {
 		super(false);
 
-		this.eventBus = eventBus;
 		this.mainSettingsPanel = mainSettingsPanel;
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		//		this.editorPanel = editorPanel;
@@ -81,7 +79,6 @@ public class TopLevelPanel extends PluginPanel {
 		tabGroup.addTab(materialTab);
 
 		content.add(image, panel.getWrappedPanel());
-		eventBus.register(panel);
 
 		materialTab.setOnSelectEvent(() -> {
 			switchTo(image, panel, false);
@@ -101,7 +98,6 @@ public class TopLevelPanel extends PluginPanel {
 		{
 			PluginPanel panel = panelProvider.get();
 			content.add(image, panel.getWrappedPanel());
-			eventBus.register(panel);
 			switchTo(image, panel, true);
 			return true;
 		});
@@ -123,7 +119,6 @@ public class TopLevelPanel extends PluginPanel {
 
 		if (doRemove) {
 			content.remove(prevPanel.getWrappedPanel());
-			eventBus.unregister(prevPanel);
 		}
 
 		content.revalidate();

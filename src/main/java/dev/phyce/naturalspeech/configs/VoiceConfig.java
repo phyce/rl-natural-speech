@@ -25,7 +25,6 @@ public class VoiceConfig {
 	}
 
 	public void setDefaultPlayerVoice(@NonNull String standardized_username, VoiceID voiceID) {
-		standardized_username = standardized_username.toLowerCase();
 		playerVoices.putIfAbsent(standardized_username, new PlayerNameVoiceConfigDatum(standardized_username));
 		PlayerNameVoiceConfigDatum datum = playerVoices.get(standardized_username);
 		if (datum.getVoiceIDs().isEmpty()) {
@@ -67,11 +66,15 @@ public class VoiceConfig {
 		}
 	}
 
-	public void removePlayerVoice(@NonNull String standardized_username, VoiceID voiceID) {
+	public void unsetPlayerVoice(@NonNull String standardized_username, VoiceID voiceID) {
 		PlayerNameVoiceConfigDatum datum = playerVoices.get(standardized_username);
 		if (datum == null) return;
 		datum.getVoiceIDs().remove(voiceID);
 		if (datum.getVoiceIDs().isEmpty()) playerVoices.remove(standardized_username);
+	}
+
+	public void resetPlayerVoice(@NonNull String standardized_username) {
+		playerVoices.remove(standardized_username);
 	}
 
 	public void removeNpcIdVoice(int npcID, VoiceID voiceID) {

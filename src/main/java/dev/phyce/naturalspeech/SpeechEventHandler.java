@@ -45,18 +45,17 @@ public class SpeechEventHandler {
 	private Actor actorInteractedWith = null;
 
 	@Inject
-	public SpeechEventHandler(EventBus eventBus, Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
+	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
 							  VoiceManager voiceManager) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
 		this.voiceManager = voiceManager;
 
-		eventBus.register(this);
 	}
 
 	@Subscribe(priority=-2)
-	public void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 
 		patchAndSanitizeChatMessage(message);
@@ -89,18 +88,17 @@ public class SpeechEventHandler {
 			else if (isChatSystemVoice(message.getType())) {
 				distance = 0;
 				// TODO(Louis): System voice not implemented yet
-				voiceId = voiceManager.randomVoice();
-				if (voiceId == null) {
-					throw new VoiceSelectionOutOfOption();
-				}
+				voiceId = voiceManager.getVoiceIDFromUsername("&system");
 
 				text = message.getMessage();
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
 			else {
-				log.error("Unsupported ChatMessageType for text to speech found: " + message.getType());
-				throw new RuntimeException(
-					"Unsupported ChatMessageType for text to speech found: " + message.getType());
+//				log.error("Unsupported ChatMessageType for text to speech found: " + message.getType());
+//				throw new RuntimeException(
+//					"Unsupported ChatMessageType for text to speech found: " + message.getType());
+				// Silent mute otherwise
+				return;
 			}
 		} catch (VoiceSelectionOutOfOption e) {
 			log.error("Voice Selection ran out of options. No suitable active voice found name:{} type:{}",
@@ -113,7 +111,7 @@ public class SpeechEventHandler {
 
 
 	@Subscribe(priority=-1)
-	public void onGameTick(GameTick event) {
+	private void onGameTick(GameTick event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (!config.dialogEnabled() || actorInteractedWith == null) return;
 
@@ -175,7 +173,7 @@ public class SpeechEventHandler {
 	}
 
 	@Subscribe
-	public void onInteractingChanged(InteractingChanged event) {
+	private void onInteractingChanged(InteractingChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getTarget() == null || event.getSource() != client.getLocalPlayer()) {
 			return;
@@ -188,7 +186,7 @@ public class SpeechEventHandler {
 	}
 
 	@Subscribe(priority=-1)
-	public void onOverheadTextChanged(OverheadTextChanged event) {
+	private void onOverheadTextChanged(OverheadTextChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (!config.dialogEnabled()) return;
 
@@ -269,7 +267,6 @@ public class SpeechEventHandler {
 
 	public static boolean isChatSystemVoice(ChatMessageType messageType) {
 		switch (messageType) {
-			case GAMEMESSAGE:
 			case ENGINE:
 			case LOGINLOGOUTNOTIFICATION:
 			case BROADCAST:

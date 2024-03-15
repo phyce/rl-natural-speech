@@ -11,6 +11,7 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
@@ -35,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 
 @Slf4j
+@Singleton
 public class ModelRepository {
 
 	public final static String EXTENSION = ".onnx";
@@ -56,8 +58,10 @@ public class ModelRepository {
 	private final Gson gson;
 
 	@Inject
-	public ModelRepository(Downloader downloader, NaturalSpeechRuntimeConfig runtimeConfig,
-						   ScheduledExecutorService executor, Gson gson) throws IOException {
+	public ModelRepository(Downloader downloader,
+						   NaturalSpeechRuntimeConfig runtimeConfig,
+						   ScheduledExecutorService executor,
+						   Gson gson) throws IOException {
 		this.executor = executor;
 		this.gson = gson;
 

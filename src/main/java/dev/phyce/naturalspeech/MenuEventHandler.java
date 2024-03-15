@@ -32,17 +32,16 @@ public class MenuEventHandler {
 	private final Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider;
 
 	@Inject
-	public MenuEventHandler(EventBus eventBus, Client client, TextToSpeech textToSpeech,
+	public MenuEventHandler(Client client, TextToSpeech textToSpeech,
 							Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.voiceConfigChatboxTextInputProvider = voiceConfigChatboxTextInputProvider;
 
-		eventBus.register(this);
 	}
 
 	@Subscribe
-	public void onMenuOpened(MenuOpened event) {
+	private void onMenuOpened(MenuOpened event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		final MenuEntry[] entries = event.getMenuEntries();
 

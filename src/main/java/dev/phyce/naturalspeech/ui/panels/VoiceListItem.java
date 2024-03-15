@@ -25,7 +25,7 @@ import net.runelite.client.util.SwingUtil;
 public class VoiceListItem extends JPanel {
 
 	private final VoiceExplorerPanel voiceExplorerPanel;
-	private final NaturalSpeechPlugin plugin;
+	private final TextToSpeech textToSpeech;
 	@Getter
 	private final ModelRepository.VoiceMetadata voiceMetadata;
 	private final ModelRepository.ModelLocal modelLocal;
@@ -42,10 +42,14 @@ public class VoiceListItem extends JPanel {
 
 	}
 
-	public VoiceListItem(VoiceExplorerPanel voiceExplorerPanel, NaturalSpeechPlugin plugin,
-						 ModelRepository.VoiceMetadata voiceMetadata, ModelRepository.ModelLocal modelLocal) {
+
+	public VoiceListItem(
+		VoiceExplorerPanel voiceExplorerPanel,
+		TextToSpeech textToSpeech,
+		ModelRepository.VoiceMetadata voiceMetadata,
+		ModelRepository.ModelLocal modelLocal) {
 		this.voiceExplorerPanel = voiceExplorerPanel;
-		this.plugin = plugin;
+		this.textToSpeech = textToSpeech;
 		this.voiceMetadata = voiceMetadata;
 		this.modelLocal = modelLocal;
 
@@ -105,7 +109,6 @@ public class VoiceListItem extends JPanel {
 		playButton.addActionListener(
 
 			event -> {
-				TextToSpeech textToSpeech = plugin.getTextToSpeech();
 				if (textToSpeech != null && textToSpeech.activePiperProcessCount() > 0) {
 					try {
 						if (textToSpeech.isModelActive(modelLocal)) {
@@ -133,7 +136,7 @@ public class VoiceListItem extends JPanel {
 
 		revalidate();
 
-		plugin.getTextToSpeech().addTextToSpeechListener(
+		textToSpeech.addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
 				@Override
 				public void onPiperStart(Piper piper) {

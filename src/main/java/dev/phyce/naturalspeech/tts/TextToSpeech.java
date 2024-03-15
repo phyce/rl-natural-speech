@@ -24,7 +24,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.eventbus.EventBus;
 
 // Renamed from TTSManager
 @Slf4j
@@ -52,13 +51,15 @@ public class TextToSpeech {
 
 	@Inject
 	private TextToSpeech(
+		ConfigManager configManager,
+		ClientThread clientThread,
+		ModelRepository modelRepository,
 		NaturalSpeechRuntimeConfig runtimeConfig,
-		ConfigManager configManager, ClientThread clientThread,
-		NaturalSpeechPlugin plugin, EventBus eventbus, NaturalSpeechConfig config) {
+		NaturalSpeechConfig config) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.clientThread = clientThread;
-		this.modelRepository = plugin.getModelRepository();
+		this.modelRepository = modelRepository;
 		this.config = config;
 
 		loadModelConfig();

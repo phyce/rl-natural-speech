@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.ModelRepository;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
@@ -60,7 +61,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
 	private final ModelRepository modelRepository;
-	private final NaturalSpeechPlugin plugin;
+	private final TextToSpeech textToSpeech;
 	@Getter
 	private final IconTextField speechText;
 	@Getter
@@ -72,9 +73,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 
 	@Inject
-	public VoiceExplorerPanel(NaturalSpeechPlugin plugin) {
-		this.modelRepository = plugin.getModelRepository();
-		this.plugin = plugin;
+	public VoiceExplorerPanel(ModelRepository modelRepository, TextToSpeech textToSpeech) {
+		this.modelRepository = modelRepository;
+		this.textToSpeech = textToSpeech;
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -228,7 +229,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			Arrays.stream(modelLocal.getVoiceMetadata())
 				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
 				.forEach((voiceMetadata) -> {
-					VoiceListItem speakerItem = new VoiceListItem(this, plugin, voiceMetadata, modelLocal);
+					VoiceListItem speakerItem = new VoiceListItem(this, textToSpeech, voiceMetadata, modelLocal);
 					voiceListItems.add(speakerItem);
 					sectionContent.add(speakerItem);
 				});

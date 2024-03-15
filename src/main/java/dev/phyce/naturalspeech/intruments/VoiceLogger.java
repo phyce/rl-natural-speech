@@ -1,10 +1,12 @@
 package dev.phyce.naturalspeech.intruments;
 
+/*
 
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import lombok.extern.slf4j.Slf4j;
 
+// Not currently being used anywhere
 @Singleton
 @Slf4j
 public class VoiceLogger {
@@ -69,3 +71,4 @@ public class VoiceLogger {
 
 
 }
+*/

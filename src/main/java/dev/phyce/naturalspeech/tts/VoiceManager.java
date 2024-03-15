@@ -42,8 +42,8 @@ public class VoiceManager {
 	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
 
 	@Inject
-	public VoiceManager(NaturalSpeechPlugin plugin, ConfigManager configManager) {
-		this.textToSpeech = plugin.getTextToSpeech();
+	public VoiceManager(TextToSpeech textToSpeech, ConfigManager configManager) {
+		this.textToSpeech = textToSpeech;
 		this.configManager = configManager;
 		this.genderedVoiceMap = new GenderedVoiceMap();
 		voiceConfig = new VoiceConfig();
@@ -143,6 +143,11 @@ public class VoiceManager {
 		return getVoiceIDFromUsername(localPlayerUsername);
 	}
 
+	@CheckForNull
+	public List<VoiceID> checkVoiceIDWithUsername(@NonNull String standardized_username) {
+		return voiceConfig.findUsername(standardized_username);
+	}
+
 	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
 		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
@@ -159,11 +164,16 @@ public class VoiceManager {
 			if (player != null) {
 				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
 				log.debug("No existing settings found for {}, using randomize gendered voice.", standardized_username);
-				return randomGenderedVoice(standardized_username, gender);
+				VoiceID voiceID = randomGenderedVoice(standardized_username, gender);
+				if (voiceID != null) {
+					return voiceID;
+				} else {
+					throw new VoiceSelectionOutOfOption();
+				}
 			}
 			else {
 				log.debug("No Player object found with {}, using random voice.", standardized_username);
-				VoiceID voiceID = randomVoice();
+				VoiceID voiceID = randomVoiceFromActiveModels(standardized_username);
 				if (voiceID == null) {
 					throw new VoiceSelectionOutOfOption();
 				}
@@ -176,8 +186,12 @@ public class VoiceManager {
 		}
 	}
 
-	public void setVoiceIDForUsername(@NonNull String username, VoiceID voiceID) {
-		voiceConfig.setDefaultPlayerVoice(username, voiceID);
+	public void setVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
+		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
+	}
+
+	public void resetForUsername(@NonNull String standardized_username) {
+		voiceConfig.resetPlayerVoice(standardized_username);
 	}
 
 	public void loadVoiceConfig() {
@@ -243,8 +257,8 @@ public class VoiceManager {
 
 
 	@CheckForNull
-	public VoiceID randomVoiceFromActiveModels(String username) {
-		int hashCode = username.hashCode();
+	public VoiceID randomVoiceFromActiveModels(String standardized_username) {
+		int hashCode = standardized_username.hashCode();
 
 		long count = activeVoiceMap.values().size();
 		Optional<VoiceID> first = activeVoiceMap.values().stream().skip(Math.abs(hashCode) % count).findFirst();
@@ -252,14 +266,14 @@ public class VoiceManager {
 		return first.orElse(null);
 	}
 
-	public VoiceID randomGenderedVoice(String username,
+	@CheckForNull
+	private VoiceID randomGenderedVoice(String standardized_username,
 									   Gender gender) {
 		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
 		if (voiceIDs == null || voiceIDs.isEmpty()) {
-			// FIXME(Louis) return null instead
-			throw new IllegalArgumentException("No voices available for the specified gender");
+			return null;
 		}
-		int hashCode = username.hashCode();
+		int hashCode = standardized_username.hashCode();
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
 		return voiceIDs.get(voice);
