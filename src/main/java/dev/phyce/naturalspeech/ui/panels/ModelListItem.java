@@ -71,7 +71,7 @@ public class ModelListItem extends JPanel {
 			@Override
 			public void onRepositoryChanged(String modelName) {
 				SwingUtilities.invokeLater(() -> {
-					log.info("Repository change detected. Rebuilding {}", modelName);
+					log.debug("Repository change detected. Rebuilding {}", modelName);
 					rebuild();
 					revalidate();
 				});
@@ -107,7 +107,7 @@ public class ModelListItem extends JPanel {
 		toggleButton.setSelected(textToSpeech.getModelConfig().isModelEnabled(modelUrl.getModelName()));
 		toggleButton.addActionListener(
 			l -> {
-				log.info("Toggling {} into {}", modelUrl.getModelName(), toggleButton.isSelected());
+				log.debug("Toggling {} into {}", modelUrl.getModelName(), toggleButton.isSelected());
 				textToSpeech.getModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
 				try {
 					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelUrl.getModelName());
@@ -231,14 +231,14 @@ public class ModelListItem extends JPanel {
 					textToSpeech.getModelConfig().getModelProcessCount(modelUrl.getModelName()));
 
 				if (result != null) {
-					log.info("Option chose: " + result);
+					log.debug("Option chose: " + result);
 					textToSpeech.getModelConfig().setModelProcessCount(modelUrl.getModelName(), result);
 
 					// TODO(Louis) lazy hack, just reboot all processes with new configuration
 					if (textToSpeech.isStarted()) textToSpeech.start();
 				}
 				else {
-					log.info("Cancelled!");
+					log.debug("Cancelled!");
 				}
 
 			});

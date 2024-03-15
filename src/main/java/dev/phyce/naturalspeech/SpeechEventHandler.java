@@ -73,7 +73,7 @@ public class SpeechEventHandler {
 				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(message.getName());
 				text = textToSpeech.expandShortenedPhrases(message.getMessage());
-				log.info("Inner voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
+				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
 			else if (isChatPlayerVoice(message.getType())) {
 				if (config.distanceFadeEnabled()) {
@@ -84,7 +84,7 @@ public class SpeechEventHandler {
 				}
 				voiceId = voiceManager.getVoiceIDFromUsername(message.getName());
 				text = textToSpeech.expandShortenedPhrases(message.getMessage());
-				log.info("Player voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
+				log.debug("Player voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
 			else if (isChatSystemVoice(message.getType())) {
 				distance = 0;
@@ -95,7 +95,7 @@ public class SpeechEventHandler {
 				}
 
 				text = message.getMessage();
-				log.info("System voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
+				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
 			else {
 				log.error("Unsupported ChatMessageType for text to speech found: " + message.getType());

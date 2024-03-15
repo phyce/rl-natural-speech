@@ -71,7 +71,7 @@ public class ModelRepository {
 			}.getType());
 
 			log.info("Loaded voice repository with " + modelURLS.size() + " voices");
-			modelURLS.forEach(modelURL -> log.info("Found: " + modelURL));
+			modelURLS.forEach(modelURL -> log.info("Found: " + modelURL.getModelName()));
 
 		} catch (IOException e) {
 			log.error("Could not read voice repository file: " + MODEL_REPO_FILENAME);
