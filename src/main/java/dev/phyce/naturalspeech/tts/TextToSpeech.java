@@ -13,6 +13,8 @@ import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.macos.MacUnquarantine;
+import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.IOException;
@@ -219,6 +221,11 @@ public class TextToSpeech {
 	//</editor-fold>
 
 	public void start() {
+
+		if (OSValidator.IS_MAC) {
+			MacUnquarantine.Unquarantine(runtimeConfig.getPiperPath());
+		}
+
 		try {
 			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 				try {
