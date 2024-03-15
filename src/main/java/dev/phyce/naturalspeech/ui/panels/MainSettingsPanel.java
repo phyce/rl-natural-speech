@@ -43,6 +43,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
@@ -69,6 +70,7 @@ public class MainSettingsPanel extends PluginPanel {
 //	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 
+	private final ClientThread clientThread;
 	private final FixedWidthPanel mainContentPanel;
 	private final ModelRepository modelRepository;
 	private final NaturalSpeechPlugin plugin;
@@ -79,12 +81,13 @@ public class MainSettingsPanel extends PluginPanel {
 		NaturalSpeechConfig config,
 		NaturalSpeechPlugin plugin,
 		ConfigManager configManager,
-		Downloader downloader,
+		Downloader downloader, ClientThread clientThread,
 		NaturalSpeechRuntimeConfig runtimeConfig
 	) {
 		super(false);
 		this.plugin = plugin;
 		this.modelRepository = plugin.getModelRepository();
+		this.clientThread = clientThread;
 		this.runtimeConfig = runtimeConfig;
 
 		this.setLayout(new BorderLayout());
@@ -335,8 +338,11 @@ public class MainSettingsPanel extends PluginPanel {
 
 				@Override
 				public void onPiperExit(Piper piper) {
-					panel.remove(piperItemList.remove(piper));
-					panel.revalidate();
+					PiperListItem remove = piperItemList.remove(piper);
+					if (remove != null) {
+						panel.remove(remove);
+						panel.revalidate();
+					}
 				}
 			}
 		);
@@ -373,13 +379,22 @@ public class MainSettingsPanel extends PluginPanel {
 				public void onPiperExit(Piper piper) {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					if (plugin.getTextToSpeech().isStarted() &&
-						plugin.getTextToSpeech().activePiperProcessCount() == 0) {
-						statusLabel.setText("No Models Enabled");
-						statusLabel.setBackground(Color.ORANGE.darker());
-						statusLabel.setForeground(Color.WHITE);
-						statusPanel.setToolTipText("Download and enable a model.");
+					TextToSpeech textToSpeech = plugin.getTextToSpeech();
+					if (textToSpeech.isStarted() && textToSpeech.activePiperProcessCount() == 0) {
+						// Detect if this was an unintended exit, because the model would still be enabled
+						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
+							statusLabel.setText("Crashed (Contact Us)");
+							statusLabel.setBackground(Color.RED.darker());
+							statusLabel.setForeground(Color.WHITE);
+							statusPanel.setToolTipText("Please contact the developers for support.");
+						} else {
+							statusLabel.setText("No Models Enabled");
+							statusLabel.setBackground(Color.ORANGE.darker());
+							statusLabel.setForeground(Color.WHITE);
+							statusPanel.setToolTipText("Download and enable a model.");
+						}
 					}
+
 				}
 
 				@Override
@@ -413,8 +428,16 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton playButton = createButton("start.png", "Start");
 		JButton stopButton = createButton("stop.png", "Stop");
 
-		playButton.addActionListener(e -> plugin.getTextToSpeech().start());
-		stopButton.addActionListener(e -> plugin.getTextToSpeech().stop());
+		playButton.addActionListener(e -> {
+			clientThread.invokeLater(() -> {
+				plugin.getTextToSpeech().start();
+			});
+		});
+		stopButton.addActionListener(e -> {
+			clientThread.invokeLater(() -> {
+				plugin.getTextToSpeech().stop();
+			});
+		});
 
 		buttonPanel.add(playButton);
 		buttonPanel.add(stopButton);

@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.ModelRepository;
+import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -74,7 +75,9 @@ public class Piper {
 				processMap.clear();
 				throw e;
 			}
-			process.onExit().thenAccept(this::triggerOnPiperProcessExit);
+			process.onExit().thenAccept(p -> {
+				triggerOnPiperProcessExit(p);
+			});
 			processMap.put(process.getPid(), process);
 		}
 	}
@@ -214,6 +217,9 @@ public class Piper {
 		processPiperTaskThread.interrupt();
 	}
 
+	/**
+	 * @param listener This is not called on the client thread, please be careful.
+	 */
 	public void addPiperListener(PiperProcessLifetimeListener listener) {
 		piperProcessLifetimeListeners.add(listener);
 	}

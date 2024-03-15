@@ -106,7 +106,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	@Override
-	protected void startUp() {
+	public void startUp() {
 
 		modelRepository = modelRepositoryProvider.get();
 		textToSpeech = textToSpeechProvider.get();
@@ -139,7 +139,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	@Override
-	protected void shutDown() {
+	public void shutDown() {
 		if (textToSpeech != null) {
 			textToSpeech.stop();
 		}
@@ -152,7 +152,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	@Subscribe
-	private void onClientShutdown(ClientShutdown e) {
+	public void onClientShutdown(ClientShutdown e) {
 		voiceManager.saveVoiceConfig();
 		textToSpeech.saveModelConfig();
 	}
@@ -166,7 +166,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Hooks">
 
 	@Subscribe
-	private void onGameStateChanged(GameStateChanged event) {
+	public void onGameStateChanged(GameStateChanged event) {
 		if (event.getGameState() == GameState.LOGGED_IN) {
 
 		}

@@ -20,10 +20,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 
@@ -38,6 +37,7 @@ public class TextToSpeech {
 
 	private final ConfigManager configManager;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
+	private final ClientThread clientThread;
 	private final ModelRepository modelRepository;
 	private final NaturalSpeechConfig config;
 
@@ -53,10 +53,11 @@ public class TextToSpeech {
 	@Inject
 	private TextToSpeech(
 		NaturalSpeechRuntimeConfig runtimeConfig,
-		ConfigManager configManager,
+		ConfigManager configManager, ClientThread clientThread,
 		NaturalSpeechPlugin plugin, EventBus eventbus, NaturalSpeechConfig config) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
+		this.clientThread = clientThread;
 		this.modelRepository = plugin.getModelRepository();
 		this.config = config;
 
@@ -157,11 +158,12 @@ public class TextToSpeech {
 			modelConfig.getModelProcessCount(modelLocal.getModelName())
 		);
 
+		// Careful, PiperProcess listeners are not called on the client thread
 		piper.addPiperListener(
 			new Piper.PiperProcessLifetimeListener() {
 				@Override
 				public void onPiperProcessExit(PiperProcess process) {
-					triggerOnPiperExit(piper);
+					clientThread.invokeLater(() -> triggerOnPiperExit(piper));
 				}
 			}
 		);
@@ -216,26 +218,34 @@ public class TextToSpeech {
 	//</editor-fold>
 
 	public void start() {
-		started = true;
-		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
-			try {
-				if (modelRepository.hasModelLocal(modelURL.getModelName()) &&
-					modelConfig.isModelEnabled(modelURL.getModelName())) {
-					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelURL.getModelName());
-					startPiperForModel(modelLocal);
+		try {
+			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+				try {
+					if (modelRepository.hasModelLocal(modelURL.getModelName()) &&
+						modelConfig.isModelEnabled(modelURL.getModelName())) {
+						ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelURL.getModelName());
+						startPiperForModel(modelLocal);
+					}
+				} catch (IOException e) {
+					log.error("Failed to start {}", modelURL.getModelName(), e);
 				}
-			} catch (IOException e) {
-				log.error("Failed to start {}", modelURL.getModelName(), e);
-				return;
 			}
+		} catch (RuntimeException e) {
+			log.error("Unexpected exception starting text to speech", e);
+			return;
 		}
+		started = true;
 		triggerOnStart();
 	}
 
 	public void stop() {
 		started = false;
 		for (Piper piper : pipers.values()) {
-			piper.stop();
+			try {
+				piper.stop();
+			} catch (RuntimeException e) {
+				log.error("Error stopping piper: {}", piper, e);
+			}
 			triggerOnPiperExit(piper);
 		}
 		pipers.clear();

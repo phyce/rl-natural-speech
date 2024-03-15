@@ -56,7 +56,7 @@ public class SpeechEventHandler {
 	}
 
 	@Subscribe(priority=-2)
-	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+	public void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 
 		patchAndSanitizeChatMessage(message);
@@ -113,7 +113,7 @@ public class SpeechEventHandler {
 
 
 	@Subscribe(priority=-1)
-	private void onGameTick(GameTick event) {
+	public void onGameTick(GameTick event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (!config.dialogEnabled() || actorInteractedWith == null) return;
 
@@ -175,7 +175,7 @@ public class SpeechEventHandler {
 	}
 
 	@Subscribe
-	private void onInteractingChanged(InteractingChanged event) {
+	public void onInteractingChanged(InteractingChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getTarget() == null || event.getSource() != client.getLocalPlayer()) {
 			return;
