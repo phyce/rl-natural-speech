@@ -223,8 +223,13 @@ public class VoiceManager {
 	public void setActorVoiceID(@NonNull Actor actor, VoiceID voiceId) {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
+			// I have no idea what a Composition is
+			var compId = npc.getComposition().getId();
 			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
-			log.debug("Setting Default NPC Voice for {} to {}", npc.getName(), voiceId);
+			voiceConfig.setDefaultNpcIdVoice(compId, voiceId);
+
+			log.debug("Setting Default NPC Voice for NpcID: {} CompID: {} NpcName: {} to {}",
+				npc.getId(), compId, npc.getName(), voiceId);
 		}
 		else if (actor instanceof Player) {
 			String standardized_username = Text.standardize(Objects.requireNonNull(actor.getName()));
