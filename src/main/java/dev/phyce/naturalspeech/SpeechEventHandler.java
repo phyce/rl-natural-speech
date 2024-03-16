@@ -26,7 +26,6 @@ import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.util.Text;
 

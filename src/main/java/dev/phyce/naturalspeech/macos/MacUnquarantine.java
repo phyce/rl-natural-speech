@@ -34,7 +34,7 @@ public class MacUnquarantine {
 
 		// check if the piper path is valid
 		if (!piperExePath.toFile().exists()) {
-			log.error("Un-quarantining, but piper folder is missing.");
+			log.error("Un-quarantining, but path to piper is invalid/does not exist.");
 			return;
 		}
 
