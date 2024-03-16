@@ -119,11 +119,10 @@ public class SpeechEventHandler {
 		Widget playerDialogTextWidget = client.getWidget(playerGroupId, getChildId(ComponentID.DIALOG_PLAYER_TEXT));
 
 		if (playerDialogTextWidget != null) {
-			String dialogText = playerDialogTextWidget.getText();
+			String dialogText = Text.sanitizeMultilineText(playerDialogTextWidget.getText());
 			if (!dialogText.equals(lastPlayerDialogText)) {
 				lastPlayerDialogText = dialogText;
 
-				dialogText = dialogText.replace("<br>", " ");
 				VoiceID voiceID = null;
 				try {
 					voiceID = voiceManager.getVoiceIdForLocalPlayer();
@@ -141,7 +140,7 @@ public class SpeechEventHandler {
 		Widget npcDialogTextWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_TEXT));
 
 		if (npcDialogTextWidget != null) {
-			String dialogText = npcDialogTextWidget.getText();
+			String dialogText = Text.sanitizeMultilineText(npcDialogTextWidget.getText());
 			if (!dialogText.equals(lastNpcDialogText)) {
 				lastNpcDialogText = dialogText;
 				Widget nameTextWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_NAME));
@@ -150,8 +149,6 @@ public class SpeechEventHandler {
 				if (nameTextWidget != null && modelWidget != null) {
 					String npcName = nameTextWidget.getText().toLowerCase();
 					int modelId = modelWidget.getModelId();
-
-					dialogText = dialogText.replace("<br>", " ");
 
 					VoiceID voiceID = null;
 					try {
