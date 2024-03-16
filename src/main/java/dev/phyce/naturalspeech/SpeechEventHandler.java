@@ -123,7 +123,7 @@ public class SpeechEventHandler {
 			if (!dialogText.equals(lastPlayerDialogText)) {
 				lastPlayerDialogText = dialogText;
 
-				dialogText = dialogText.replace("<br>", " ");
+				dialogText = Text.sanitizeMultilineText(dialogText);
 				VoiceID voiceID = null;
 				try {
 					voiceID = voiceManager.getVoiceIdForLocalPlayer();
