@@ -251,17 +251,17 @@ public class VoiceExplorerPanel extends EditorPanel {
 			.map(String::trim)
 			.map(String::toLowerCase).collect(Collectors.toSet());
 
-		String genderSearch = null;
+		ModelRepository.Gender genderSearch = null;
 		Iterator<String> iterator = searchTerms.iterator();
 		while (iterator.hasNext()) {
 			String searchTerm = iterator.next();
 
 			if (List.of("m", "male", "guy").contains(searchTerm)) {
-				genderSearch = "M";
+				genderSearch = ModelRepository.Gender.MALE;
 				iterator.remove();
 			}
 			else if (List.of("f", "female", "girl").contains(searchTerm)) {
-				genderSearch = "F";
+				genderSearch = ModelRepository.Gender.FEMALE;
 				iterator.remove();
 			}
 		}
