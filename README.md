@@ -1,4 +1,4 @@
-# NaturalSpeech
+# NaturalSpeech [![Plugin Installs](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/naturalspeech)](https://runelite.net/plugin-hub/show/naturalspeech) [![Plugin Rank](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/rank/plugin/naturalspeech)](https://runelite.net/plugin-hub)
 Give everyone a voice in oldschool! For all characters and players, with over different 900 voices.
 
 Naturalspeech requires an external tool to process text to generate speech. 
