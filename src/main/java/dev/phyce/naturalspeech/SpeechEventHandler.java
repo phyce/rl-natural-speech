@@ -87,8 +87,7 @@ public class SpeechEventHandler {
 			}
 			else if (isChatSystemVoice(message.getType())) {
 				distance = 0;
-				// TODO(Louis): System voice not implemented yet
-				voiceId = voiceManager.getVoiceIDFromUsername("&system");
+				voiceId = voiceManager.getSystemVoiceID();
 
 				text = message.getMessage();
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
@@ -108,7 +107,6 @@ public class SpeechEventHandler {
 
 		textToSpeech.speak(voiceId, text, distance, message.getName());
 	}
-
 
 	@Subscribe(priority=-1)
 	private void onGameTick(GameTick event) {
@@ -249,6 +247,7 @@ public class SpeechEventHandler {
 
 	public static boolean isChatInnerVoice(ChatMessageType messageType) {
 		switch (messageType) {
+			case PRIVATECHAT:
 			case PRIVATECHATOUT:
 			case MODPRIVATECHAT:
 			case ITEM_EXAMINE:

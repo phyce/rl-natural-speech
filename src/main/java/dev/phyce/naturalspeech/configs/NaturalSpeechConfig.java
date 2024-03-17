@@ -21,12 +21,12 @@ public interface NaturalSpeechConfig extends Config {
 		position=1,
 		keyName="personalVoice",
 		name="Personal voice ID (must be logged in)",
-		description="Choose one of the 903 voices for your character, example: libritts:0",
+		description="Choose one of the voices for your character, example: libritts:0",
 		section=generalSettingsSection
 
 	)
 	default String personalVoiceID() {
-		return "libritts:0";
+		return "";
 	}
 
 	@ConfigItem(
@@ -48,6 +48,56 @@ public interface NaturalSpeechConfig extends Config {
 	)
 	default boolean distanceFadeEnabled() {
 		return true;
+	}
+
+	@ConfigItem(
+		position=4,
+		keyName="masterVolume",
+		name="Master volume control",
+		description="Volume percentage",
+		section=generalSettingsSection
+
+	)
+	@Range(min = 0, max = 100)
+	default int masterVolume() {
+		return 100;
+	}
+
+	@ConfigItem(
+		position=5,
+		keyName="playbackSpeed",
+		name="Playback speed",
+		description="The speed at which to play audio",
+		section=generalSettingsSection
+
+	)
+	@Range(min = 1, max = 500)
+	default int playbackSpeed() {
+		return 100;
+	}
+
+	@ConfigItem(
+		position=6,
+		keyName="dialogVoice",
+		name="Set this voice to all NPCs",
+		description="Choose one of the voices for all NPCs, example: libritts:0",
+		section=generalSettingsSection
+
+	)
+	default String dialogVoice() {
+		return "";
+	}
+
+	@ConfigItem(
+		position=7,
+		keyName="systemVoice",
+		name="Set this voice to for system messages",
+		description="Choose one of the voices for system messages, example: libritts:0",
+		section=generalSettingsSection
+
+	)
+	default String systemVoice() {
+		return "libritts:1";
 	}
 	//</editor-fold>
 

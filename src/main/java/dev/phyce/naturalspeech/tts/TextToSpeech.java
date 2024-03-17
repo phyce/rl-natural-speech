@@ -101,11 +101,33 @@ public class TextToSpeech {
 	//</editor-fold>
 
 	//<editor-fold desc="> Audio">
+//	public float getVolumeWithDistance(int distance) {
+//		if (distance <= 1) {
+//			return 0;
+//		}
+//		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
+//	}
 	public float getVolumeWithDistance(int distance) {
+		float volumeWithDistance;
 		if (distance <= 1) {
-			return 0;
+			volumeWithDistance = 0;
+		} else {
+			volumeWithDistance = -6.0f * (float) (Math.log(distance) / Math.log(2));
 		}
-		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
+
+		int masterVolumePercentage = PluginHelper.getConfig().masterVolume();
+		if (masterVolumePercentage == 0) return -80;
+
+		float scaleFactor = masterVolumePercentage / 100.0f;
+
+		float maxVolume = 0;
+		float minVolume = -35;
+
+		float scaledVolume = minVolume + (volumeWithDistance - minVolume) * scaleFactor;
+
+		scaledVolume = Math.max(minVolume, Math.min(maxVolume, scaledVolume));
+
+		return scaledVolume;
 	}
 
 	public void clearAllAudioQueues() {

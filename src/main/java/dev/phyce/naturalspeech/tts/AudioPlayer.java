@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.tts;
 
+import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import javax.sound.sampled.AudioFormat;
@@ -10,6 +11,7 @@ import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.plugins.Plugin;
 
 @Slf4j
 class AudioPlayer {
@@ -25,13 +27,27 @@ class AudioPlayer {
 			false); // Little Endian
 	}
 
-	// moved distance logic to TextToSpeech
 	public static void setVolume(SourceDataLine line, float volume) {
+
 		if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
 			FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
 			volumeControl.setValue(volume);
 		}
 	}
+
+//	public static void setVolume(SourceDataLine line, float masterVolumePercent) {
+//		if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+//			FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+//
+//			float max = volumeControl.getMaximum();
+//			float min = volumeControl.getMinimum(); // Often a negative value.
+//
+//			// Convert the volume from 0-100 scale to the min-max dB scale.
+//			float volume = min + masterVolumePercent * (max - min) / 100.0f;
+//
+//			volumeControl.setValue(volume);
+//		}
+//	}
 
 	public void stop() {
 	}

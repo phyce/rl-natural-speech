@@ -286,6 +286,4 @@ public class Piper {
 
 		default void onPiperProcessCrash(PiperProcess process) {}
 	}
-
-
 }

@@ -39,6 +39,9 @@ public class VoiceManager {
 	private final ConfigManager configManager;
 	private final GenderedVoiceMap genderedVoiceMap;
 
+	private VoiceID npcVoice;
+	private VoiceID systemVoice;
+
 	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
 
 	@Inject
@@ -82,7 +85,9 @@ public class VoiceManager {
 
 	@NonNull
 	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) throws VoiceSelectionOutOfOption {
+		if (npcVoice != null) return npcVoice;
 		npcName = npcName.toLowerCase();
+
 
 		VoiceID result;
 		{
@@ -148,6 +153,19 @@ public class VoiceManager {
 		return voiceConfig.findUsername(standardized_username);
 	}
 
+	public VoiceID getSystemVoiceID() {
+		if (systemVoice != null) return systemVoice;
+
+		VoiceID result = null;
+		try {
+			result = getVoiceIDFromUsername("&system");
+		}
+		catch(VoiceSelectionOutOfOption e) {
+			throw new RuntimeException(e);
+		}
+
+		return result;
+	}
 	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
 		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
@@ -188,6 +206,22 @@ public class VoiceManager {
 
 	public void setVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
 		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
+	}
+
+	public void setVoiceIDForNPCs(@NonNull VoiceID voiceID) {
+		this.npcVoice = voiceID;
+	}
+
+	public void resetVoiceIDForNPCs() {
+		this.npcVoice = null;
+	}
+
+	public void setVoiceIDForSystem(@NonNull VoiceID voiceID) {
+		this.systemVoice = voiceID;
+	}
+
+	public void resetVoiceIDForSystem() {
+		this.systemVoice = null;
 	}
 
 	public void resetForUsername(@NonNull String standardized_username) {

@@ -188,7 +188,7 @@ public class MainSettingsPanel extends PluginPanel {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				try {
-					Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
+					Desktop.getDesktop().browse(new URI("https://runelite.net/plugin-hub/show/naturalspeech"));
 				} catch (Exception ex) {
 					log.error("Error opening instruction link.", ex);
 				}

@@ -174,6 +174,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void onConfigChanged(ConfigChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
+			VoiceID voiceID;
 			switch (event.getKey()) {
 				case "muteSelf":
 					textToSpeech.clearPlayerAudioQueue(getLocalPlayerUsername());
@@ -194,13 +195,30 @@ public class NaturalSpeechPlugin extends Plugin {
 						break;
 					}
 
-					VoiceID voiceID = VoiceID.fromIDString(event.getNewValue());
+					voiceID = VoiceID.fromIDString(event.getNewValue());
 					if (voiceID == null) {
-						log.error("User attempting provided invalid Voice ID through RuneLite config panel.");
+						voiceManager.resetForUsername(standardized_username);
+						log.error("User attempting provided invalid Voice ID for personal voice through RuneLite config panel.");
 					}
-					else {
-						voiceManager.setVoiceIDForUsername(standardized_username, voiceID);
+					else voiceManager.setVoiceIDForUsername(standardized_username, voiceID);
+					break;
+
+				case "dialogVoice":
+					voiceID = VoiceID.fromIDString(event.getNewValue());
+					if (voiceID == null) {
+						voiceManager.resetVoiceIDForNPCs();
+						log.error("User attempting provided invalid Voice ID for dialog voice through RuneLite config panel.");
 					}
+					else voiceManager.setVoiceIDForNPCs(voiceID);
+					break;
+
+				case "systemVoice":
+					voiceID = VoiceID.fromIDString(event.getNewValue());
+					if (voiceID == null) {
+						voiceManager.resetVoiceIDForSystem();
+						log.error("User attempting provided invalid Voice ID for system voice through RuneLite config panel.");
+					}
+					else voiceManager.setVoiceIDForSystem(voiceID);
 					break;
 			}
 		}
