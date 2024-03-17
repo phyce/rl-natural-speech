@@ -1,7 +1,7 @@
 # NaturalSpeech
-Give everyone a voice in oldschool! For all characters and players, with over different 900 voices.
+Give everyone a voice in oldschool! For all characters and players, with over 1000 different voices.
 
-Naturalspeech requires an external tool to process text to generate speech. 
+Natural Speech requires an installing external tool to process text to generate speech. 
 At the moment the only supported TTS engine is  [Piper](https://github.com/rhasspy/piper).
 
 [![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/FYPM226s)
@@ -20,10 +20,12 @@ At the moment the only supported TTS engine is  [Piper](https://github.com/rhass
 3. Piper should now be ready to go.
 
 
+### Post installation notes
+
 After Installing Piper you should be able to use TTS in-game once the voice model is downloaded, and the engine has been started.
 
-## Setting up NaturalSpeech
-To set up NaturalSpeech, you will need to install a TTS engine, and download atleast one voice model through the plugin's panel.
+## Setting up Natural Speech
+To set up Natural Speech, you will need to install a TTS engine, and download atleast one voice model through the plugin's panel.
 
 After intalling the plugin, open the panel by clicking the button on the side:
 
