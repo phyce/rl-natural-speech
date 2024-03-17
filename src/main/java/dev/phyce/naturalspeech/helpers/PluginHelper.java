@@ -11,6 +11,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.Getter;
 import lombok.NonNull;
+import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
@@ -96,6 +97,21 @@ public final class PluginHelper {
 		int distance = localPlayer
 			.getWorldLocation()
 			.distanceTo(npc.getWorldLocation());
+
+		// FIXME(Louis) Over 15 would play at max volume
+		if (distance < 0 || 15 < distance) return 0;
+
+		return distance;
+	}
+
+	public static int getActorDistance(@NonNull Actor actor) {
+		Player localPlayer = instance.client.getLocalPlayer();
+
+		if (localPlayer == null) return 0;
+
+		int distance = localPlayer
+			.getWorldLocation()
+			.distanceTo(actor.getWorldLocation());
 
 		// FIXME(Louis) Over 15 would play at max volume
 		if (distance < 0 || 15 < distance) return 0;

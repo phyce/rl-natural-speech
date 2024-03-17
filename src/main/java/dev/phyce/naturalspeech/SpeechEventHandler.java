@@ -20,6 +20,7 @@ import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.InteractingChanged;
@@ -184,11 +185,11 @@ public class SpeechEventHandler {
 	@Subscribe(priority=-1)
 	private void onOverheadTextChanged(OverheadTextChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
-		if (!config.dialogEnabled()) return;
 
 		if (event.getActor() instanceof NPC) {
+			if (!config.npcOverheadEnabled()) return;
 			NPC npc = (NPC) event.getActor();
-			int distance = PluginHelper.getNPCDistance(npc);
+			int distance = PluginHelper.getActorDistance(event.getActor());
 
 			VoiceID voiceID = null;
 			try {
@@ -200,6 +201,21 @@ public class SpeechEventHandler {
 					npc.getId(), npc.getName());
 			}
 		}
+//		if (!config.playerOverheadEnabled()) return;
+//		if (event.getActor() instanceof Player) {
+//			Player player = (Player) event.getActor();
+//			int distance = PluginHelper.getActorDistance(event.getActor());
+//
+//			VoiceID voiceID = null;
+//			try {
+//				voiceID = voiceManager.getVoiceIDFromNPCId(player.getId(), player.getName());
+//				textToSpeech.speak(voiceID, event.getOverheadText(), distance, player.getName());
+//			} catch (VoiceSelectionOutOfOption e) {
+//				log.error(
+//					"Voice Selection ran out of options for NPC. No suitable active voice found NPC ID:{} NPC name:{}",
+//					player.getId(), player.getName());
+//			}
+//		}
 	}
 
 	/**

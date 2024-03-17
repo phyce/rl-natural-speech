@@ -137,12 +137,34 @@ public interface NaturalSpeechConfig extends Config {
 		return true;
 	}
 
+//	@ConfigItem(
+//		keyName="playerOverhead",
+//		name="Player overhead dialog",
+//		description="Enable text-to-speech to overhead text that is not a message.",
+//		section=ttsOptionsSection,
+//		position=8
+//	)
+//	default boolean playerOverheadEnabled() {
+//		return true;
+//	}
+
+	@ConfigItem(
+		keyName="npcOverhead",
+		name="NPC overhead dialog",
+		description="Enable text-to-speech to the overhead dialog for NPCs.",
+		section=ttsOptionsSection,
+		position=9
+	)
+	default boolean npcOverheadEnabled() {
+		return true;
+	}
+
 	@ConfigItem(
 		keyName="dialog",
 		name="Dialogs",
 		description="Enable text-to-speech to dialog text.",
 		section=ttsOptionsSection,
-		position=8
+		position=10
 	)
 	default boolean dialogEnabled() {
 		return true;
@@ -153,7 +175,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests.",
 		section=ttsOptionsSection,
-		position=8
+		position=11
 	)
 	default boolean requestsEnabled() {
 		return false;
@@ -164,7 +186,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="System messages",
 		description="Generate text-to-speech to game's messages",
 		section=ttsOptionsSection,
-		position=8
+		position=12
 	)
 	default boolean systemMesagesEnabled() {
 		return true;
