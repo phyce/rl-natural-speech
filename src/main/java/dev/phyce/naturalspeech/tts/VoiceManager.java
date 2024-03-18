@@ -212,21 +212,17 @@ public class VoiceManager {
 		this.npcVoice = voiceID;
 	}
 
-	public void resetVoiceIDForNPCs() {
-		this.npcVoice = null;
-	}
+
+
+
 
 	public void setVoiceIDForSystem(@NonNull VoiceID voiceID) {
 		this.systemVoice = voiceID;
 	}
 
-	public void resetVoiceIDForSystem() {
-		this.systemVoice = null;
-	}
 
-	public void resetForUsername(@NonNull String standardized_username) {
-		voiceConfig.resetPlayerVoice(standardized_username);
-	}
+
+
 
 	public void loadVoiceConfig() {
 		// try to load from existing json in configManager
@@ -273,6 +269,7 @@ public class VoiceManager {
 			NPC npc = ((NPC) actor);
 			// I have no idea what a Composition is
 			var compId = npc.getComposition().getId();
+			// This is to solve the issue where the ModelID does not match the NPCID
 			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
 			voiceConfig.setDefaultNpcIdVoice(compId, voiceId);
 
@@ -321,4 +318,29 @@ public class VoiceManager {
 
 		return first.orElse(null);
 	}
+
+
+	//<editor-fold desc="> Reset">
+	public void resetForUsername(@NonNull String standardized_username) {
+		voiceConfig.resetPlayerVoice(standardized_username);
+	}
+	public void resetVoiceIDForSystem() {
+		this.systemVoice = null;
+	}
+	public void resetVoiceIDForNPC(@NonNull Actor actor) {
+		if (actor instanceof NPC) {
+			voiceConfig.resetNpcIdVoices(((NPC) actor).getId());
+			voiceConfig.resetNpcIdVoices(((NPC) actor).getComposition().getId());
+			NPC npc = ((NPC) actor);
+		}
+	}
+
+	public void resetVoiceIDForNPC(@NonNull String npcName) {
+		voiceConfig.resetNpcNameVoices(npcName);
+	}
+
+	public void resetVoiceIDForNPCs() {
+		this.npcVoice = null;
+	}
+	//</editor-fold>
 }

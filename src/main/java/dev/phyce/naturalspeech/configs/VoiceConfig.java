@@ -73,9 +73,7 @@ public class VoiceConfig {
 		if (datum.getVoiceIDs().isEmpty()) playerVoices.remove(standardized_username);
 	}
 
-	public void resetPlayerVoice(@NonNull String standardized_username) {
-		playerVoices.remove(standardized_username);
-	}
+
 
 	public void removeNpcIdVoice(int npcID, VoiceID voiceID) {
 		NPCIDVoiceConfigDatum datum = npcIDVoices.get(npcID);
@@ -83,6 +81,7 @@ public class VoiceConfig {
 		datum.getVoiceIDs().remove(voiceID);
 		if (datum.getVoiceIDs().isEmpty()) npcIDVoices.remove(npcID);
 	}
+
 
 	public void removeNpcNameVoice(@NonNull String npcName, VoiceID voiceID) {
 		NPCNameVoiceConfigDatum datum = npcNameVoices.get(npcName);
@@ -95,13 +94,9 @@ public class VoiceConfig {
 		playerVoices.remove(standardized_username);
 	}
 
-	public void clearNpcIdVoices(int npcID) {
-		npcIDVoices.remove(npcID);
-	}
 
-	public void clearNpcNameVoices(@NonNull String npcName) {
-		npcNameVoices.remove(npcName);
-	}
+
+
 
 	public static VoiceConfig fromDatum(@NonNull VoiceConfigDatum data) {
 		VoiceConfig voiceConfig = new VoiceConfig();
@@ -189,4 +184,16 @@ public class VoiceConfig {
 		return npcNameVoiceConfigDatum.getVoiceIDs();
 	}
 
+
+	//<editor-fold desc="> Reset">
+	public void resetNpcIdVoices(int npcID) {
+		npcIDVoices.remove(npcID);
+	}
+	public void resetNpcNameVoices(@NonNull String npcName) {
+		npcNameVoices.remove(npcName);
+	}
+	public void resetPlayerVoice(@NonNull String username) {
+		playerVoices.remove(username);
+	}
+	//</editor-fold>
 }

@@ -7,15 +7,18 @@ import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.game.VoiceConfigChatboxTextInput;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.NPC;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
@@ -30,13 +33,16 @@ public class MenuEventHandler {
 
 	private final Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider;
 
+	private final VoiceManager voiceManager;
+
 	@Inject
 	public MenuEventHandler(Client client, TextToSpeech textToSpeech,
-							Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider) {
+							Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider,
+							VoiceManager voiceManager) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.voiceConfigChatboxTextInputProvider = voiceConfigChatboxTextInputProvider;
-
+		this.voiceManager = voiceManager;
 	}
 
 	@Subscribe
@@ -76,7 +82,7 @@ public class MenuEventHandler {
 		else {status = "<col=DD2E44>0";}
 
 		CustomMenuEntry muteOptions =
-			new CustomMenuEntry(String.format("%s <col=ffffff>TTS <col=ffffff>(%s) <col=ffffff>>", status, username),
+			new CustomMenuEntry(String.format("%s <col=ffffff>Voice <col=ffffff>(%s) <col=ffffff>>", status, username),
 				index);
 
 		if (isBeingListened(username)) {
@@ -121,11 +127,38 @@ public class MenuEventHandler {
 			}));
 		}
 
-		muteOptions.addChild(new CustomMenuEntry("Configure Voice", -1, function -> {
+		//if player show Configure/Reset
+		//if npc also show -all options
+
+		Actor actor = entry.getActor();
+
+		muteOptions.addChild(new CustomMenuEntry("Configure", -1, function -> {
 			voiceConfigChatboxTextInputProvider.get()
-				.insertActor(entry.getActor())
+				.insertActor(actor)
 				.build();
 		}));
+
+		muteOptions.addChild(new CustomMenuEntry("Reset", -1, function -> {
+
+			if(actor instanceof NPC) {
+				voiceManager.resetVoiceIDForNPC(actor);
+			} else {
+				voiceManager.resetForUsername(actor.getName());
+			}
+
+		}));
+
+		if(actor instanceof NPC) {
+			muteOptions.addChild(new CustomMenuEntry("Configure-all", -1, function -> {
+				voiceConfigChatboxTextInputProvider.get()
+					.insertActor(actor)
+					.build();
+			}));
+
+			muteOptions.addChild(new CustomMenuEntry("Reset-all", -1, function -> {
+				voiceManager.resetVoiceIDForNPC(actor.getName());
+			}));
+		}
 
 		muteOptions.addTo(client);
 	}

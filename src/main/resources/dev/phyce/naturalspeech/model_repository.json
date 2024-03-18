@@ -38,7 +38,7 @@
     "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/nlmls.metadata.json",
     "description": "Dutch. 52 Voices.",
     "memorySize": "size:76MB"
-  }
+  },
   {
     "modelName": "vivos",
     "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/vi/vi_VN/vivos/x_low/vi_VN-vivos-x_low.onnx?download=true",
