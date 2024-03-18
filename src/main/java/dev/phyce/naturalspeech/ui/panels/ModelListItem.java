@@ -135,7 +135,7 @@ public class ModelListItem extends JPanel {
 
 		JButton download = new JButton();
 		download.setText("Download");
-		if (!textToSpeech.checkPiperValidity()) {
+		if (!textToSpeech.isPiperPathValid()) {
 			download.setEnabled(false);
 			download.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
 			download.setBorder(new LineBorder(download.getBackground().darker()));

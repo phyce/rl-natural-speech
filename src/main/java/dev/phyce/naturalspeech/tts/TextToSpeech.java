@@ -18,7 +18,6 @@ import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -71,7 +70,7 @@ public class TextToSpeech {
 
 	// <editor-fold desc="> API">
 	public void start() {
-		if (!checkPiperValidity()) {
+		if (!isPiperPathValid()) {
 			triggerOnPiperInvalid();
 			return;
 		}
@@ -215,9 +214,16 @@ public class TextToSpeech {
 	 * Starts Piper for specific ModelLocal
 	 */
 
-	public boolean checkPiperValidity() {
+	public boolean isPiperPathValid() {
 		File piper_file = runtimeConfig.getPiperPath().toFile();
-		return piper_file.exists() && piper_file.canExecute() && !piper_file.isDirectory();
+
+		if (OSValidator.IS_WINDOWS) {
+			String filename = piper_file.getName();
+			// naive canExecute check for windows, 99.99% of humans use .exe extension for executables on Windows
+			return filename.endsWith(".exe") && piper_file.exists() && !piper_file.isDirectory();
+		} else {
+			return piper_file.exists() && piper_file.canExecute() && !piper_file.isDirectory();
+		}
 	}
 
 	public void startPiperForModel(ModelRepository.ModelLocal modelLocal) throws IOException {
