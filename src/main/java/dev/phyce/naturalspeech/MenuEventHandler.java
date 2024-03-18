@@ -23,6 +23,7 @@ import net.runelite.api.events.MenuOpened;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.util.Text;
 
 @Slf4j
 @Singleton
@@ -144,7 +145,7 @@ public class MenuEventHandler {
 			if(actor instanceof NPC) {
 				voiceManager.resetVoiceIDForNPC((NPC) actor);
 			} else {
-				voiceManager.resetForUsername(actor.getName());
+				voiceManager.resetForUsername(Text.standardize(actor.getName()));
 			}
 
 		}));
@@ -158,7 +159,7 @@ public class MenuEventHandler {
 			}));
 
 			muteOptions.addChild(new CustomMenuEntry("Reset-all", -1, function -> {
-				voiceManager.resetVoiceIDForNPCName(actor.getName());
+				voiceManager.resetVoiceIDForNPCName(Text.standardize(actor.getName()));
 			}));
 		}
 

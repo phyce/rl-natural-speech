@@ -185,11 +185,11 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (event.getGroup().equals(CONFIG_GROUP)) {
 			switch (event.getKey()) {
 				case "muteSelf":
-					textToSpeech.clearPlayerAudioQueue(getLocalPlayerUsername());
+					textToSpeech.clearPlayerAudioQueue("&localuser");
 					break;
 
 				case "muteOthers":
-					textToSpeech.clearOtherPlayersAudioQueue(getLocalPlayerUsername());
+					textToSpeech.clearOtherPlayersAudioQueue("&localuser");
 					break;
 
 				case "shortenedPhrases":
@@ -208,20 +208,34 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void updateConfigVoice(String configKey, String voiceString) {
 		VoiceID voiceID;
 		voiceID = VoiceID.fromIDString(voiceString);
-		if (voiceID == null)  {
-			log.error("User attempted to provide an invalid Voice ID Value for: " + configKey);
-			return;
-		}
 
 		switch(configKey) {
 			case "personalVoice":
-				voiceManager.setDefaultVoiceIDForUsername("&localuser", voiceID);
+				if (voiceID != null) {
+					log.debug("Setting voice for {} to {}", "&localuser", voiceID);
+					voiceManager.setDefaultVoiceIDForUsername("&localuser", voiceID);
+				} else {
+					log.debug("Invalid voice for {}, resetting voices.", "&localuser");
+					voiceManager.resetForUsername("&localuser");
+				}
 				break;
 			case "dialogVoice":
-				voiceManager.setDefaultVoiceIDForUsername("&globalnpc", voiceID);
+				if (voiceID != null) {
+					log.debug("Setting voice for {} to {}", "&globalnpc", voiceID);
+					voiceManager.setDefaultVoiceIDForUsername("&globalnpc", voiceID);
+				} else {
+					log.debug("Invalid voice for {}, resetting voices.", "&globalnpc");
+					voiceManager.resetForUsername("&globalnpc");
+				}
 				break;
 			case "systemVoice":
-				voiceManager.setDefaultVoiceIDForUsername("&system", voiceID);
+				if (voiceID != null) {
+					log.debug("Setting voice for {} to {}", "&system", voiceID);
+					voiceManager.setDefaultVoiceIDForUsername("&system", voiceID);
+				} else {
+					log.debug("Invalid voice for {}, resetting voices.", "&system");
+					voiceManager.resetForUsername("&system");
+				}
 				break;
 		}
 	}
