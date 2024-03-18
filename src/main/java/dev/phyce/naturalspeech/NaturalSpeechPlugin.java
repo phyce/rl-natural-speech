@@ -206,13 +206,16 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
-	private void updateConfigVoice(String voice, String newValue) {
+	private void updateConfigVoice(String configKey, String voiceString) {
 		VoiceID voiceID;
-		voiceID = VoiceID.fromIDString(newValue);
-		if (voiceID == null) log.error("User attempted to provide an invalid Voice ID Value for: " + voice);
+		voiceID = VoiceID.fromIDString(voiceString);
+		if (voiceID == null)  {
+			log.error("User attempted to provide an invalid Voice ID Value for: " + configKey);
+			return;
+		}
 
 		boolean isModelActive = textToSpeech.isModelActive(voiceID.modelName);
-		switch(voice) {
+		switch(configKey) {
 			case "personalVoice":
 				String localPlayer = getLocalPlayerUsername();
 
