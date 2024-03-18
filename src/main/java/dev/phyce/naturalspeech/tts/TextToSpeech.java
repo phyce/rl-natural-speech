@@ -3,7 +3,6 @@ package dev.phyce.naturalspeech.tts;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.ModelRepository;
-import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
@@ -17,7 +16,9 @@ import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +50,7 @@ public class TextToSpeech {
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
+	private boolean isPiperUnquarantined = false;
 	//</editor-fold>
 
 	@Inject
@@ -68,6 +70,50 @@ public class TextToSpeech {
 	}
 
 	// <editor-fold desc="> API">
+	public void start() {
+		if (!checkPiperValidity()) {
+			triggerOnPiperInvalid();
+			return;
+		}
+
+		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
+		started = false;
+		try {
+			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+				try {
+					if (modelRepository.hasModelLocal(modelURL.getModelName()) &&
+						modelConfig.isModelEnabled(modelURL.getModelName())) {
+						ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelURL.getModelName());
+						startPiperForModel(modelLocal);
+						started = true; // if even a single piper started successful, then it's running.
+					}
+				} catch (IOException e) {
+					log.error("Failed to start {}", modelURL.getModelName(), e);
+				}
+			}
+		} catch (RuntimeException e) {
+			log.error("Unexpected exception starting text to speech", e);
+			return;
+		}
+
+		if (started) {
+			triggerOnStart();
+		}
+	}
+
+	public void stop() {
+		started = false;
+		for (Piper piper : pipers.values()) {
+			try {
+				piper.stop();
+			} catch (RuntimeException e) {
+				log.error("Error stopping piper: {}", piper, e);
+			}
+			triggerOnPiperExit(piper);
+		}
+		pipers.clear();
+		triggerOnStop();
+	}
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
@@ -168,6 +214,12 @@ public class TextToSpeech {
 	/**
 	 * Starts Piper for specific ModelLocal
 	 */
+
+	public boolean checkPiperValidity() {
+		File piper_file = runtimeConfig.getPiperPath().toFile();
+		return piper_file.exists() && piper_file.canExecute() && !piper_file.isDirectory();
+	}
+
 	public void startPiperForModel(ModelRepository.ModelLocal modelLocal) throws IOException {
 		if (pipers.get(modelLocal.getModelName()) != null) {
 			log.warn("Starting piper for {} when there are already pipers running for the model.",
@@ -175,6 +227,10 @@ public class TextToSpeech {
 			Piper duplicate = pipers.remove(modelLocal.getModelName());
 			duplicate.stop();
 			triggerOnPiperExit(duplicate);
+		}
+
+		if (!isPiperUnquarantined && OSValidator.IS_MAC) {
+			isPiperUnquarantined = MacUnquarantine.Unquarantine(runtimeConfig.getPiperPath());
 		}
 
 		Piper piper = Piper.start(
@@ -240,47 +296,15 @@ public class TextToSpeech {
 			listener.onPiperExit(piper);
 		}
 	}
+
+	private void triggerOnPiperInvalid() {
+		for (TextToSpeechListener listener : textToSpeechListeners) {
+			listener.onPiperInvalid();
+		}
+	}
 	//</editor-fold>
 
-	public void start() {
 
-		if (OSValidator.IS_MAC) {
-			MacUnquarantine.Unquarantine(runtimeConfig.getPiperPath());
-		}
-
-		try {
-			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
-				try {
-					if (modelRepository.hasModelLocal(modelURL.getModelName()) &&
-						modelConfig.isModelEnabled(modelURL.getModelName())) {
-						ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelURL.getModelName());
-						startPiperForModel(modelLocal);
-					}
-				} catch (IOException e) {
-					log.error("Failed to start {}", modelURL.getModelName(), e);
-				}
-			}
-		} catch (RuntimeException e) {
-			log.error("Unexpected exception starting text to speech", e);
-			return;
-		}
-		started = true;
-		triggerOnStart();
-	}
-
-	public void stop() {
-		started = false;
-		for (Piper piper : pipers.values()) {
-			try {
-				piper.stop();
-			} catch (RuntimeException e) {
-				log.error("Error stopping piper: {}", piper, e);
-			}
-			triggerOnPiperExit(piper);
-		}
-		pipers.clear();
-		triggerOnStop();
-	}
 
 	public void loadModelConfig() {
 		String json = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_MODEL_CONFIG);
@@ -337,8 +361,11 @@ public class TextToSpeech {
 
 		default void onPiperExit(Piper piper) {}
 
+		default void onPiperInvalid() {}
+
 		default void onStart() {}
 
 		default void onStop() {}
+
 	}
 }

@@ -149,8 +149,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 		clientToolbar.removeNavigation(navButton);
 
-		voiceManager.saveVoiceConfig();
-		textToSpeech.saveModelConfig();
+		saveConfigs();
 
 		log.info("NaturalSpeech plugin has shutDown");
 	}
@@ -158,8 +157,13 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Subscribe
 	private void onClientShutdown(ClientShutdown e) {
 		// shutDown is not called on X button client exit, so we need to listen to clientShutdown
+		saveConfigs();
+	}
+
+	private void saveConfigs() {
 		voiceManager.saveVoiceConfig();
 		textToSpeech.saveModelConfig();
+		runtimeConfig.savePiperPath(runtimeConfig.getPiperPath());
 	}
 
 	@Override

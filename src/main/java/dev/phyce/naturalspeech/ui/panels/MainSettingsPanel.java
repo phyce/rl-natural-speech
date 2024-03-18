@@ -188,7 +188,7 @@ public class MainSettingsPanel extends PluginPanel {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				try {
-					Desktop.getDesktop().browse(new URI("https://runelite.net/plugin-hub/show/naturalspeech"));
+					Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
 				} catch (Exception ex) {
 					log.error("Error opening instruction link.", ex);
 				}
@@ -394,7 +394,14 @@ public class MainSettingsPanel extends PluginPanel {
 							statusPanel.setToolTipText("Download and enable a model.");
 						}
 					}
+				}
 
+				@Override
+				public void onPiperInvalid() {
+					statusLabel.setText("Piper Path Invalid");
+					statusLabel.setBackground(Color.RED.darker().darker().darker());
+					statusLabel.setForeground(Color.WHITE);
+					statusPanel.setToolTipText("Please contact the developers for support.");
 				}
 
 				@Override
@@ -461,6 +468,11 @@ public class MainSettingsPanel extends PluginPanel {
 				String newPath = fileChooser.getSelectedFile().getPath();
 				filePathField.setText(newPath);
 				runtimeConfig.savePiperPath(Path.of(newPath));
+			}
+
+			// if text to speech is running, restart
+			if (textToSpeech.isStarted()) {
+				textToSpeech.start();
 			}
 		});
 
