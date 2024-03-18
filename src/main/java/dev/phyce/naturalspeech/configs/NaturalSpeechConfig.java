@@ -254,7 +254,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=1,
 		keyName="muteGrandExchange",
-		name="Mute in Grand Exchange",
+		name="Grand Exchange",
 		description="Disable text-to-speech in the grand exchange area.",
 		section=muteOptionsSection
 	)
@@ -265,7 +265,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=4,
 		keyName="muteSelf",
-		name="Mute yourself",
+		name="Yourself",
 		description="Do not generate text-to-speech for messages that you send.",
 		section=muteOptionsSection
 
@@ -277,7 +277,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=5,
 		keyName="muteOthers",
-		name="Mute others",
+		name="Others",
 		description="Do not generate text-to-speech for messages from other players.",
 		section=muteOptionsSection
 
@@ -289,13 +289,24 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=6,
 		keyName="muteLevelThreshold",
-		name="Mute below level",
+		name="Below level",
 		description="Do not generate text-to-speech for messages from players with levels lower than this value.",
 		section=muteOptionsSection
 	)
 	@Range(min=3, max=126)
 	default int muteLevelThreshold() {
 		return 3;
+	}
+
+	@ConfigItem(
+		position=7,
+		keyName="muteCrowds",
+		name="Crowds larger than",
+		description="When there are more players than the specified number around you, TTS will not trigger. 0 for no limit.",
+		section=muteOptionsSection
+	)
+	default int muteCrowds() {
+		return 0;
 	}
 	//</editor-fold>
 

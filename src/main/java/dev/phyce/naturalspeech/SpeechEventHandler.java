@@ -318,6 +318,7 @@ public class SpeechEventHandler {
 		// dialog messages are handled in onGameTick
 		if (message.getType() == ChatMessageType.DIALOG) return true;
 		if (isMessageTypeDisabledInConfig(message)) return true;
+		if (isTooCrowded()) return true;
 		if (checkMuteAllowAndBlockList(message)) return true;
 		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return true;
 		if (isSelfMuted(message)) return true;
@@ -325,6 +326,20 @@ public class SpeechEventHandler {
 		//noinspection RedundantIfStatement
 		if (checkMuteLevelThreshold(message)) return true;
 
+		return false;
+	}
+
+	private boolean isTooCrowded() {
+		Player localPlayer = client.getLocalPlayer();
+		if (localPlayer == null) return false;
+
+		int count = (int) client.getPlayers().stream()
+			.filter(player -> player != localPlayer) // Exclude the local player themselves
+			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <= 15) // For example, within 15 tiles
+			.count();
+
+		if(PluginHelper.getConfig().muteCrowds() > 0 && PluginHelper.getConfig().muteCrowds() < count) return true;
+		System.out.println("Number of players around: " + count);
 		return false;
 	}
 
