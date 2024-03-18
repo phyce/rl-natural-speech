@@ -29,6 +29,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private Actor actor;
 	@SuppressWarnings("FieldCanBeLocal")
 	private final VoiceManager voiceManager;
+	private String type;
 
 	@Inject
 	public VoiceConfigChatboxTextInput(
@@ -47,13 +48,26 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 			if (string != null && !string.isEmpty()) {
 				VoiceID voiceId = VoiceID.fromIDString(string);
 				if (voiceId != null) {
-					voiceManager.setActorVoiceID(actor, voiceId);
+					switch (type) {
+						case "individual":
+							voiceManager.setActorVoiceID(actor, voiceId);
+							break;
+						case "all":
+							voiceManager.setVoiceIDForNPC(actor.getName(), voiceId);
+							break;
+					}
+
 					voiceManager.saveVoiceConfig();
 				} else {
 					log.info("Attempting to set invalid voiceID with {}", string);
 				}
 			}
 		});
+	}
+
+	public VoiceConfigChatboxTextInput setType(String type) {
+		this.type = type;
+		return this;
 	}
 
 	public VoiceConfigChatboxTextInput insertActor(Actor actor) {

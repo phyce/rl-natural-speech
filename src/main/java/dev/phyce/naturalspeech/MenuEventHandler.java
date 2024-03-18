@@ -134,6 +134,7 @@ public class MenuEventHandler {
 
 		muteOptions.addChild(new CustomMenuEntry("Configure", -1, function -> {
 			voiceConfigChatboxTextInputProvider.get()
+				.setType("individual")
 				.insertActor(actor)
 				.build();
 		}));
@@ -151,6 +152,7 @@ public class MenuEventHandler {
 		if(actor instanceof NPC) {
 			muteOptions.addChild(new CustomMenuEntry("Configure-all", -1, function -> {
 				voiceConfigChatboxTextInputProvider.get()
+					.setType("all")
 					.insertActor(actor)
 					.build();
 			}));
