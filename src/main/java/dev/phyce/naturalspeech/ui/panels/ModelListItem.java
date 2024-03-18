@@ -135,26 +135,33 @@ public class ModelListItem extends JPanel {
 
 		JButton download = new JButton();
 		download.setText("Download");
-		download.setBackground(new Color(0x28BE28));
-		download.setBorder(new LineBorder(download.getBackground().darker()));
-		download.addActionListener(l -> {
-			download.setText("Downloading");
+		if (!textToSpeech.checkPiperValidity()) {
+			download.setEnabled(false);
 			download.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
 			download.setBorder(new LineBorder(download.getBackground().darker()));
-			download.setEnabled(false);
+		} else {
+			download.setBackground(new Color(0x28BE28));
+			download.setBorder(new LineBorder(download.getBackground().darker()));
+			download.addActionListener(l -> {
+				download.setText("Downloading");
+				download.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
+				download.setBorder(new LineBorder(download.getBackground().darker()));
+				download.setEnabled(false);
 
-			modelRepository.getExecutor().execute(() -> {
-				try {
-					// reset model configs, in case there are previous settings
-					textToSpeech.getModelConfig().resetPiperConfig(modelUrl.getModelName());
+				modelRepository.getExecutor().execute(() -> {
+					try {
+						// reset model configs, in case there are previous settings
+						textToSpeech.getModelConfig().resetPiperConfig(modelUrl.getModelName());
 
-					modelRepository.loadModelLocal(modelUrl.getModelName());
+						modelRepository.loadModelLocal(modelUrl.getModelName());
 
-				} catch (IOException ignored) {
-					SwingUtilities.invokeLater(this::rebuild);
-				}
+					} catch (IOException ignored) {
+						SwingUtilities.invokeLater(this::rebuild);
+					}
+				});
 			});
-		});
+		}
+
 
 		boolean hasLocal;
 		try {

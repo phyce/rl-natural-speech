@@ -117,7 +117,7 @@ public class MainSettingsPanel extends PluginPanel {
 		buildHeaderSegment();
 		buildPiperStatusSection();
 		buildVoiceRepositorySegment();
-		buildVoiceHistorySegment();
+//		buildVoiceHistorySegment();
 
 		this.revalidate();
 	}
@@ -487,7 +487,6 @@ public class MainSettingsPanel extends PluginPanel {
 				}
 
 			}
-
 
 		});
 
