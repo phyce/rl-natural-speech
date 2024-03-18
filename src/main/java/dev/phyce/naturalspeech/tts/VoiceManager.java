@@ -199,7 +199,19 @@ public class VoiceManager {
 		if (result == null) {
 			// 3. Fallback to NPC Global (or random if NPC global isn't set).
 			log.debug("No NPC ID or NPC Name voice found, falling back to global NPC player username &globalnpc");
-			return getVoiceIDFromUsername("&globalnpc");
+			List<VoiceID> results = voiceConfig.findUsername("&globalnpc");
+			if (results != null) {
+				result = getFirstActiveVoice(results);
+			}
+		}
+
+		if (result == null) {
+			// 4. If no NPC Global is available, randomize using npc name
+			result = randomVoiceFromActiveModels(npcName);
+		}
+
+		if (result == null) {
+			throw new VoiceSelectionOutOfOption();
 		}
 
 		return result;
