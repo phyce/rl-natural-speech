@@ -14,6 +14,7 @@ import static dev.phyce.naturalspeech.helpers.PluginHelper.isNPCChatMessage;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
@@ -104,8 +105,7 @@ public class SpeechEventHandler {
 				message.getName(), message.getType());
 			return;
 		}
-
-		textToSpeech.speak(voiceId, text, distance, message.getName());
+		if(text.length() > 0) textToSpeech.speak(voiceId, text, distance, message.getName());
 	}
 
 	@Subscribe(priority=-1)
@@ -226,6 +226,8 @@ public class SpeechEventHandler {
 	 * @param message reference passed in and modified
 	 */
 	private void patchAndSanitizeChatMessage(ChatMessage message) {
+		String text;
+		text = TextUtil.filterString(message.getMessage());
 		switch (message.getType()) {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
@@ -235,11 +237,21 @@ public class SpeechEventHandler {
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
-				message.setMessage(Text.sanitize(message.getMessage()));
+				message.setMessage(Text.sanitize(text));
 				message.setName("&system");
 				break;
+			case MODCHAT:
+			case PRIVATECHAT:
+			case PRIVATECHATOUT:
+			case MODPRIVATECHAT:
+			case FRIENDSCHAT:
+			case CLAN_CHAT:
+			case CLAN_GUEST_CHAT:
 			case PUBLICCHAT:
-				message.setMessage(Text.sanitize(message.getMessage()));
+				text = Text.sanitize(text);
+				text = Text.removeTags(text);
+				text = TextUtil.filterString(text);
+				message.setMessage(text);
 				message.setName(Text.standardize(message.getName()));
 
 		}
@@ -264,12 +276,13 @@ public class SpeechEventHandler {
 		switch (messageType) {
 			case MODCHAT:
 			case PUBLICCHAT:
+			case PRIVATECHATOUT:
 			case PRIVATECHAT:
 			case MODPRIVATECHAT:
 			case FRIENDSCHAT:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
-			case TRADEREQ:
+//			case TRADEREQ:
 				return true;
 			default:
 				return false;

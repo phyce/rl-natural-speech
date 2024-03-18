@@ -87,6 +87,11 @@ public final class TextUtil {
 		return tokens;
 	}
 
+	public static String filterString(String input) {
+		if (!input.matches(".*\\w.*")) return "";
+		return input;
+	}
+
 	public static String escape(String text) {
 		return text.replace("\\", "\\\\")
 			.replace("\"", "\\\"")
