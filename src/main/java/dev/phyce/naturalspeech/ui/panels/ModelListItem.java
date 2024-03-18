@@ -76,6 +76,15 @@ public class ModelListItem extends JPanel {
 					revalidate();
 				});
 			}
+
+			@Override
+			public void onRefresh() {
+				SwingUtilities.invokeLater(() -> {
+					log.debug("Repository refresh. Rebuilding");
+					rebuild();
+					revalidate();
+				});
+			}
 		});
 
 		rebuild();

@@ -213,6 +213,9 @@ public class Piper {
 		}
 		processMap.clear();
 
+		// clear task and audio queue on stop
+		clearQueue();
+
 		processAudioQueueThread.interrupt();
 		processPiperTaskThread.interrupt();
 	}

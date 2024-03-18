@@ -8,6 +8,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -465,9 +466,20 @@ public class MainSettingsPanel extends PluginPanel {
 			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 			int returnValue = fileChooser.showOpenDialog(MainSettingsPanel.this);
 			if (returnValue == JFileChooser.APPROVE_OPTION) {
-				String newPath = fileChooser.getSelectedFile().getPath();
-				filePathField.setText(newPath);
-				runtimeConfig.savePiperPath(Path.of(newPath));
+				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
+
+				// if the user accidentally set the piper folder and not the executable, automatically correct
+				if (newPath.toFile().isDirectory()) {
+					if (OSValidator.IS_WINDOWS) {
+						newPath = newPath.resolve("piper.exe");
+					} else { // assume unix based
+						newPath = newPath.resolve("piper");
+					}
+				}
+
+				filePathField.setText(newPath.toString());
+				runtimeConfig.savePiperPath(newPath);
+				modelRepository.refresh();
 			}
 
 			// if text to speech is running, restart
@@ -497,14 +509,6 @@ public class MainSettingsPanel extends PluginPanel {
 		button.setToolTipText(toolTipText);
 		return button;
 	}
-
-//	private void startEngine() throws LineUnavailableException, IOException {
-//		plugin.getTextToSpeech().start();
-//	}
-//
-//	private void stopEngine() throws IOException {
-//		plugin.getTextToSpeech().stop();
-//	}
 
 	@Override
 	public void onActivate() {

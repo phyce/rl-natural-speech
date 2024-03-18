@@ -146,6 +146,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 				public void onRepositoryChanged(String modelName) {
 					SwingUtilities.invokeLater(() -> buildSpeakerList());
 				}
+
+				@Override
+				public void onRefresh() {
+					SwingUtilities.invokeLater(() -> buildSpeakerList());
+				}
 			}
 		);
 
