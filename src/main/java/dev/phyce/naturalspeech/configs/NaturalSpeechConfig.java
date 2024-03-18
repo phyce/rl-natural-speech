@@ -20,7 +20,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=1,
 		keyName="personalVoice",
-		name="Personal voice ID (must be logged in)",
+		name="Personal voice ID",
 		description="Choose one of the voices for your character, example: libritts:0",
 		section=generalSettingsSection
 
@@ -31,6 +31,29 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=2,
+		keyName="globalNpcVoice",
+		name="Global default NPC voice",
+		description="Choose one of the voices for all NPCs, example: libritts:0",
+		section=generalSettingsSection
+	)
+	default String globalDefaultNpcVoice() {
+		return "";
+	}
+
+	@ConfigItem(
+		position=3,
+		keyName="systemVoice",
+		name="System message voice",
+		description="Choose one of the voices for system messages, example: libritts:0",
+		section=generalSettingsSection
+
+	)
+	default String systemVoice() {
+		return "libritts:1";
+	}
+
+	@ConfigItem(
+		position=4,
 		keyName="autoStart",
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
@@ -39,7 +62,7 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position=3,
+		position=5,
 		keyName="distanceFade",
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter.",
@@ -51,7 +74,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=4,
+		position=6,
 		keyName="masterVolume",
 		name="Master volume control",
 		description="Volume percentage",
@@ -76,29 +99,6 @@ public interface NaturalSpeechConfig extends Config {
 //		return 100;
 //	}
 
-	@ConfigItem(
-		position=6,
-		keyName="dialogVoice",
-		name="Set this voice to all NPCs",
-		description="Choose one of the voices for all NPCs, example: libritts:0",
-		section=generalSettingsSection
-
-	)
-	default String dialogVoice() {
-		return "";
-	}
-
-	@ConfigItem(
-		position=7,
-		keyName="systemVoice",
-		name="Set this voice to for system messages",
-		description="Choose one of the voices for system messages, example: libritts:0",
-		section=generalSettingsSection
-
-	)
-	default String systemVoice() {
-		return "libritts:1";
-	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Speech Generation Settings">
