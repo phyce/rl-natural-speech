@@ -94,10 +94,6 @@ public class VoiceConfig {
 		playerVoices.remove(standardized_username);
 	}
 
-
-
-
-
 	public static VoiceConfig fromDatum(@NonNull VoiceConfigDatum data) {
 		VoiceConfig voiceConfig = new VoiceConfig();
 		voiceConfig.loadDatum(data);
