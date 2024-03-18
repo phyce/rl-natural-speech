@@ -7,10 +7,7 @@ import static dev.phyce.naturalspeech.enums.Locations.inGrandExchange;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
-import static dev.phyce.naturalspeech.helpers.PluginHelper.checkMuteAllowAndBlockList;
-import static dev.phyce.naturalspeech.helpers.PluginHelper.getDistance;
-import static dev.phyce.naturalspeech.helpers.PluginHelper.getLevel;
-import static dev.phyce.naturalspeech.helpers.PluginHelper.isNPCChatMessage;
+import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
@@ -71,11 +68,11 @@ public class SpeechEventHandler {
 
 			if (isChatInnerVoice(message.getType())) {
 				distance = 0;
-				voiceId = voiceManager.getVoiceIDFromUsername(message.getName());
+				voiceId = voiceManager.getVoiceIDFromUsername("&localuser");
 				text = textToSpeech.expandShortenedPhrases(message.getMessage());
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
-			else if (isChatPlayerVoice(message.getType())) {
+			else if (isChatOtherPlayerVoice(message.getType())) {
 				if (config.distanceFadeEnabled()) {
 					distance = getDistance(message.getName());
 				}
@@ -105,7 +102,7 @@ public class SpeechEventHandler {
 				message.getName(), message.getType());
 			return;
 		}
-		if(text.length() > 0) textToSpeech.speak(voiceId, text, distance, message.getName());
+		if(!text.isEmpty()) textToSpeech.speak(voiceId, text, distance, message.getName());
 	}
 
 	@Subscribe(priority=-1)
@@ -129,7 +126,7 @@ public class SpeechEventHandler {
 					log.error("Voice Selection ran out of options. No suitable active voice found for: {}", dialogText);
 					return;
 				}
-				textToSpeech.speak(voiceID, dialogText, 0, PluginHelper.getLocalPlayerUsername());
+				textToSpeech.speak(voiceID, dialogText, 0, "&localuser");
 			}
 		}
 		else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
@@ -232,7 +229,7 @@ public class SpeechEventHandler {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
-				message.setName(PluginHelper.getLocalPlayerUsername());
+				message.setName("&localuser");
 				break;
 			case WELCOME:
 			case GAMEMESSAGE:
@@ -248,18 +245,24 @@ public class SpeechEventHandler {
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
 			case PUBLICCHAT:
+				
 				text = Text.sanitize(text);
 				text = Text.removeTags(text);
 				text = TextUtil.filterString(text);
 				message.setMessage(text);
-				message.setName(Text.standardize(message.getName()));
+				String standardize_username = Text.standardize(message.getName());
 
+				// replace local player's username with &localuser
+				if (Objects.equals(standardize_username, getLocalPlayerUsername())) {
+					standardize_username = "&localuser";
+				}
+				message.setName(standardize_username);
+				break;
 		}
 	}
 
 	public static boolean isChatInnerVoice(ChatMessageType messageType) {
 		switch (messageType) {
-			case PRIVATECHAT:
 			case PRIVATECHATOUT:
 			case MODPRIVATECHAT:
 			case ITEM_EXAMINE:
@@ -272,11 +275,10 @@ public class SpeechEventHandler {
 		}
 	}
 
-	public static boolean isChatPlayerVoice(ChatMessageType messageType) {
+	public static boolean isChatOtherPlayerVoice(ChatMessageType messageType) {
 		switch (messageType) {
 			case MODCHAT:
 			case PUBLICCHAT:
-			case PRIVATECHATOUT:
 			case PRIVATECHAT:
 			case MODPRIVATECHAT:
 			case FRIENDSCHAT:
@@ -339,7 +341,7 @@ public class SpeechEventHandler {
 			.count();
 
 		if(PluginHelper.getConfig().muteCrowds() > 0 && PluginHelper.getConfig().muteCrowds() < count) return true;
-		System.out.println("Number of players around: " + count);
+		log.debug("Number of players around: " + count);
 		return false;
 	}
 
@@ -394,19 +396,19 @@ public class SpeechEventHandler {
 
 	private boolean isSelfMuted(ChatMessage message) {
 		//noinspection RedundantIfStatement
-		if (config.muteSelf() && message.getName().equals(client.getLocalPlayer().getName())) return true;
+		if (config.muteSelf() && message.getName().equals("&localuser")) return true;
 		return false;
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 
-		return config.muteOthers() && !message.getName().equals(client.getLocalPlayer().getName());
+		return config.muteOthers() && !message.getName().equals("&localuser");
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
-		if (Objects.equals(client.getLocalPlayer().getName(), message.getName())) return false;
+		if (Objects.equals("&localuser", message.getName())) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
 		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
