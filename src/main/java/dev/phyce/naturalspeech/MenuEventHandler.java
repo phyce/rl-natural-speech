@@ -131,7 +131,7 @@ public class MenuEventHandler {
 		muteOptions.addChild(new CustomMenuEntry("Reset", -1, function -> {
 
 			if(actor instanceof NPC) {
-				voiceManager.resetVoiceIDForNPC(actor);
+				voiceManager.resetVoiceIDForNPC((NPC) actor);
 			} else {
 				voiceManager.resetForUsername(actor.getName());
 			}
@@ -158,7 +158,7 @@ public class MenuEventHandler {
 //			}));
 //
 //			muteOptions.addChild(new CustomMenuEntry("Reset-all", -1, function -> {
-//				voiceManager.resetVoiceIDForNPC(actor.getName());
+//				voiceManager.resetVoiceIDForNPCName(actor.getName());
 //			}));
 //		}
 

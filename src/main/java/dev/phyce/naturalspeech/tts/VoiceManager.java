@@ -39,9 +39,6 @@ public class VoiceManager {
 	private final ConfigManager configManager;
 	private final GenderedVoiceMap genderedVoiceMap;
 
-	private VoiceID npcVoice;
-	private VoiceID systemVoice;
-
 	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
 
 	@Inject
@@ -161,12 +158,11 @@ public class VoiceManager {
 
 	@NonNull
 	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) throws VoiceSelectionOutOfOption {
-		if (npcVoice != null) return npcVoice;
-		npcName = npcName.toLowerCase();
-
+		npcName = Text.standardize(npcName);
 
 		VoiceID result;
 		{
+			// 1. Check NPC ID, takes priority over everything.
 			List<VoiceID> results = voiceConfig.findNpcId(npcId);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
@@ -180,10 +176,10 @@ public class VoiceManager {
 				result = null;
 				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId, npcName);
 			}
-
 		}
 
 		if (result == null) {
+			// 2. Check NPC Name
 			List<VoiceID> results = voiceConfig.findNpcName(npcName);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
@@ -198,13 +194,9 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
-			result = randomVoiceFromActiveModels(npcName);
-			log.debug("NPC_ID:{} and NPC_Name:{} both unavailable, using random voice from active models",
-				npcId, npcName);
-		}
-
-		if (result == null) {
-			throw new VoiceSelectionOutOfOption();
+			// 3. Fallback to NPC Global (or random if NPC global isn't set).
+			log.debug("No NPC ID or NPC Name voice found, falling back to global NPC player username &globalnpc");
+			return getVoiceIDFromUsername("&globalnpc");
 		}
 
 		return result;
@@ -212,29 +204,11 @@ public class VoiceManager {
 
 	@NonNull
 	public VoiceID getVoiceIdForLocalPlayer() throws VoiceSelectionOutOfOption {
-		String localPlayerUsername = PluginHelper.getLocalPlayerUsername();
-		if (localPlayerUsername == null) {
-			log.debug("local player username was null, returning random voice.");
-			VoiceID voiceId = randomVoice();
-			if (voiceId == null) {
-				throw new VoiceSelectionOutOfOption();
-			}
-			return voiceId;
-		}
-		return getVoiceIDFromUsername(localPlayerUsername);
+		return getVoiceIDFromUsername("&localuser");
 	}
-	public VoiceID getSystemVoiceID() {
-		if (systemVoice != null) return systemVoice;
 
-		VoiceID result = null;
-		try {
-			result = getVoiceIDFromUsername("&system");
-		}
-		catch(VoiceSelectionOutOfOption e) {
-			throw new RuntimeException(e);
-		}
-
-		return result;
+	public VoiceID getSystemVoiceID() throws VoiceSelectionOutOfOption {
+		return getVoiceIDFromUsername("&system");
 	}
 	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
@@ -273,9 +247,12 @@ public class VoiceManager {
 			return result;
 		}
 	}
-	//</editor-fold>
 
-	//<editor-fold desc="> Set">
+	public void setDefaultVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
+		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
+	}
+
+
 	public void setActorVoiceID(@NonNull Actor actor, VoiceID voiceId) {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
@@ -297,43 +274,25 @@ public class VoiceManager {
 			log.error("Tried setting a voice for neither NPC or player. Possibly for an object.");
 		}
 	}
-	public void setDefaultVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
-		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
-	}
 
 	public void setDefaultVoiceIDForNPC(@NonNull String npcName, VoiceID voiceId) {
 		voiceConfig.setDefaultNpcNameVoice(npcName, voiceId);
 	}
 
-	public void setDefaultVoiceIDForNPCs(@NonNull VoiceID voiceId) {
-		this.npcVoice = voiceId;
-	}
-	public void setDefaultVoiceIDForSystem(@NonNull VoiceID voiceId) {
-		this.systemVoice = voiceId;
-	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Reset">
 	public void resetForUsername(@NonNull String standardized_username) {
 		voiceConfig.resetPlayerVoice(standardized_username);
 	}
-	public void resetVoiceIDForSystem() {
-		this.systemVoice = null;
-	}
-	public void resetVoiceIDForNPC(@NonNull Actor actor) {
-		if (actor instanceof NPC) {
-			voiceConfig.resetNpcIdVoices(((NPC) actor).getId());
-			voiceConfig.resetNpcIdVoices(((NPC) actor).getComposition().getId());
-			NPC npc = ((NPC) actor);
-		}
+	public void resetVoiceIDForNPC(@NonNull NPC actor) {
+		voiceConfig.resetNpcIdVoices(actor.getId());
+		voiceConfig.resetNpcIdVoices(actor.getComposition().getId());
 	}
 
-	public void resetVoiceIDForNPC(@NonNull String npcName) {
+	public void resetVoiceIDForNPCName(@NonNull String npcName) {
 		voiceConfig.resetNpcNameVoices(npcName);
 	}
 
-	public void resetVoiceIDForNPCs() {
-		this.npcVoice = null;
-	}
 	//</editor-fold>
 }
