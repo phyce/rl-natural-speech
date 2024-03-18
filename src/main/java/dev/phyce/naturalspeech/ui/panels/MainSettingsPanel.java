@@ -394,7 +394,14 @@ public class MainSettingsPanel extends PluginPanel {
 							statusPanel.setToolTipText("Download and enable a model.");
 						}
 					}
+				}
 
+				@Override
+				public void onPiperInvalid() {
+					statusLabel.setText("Piper Path Invalid");
+					statusLabel.setBackground(Color.RED.darker().darker().darker());
+					statusLabel.setForeground(Color.WHITE);
+					statusPanel.setToolTipText("Please contact the developers for support.");
 				}
 
 				@Override
