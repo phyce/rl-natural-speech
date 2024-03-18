@@ -149,6 +149,9 @@ public class VoiceManager {
 	@CheckForNull
 	private VoiceID getFirstActiveVoice(@NonNull List<VoiceID> voiceIdAndFallbacks) {
 		for (VoiceID voiceID : voiceIdAndFallbacks) {
+			// if the config is invalid, a null might be present
+			if (voiceID == null) continue;
+
 			if (textToSpeech.isModelActive(voiceID.getModelName())) {
 				return voiceID;
 			}
