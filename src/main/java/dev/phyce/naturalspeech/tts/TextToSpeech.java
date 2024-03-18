@@ -3,7 +3,6 @@ package dev.phyce.naturalspeech.tts;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.ModelRepository;
-import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
@@ -49,6 +48,7 @@ public class TextToSpeech {
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
+	private boolean isPiperUnquarantined = false;
 	//</editor-fold>
 
 	@Inject
@@ -177,6 +177,10 @@ public class TextToSpeech {
 			triggerOnPiperExit(duplicate);
 		}
 
+		if (!isPiperUnquarantined && OSValidator.IS_MAC) {
+			isPiperUnquarantined = MacUnquarantine.Unquarantine(runtimeConfig.getPiperPath());
+		}
+
 		Piper piper = Piper.start(
 			modelLocal,
 			runtimeConfig.getPiperPath(),
@@ -244,9 +248,7 @@ public class TextToSpeech {
 
 	public void start() {
 
-		if (OSValidator.IS_MAC) {
-			MacUnquarantine.Unquarantine(runtimeConfig.getPiperPath());
-		}
+		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
 
 		try {
 			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
