@@ -125,9 +125,16 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Load ShortenedPhrases is a method that can be called later when configs are changed
 		textToSpeech.loadShortenedPhrases();
 
+
 		if (config.autoStart()) {
 			textToSpeech.start();
 		}
+
+
+		updateConfigVoice("personalVoice", config.personalVoiceID());
+		updateConfigVoice("dialogVoice", config.dialogVoice());
+		updateConfigVoice("systemVoice", config.systemVoice());
+
 		log.info("NaturalSpeech plugin has started");
 	}
 
@@ -178,7 +185,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void onConfigChanged(ConfigChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
-			VoiceID voiceID;
 			switch (event.getKey()) {
 				case "muteSelf":
 					textToSpeech.clearPlayerAudioQueue(getLocalPlayerUsername());
@@ -187,46 +193,82 @@ public class NaturalSpeechPlugin extends Plugin {
 				case "muteOthers":
 					textToSpeech.clearOtherPlayersAudioQueue(getLocalPlayerUsername());
 					break;
+
 				case "shortenedPhrases":
 					textToSpeech.loadShortenedPhrases();
 					break;
+
 				case "personalVoice":
-					String standardized_username = getLocalPlayerUsername();
-
-					// FIXME(Louis)
-					if (standardized_username == null) {
-						log.error("Player isn't logged in, no username information available.");
-						break;
-					}
-
-					voiceID = VoiceID.fromIDString(event.getNewValue());
-					if (voiceID == null) {
-						voiceManager.resetForUsername(standardized_username);
-						log.error("User attempting provided invalid Voice ID for personal voice through RuneLite config panel.");
-					}
-					else voiceManager.setVoiceIDForUsername(standardized_username, voiceID);
-					break;
-
 				case "dialogVoice":
-					voiceID = VoiceID.fromIDString(event.getNewValue());
-					if (voiceID == null) {
-						voiceManager.resetVoiceIDForNPCs();
-						log.error("User attempting provided invalid Voice ID for dialog voice through RuneLite config panel.");
-					}
-					else voiceManager.setVoiceIDForNPCs(voiceID);
-					break;
-
 				case "systemVoice":
-					voiceID = VoiceID.fromIDString(event.getNewValue());
-					if (voiceID == null) {
-						voiceManager.resetVoiceIDForSystem();
-						log.error("User attempting provided invalid Voice ID for system voice through RuneLite config panel.");
-					}
-					else voiceManager.setVoiceIDForSystem(voiceID);
+					updateConfigVoice(event.getKey(), event.getNewValue());
 					break;
 			}
 		}
 	}
+
+	private void updateConfigVoice(String voice, String newValue) {
+		VoiceID voiceID;
+		voiceID = VoiceID.fromIDString(newValue);
+		if (voiceID == null) log.error("User attempted to provide an invalide Voice ID Value for: " + voice);
+		switch(voice) {
+			case "personalVoice":
+				String localPlayer = getLocalPlayerUsername();
+
+				// FIXME(Louis)
+				if (localPlayer == null) {
+					log.error("Player isn't logged in, no username information available.");
+					break;
+				}
+
+				if (voiceID == null)voiceManager.resetForUsername(localPlayer);
+				else voiceManager.setVoiceIDForUsername(localPlayer, voiceID);
+
+				break;
+
+			case "dialogVoice":
+				if (voiceID == null) voiceManager.resetVoiceIDForNPCs();
+				else voiceManager.setVoiceIDForNPCs(voiceID);
+
+				break;
+
+			case "systemVoice":
+				if (voiceID == null) voiceManager.resetVoiceIDForSystem();
+				else voiceManager.setVoiceIDForSystem(voiceID);
+
+				break;
+		}
+	}
+
+//	private void updatePersonalVoiceID() {
+//		VoiceID voiceID;
+//		voiceID = VoiceID.fromIDString(event.getNewValue());
+//		if (voiceID == null) {
+//			voiceManager.resetForUsername(standardized_username);
+//			log.error("User attempting provided invalid Voice ID for personal voice through RuneLite config panel.");
+//		}
+//		else voiceManager.setVoiceIDForUsername(standardized_username, voiceID);
+//	}
+
+//	private void updateDialogVoice() {
+//		VoiceID voiceID;
+//		voiceID = VoiceID.fromIDString(event.getNewValue());
+//		if (voiceID == null) {
+//			voiceManager.resetVoiceIDForNPCs();
+//			log.error("User attempting provided invalid Voice ID for dialog voice through RuneLite config panel.");
+//		}
+//		else voiceManager.setVoiceIDForNPCs(voiceID);
+//	}
+
+//	private void updateSystemVoice() {
+//		VoiceID voiceID;
+//		voiceID = VoiceID.fromIDString(event.getNewValue());
+//		if (voiceID == null) {
+//			voiceManager.resetVoiceIDForSystem();
+//			log.error("User attempting provided invalid Voice ID for system voice through RuneLite config panel.");
+//		}
+//		else voiceManager.setVoiceIDForSystem(voiceID);
+//	}
 
 	@Subscribe
 	private void onCommandExecuted(CommandExecuted commandExecuted) {

@@ -63,18 +63,18 @@ public interface NaturalSpeechConfig extends Config {
 		return 100;
 	}
 
-	@ConfigItem(
-		position=5,
-		keyName="playbackSpeed",
-		name="Playback speed",
-		description="The speed at which to play audio",
-		section=generalSettingsSection
-
-	)
-	@Range(min = 1, max = 500)
-	default int playbackSpeed() {
-		return 100;
-	}
+//	@ConfigItem(
+//		position=5,
+//		keyName="playbackSpeed",
+//		name="Playback speed",
+//		description="The speed at which to play audio",
+//		section=generalSettingsSection
+//
+//	)
+//	@Range(min = 1, max = 500)
+//	default int playbackSpeed() {
+//		return 100;
+//	}
 
 	@ConfigItem(
 		position=6,
