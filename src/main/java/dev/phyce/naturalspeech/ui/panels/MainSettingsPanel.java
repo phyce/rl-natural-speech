@@ -117,7 +117,7 @@ public class MainSettingsPanel extends PluginPanel {
 		buildHeaderSegment();
 		buildPiperStatusSection();
 		buildVoiceRepositorySegment();
-		buildVoiceHistorySegment();
+//		buildVoiceHistorySegment();
 
 		this.revalidate();
 	}
@@ -480,12 +480,14 @@ public class MainSettingsPanel extends PluginPanel {
 				filePathField.setText(newPath.toString());
 				runtimeConfig.savePiperPath(newPath);
 				modelRepository.refresh();
+
+				// if text to speech is running, restart
+				if (textToSpeech.isStarted()) {
+					textToSpeech.stop();
+				}
+
 			}
 
-			// if text to speech is running, restart
-			if (textToSpeech.isStarted()) {
-				textToSpeech.start();
-			}
 		});
 
 		JPanel fileBrowsePanel = new JPanel(new BorderLayout());

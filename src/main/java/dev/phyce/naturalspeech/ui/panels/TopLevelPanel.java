@@ -16,7 +16,6 @@ import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
 import net.runelite.client.util.ImageUtil;
 
-@Singleton
 public class TopLevelPanel extends PluginPanel {
 	private final MaterialTabGroup tabGroup;
 	private final CardLayout layout;
