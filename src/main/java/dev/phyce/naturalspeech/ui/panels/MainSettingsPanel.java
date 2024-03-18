@@ -222,8 +222,8 @@ public class MainSettingsPanel extends PluginPanel {
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final String name = "Voice Repository";
-		final String description = "Manage your voice models.";
+		final String name = "Voice Packs";
+		final String description = "Download and manage your voice models.";
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());

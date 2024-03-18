@@ -41,7 +41,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		this.chatboxPanelManager = chatboxPanelManager;
 		this.voiceManager = voiceManager;
 		lines(1);
-		prompt("Enter voice in model:id format. Example: libritts:120");
+		prompt("Enter voice in voice:id format. Example: libritts:120");
 
 		onDone(string ->
 		{
