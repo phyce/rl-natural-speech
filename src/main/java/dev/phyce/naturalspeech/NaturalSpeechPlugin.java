@@ -11,15 +11,14 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.getLocalPlayerUsername;
-import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
-import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -206,13 +205,16 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
-	private void updateConfigVoice(String voice, String newValue) {
+	private void updateConfigVoice(String configKey, String voiceString) {
 		VoiceID voiceID;
-		voiceID = VoiceID.fromIDString(newValue);
-		if (voiceID == null) log.error("User attempted to provide an invalid Voice ID Value for: " + voice);
+		voiceID = VoiceID.fromIDString(voiceString);
+		if (voiceID == null)  {
+			log.error("User attempted to provide an invalid Voice ID Value for: " + configKey);
+			return;
+		}
 
 		boolean isModelActive = textToSpeech.isModelActive(voiceID.modelName);
-		switch(voice) {
+		switch(configKey) {
 			case "personalVoice":
 				String localPlayer = getLocalPlayerUsername();
 
@@ -222,9 +224,8 @@ public class NaturalSpeechPlugin extends Plugin {
 					break;
 				}
 
-
 				if (isModelActive)  {
-					voiceManager.setVoiceIDForUsername(localPlayer, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(localPlayer, voiceID);
 					break;
 				}
 				voiceManager.resetForUsername(localPlayer);
@@ -232,7 +233,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 			case "dialogVoice":
 				if (isModelActive)  {
-					voiceManager.setVoiceIDForNPCs(voiceID);
+					voiceManager.setDefaultVoiceIDForNPCs(voiceID);
 					break;
 				}
 				voiceManager.resetVoiceIDForNPCs();
@@ -240,7 +241,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 			case "systemVoice":
 				if (isModelActive)  {
-					voiceManager.setVoiceIDForSystem(voiceID);
+					voiceManager.setDefaultVoiceIDForSystem(voiceID);
 					break;
 				}
 				voiceManager.resetVoiceIDForSystem();
@@ -314,7 +315,7 @@ public class NaturalSpeechPlugin extends Plugin {
 							null);
 					}
 					else {
-						voiceManager.setVoiceIDForUsername(username, voiceId);
+						voiceManager.setDefaultVoiceIDForUsername(username, voiceId);
 						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + args[0],
 							null);
 					}
@@ -335,22 +336,26 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 			}
 			case "checkvoice": {
+				String username;
 				if (args.length < 1) {
-					client.addChatMessage(ChatMessageType.CONSOLE, "",
-						"use ::checkvoice username, for example ::checkvoice Zezima", null);
+//					client.addChatMessage(ChatMessageType.CONSOLE, "",
+//						"use ::checkvoice username, for example ::checkvoice Zezima", null);
+					username = PluginHelper.getLocalPlayerUsername();
+					Objects.requireNonNull(username);
 				}
 				else {
-					String username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
-					List<VoiceID> voiceIds = voiceManager.checkVoiceIDWithUsername(username);
-					if (voiceIds == null) {
-						client.addChatMessage(ChatMessageType.CONSOLE, "",
-							"There are no voices set for " + username + ".", null);
-					}
-					else {
-						String idStr = voiceIds.stream().map(VoiceID::toString).reduce((a, b) -> a + ", " + b)
-							.orElse("No voice set");
-						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + idStr, null);
-					}
+					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
+				}
+
+				List<VoiceID> voiceIds = voiceManager.checkVoiceIDWithUsername(username);
+				if (voiceIds == null) {
+					client.addChatMessage(ChatMessageType.CONSOLE, "",
+						"There are no voices set for " + username + ".", null);
+				}
+				else {
+					String idStr = voiceIds.stream().map(VoiceID::toString).reduce((a, b) -> a + ", " + b)
+						.orElse("No voice set");
+					client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + idStr, null);
 				}
 				break;
 			}

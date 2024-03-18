@@ -301,14 +301,14 @@ public class VoiceManager {
 		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
 	}
 
-	public void setVoiceIDForNPC(@NonNull String npcName, VoiceID voiceId) {
+	public void setDefaultVoiceIDForNPC(@NonNull String npcName, VoiceID voiceId) {
 		voiceConfig.setDefaultNpcNameVoice(npcName, voiceId);
 	}
 
-	public void setVoiceIDForNPCs(@NonNull VoiceID voiceId) {
+	public void setDefaultVoiceIDForNPCs(@NonNull VoiceID voiceId) {
 		this.npcVoice = voiceId;
 	}
-	public void setVoiceIDForSystem(@NonNull VoiceID voiceId) {
+	public void setDefaultVoiceIDForSystem(@NonNull VoiceID voiceId) {
 		this.systemVoice = voiceId;
 	}
 	//</editor-fold>

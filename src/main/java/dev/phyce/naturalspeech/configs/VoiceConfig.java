@@ -32,7 +32,7 @@ public class VoiceConfig {
 		}
 		else {
 			// remove duplicates
-			datum.getVoiceIDs().remove(voiceID);
+			datum.getVoiceIDs().remove(0);
 			// prepend
 			datum.getVoiceIDs().add(0, voiceID);
 		}
