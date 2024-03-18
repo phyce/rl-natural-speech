@@ -130,7 +130,6 @@ public class NaturalSpeechPlugin extends Plugin {
 			textToSpeech.start();
 		}
 
-
 		updateConfigVoice("personalVoice", config.personalVoiceID());
 		updateConfigVoice("dialogVoice", config.dialogVoice());
 		updateConfigVoice("systemVoice", config.systemVoice());
@@ -210,7 +209,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void updateConfigVoice(String voice, String newValue) {
 		VoiceID voiceID;
 		voiceID = VoiceID.fromIDString(newValue);
-		if (voiceID == null) log.error("User attempted to provide an invalide Voice ID Value for: " + voice);
+		if (voiceID == null) log.error("User attempted to provide an invalid Voice ID Value for: " + voice);
+
+		boolean isModelActive = textToSpeech.isModelActive(voiceID.modelName);
 		switch(voice) {
 			case "personalVoice":
 				String localPlayer = getLocalPlayerUsername();
@@ -221,21 +222,28 @@ public class NaturalSpeechPlugin extends Plugin {
 					break;
 				}
 
-				if (voiceID == null)voiceManager.resetForUsername(localPlayer);
-				else voiceManager.setVoiceIDForUsername(localPlayer, voiceID);
 
+				if (isModelActive)  {
+					voiceManager.setVoiceIDForUsername(localPlayer, voiceID);
+					break;
+				}
+				voiceManager.resetForUsername(localPlayer);
 				break;
 
 			case "dialogVoice":
-				if (voiceID == null) voiceManager.resetVoiceIDForNPCs();
-				else voiceManager.setVoiceIDForNPCs(voiceID);
-
+				if (isModelActive)  {
+					voiceManager.setVoiceIDForNPCs(voiceID);
+					break;
+				}
+				voiceManager.resetVoiceIDForNPCs();
 				break;
 
 			case "systemVoice":
-				if (voiceID == null) voiceManager.resetVoiceIDForSystem();
-				else voiceManager.setVoiceIDForSystem(voiceID);
-
+				if (isModelActive)  {
+					voiceManager.setVoiceIDForSystem(voiceID);
+					break;
+				}
+				voiceManager.resetVoiceIDForSystem();
 				break;
 		}
 	}
