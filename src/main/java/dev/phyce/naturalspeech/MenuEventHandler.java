@@ -128,18 +128,7 @@ public class MenuEventHandler {
 			}));
 		}
 
-		//if player show Configure/Reset
-		//if npc also show -all options
-
 		Actor actor = entry.getActor();
-
-		muteOptions.addChild(new CustomMenuEntry("Configure", -1, function -> {
-			voiceConfigChatboxTextInputProvider.get()
-				.setType("individual")
-				.insertActor(actor)
-				.build();
-		}));
-
 		muteOptions.addChild(new CustomMenuEntry("Reset", -1, function -> {
 
 			if(actor instanceof NPC) {
@@ -150,18 +139,29 @@ public class MenuEventHandler {
 
 		}));
 
-		if(actor instanceof NPC) {
-			muteOptions.addChild(new CustomMenuEntry("Configure-all", -1, function -> {
-				voiceConfigChatboxTextInputProvider.get()
-					.setType("all")
-					.insertActor(actor)
-					.build();
-			}));
+		muteOptions.addChild(new CustomMenuEntry("Configure", -1, function -> {
+			voiceConfigChatboxTextInputProvider.get()
+				.setType("individual")
+				.insertActor(actor)
+				.build();
+		}));
 
-			muteOptions.addChild(new CustomMenuEntry("Reset-all", -1, function -> {
-				voiceManager.resetVoiceIDForNPCName(Text.standardize(actor.getName()));
-			}));
-		}
+		//if player show Configure/Reset
+		//if npc also show -all options
+
+
+//		if(actor instanceof NPC) {
+//			muteOptions.addChild(new CustomMenuEntry("Configure-all", -1, function -> {
+//				voiceConfigChatboxTextInputProvider.get()
+//					.setType("all")
+//					.insertActor(actor)
+//					.build();
+//			}));
+//
+//			muteOptions.addChild(new CustomMenuEntry("Reset-all", -1, function -> {
+//				voiceManager.resetVoiceIDForNPCName(actor.getName());
+//			}));
+//		}
 
 		muteOptions.addTo(client);
 	}
