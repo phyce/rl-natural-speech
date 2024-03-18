@@ -176,7 +176,7 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	public void buildHeaderSegment() {
-		JLabel titleLabel = new JLabel("NaturalSpeech", JLabel.CENTER);
+		JLabel titleLabel = new JLabel("Natural Speech", JLabel.CENTER);
 		titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
 		titleLabel.setBorder(new EmptyBorder(1, 0, 1, 0));
 		mainContentPanel.add(titleLabel);
