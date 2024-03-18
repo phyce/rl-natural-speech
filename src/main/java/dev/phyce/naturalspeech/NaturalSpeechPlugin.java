@@ -10,7 +10,6 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
-import static dev.phyce.naturalspeech.helpers.PluginHelper.getLocalPlayerUsername;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
@@ -130,7 +129,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		updateConfigVoice("personalVoice", config.personalVoiceID());
-		updateConfigVoice("dialogVoice", config.dialogVoice());
+		updateConfigVoice("globalNpcVoice", config.globalDefaultNpcVoice());
 		updateConfigVoice("systemVoice", config.systemVoice());
 
 		log.info("NaturalSpeech plugin has started");
@@ -197,7 +196,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					break;
 
 				case "personalVoice":
-				case "dialogVoice":
+				case "globalNpcVoice":
 				case "systemVoice":
 					updateConfigVoice(event.getKey(), event.getNewValue());
 					break;
@@ -219,7 +218,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					voiceManager.resetForUsername("&localuser");
 				}
 				break;
-			case "dialogVoice":
+			case "globalNpcVoice":
 				if (voiceID != null) {
 					log.debug("Setting voice for {} to {}", "&globalnpc", voiceID);
 					voiceManager.setDefaultVoiceIDForUsername("&globalnpc", voiceID);
