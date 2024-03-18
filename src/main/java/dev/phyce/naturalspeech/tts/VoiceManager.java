@@ -297,7 +297,7 @@ public class VoiceManager {
 			log.error("Tried setting a voice for neither NPC or player. Possibly for an object.");
 		}
 	}
-	public void setVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
+	public void setDefaultVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
 		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
 	}
 

@@ -210,10 +210,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		voiceID = VoiceID.fromIDString(voiceString);
 		if (voiceID == null)  {
 			log.error("User attempted to provide an invalid Voice ID Value for: " + configKey);
-			return;
 		}
 
-		boolean isModelActive = textToSpeech.isModelActive(voiceID.modelName);
+		boolean isModelActive = (voiceID != null && textToSpeech.isModelActive(voiceID.modelName));
 		switch(configKey) {
 			case "personalVoice":
 				String localPlayer = getLocalPlayerUsername();

@@ -53,7 +53,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 							voiceManager.setActorVoiceID(actor, voiceId);
 							break;
 						case "all":
-							voiceManager.setVoiceIDForNPC(actor.getName(), voiceId);
+							voiceManager.setDefaultVoiceIDForNPC(actor.getName(), voiceId);
 							break;
 					}
 
