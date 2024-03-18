@@ -300,8 +300,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				if (args.length < 1) {
 //					client.addChatMessage(ChatMessageType.CONSOLE, "",
 //						"use ::checkvoice username, for example ::checkvoice Zezima", null);
-					username = PluginHelper.getLocalPlayerUsername();
-					Objects.requireNonNull(username);
+					username = "&localuser";
 				}
 				else {
 					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
