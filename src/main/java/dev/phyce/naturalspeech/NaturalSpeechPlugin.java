@@ -20,6 +20,7 @@ import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -338,22 +339,26 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 			}
 			case "checkvoice": {
+				String username;
 				if (args.length < 1) {
-					client.addChatMessage(ChatMessageType.CONSOLE, "",
-						"use ::checkvoice username, for example ::checkvoice Zezima", null);
+//					client.addChatMessage(ChatMessageType.CONSOLE, "",
+//						"use ::checkvoice username, for example ::checkvoice Zezima", null);
+					username = PluginHelper.getLocalPlayerUsername();
+					Objects.requireNonNull(username);
 				}
 				else {
-					String username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
-					List<VoiceID> voiceIds = voiceManager.checkVoiceIDWithUsername(username);
-					if (voiceIds == null) {
-						client.addChatMessage(ChatMessageType.CONSOLE, "",
-							"There are no voices set for " + username + ".", null);
-					}
-					else {
-						String idStr = voiceIds.stream().map(VoiceID::toString).reduce((a, b) -> a + ", " + b)
-							.orElse("No voice set");
-						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + idStr, null);
-					}
+					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
+				}
+
+				List<VoiceID> voiceIds = voiceManager.checkVoiceIDWithUsername(username);
+				if (voiceIds == null) {
+					client.addChatMessage(ChatMessageType.CONSOLE, "",
+						"There are no voices set for " + username + ".", null);
+				}
+				else {
+					String idStr = voiceIds.stream().map(VoiceID::toString).reduce((a, b) -> a + ", " + b)
+						.orElse("No voice set");
+					client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + idStr, null);
 				}
 				break;
 			}
