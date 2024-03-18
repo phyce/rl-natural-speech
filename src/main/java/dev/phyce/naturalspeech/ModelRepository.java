@@ -259,6 +259,12 @@ public class ModelRepository {
 		}
 	}
 
+	public void refresh() {
+		for (ModelRepositoryListener changeListener : this.changeListeners) {
+			changeListener.onRefresh();
+		}
+	}
+
 	// Partially Serialized JSON Object
 	@Data
 	public static class ModelURL {
@@ -352,6 +358,7 @@ public class ModelRepository {
 	}
 
 	public interface ModelRepositoryListener {
+		default void onRefresh() {};
 		default void onRepositoryChanged(String modelName) {}
 	}
 }

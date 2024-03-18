@@ -468,6 +468,7 @@ public class MainSettingsPanel extends PluginPanel {
 				String newPath = fileChooser.getSelectedFile().getPath();
 				filePathField.setText(newPath);
 				runtimeConfig.savePiperPath(Path.of(newPath));
+				modelRepository.refresh();
 			}
 
 			// if text to speech is running, restart
@@ -497,14 +498,6 @@ public class MainSettingsPanel extends PluginPanel {
 		button.setToolTipText(toolTipText);
 		return button;
 	}
-
-//	private void startEngine() throws LineUnavailableException, IOException {
-//		plugin.getTextToSpeech().start();
-//	}
-//
-//	private void stopEngine() throws IOException {
-//		plugin.getTextToSpeech().stop();
-//	}
 
 	@Override
 	public void onActivate() {
