@@ -104,7 +104,8 @@ public final class TextUtil {
 
 	public static String generateJson(String text, int voiceId) {
 		text = escape(text);
-		return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
+		if(voiceId == -1) return String.format("{\"text\":\"%s\"}", text);
+		else return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
 	}
 
 	public static String removeTags(String input) {

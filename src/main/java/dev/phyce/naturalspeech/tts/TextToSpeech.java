@@ -290,7 +290,6 @@ public class TextToSpeech {
 		return piper != null && piper.countAlive() > 0;
 	}
 
-
 	public void triggerOnPiperStart(Piper piper) {
 		for (TextToSpeechListener listener : textToSpeechListeners) {
 			listener.onPiperStart(piper);
@@ -309,7 +308,6 @@ public class TextToSpeech {
 		}
 	}
 	//</editor-fold>
-
 
 
 	public void loadModelConfig() {
