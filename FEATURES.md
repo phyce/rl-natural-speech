@@ -14,7 +14,7 @@ Show voice explorer
 
 ## 1.1.0
 
- - Added more voices: German, French, Dutch, Vietnamese
+ - Added more voices: German, French, Dutch, Vietnamese, Italian, Russian
  - Added option to disable overhead text
  - Added ability to set global default voice to all NPCs
  - Added ability to set custom voice for system messages
