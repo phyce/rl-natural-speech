@@ -204,11 +204,11 @@ public class VoiceManager {
 		}
 	}
 
-	public void setVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
+	public void setDefaultVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
 		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
 	}
 
-	public void setVoiceIDForNPCs(@NonNull VoiceID voiceID) {
+	public void setDefaultVoiceIDForNPCs(@NonNull VoiceID voiceID) {
 		this.npcVoice = voiceID;
 	}
 
@@ -216,7 +216,7 @@ public class VoiceManager {
 
 
 
-	public void setVoiceIDForSystem(@NonNull VoiceID voiceID) {
+	public void setDefaultVoiceIDForSystem(@NonNull VoiceID voiceID) {
 		this.systemVoice = voiceID;
 	}
 

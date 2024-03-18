@@ -11,12 +11,10 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.getLocalPlayerUsername;
-import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
-import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.List;
@@ -226,9 +224,8 @@ public class NaturalSpeechPlugin extends Plugin {
 					break;
 				}
 
-
 				if (isModelActive)  {
-					voiceManager.setVoiceIDForUsername(localPlayer, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(localPlayer, voiceID);
 					break;
 				}
 				voiceManager.resetForUsername(localPlayer);
@@ -236,7 +233,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 			case "dialogVoice":
 				if (isModelActive)  {
-					voiceManager.setVoiceIDForNPCs(voiceID);
+					voiceManager.setDefaultVoiceIDForNPCs(voiceID);
 					break;
 				}
 				voiceManager.resetVoiceIDForNPCs();
@@ -244,7 +241,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 			case "systemVoice":
 				if (isModelActive)  {
-					voiceManager.setVoiceIDForSystem(voiceID);
+					voiceManager.setDefaultVoiceIDForSystem(voiceID);
 					break;
 				}
 				voiceManager.resetVoiceIDForSystem();
@@ -318,7 +315,7 @@ public class NaturalSpeechPlugin extends Plugin {
 							null);
 					}
 					else {
-						voiceManager.setVoiceIDForUsername(username, voiceId);
+						voiceManager.setDefaultVoiceIDForUsername(username, voiceId);
 						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + args[0],
 							null);
 					}
