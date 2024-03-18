@@ -1,5 +1,5 @@
-# NaturalSpeech
-Give everyone a voice in oldschool! For all characters and players, with over 1000 different voices.
+# Natural Speech
+Give everyone a voice in OldSchool RuneScape! For all characters and players, with over 1000 different voices.
 
 Natural Speech requires an installing external tool to process text to generate speech. 
 At the moment the only supported TTS engine is  [Piper](https://github.com/rhasspy/piper).

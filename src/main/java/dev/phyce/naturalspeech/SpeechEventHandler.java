@@ -291,6 +291,7 @@ public class SpeechEventHandler {
 			case CLAN_CREATION_INVITATION:
 			case CLAN_GIM_FORM_GROUP:
 			case CLAN_GIM_GROUP_WITH:
+			case GAMEMESSAGE:
 				return true;
 			default:
 				return false;
