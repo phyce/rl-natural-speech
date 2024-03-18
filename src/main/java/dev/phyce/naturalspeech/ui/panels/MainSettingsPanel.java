@@ -469,6 +469,11 @@ public class MainSettingsPanel extends PluginPanel {
 				filePathField.setText(newPath);
 				runtimeConfig.savePiperPath(Path.of(newPath));
 			}
+
+			// if text to speech is running, restart
+			if (textToSpeech.isStarted()) {
+				textToSpeech.start();
+			}
 		});
 
 		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
