@@ -1,7 +1,9 @@
 package dev.phyce.naturalspeech.enums;
 
+import lombok.Getter;
 import net.runelite.api.coords.WorldPoint;
 
+@Getter
 public enum Locations {
 	GRAND_EXCHANGE(new WorldPoint(3148, 3506, 0), new WorldPoint(3181, 3473, 0)),
 	// You can add more locations here in a similar manner
@@ -14,14 +16,6 @@ public enum Locations {
 	Locations(WorldPoint start, WorldPoint end) {
 		this.start = start;
 		this.end = end;
-	}
-
-	public WorldPoint getStart() {
-		return start;
-	}
-
-	public WorldPoint getEnd() {
-		return end;
 	}
 
 	public boolean isWorldPointInside2D(WorldPoint worldPoint) {
