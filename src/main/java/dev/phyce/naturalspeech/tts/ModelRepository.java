@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech.tts;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonDeserializationContext;

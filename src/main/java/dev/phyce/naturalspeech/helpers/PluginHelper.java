@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.helpers;
 
-import dev.phyce.naturalspeech.ModelRepository;
+import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import java.util.Collections;
 import java.util.Objects;
