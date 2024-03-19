@@ -75,8 +75,8 @@ public class ModelRepository {
 			modelURLS = gson.fromJson(new InputStreamReader(is), new TypeToken<List<ModelURL>>() {
 			}.getType());
 
-			log.info("Loaded voice repository with " + modelURLS.size() + " voices");
-			modelURLS.forEach(modelURL -> log.info("Found: " + modelURL.getModelName()));
+			modelURLS.stream().map(ModelURL::getModelName).reduce((a, b) -> a + ", " + b)
+				.ifPresent(s -> log.info("Loaded voice repository with {} voices. Found: {}", modelURLS.size(), s));
 
 		} catch (IOException e) {
 			log.error("Could not read voice repository file: " + MODEL_REPO_FILENAME);
