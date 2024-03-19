@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
-import dev.phyce.naturalspeech.tts.Piper;
-import dev.phyce.naturalspeech.tts.PiperProcess;
+import dev.phyce.naturalspeech.tts.piper.Piper;
+import dev.phyce.naturalspeech.tts.piper.PiperProcess;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.util.HashMap;

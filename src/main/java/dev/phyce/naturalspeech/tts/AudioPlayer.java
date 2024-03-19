@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.plugins.Plugin;
 
 @Slf4j
-class AudioPlayer {
+public class AudioPlayer {
 	private final AudioFormat format;
 
 	public AudioPlayer() {

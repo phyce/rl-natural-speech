@@ -5,7 +5,7 @@ import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.tts.Piper;
+import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.BorderLayout;

@@ -1,5 +1,9 @@
-package dev.phyce.naturalspeech.tts;
+package dev.phyce.naturalspeech.tts.piper;
 
+import dev.phyce.naturalspeech.tts.AudioPlayer;
+import dev.phyce.naturalspeech.tts.AudioQueue;
+import dev.phyce.naturalspeech.tts.ModelRepository;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;

@@ -13,6 +13,7 @@ import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.tts.piper.Piper;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;

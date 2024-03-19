@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.tts;
+package dev.phyce.naturalspeech.tts.piper;
 
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.BufferedReader;
