@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
@@ -255,17 +256,17 @@ public class VoiceExplorerPanel extends EditorPanel {
 			.map(String::trim)
 			.map(String::toLowerCase).collect(Collectors.toSet());
 
-		ModelRepository.Gender genderSearch = null;
+		Gender genderSearch = null;
 		Iterator<String> iterator = searchTerms.iterator();
 		while (iterator.hasNext()) {
 			String searchTerm = iterator.next();
 
 			if (List.of("m", "male", "guy").contains(searchTerm)) {
-				genderSearch = ModelRepository.Gender.MALE;
+				genderSearch = Gender.MALE;
 				iterator.remove();
 			}
 			else if (List.of("f", "female", "girl").contains(searchTerm)) {
-				genderSearch = ModelRepository.Gender.FEMALE;
+				genderSearch = Gender.FEMALE;
 				iterator.remove();
 			}
 		}

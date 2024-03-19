@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
+import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.piper.Piper;
@@ -68,10 +69,10 @@ public class VoiceListItem extends JPanel {
 		nameLabel.setForeground(Color.white);
 
 		String genderString;
-		if (voiceMetadata.getGender() == ModelRepository.Gender.MALE) {
+		if (voiceMetadata.getGender() == Gender.MALE) {
 			genderString = "(M)";
 		}
-		else if (voiceMetadata.getGender() == ModelRepository.Gender.FEMALE) {
+		else if (voiceMetadata.getGender() == Gender.FEMALE) {
 			genderString = "(F)";
 		}
 		else {

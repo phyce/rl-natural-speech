@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.helpers;
 
-import dev.phyce.naturalspeech.tts.ModelRepository;
+import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import java.util.Collections;
 import java.util.Objects;
@@ -53,8 +53,8 @@ public final class PluginHelper {
 	}
 
 	@CheckForNull
-	public static ModelRepository.Gender getLocalPlayerGender() {
-		return ModelRepository.Gender.parseInt(instance.client.getLocalPlayer().getPlayerComposition().getGender());
+	public static Gender getLocalPlayerGender() {
+		return Gender.parseInt(instance.client.getLocalPlayer().getPlayerComposition().getGender());
 	}
 
 	public static Player findPlayerWithUsername(@NonNull String username) {

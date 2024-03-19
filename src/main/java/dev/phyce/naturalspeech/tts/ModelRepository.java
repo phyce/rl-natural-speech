@@ -17,7 +17,7 @@ import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.tts.VoiceID;
+import dev.phyce.naturalspeech.enums.Gender;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -338,23 +338,6 @@ public class ModelRepository {
 		File onnx;
 		File onnxMetadata;
 		VoiceMetadata[] voiceMetadata;
-	}
-
-	public enum Gender {
-		OTHER,
-		MALE,
-		FEMALE;
-
-		public static Gender parseInt(int id) {
-			if (id == 0) {
-				return MALE;
-			} else if (id == 1) {
-				return FEMALE;
-			} else {
-				return OTHER;
-			}
-		}
-
 	}
 
 	public interface ModelRepositoryListener {
