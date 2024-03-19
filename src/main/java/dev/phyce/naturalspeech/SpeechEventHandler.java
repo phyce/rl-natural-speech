@@ -19,7 +19,6 @@ import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.ComponentID;
@@ -168,6 +167,9 @@ public class SpeechEventHandler {
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;
 			NPC npc = (NPC) event.getActor();
+
+			if (PluginHelper.isBlockedOrNotAllowed(npc.getName())) return;
+
 			int distance = PluginHelper.getActorDistance(event.getActor());
 
 			VoiceID voiceID = null;

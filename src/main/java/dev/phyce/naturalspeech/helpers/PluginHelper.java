@@ -175,11 +175,16 @@ public final class PluginHelper {
 			case FRIENDSCHAT:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
-				if (!PluginHelper.getAllowList().isEmpty() &&
-					!PluginHelper.getAllowList().contains(message.getName())) {return true;}
-				if (!PluginHelper.getBlockList().isEmpty() && PluginHelper.getBlockList().contains(message.getName())) {
-					return true;
-				}
+				if (isBlockedOrNotAllowed(message.getName())) return true;
+		}
+		return false;
+	}
+
+	public static boolean isBlockedOrNotAllowed(String name) {
+		if (!PluginHelper.getAllowList().isEmpty() &&
+			!PluginHelper.getAllowList().contains(name)) {return true;}
+		if (!PluginHelper.getBlockList().isEmpty() && PluginHelper.getBlockList().contains(name)) {
+			return true;
 		}
 		return false;
 	}
