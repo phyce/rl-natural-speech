@@ -67,26 +67,6 @@ public class ModelListItem extends JPanel {
 		this.setOpaque(true);
 		this.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-		modelRepository.addRepositoryChangedListener(new ModelRepository.ModelRepositoryListener() {
-			@Override
-			public void onRepositoryChanged(String modelName) {
-				SwingUtilities.invokeLater(() -> {
-					log.debug("Repository change detected. Rebuilding {}", modelName);
-					rebuild();
-					revalidate();
-				});
-			}
-
-			@Override
-			public void onRefresh() {
-				SwingUtilities.invokeLater(() -> {
-					log.debug("Repository refresh. Rebuilding");
-					rebuild();
-					revalidate();
-				});
-			}
-		});
-
 		rebuild();
 
 	}
@@ -139,7 +119,8 @@ public class ModelListItem extends JPanel {
 			download.setEnabled(false);
 			download.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
 			download.setBorder(new LineBorder(download.getBackground().darker()));
-		} else {
+		}
+		else {
 			download.setBackground(new Color(0x28BE28));
 			download.setBorder(new LineBorder(download.getBackground().darker()));
 			download.addActionListener(l -> {
@@ -161,7 +142,6 @@ public class ModelListItem extends JPanel {
 				});
 			});
 		}
-
 
 		boolean hasLocal;
 		try {

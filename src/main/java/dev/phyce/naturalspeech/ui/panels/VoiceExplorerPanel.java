@@ -71,6 +71,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	@Getter
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
+	private final ModelRepository.ModelRepositoryListener modelRepositoryListener;
 
 	@Inject
 	public VoiceExplorerPanel(ModelRepository modelRepository, TextToSpeech textToSpeech) {
@@ -140,19 +141,18 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		this.add(speakerScrollPane);
 
-		this.modelRepository.addRepositoryChangedListener(
-			new ModelRepository.ModelRepositoryListener() {
-				@Override
-				public void onRepositoryChanged(String modelName) {
-					SwingUtilities.invokeLater(() -> buildSpeakerList());
-				}
-
-				@Override
-				public void onRefresh() {
-					SwingUtilities.invokeLater(() -> buildSpeakerList());
-				}
+		modelRepositoryListener = new ModelRepository.ModelRepositoryListener() {
+			@Override
+			public void onRepositoryChanged(String modelName) {
+				SwingUtilities.invokeLater(() -> buildSpeakerList());
 			}
-		);
+
+			@Override
+			public void onRefresh() {
+				SwingUtilities.invokeLater(() -> buildSpeakerList());
+			}
+		};
+		this.modelRepository.addRepositoryChangedListener(modelRepositoryListener);
 
 		buildSpeakerList();
 	}
@@ -291,6 +291,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 		}
 
 		sectionListPanel.revalidate();
+	}
+
+	public void shutdown() {
+		modelRepository.removeRepositoryChangedListener(modelRepositoryListener);
+		this.removeAll();
 	}
 
 	@Override

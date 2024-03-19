@@ -246,6 +246,7 @@ public class ModelRepository {
 		for (ModelRepositoryListener changeListener : changeListeners) {
 			changeListener.onRepositoryChanged(modelName);
 		}
+
 	}
 
 	public void refresh() {

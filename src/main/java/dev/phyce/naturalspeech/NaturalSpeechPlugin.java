@@ -17,13 +17,9 @@ import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import dev.phyce.naturalspeech.tts.MagicUsernames;
 import java.awt.image.BufferedImage;
-import java.util.Arrays;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
-import net.runelite.api.events.CommandExecuted;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
@@ -74,6 +70,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		logger.setLevel(Level.INFO);
 	}
 
+	private TopLevelPanel topLevelPanel;
+
 	//<editor-fold desc="> Override Methods">
 	@Override
 	public void configure(Binder binder) {
@@ -104,7 +102,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		// Build panel and navButton
 		{
-			TopLevelPanel topLevelPanel = injector.getInstance(TopLevelPanel.class);
+			topLevelPanel = injector.getInstance(TopLevelPanel.class);
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 			navButton = NavigationButton.builder()
 				.tooltip("Natural Speech")
@@ -136,6 +134,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		eventBus.unregister(speechEventHandler);
 		eventBus.unregister(menuEventHandler);
 		eventBus.unregister(commandExecutedEventHandler);
+
+		topLevelPanel.shutdown();
 
 		if (textToSpeech != null) {
 			textToSpeech.stop();
@@ -235,8 +235,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
-
 	//</editor-fold>
+
 
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {

@@ -2,7 +2,6 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.Singleton;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.GridLayout;
@@ -10,7 +9,6 @@ import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import lombok.Getter;
-import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.components.materialtabs.MaterialTab;
 import net.runelite.client.ui.components.materialtabs.MaterialTabGroup;
@@ -121,6 +119,11 @@ public class TopLevelPanel extends PluginPanel {
 		}
 
 		content.revalidate();
+	}
+
+	public void shutdown() {
+		this.mainSettingsPanel.shutdown();
+		this.voiceExplorerPanel.shutdown();
 	}
 
 	@Override

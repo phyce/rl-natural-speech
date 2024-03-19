@@ -21,6 +21,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final ModelRepository modelRepository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
+	private final List<ModelRepository.ModelRepositoryListener> modelRepositoryListeners;
 
 	@Inject
 	public MainSettingsPanel(
@@ -86,6 +88,7 @@ public class MainSettingsPanel extends PluginPanel {
 		this.modelRepository = modelRepository;
 		this.clientThread = clientThread;
 		this.runtimeConfig = runtimeConfig;
+		this.modelRepositoryListeners = new ArrayList<>();
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -251,6 +254,28 @@ public class MainSettingsPanel extends PluginPanel {
 		for (ModelRepository.ModelURL modelUrl : modelURLS) {
 			ModelListItem listItem = new ModelListItem(textToSpeech, modelRepository, modelUrl);
 			sectionContent.add(listItem);
+
+			ModelRepository.ModelRepositoryListener modelRepoListener = new ModelRepository.ModelRepositoryListener() {
+				@Override
+				public void onRepositoryChanged(String modelName) {
+					SwingUtilities.invokeLater(() -> {
+						log.debug("Repository change detected. Rebuilding {}", modelName);
+						listItem.rebuild();
+						revalidate();
+					});
+				}
+
+				@Override
+				public void onRefresh() {
+					SwingUtilities.invokeLater(() -> {
+						log.debug("Repository refresh. Rebuilding");
+						listItem.rebuild();
+						revalidate();
+					});
+				}
+			};
+			modelRepository.addRepositoryChangedListener(modelRepoListener);
+			this.modelRepositoryListeners.add(modelRepoListener);
 		}
 	}
 
@@ -505,6 +530,13 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton button = new JButton(new ImageIcon(icon));
 		button.setToolTipText(toolTipText);
 		return button;
+	}
+
+	public void shutdown() {
+		this.removeAll();
+		for (ModelRepository.ModelRepositoryListener listener : this.modelRepositoryListeners) {
+			modelRepository.removeRepositoryChangedListener(listener);
+		}
 	}
 
 	@Override

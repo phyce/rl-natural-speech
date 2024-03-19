@@ -1,7 +1,6 @@
 package dev.phyce.naturalspeech;
 
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.enums.Locations.inGrandExchange;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
