@@ -28,7 +28,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String NPC_OVERHEAD = "npcOverhead";
 		public static final String DIALOG = "dialog";
 		public static final String REQUESTS = "requests";
-		public static final String SYSTEM_MESSAGES = "systemMesages";
+		public static final String SYSTEM_MESSAGES = "systemMessages";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 		public static final String MUTE_SELF = "muteSelf";
 		public static final String MUTE_OTHERS = "muteOthers";
