@@ -13,8 +13,6 @@ import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
@@ -43,6 +41,8 @@ public class ModelRepository {
 	public final static String EXTENSION = ".onnx";
 	public final static String MODEL_METADATA_EXTENSION = ".onnx.json";
 	public final static String METADATA_EXTENSION = ".metadata.json";
+	public final static String MODEL_REPO_FILENAME = "model_repository.json";
+	public final static String MODEL_FOLDER_NAME = "models";
 
 	private final Downloader downloader;
 

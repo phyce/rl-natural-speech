@@ -26,7 +26,6 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.util.Text;
 
 @Slf4j
-@Singleton
 public class MenuEventHandler {
 
 	private final Client client;

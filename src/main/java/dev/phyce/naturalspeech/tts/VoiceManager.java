@@ -8,8 +8,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
@@ -34,6 +33,7 @@ import net.runelite.client.util.Text;
 @Singleton
 public class VoiceManager {
 
+	public final static String VOICE_CONFIG_FILE = "speaker_config.json";
 	private final VoiceConfig voiceConfig;
 	private final TextToSpeech textToSpeech;
 	private final ConfigManager configManager;

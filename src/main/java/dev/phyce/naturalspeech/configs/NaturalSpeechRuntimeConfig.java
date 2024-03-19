@@ -2,8 +2,7 @@ package dev.phyce.naturalspeech.configs;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.VOICE_CONFIG_FILE;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.nio.file.Path;
 import net.runelite.client.config.ConfigManager;

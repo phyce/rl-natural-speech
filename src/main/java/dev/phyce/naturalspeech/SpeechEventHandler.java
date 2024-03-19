@@ -30,7 +30,6 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.util.Text;
 
 @Slf4j
-@Singleton
 public class SpeechEventHandler {
 
 	private final Client client;

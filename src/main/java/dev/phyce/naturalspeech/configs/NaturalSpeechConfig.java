@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.configs;
 
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -9,6 +9,8 @@ import net.runelite.client.config.Range;
 
 @ConfigGroup(CONFIG_GROUP)
 public interface NaturalSpeechConfig extends Config {
+
+	String CONFIG_GROUP = "NaturalSpeech";
 
 	final class ConfigKeys {
 		public static final String PERSONAL_VOICE = "personalVoice";

@@ -2,7 +2,7 @@ package dev.phyce.naturalspeech.tts;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;

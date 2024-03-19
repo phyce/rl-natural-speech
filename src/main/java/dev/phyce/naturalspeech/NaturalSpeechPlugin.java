@@ -5,7 +5,7 @@ import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
@@ -41,14 +41,6 @@ import org.slf4j.LoggerFactory;
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
-
-	//<editor-fold desc="> Misc">
-	public final static String CONFIG_GROUP = "NaturalSpeech";
-	public final static String MODEL_REPO_FILENAME = "model_repository.json";
-	public final static String MODEL_FOLDER_NAME = "models";
-	public final static String VOICE_CONFIG_FILE = "speaker_config.json";
-	//</editor-fold>
-
 	//<editor-fold desc="> RuneLite Dependencies">
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -69,13 +61,13 @@ public class NaturalSpeechPlugin extends Plugin {
 	private TextToSpeech textToSpeech;
 	private SpeechEventHandler speechEventHandler;
 	private MenuEventHandler menuEventHandler;
+	private CommandExecutedEventHandler commandExecutedEventHandler;
 
 	//</editor-fold>
 
 	//<editor-fold desc="> Runtime Variables">
 	private NavigationButton navButton;
 	//</editor-fold>
-
 
 	static {
 		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
@@ -103,10 +95,12 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Abstracting the massive client event handlers into their own files
 		speechEventHandler = injector.getInstance(SpeechEventHandler.class);
 		menuEventHandler = injector.getInstance(MenuEventHandler.class);
+		commandExecutedEventHandler = injector.getInstance(CommandExecutedEventHandler.class);
 
 		// registers to eventbus, make sure to unregister on shutdown()
 		eventBus.register(speechEventHandler);
 		eventBus.register(menuEventHandler);
+		eventBus.register(commandExecutedEventHandler);
 
 		// Build panel and navButton
 		{
@@ -141,6 +135,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		// unregister eventBus so handlers do not run after shutdown.
 		eventBus.unregister(speechEventHandler);
 		eventBus.unregister(menuEventHandler);
+		eventBus.unregister(commandExecutedEventHandler);
 
 		if (textToSpeech != null) {
 			textToSpeech.stop();
@@ -240,87 +235,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
-	@Subscribe
-	private void onCommandExecuted(CommandExecuted commandExecuted) {
-		String[] args = commandExecuted.getArguments();
 
-		//noinspection SwitchStatementWithTooFewBranches
-		switch (commandExecuted.getCommand()) {
-			case "nslogger": {
-				final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
-				String message;
-				Level currentLoggerLevel = logger.getLevel();
-
-				if (args.length < 1) {
-					message = "Logger level is currently set to " + currentLoggerLevel;
-				}
-				else {
-					Level newLoggerLevel = Level.toLevel(args[0], currentLoggerLevel);
-					logger.setLevel(newLoggerLevel);
-					message = "Logger level has been set to " + newLoggerLevel;
-				}
-
-				client.addChatMessage(ChatMessageType.CONSOLE, "", message, null);
-				break;
-			}
-			case "setvoice": {
-				if (args.length < 2) {
-					client.addChatMessage(ChatMessageType.CONSOLE, "",
-						"use ::setvoice model:id username, for example ::setvoice libritts:2 Zezima", null);
-				}
-				else {
-					VoiceID voiceId = VoiceID.fromIDString(args[0]);
-					String username = Arrays.stream(args).skip(1).reduce((a, b) -> a + " " + b).orElse(args[1]);
-					if (voiceId == null) {
-						client.addChatMessage(ChatMessageType.CONSOLE, "", "voice id " + args[1] + " is invalid.",
-							null);
-					}
-					else {
-						voiceManager.setDefaultVoiceIDForUsername(username, voiceId);
-						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + args[0],
-							null);
-					}
-				}
-				break;
-			}
-			case "unsetvoice": {
-				if (args.length < 1) {
-					client.addChatMessage(ChatMessageType.CONSOLE, "",
-						"use ::unsetvoice username, for example ::unsetvoice Zezima", null);
-				}
-				else {
-					String username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
-					voiceManager.resetForUsername(username);
-					client.addChatMessage(ChatMessageType.CONSOLE, "",
-						"All voices are removed for " + username, null);
-				}
-				break;
-			}
-			case "checkvoice": {
-				String username;
-				if (args.length < 1) {
-//					client.addChatMessage(ChatMessageType.CONSOLE, "",
-//						"use ::checkvoice username, for example ::checkvoice Zezima", null);
-					username = MagicUsernames.LOCAL_USER;
-				}
-				else {
-					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
-				}
-
-				List<VoiceID> voiceIds = voiceManager.checkVoiceIDWithUsername(username);
-				if (voiceIds == null) {
-					client.addChatMessage(ChatMessageType.CONSOLE, "",
-						"There are no voices set for " + username + ".", null);
-				}
-				else {
-					String idStr = voiceIds.stream().map(VoiceID::toString).reduce((a, b) -> a + ", " + b)
-						.orElse("No voice set");
-					client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + idStr, null);
-				}
-				break;
-			}
-		}
-	}
 	//</editor-fold>
 
 	@Provides
