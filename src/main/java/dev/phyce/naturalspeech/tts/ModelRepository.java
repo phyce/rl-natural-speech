@@ -93,14 +93,6 @@ public class ModelRepository {
 		return null;
 	}
 
-	public boolean hasModelLocal(VoiceID voiceID) throws IOException {
-		return hasModelLocal(voiceID.modelName);
-	}
-
-	public boolean hasModelLocal(ModelURL modelURL) throws IOException {
-		return hasModelLocal(modelURL.getModelName());
-	}
-
 	public boolean hasModelLocal(String modelName) throws IOException {
 		// assume true
 		boolean localVoiceValid = true;
@@ -128,10 +120,6 @@ public class ModelRepository {
 
 		// if local voice files weren't valid, clear the folder and re-download.
 		return localVoiceValid;
-	}
-
-	public ModelLocal loadModelLocal(VoiceID voiceID) throws IOException {
-		return loadModelLocal(voiceID.modelName);
 	}
 
 	public void deleteModelLocal(ModelLocal modelLocal) {

@@ -3,7 +3,6 @@ package dev.phyce.naturalspeech;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
