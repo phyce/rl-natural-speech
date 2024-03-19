@@ -168,13 +168,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Hooks">
 
 	@Subscribe
-	private void onGameStateChanged(GameStateChanged event) {
-		if (event.getGameState() == GameState.LOGGED_IN) {
-
-		}
-	}
-
-	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
