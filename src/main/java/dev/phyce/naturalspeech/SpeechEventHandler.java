@@ -225,7 +225,11 @@ public class SpeechEventHandler {
 	 */
 	private void patchAndSanitizeChatMessage(ChatMessage message) {
 		String text;
+
 		text = TextUtil.filterString(message.getMessage());
+		text = Text.removeTags(text);
+		message.setMessage(text);
+
 		switch (message.getType()) {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
@@ -235,7 +239,6 @@ public class SpeechEventHandler {
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
-				message.setMessage(Text.sanitize(text));
 				message.setName("&system");
 				break;
 			case MODCHAT:
@@ -246,11 +249,6 @@ public class SpeechEventHandler {
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
 			case PUBLICCHAT:
-				
-				text = Text.sanitize(text);
-				text = Text.removeTags(text);
-				text = TextUtil.filterString(text);
-				message.setMessage(text);
 				String standardize_username = Text.standardize(message.getName());
 
 				// replace local player's username with &localuser
