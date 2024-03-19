@@ -12,6 +12,10 @@ Show voice explorer
 ---
 # Changelog
 
+## 1.1.1
+ - Removed a few voice packs as they need retraining
+ - Added more text abbreviations
+
 ## 1.1.0
 
  - Added more voices: German, French, Dutch, Vietnamese, Italian, Russian

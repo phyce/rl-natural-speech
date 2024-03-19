@@ -382,6 +382,15 @@ public interface NaturalSpeechConfig extends Config {
 			"ge=grand exchange\n" +
 			"ppl=people\n" +
 			"gtfo=get the fuck out\n" +
+			"wb=welcome back\n" +
+			"ikr=i know right\n" +
+			"og=original gangster\n" +
+			"cc=clan chat\n" +
+			"pk=player killing\n" +
+			"pker=player killer\n" +
+			"pking=player killing\n" +
+			"poh=player owned home\n" +
+			"gz=congratulations\n" +
 			"tbh=to be honest\n";
 	}
 	//</editor-fold>

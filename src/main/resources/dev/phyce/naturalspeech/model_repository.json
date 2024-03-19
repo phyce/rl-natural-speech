@@ -16,30 +16,6 @@
     "memorySize": "size:77MB"
   },
   {
-    "modelName": "demls",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/mls/medium/de_DE-mls-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/de/de_DE/mls/medium/de_DE-mls-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/demls.metadata.json",
-    "description": "German. 236 voices.",
-    "memorySize": "size:77MB"
-  },
-  {
-    "modelName": "frmls",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/frmls.metadata.json",
-    "description": "French. 125 Voices.",
-    "memorySize": "size:76MB"
-  },
-  {
-    "modelName": "nlmls",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/nl/nl_NL/mls/medium/nl_NL-mls-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/nl/nl_NL/mls/medium/nl_NL-mls-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/nlmls.metadata.json",
-    "description": "Dutch. 52 Voices.",
-    "memorySize": "size:76MB"
-  },
-  {
     "modelName": "vivos",
     "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/vi/vi_VN/vivos/x_low/vi_VN-vivos-x_low.onnx?download=true",
     "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/vi/vi_VN/vivos/x_low/vi_VN-vivos-x_low.onnx.json",
@@ -64,19 +40,11 @@
     "memorySize": "size:76MB"
   },
   {
-    "modelName": "itriccardo",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/it/it_IT/riccardo/x_low/it_IT-riccardo-x_low.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/it/it_IT/riccardo/x_low/it_IT-riccardo-x_low.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/itriccardo.metadata.json",
-    "description": "Italian. 1 voice.",
-    "memorySize": "size:28MB"
-  },
-  {
-    "modelName": "ukmova",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/uk/uk_UA/ukrainian_tts/medium/uk_UA-ukrainian_tts-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/uk/uk_UA/ukrainian_tts/medium/uk_UA-ukrainian_tts-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/ukmova.metadata.json",
-    "description": "Ukranian. 3 voices.",
+    "modelName": "ruirina",
+    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx?download=true",
+    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json",
+    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/ruirina.metadata.json",
+    "description": "Russian. Female voice.",
     "memorySize": "size:76MB"
   },
   {
@@ -88,11 +56,27 @@
     "memorySize": "size:76MB"
   },
   {
-    "modelName": "ruirina",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/ruirina.metadata.json",
-    "description": "Russian. Female voice.",
+    "modelName": "itriccardo",
+    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/it/it_IT/riccardo/x_low/it_IT-riccardo-x_low.onnx?download=true",
+    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/it/it_IT/riccardo/x_low/it_IT-riccardo-x_low.onnx.json",
+    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/itriccardo.metadata.json",
+    "description": "Italian. 1 voice.",
+    "memorySize": "size:28MB"
+  },
+  {
+    "modelName": "demls",
+    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/mls/medium/de_DE-mls-medium.onnx?download=true",
+    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/de/de_DE/mls/medium/de_DE-mls-medium.onnx.json",
+    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/demls.metadata.json",
+    "description": "German. 236 voices. Experimental",
+    "memorySize": "size:77MB"
+  },
+  {
+    "modelName": "frmls",
+    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx?download=true",
+    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx.json",
+    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/frmls.metadata.json",
+    "description": "French. 125 Voices. Experimental",
     "memorySize": "size:76MB"
   }
 ]

@@ -55,6 +55,7 @@ public class SpeechEventHandler {
 	@Subscribe(priority=-2)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
+		log.debug("Message received: " + message.toString());
 
 		patchAndSanitizeChatMessage(message);
 
@@ -319,8 +320,11 @@ public class SpeechEventHandler {
 		if (message.getType() == ChatMessageType.CONSOLE) return true;
 		// dialog messages are handled in onGameTick
 		if (message.getType() == ChatMessageType.DIALOG) return true;
+		log.debug("message handled by onMessage");
 		if (isMessageTypeDisabledInConfig(message)) return true;
+		log.debug("message type not disabled");
 		if (isTooCrowded()) return true;
+		log.debug("it's not too crowded");
 		if (checkMuteAllowAndBlockList(message)) return true;
 		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return true;
 		if (isSelfMuted(message)) return true;
