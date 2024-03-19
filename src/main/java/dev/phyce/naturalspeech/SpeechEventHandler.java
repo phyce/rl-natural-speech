@@ -14,17 +14,18 @@ import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.GameTick;
 import net.runelite.api.events.InteractingChanged;
 import net.runelite.api.events.OverheadTextChanged;
+import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.ComponentID;
+import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.util.Text;
 
@@ -36,19 +37,17 @@ public class SpeechEventHandler {
 	private final TextToSpeech textToSpeech;
 	private final VoiceManager voiceManager;
 
-
-	private String lastNpcDialogText = "";
-	private String lastPlayerDialogText = "";
-	private Actor actorInteractedWith = null;
+	private final ClientThread clientThread;
 
 	@Inject
 	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
-							  VoiceManager voiceManager) {
+							  VoiceManager voiceManager, ClientThread clientThread) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
 		this.voiceManager = voiceManager;
 
+		this.clientThread = clientThread;
 	}
 
 	@Subscribe(priority=-2)
@@ -106,76 +105,60 @@ public class SpeechEventHandler {
 		textToSpeech.speak(voiceId, text, distance, username);
 	}
 
-	@Subscribe(priority=-1)
-	private void onGameTick(GameTick event) {
-		if (textToSpeech.activePiperProcessCount() < 1) return;
-		if (!config.dialogEnabled() || actorInteractedWith == null) return;
-
-		int playerGroupId = getGroupId(ComponentID.DIALOG_PLAYER_TEXT);
-		//		int playerGroupId = WidgetInfo.DIALOG_PLAYER_TEXT.getGroupId();
-		Widget playerDialogTextWidget = client.getWidget(playerGroupId, getChildId(ComponentID.DIALOG_PLAYER_TEXT));
-
-		if (playerDialogTextWidget != null) {
-			String dialogText = Text.sanitizeMultilineText(playerDialogTextWidget.getText());
-			if (!dialogText.equals(lastPlayerDialogText)) {
-				lastPlayerDialogText = dialogText;
-
-				VoiceID voiceID = null;
-				try {
-					voiceID = voiceManager.getVoiceIdForLocalPlayer();
-				} catch (VoiceSelectionOutOfOption e) {
-					log.error("Voice Selection ran out of options. No suitable active voice found for: {}", dialogText);
+	@Subscribe
+	private void onWidgetLoaded(WidgetLoaded event) {
+		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
+			// InvokeAtTickEnd to wait until the text has loaded in
+			clientThread.invokeAtTickEnd(() -> {
+				Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
+				if (textWidget == null || textWidget.getText() == null) {
+					log.error("Player dialog textWidget or textWidget.getText() is null");
 					return;
 				}
-				textToSpeech.speak(voiceID, dialogText, 0, MagicUsernames.LOCAL_USER);
-			}
-		}
-		else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
-
-		//		int npcGroupId = WidgetInfo.DIALOG_NPC_TEXT.getGroupId();
-		int npcGroupId = getGroupId(ComponentID.DIALOG_NPC_TEXT);
-		Widget npcDialogTextWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_TEXT));
-
-		if (npcDialogTextWidget != null) {
-			String dialogText = Text.sanitizeMultilineText(npcDialogTextWidget.getText());
-			if (!dialogText.equals(lastNpcDialogText)) {
-				lastNpcDialogText = dialogText;
-				Widget nameTextWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_NAME));
-				Widget modelWidget = client.getWidget(npcGroupId, getChildId(ComponentID.DIALOG_NPC_HEAD_MODEL));
-
-				if (nameTextWidget != null && modelWidget != null) {
-					String npcName = nameTextWidget.getText().toLowerCase();
-					int modelId = modelWidget.getModelId();
-
-					VoiceID voiceID = null;
-					try {
-						voiceID = voiceManager.getVoiceIDFromNPCId(modelId, npcName);
-					} catch (VoiceSelectionOutOfOption e) {
-						log.error(
-							"Voice Selection ran out of options. No suitable active voice found for NPC ID: {} NPC Name:{}",
-							modelId, npcName);
-						return;
-					}
-					textToSpeech.speak(voiceID, dialogText, 1, dialogText);
+				log.debug("Player dialog textWidget detected:{}", textWidget.getText());
+				String text = Text.sanitizeMultilineText(textWidget.getText());
+				VoiceID voiceID;
+				try {
+					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
+				} catch (VoiceSelectionOutOfOption e) {
+					throw new RuntimeException(e);
 				}
-			}
+				textToSpeech.speak(voiceID, text, 0, MagicUsernames.LOCAL_USER);
+			});
+		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
+			// InvokeAtTickEnd to wait until the text has loaded in
+			clientThread.invokeAtTickEnd(() -> {
+				Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
+				Widget headModelWidget = client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL);
+				Widget npcNameWidget = client.getWidget(ComponentID.DIALOG_NPC_NAME);
+
+				if (textWidget == null || textWidget.getText() == null) {
+					log.error("NPC dialog textWidget or textWidget.getText() is null");
+					return;
+				}
+				if (headModelWidget == null) {
+					log.error("NPC head model textWidget is null");
+					return;
+				}
+				if (npcNameWidget == null) {
+					log.error("NPC name textWidget is null");
+					return;
+				}
+				log.debug("NPC dialog textWidget detected:{}", textWidget.getText());
+
+				String text = textWidget.getText();
+				String npcName = npcNameWidget.getName();
+				int npcCompId = headModelWidget.getModelId();
+				VoiceID voiceID;
+				try {
+					voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName);
+				} catch (VoiceSelectionOutOfOption e) {
+					throw new RuntimeException(e);
+				}
+
+				textToSpeech.speak(voiceID, text, 0, npcName);
+			});
 		}
-		else if (!lastNpcDialogText.isEmpty()) lastNpcDialogText = "";
-
-
-	}
-
-	@Subscribe
-	private void onInteractingChanged(InteractingChanged event) {
-		if (textToSpeech.activePiperProcessCount() < 1) return;
-		if (event.getTarget() == null || event.getSource() != client.getLocalPlayer()) {
-			return;
-		}
-		// Reset dialog text on new interactions to indicate no active dialog
-		lastNpcDialogText = "";
-		lastPlayerDialogText = "";
-
-		actorInteractedWith = event.getTarget();
 	}
 
 	@Subscribe(priority=-1)
