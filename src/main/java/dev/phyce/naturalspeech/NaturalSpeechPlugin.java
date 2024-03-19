@@ -7,6 +7,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
@@ -17,7 +18,6 @@ import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -128,9 +128,9 @@ public class NaturalSpeechPlugin extends Plugin {
 			textToSpeech.start();
 		}
 
-		updateConfigVoice("personalVoice", config.personalVoiceID());
-		updateConfigVoice("globalNpcVoice", config.globalDefaultNpcVoice());
-		updateConfigVoice("systemVoice", config.systemVoice());
+		updateConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
+		updateConfigVoice(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice());
+		updateConfigVoice(ConfigKeys.SYSTEM_VOICE, config.systemVoice());
 
 		log.info("NaturalSpeech plugin has started");
 	}
@@ -183,21 +183,21 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
 			switch (event.getKey()) {
-				case "muteSelf":
+				case ConfigKeys.MUTE_SELF:
 					textToSpeech.clearPlayerAudioQueue("&localuser");
 					break;
 
-				case "muteOthers":
+				case ConfigKeys.MUTE_OTHERS:
 					textToSpeech.clearOtherPlayersAudioQueue("&localuser");
 					break;
 
-				case "shortenedPhrases":
+				case ConfigKeys.SHORTENED_PHRASES:
 					textToSpeech.loadShortenedPhrases();
 					break;
 
-				case "personalVoice":
-				case "globalNpcVoice":
-				case "systemVoice":
+				case ConfigKeys.PERSONAL_VOICE:
+				case ConfigKeys.GLOBAL_NPC_VOICE:
+				case ConfigKeys.SYSTEM_VOICE:
 					updateConfigVoice(event.getKey(), event.getNewValue());
 					break;
 			}
@@ -209,7 +209,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		voiceID = VoiceID.fromIDString(voiceString);
 
 		switch(configKey) {
-			case "personalVoice":
+			case ConfigKeys.PERSONAL_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting voice for {} to {}", "&localuser", voiceID);
 					voiceManager.setDefaultVoiceIDForUsername("&localuser", voiceID);
@@ -218,7 +218,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					voiceManager.resetForUsername("&localuser");
 				}
 				break;
-			case "globalNpcVoice":
+			case ConfigKeys.GLOBAL_NPC_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting voice for {} to {}", "&globalnpc", voiceID);
 					voiceManager.setDefaultVoiceIDForUsername("&globalnpc", voiceID);
@@ -227,7 +227,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					voiceManager.resetForUsername("&globalnpc");
 				}
 				break;
-			case "systemVoice":
+			case ConfigKeys.SYSTEM_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting voice for {} to {}", "&system", voiceID);
 					voiceManager.setDefaultVoiceIDForUsername("&system", voiceID);

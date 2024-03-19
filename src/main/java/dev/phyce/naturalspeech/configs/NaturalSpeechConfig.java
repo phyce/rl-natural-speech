@@ -9,6 +9,34 @@ import net.runelite.client.config.Range;
 
 @ConfigGroup(CONFIG_GROUP)
 public interface NaturalSpeechConfig extends Config {
+
+	final class ConfigKeys {
+		public static final String PERSONAL_VOICE = "personalVoice";
+		public static final String GLOBAL_NPC_VOICE = "globalNpcVoice";
+		public static final String SYSTEM_VOICE = "systemVoice";
+		public static final String AUTO_START = "autoStart";
+		public static final String DISTANCE_FADE = "distanceFade";
+		public static final String MASTER_VOLUME = "masterVolume";
+		public static final String SPEECH_GENERATION = "Speech generation";
+		public static final String PUBLIC_CHAT = "publicChat";
+		public static final String PRIVATE_CHAT = "privateChat";
+		public static final String PRIVATE_OUT_CHAT = "privateOutChat";
+		public static final String FRIENDS_CHAT = "friendsChat";
+		public static final String CLAN_CHAT = "clanChat";
+		public static final String CLAN_GUEST_CHAT = "clanGuestChat";
+		public static final String EXAMINE_CHAT = "examineChat";
+		public static final String NPC_OVERHEAD = "npcOverhead";
+		public static final String DIALOG = "dialog";
+		public static final String REQUESTS = "requests";
+		public static final String SYSTEM_MESSAGES = "systemMesages";
+		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
+		public static final String MUTE_SELF = "muteSelf";
+		public static final String MUTE_OTHERS = "muteOthers";
+		public static final String MUTE_LEVEL_THRESHOLD = "muteLevelThreshold";
+		public static final String MUTE_CROWDS = "muteCrowds";
+		public static final String SHORTENED_PHRASES = "shortenedPhrases";
+	}
+
 	//<editor-fold desc="> General Settings">
 	@ConfigSection(
 		name="General",
@@ -19,7 +47,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=1,
-		keyName="personalVoice",
+		keyName=ConfigKeys.PERSONAL_VOICE,
 		name="Personal voice ID",
 		description="Choose one of the voices for your character, example: libritts:0",
 		section=generalSettingsSection
@@ -31,18 +59,18 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=2,
-		keyName="globalNpcVoice",
+		keyName=ConfigKeys.GLOBAL_NPC_VOICE,
 		name="Global default NPC voice",
 		description="Choose one of the voices for all NPCs, example: libritts:0",
 		section=generalSettingsSection
 	)
-	default String globalDefaultNpcVoice() {
+	default String globalNpcVoice() {
 		return "";
 	}
 
 	@ConfigItem(
 		position=3,
-		keyName="systemVoice",
+		keyName=ConfigKeys.SYSTEM_VOICE,
 		name="System message voice",
 		description="Choose one of the voices for system messages, example: libritts:0",
 		section=generalSettingsSection
@@ -54,7 +82,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=4,
-		keyName="autoStart",
+		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
 		section=generalSettingsSection
@@ -63,7 +91,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=5,
-		keyName="distanceFade",
+		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter.",
 		section=generalSettingsSection
@@ -75,7 +103,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=6,
-		keyName="masterVolume",
+		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Master volume control",
 		description="Volume percentage",
 		section=generalSettingsSection
@@ -103,14 +131,14 @@ public interface NaturalSpeechConfig extends Config {
 
 	//<editor-fold desc="> Speech Generation Settings">
 	@ConfigSection(
-		name="Speech generation",
+		name=ConfigKeys.SPEECH_GENERATION,
 		description="Settings to choose which messages should be played",
 		position=1
 	)
 	String ttsOptionsSection = "ttsOptionsSection";
 
 	@ConfigItem(
-		keyName="publicChat",
+		keyName=ConfigKeys.PUBLIC_CHAT,
 		name="Public messages",
 		description="Enable text-to-speech to the public chat messages.",
 		section=ttsOptionsSection,
@@ -121,7 +149,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="privateChat",
+		keyName=ConfigKeys.PRIVATE_CHAT,
 		name="Private received messages",
 		description="Enable text-to-speech to the received private chat messages.",
 		section=ttsOptionsSection,
@@ -132,7 +160,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="privateOutChat",
+		keyName=ConfigKeys.PRIVATE_OUT_CHAT,
 		name="Private sent out messages",
 		description="Enable text-to-speech to the sent out private chat messages.",
 		section=ttsOptionsSection
@@ -144,7 +172,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="friendsChat",
+		keyName=ConfigKeys.FRIENDS_CHAT,
 		name="Friends chat",
 		description="Enable text-to-speech to friends chat messages.",
 		section=ttsOptionsSection,
@@ -155,7 +183,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="clanChat",
+		keyName=ConfigKeys.CLAN_CHAT,
 		name="Clan chat",
 		description="Enable text-to-speech to the clan chat messages.",
 		section=ttsOptionsSection,
@@ -166,7 +194,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="clanGuestChat",
+		keyName=ConfigKeys.CLAN_GUEST_CHAT,
 		name="Guest clan chat",
 		description="Enable text-to-speech to the guest clan chat messages.",
 		section=ttsOptionsSection,
@@ -177,7 +205,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="examineChat",
+		keyName=ConfigKeys.EXAMINE_CHAT,
 		name="Examine text",
 		description="Enable text-to-speech to the 'Examine' messages.",
 		section=ttsOptionsSection,
@@ -199,7 +227,7 @@ public interface NaturalSpeechConfig extends Config {
 //	}
 
 	@ConfigItem(
-		keyName="npcOverhead",
+		keyName=ConfigKeys.NPC_OVERHEAD,
 		name="NPC overhead dialog",
 		description="Enable text-to-speech to the overhead dialog for NPCs.",
 		section=ttsOptionsSection,
@@ -210,7 +238,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="dialog",
+		keyName=ConfigKeys.DIALOG,
 		name="Dialogs",
 		description="Enable text-to-speech to dialog text.",
 		section=ttsOptionsSection,
@@ -221,7 +249,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="requests",
+		keyName=ConfigKeys.REQUESTS,
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests.",
 		section=ttsOptionsSection,
@@ -232,7 +260,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		keyName="systemMesages",
+		keyName=ConfigKeys.SYSTEM_MESSAGES,
 		name="System messages",
 		description="Generate text-to-speech to game's messages",
 		section=ttsOptionsSection,
@@ -253,7 +281,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=1,
-		keyName="muteGrandExchange",
+		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE,
 		name="Grand Exchange",
 		description="Disable text-to-speech in the grand exchange area.",
 		section=muteOptionsSection
@@ -264,7 +292,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=4,
-		keyName="muteSelf",
+		keyName=ConfigKeys.MUTE_SELF,
 		name="Yourself",
 		description="Do not generate text-to-speech for messages that you send.",
 		section=muteOptionsSection
@@ -276,7 +304,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=5,
-		keyName="muteOthers",
+		keyName=ConfigKeys.MUTE_OTHERS,
 		name="Others",
 		description="Do not generate text-to-speech for messages from other players.",
 		section=muteOptionsSection
@@ -288,7 +316,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=6,
-		keyName="muteLevelThreshold",
+		keyName=ConfigKeys.MUTE_LEVEL_THRESHOLD,
 		name="Below level",
 		description="Do not generate text-to-speech for messages from players with levels lower than this value.",
 		section=muteOptionsSection
@@ -300,7 +328,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=7,
-		keyName="muteCrowds",
+		keyName=ConfigKeys.MUTE_CROWDS,
 		name="Crowds larger than",
 		description="When there are more players than the specified number around you, TTS will not trigger. 0 for no limit.",
 		section=muteOptionsSection
@@ -320,7 +348,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=4,
-		keyName="shortenedPhrases",
+		keyName=ConfigKeys.SHORTENED_PHRASES,
 		name="Shortened phrases",
 		description="Replace commonly used shortened sentences with whole words",
 		section=otherOptionsSection
