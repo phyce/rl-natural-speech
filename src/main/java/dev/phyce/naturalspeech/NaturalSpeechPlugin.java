@@ -15,6 +15,7 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
+import dev.phyce.naturalspeech.tts.MagicUsernames;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.List;
@@ -184,11 +185,11 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (event.getGroup().equals(CONFIG_GROUP)) {
 			switch (event.getKey()) {
 				case ConfigKeys.MUTE_SELF:
-					textToSpeech.clearPlayerAudioQueue("&localuser");
+					textToSpeech.clearPlayerAudioQueue(MagicUsernames.LOCAL_USER);
 					break;
 
 				case ConfigKeys.MUTE_OTHERS:
-					textToSpeech.clearOtherPlayersAudioQueue("&localuser");
+					textToSpeech.clearOtherPlayersAudioQueue(MagicUsernames.LOCAL_USER);
 					break;
 
 				case ConfigKeys.SHORTENED_PHRASES:
@@ -211,29 +212,29 @@ public class NaturalSpeechPlugin extends Plugin {
 		switch(configKey) {
 			case ConfigKeys.PERSONAL_VOICE:
 				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", "&localuser", voiceID);
-					voiceManager.setDefaultVoiceIDForUsername("&localuser", voiceID);
+					log.debug("Setting voice for {} to {}", MagicUsernames.LOCAL_USER, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.LOCAL_USER, voiceID);
 				} else {
-					log.debug("Invalid voice for {}, resetting voices.", "&localuser");
-					voiceManager.resetForUsername("&localuser");
+					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.LOCAL_USER);
+					voiceManager.resetForUsername(MagicUsernames.LOCAL_USER);
 				}
 				break;
 			case ConfigKeys.GLOBAL_NPC_VOICE:
 				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", "&globalnpc", voiceID);
-					voiceManager.setDefaultVoiceIDForUsername("&globalnpc", voiceID);
+					log.debug("Setting voice for {} to {}", MagicUsernames.GLOBAL_NPC, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.GLOBAL_NPC, voiceID);
 				} else {
-					log.debug("Invalid voice for {}, resetting voices.", "&globalnpc");
-					voiceManager.resetForUsername("&globalnpc");
+					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.GLOBAL_NPC);
+					voiceManager.resetForUsername(MagicUsernames.GLOBAL_NPC);
 				}
 				break;
 			case ConfigKeys.SYSTEM_VOICE:
 				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", "&system", voiceID);
-					voiceManager.setDefaultVoiceIDForUsername("&system", voiceID);
+					log.debug("Setting voice for {} to {}", MagicUsernames.SYSTEM, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.SYSTEM, voiceID);
 				} else {
-					log.debug("Invalid voice for {}, resetting voices.", "&system");
-					voiceManager.resetForUsername("&system");
+					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.SYSTEM);
+					voiceManager.resetForUsername(MagicUsernames.SYSTEM);
 				}
 				break;
 		}
@@ -300,7 +301,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				if (args.length < 1) {
 //					client.addChatMessage(ChatMessageType.CONSOLE, "",
 //						"use ::checkvoice username, for example ::checkvoice Zezima", null);
-					username = "&localuser";
+					username = MagicUsernames.LOCAL_USER;
 				}
 				else {
 					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);

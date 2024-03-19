@@ -11,6 +11,7 @@ import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +70,7 @@ public class SpeechEventHandler {
 
 			if (isChatInnerVoice(message.getType())) {
 				distance = 0;
-				voiceId = voiceManager.getVoiceIDFromUsername("&localuser");
+				voiceId = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
 				text = textToSpeech.expandShortenedPhrases(message.getMessage());
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
 			}
@@ -127,7 +128,7 @@ public class SpeechEventHandler {
 					log.error("Voice Selection ran out of options. No suitable active voice found for: {}", dialogText);
 					return;
 				}
-				textToSpeech.speak(voiceID, dialogText, 0, "&localuser");
+				textToSpeech.speak(voiceID, dialogText, 0, MagicUsernames.LOCAL_USER);
 			}
 		}
 		else if (!lastPlayerDialogText.isEmpty()) lastPlayerDialogText = "";
@@ -219,12 +220,12 @@ public class SpeechEventHandler {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
-				message.setName("&localuser");
+				message.setName(MagicUsernames.LOCAL_USER);
 				break;
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
-				message.setName("&system");
+				message.setName(MagicUsernames.SYSTEM);
 				break;
 			case MODCHAT:
 			case PRIVATECHAT:
@@ -238,7 +239,7 @@ public class SpeechEventHandler {
 
 				// replace local player's username with &localuser
 				if (Objects.equals(standardize_username, getLocalPlayerUsername())) {
-					standardize_username = "&localuser";
+					standardize_username = MagicUsernames.LOCAL_USER;
 				}
 				message.setName(standardize_username);
 				break;
@@ -383,19 +384,19 @@ public class SpeechEventHandler {
 
 	private boolean isSelfMuted(ChatMessage message) {
 		//noinspection RedundantIfStatement
-		if (config.muteSelf() && message.getName().equals("&localuser")) return true;
+		if (config.muteSelf() && message.getName().equals(MagicUsernames.LOCAL_USER)) return true;
 		return false;
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 
-		return config.muteOthers() && !message.getName().equals("&localuser");
+		return config.muteOthers() && !message.getName().equals(MagicUsernames.LOCAL_USER);
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
-		if (Objects.equals("&localuser", message.getName())) return false;
+		if (Objects.equals(MagicUsernames.LOCAL_USER, message.getName())) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
 		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;

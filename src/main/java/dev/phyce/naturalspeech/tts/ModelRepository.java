@@ -12,6 +12,7 @@ import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_FOLDER_NAME;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.MODEL_REPO_FILENAME;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
@@ -69,7 +70,7 @@ public class ModelRepository {
 		this.runtimeConfig = runtimeConfig;
 
 		try {
-			InputStream is = Objects.requireNonNull(this.getClass().getResource(MODEL_REPO_FILENAME)).openStream();
+			InputStream is = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(MODEL_REPO_FILENAME)).openStream();
 			// read dictionary index as name
 			modelURLS = gson.fromJson(new InputStreamReader(is), new TypeToken<List<ModelURL>>() {
 			}.getType());

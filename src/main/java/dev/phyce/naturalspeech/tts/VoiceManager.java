@@ -199,7 +199,7 @@ public class VoiceManager {
 		if (result == null) {
 			// 3. Fallback to NPC Global (or random if NPC global isn't set).
 			log.debug("No NPC ID or NPC Name voice found, falling back to global NPC player username &globalnpc");
-			List<VoiceID> results = voiceConfig.findUsername("&globalnpc");
+			List<VoiceID> results = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
 			}
@@ -219,11 +219,11 @@ public class VoiceManager {
 
 	@NonNull
 	public VoiceID getVoiceIdForLocalPlayer() throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername("&localuser");
+		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
 	}
 
 	public VoiceID getSystemVoiceID() throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername("&system");
+		return getVoiceIDFromUsername(MagicUsernames.SYSTEM);
 	}
 	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
