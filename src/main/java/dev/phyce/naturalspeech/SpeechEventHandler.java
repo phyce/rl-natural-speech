@@ -7,10 +7,10 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
+import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
-import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -56,53 +56,54 @@ public class SpeechEventHandler {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 		log.debug("Message received: " + message.toString());
 
-		patchAndSanitizeChatMessage(message);
+		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
+			return;
+		}
+
+		String username;
+		int distance;
+		VoiceID voiceId;
+		String text = Text.removeTags(message.getMessage());
 
 		if (isMessageMuted(message)) return;
 
-		VoiceID voiceId;
-		int distance;
-		String text;
-
 		try {
-
-			if (isChatInnerVoice(message.getType())) {
+			if (isChatInnerVoice(message)) {
+				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
-				voiceId = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
-				text = textToSpeech.expandShortenedPhrases(message.getMessage());
-				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
+				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				text = textToSpeech.expandShortenedPhrases(text);
+
+				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
-			else if (isChatOtherPlayerVoice(message.getType())) {
-				if (config.distanceFadeEnabled()) {
-					distance = getDistance(message.getName());
-				}
-				else {
-					distance = 0;
-				}
-				voiceId = voiceManager.getVoiceIDFromUsername(message.getName());
-				text = textToSpeech.expandShortenedPhrases(message.getMessage());
-				log.debug("Player voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
+			else if (isChatOtherPlayerVoice(message)) {
+				username = Text.standardize(message.getName());
+				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
+				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				text = textToSpeech.expandShortenedPhrases(text);
+
+				log.debug("Player voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
 			else if (isChatSystemVoice(message.getType())) {
+				username = MagicUsernames.SYSTEM;
 				distance = 0;
-				voiceId = voiceManager.getSystemVoiceID();
-
+				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = message.getMessage();
-				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), message.getName());
+
+				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
 			else {
-//				log.error("Unsupported ChatMessageType for text to speech found: " + message.getType());
-//				throw new RuntimeException(
-//					"Unsupported ChatMessageType for text to speech found: " + message.getType());
-				// Silent mute otherwise
+				log.debug("ChatMessage ignored, didn't match innerVoice, otherPlayerVoice, or SystemVoice. name:{} type:{} message:{}",
+					message.getName(), message.getType(), message.getMessage());
 				return;
 			}
 		} catch (VoiceSelectionOutOfOption e) {
-			log.error("Voice Selection ran out of options. No suitable active voice found name:{} type:{}",
-				message.getName(), message.getType());
+			log.error("Voice Selection ran out of options. No suitable active voice found name:{} type:{} message:{}",
+				message.getName(), message.getType(), message.getMessage());
 			return;
 		}
-		if(!text.isEmpty()) textToSpeech.speak(voiceId, text, distance, message.getName());
+
+		textToSpeech.speak(voiceId, text, distance, username);
 	}
 
 	@Subscribe(priority=-1)
@@ -198,6 +199,7 @@ public class SpeechEventHandler {
 		}
 	}
 
+
 	/**
 	 * EXAMINE has null for name field<br>
 	 * DIALOG has name in `name|message` format with null for name field<br>
@@ -207,24 +209,16 @@ public class SpeechEventHandler {
 	 *
 	 * @param message reference passed in and modified
 	 */
-	private void patchAndSanitizeChatMessage(ChatMessage message) {
-		String text;
-
-		text = TextUtil.filterString(message.getMessage());
-		text = Text.removeTags(text);
-		message.setMessage(text);
-
+	private String getChatMessageUsername(ChatMessage message) {
 		switch (message.getType()) {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
-				message.setName(MagicUsernames.LOCAL_USER);
-				break;
+				return MagicUsernames.LOCAL_USER;
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
-				message.setName(MagicUsernames.SYSTEM);
-				break;
+				return MagicUsernames.SYSTEM;
 			case MODCHAT:
 			case PRIVATECHAT:
 			case PRIVATECHATOUT:
@@ -233,19 +227,26 @@ public class SpeechEventHandler {
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
 			case PUBLICCHAT:
+			default: {
+				if (message.getName() == null || message.getName().isEmpty()) {
+					return null;
+				}
+
 				String standardize_username = Text.standardize(message.getName());
 
 				// replace local player's username with &localuser
 				if (Objects.equals(standardize_username, getLocalPlayerUsername())) {
 					standardize_username = MagicUsernames.LOCAL_USER;
 				}
-				message.setName(standardize_username);
-				break;
+				return standardize_username;
+			}
 		}
 	}
 
-	public static boolean isChatInnerVoice(ChatMessageType messageType) {
-		switch (messageType) {
+	public static boolean isChatInnerVoice(ChatMessage message) {
+		switch (message.getType()) {
+			case PUBLICCHAT:
+				return Objects.equals(Text.standardize(message.getName()), getLocalPlayerUsername());
 			case PRIVATECHATOUT:
 			case MODPRIVATECHAT:
 			case ITEM_EXAMINE:
@@ -258,16 +259,17 @@ public class SpeechEventHandler {
 		}
 	}
 
-	public static boolean isChatOtherPlayerVoice(ChatMessageType messageType) {
-		switch (messageType) {
-			case MODCHAT:
+	public static boolean isChatOtherPlayerVoice(ChatMessage message) {
+		switch (message.getType()) {
 			case PUBLICCHAT:
+				return !Objects.equals(Text.standardize(message.getName()), getLocalPlayerUsername());
+			case MODCHAT:
 			case PRIVATECHAT:
 			case MODPRIVATECHAT:
 			case FRIENDSCHAT:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
-//			case TRADEREQ:
+				//			case TRADEREQ:
 				return true;
 			default:
 				return false;
@@ -323,10 +325,11 @@ public class SpeechEventHandler {
 
 		int count = (int) client.getPlayers().stream()
 			.filter(player -> player != localPlayer) // Exclude the local player themselves
-			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <= 15) // For example, within 15 tiles
+			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <=
+				15) // For example, within 15 tiles
 			.count();
 
-		if(PluginHelper.getConfig().muteCrowds() > 0 && PluginHelper.getConfig().muteCrowds() < count) return true;
+		if (PluginHelper.getConfig().muteCrowds() > 0 && PluginHelper.getConfig().muteCrowds() < count) return true;
 		log.debug("Number of players around: " + count);
 		return false;
 	}
@@ -405,8 +408,6 @@ public class SpeechEventHandler {
 
 		return false;
 	}
-
-
 
 
 	private static int getGroupId(int component) {

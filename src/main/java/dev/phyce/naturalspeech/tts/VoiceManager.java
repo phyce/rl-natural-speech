@@ -222,9 +222,6 @@ public class VoiceManager {
 		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
 	}
 
-	public VoiceID getSystemVoiceID() throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername(MagicUsernames.SYSTEM);
-	}
 	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
 		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);

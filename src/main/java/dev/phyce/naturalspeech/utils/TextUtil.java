@@ -7,7 +7,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class TextUtil {
-	private static final Pattern sentenceSplitter = Pattern.compile("(?<=[.!?,])\\s+|(?<=[.!?,])$");
 
 	public static List<String> splitSentence(String sentence) {
 		final int softLimit = 40;
@@ -87,9 +86,9 @@ public final class TextUtil {
 		return tokens;
 	}
 
-	public static String filterString(String input) {
-		if (!input.matches(".*\\w.*")) return "";
-		return input;
+	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*\\w.*");
+	public static boolean containAlphaNumeric(String text) {
+		return patternAnyAlphaNumericChar.matcher(text).matches();
 	}
 
 	public static String escape(String text) {
