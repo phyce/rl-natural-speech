@@ -65,7 +65,7 @@ public class SpeechEventHandler {
 		VoiceID voiceId;
 		String text = Text.removeTags(message.getMessage());
 
-		if (isMessageMuted(message)) return;
+		if (isChatMessageMuted(message)) return;
 
 		try {
 			if (isChatInnerVoice(message)) {
@@ -199,50 +199,6 @@ public class SpeechEventHandler {
 		}
 	}
 
-
-	/**
-	 * EXAMINE has null for name field<br>
-	 * DIALOG has name in `name|message` format with null for name field<br>
-	 * GAMEMESSAGE & CONSOLE can sometimes have tags which need to be removed<br>
-	 * <p>
-	 * This method takes in message reference and patches the name field with correct value<br>
-	 *
-	 * @param message reference passed in and modified
-	 */
-	private String getChatMessageUsername(ChatMessage message) {
-		switch (message.getType()) {
-			case ITEM_EXAMINE:
-			case NPC_EXAMINE:
-			case OBJECT_EXAMINE:
-				return MagicUsernames.LOCAL_USER;
-			case WELCOME:
-			case GAMEMESSAGE:
-			case CONSOLE:
-				return MagicUsernames.SYSTEM;
-			case MODCHAT:
-			case PRIVATECHAT:
-			case PRIVATECHATOUT:
-			case MODPRIVATECHAT:
-			case FRIENDSCHAT:
-			case CLAN_CHAT:
-			case CLAN_GUEST_CHAT:
-			case PUBLICCHAT:
-			default: {
-				if (message.getName() == null || message.getName().isEmpty()) {
-					return null;
-				}
-
-				String standardize_username = Text.standardize(message.getName());
-
-				// replace local player's username with &localuser
-				if (Objects.equals(standardize_username, getLocalPlayerUsername())) {
-					standardize_username = MagicUsernames.LOCAL_USER;
-				}
-				return standardize_username;
-			}
-		}
-	}
-
 	public static boolean isChatInnerVoice(ChatMessage message) {
 		switch (message.getType()) {
 			case PUBLICCHAT:
@@ -298,21 +254,27 @@ public class SpeechEventHandler {
 		}
 	}
 
-	public boolean isMessageMuted(ChatMessage message) {
+	public boolean isChatMessageMuted(ChatMessage message) {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// console messages seems to be errors and warnings from other plugins, mute
+
 		if (message.getType() == ChatMessageType.CONSOLE) return true;
 		// dialog messages are handled in onGameTick
+
 		if (message.getType() == ChatMessageType.DIALOG) return true;
-		log.debug("message handled by onMessage");
+
 		if (isMessageTypeDisabledInConfig(message)) return true;
-		log.debug("message type not disabled");
+
 		if (isTooCrowded()) return true;
-		log.debug("it's not too crowded");
+
 		if (checkMuteAllowAndBlockList(message)) return true;
+
 		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return true;
+
 		if (isSelfMuted(message)) return true;
+
 		if (isMutingOthers(message)) return true;
+
 		//noinspection RedundantIfStatement
 		if (checkMuteLevelThreshold(message)) return true;
 
@@ -365,9 +327,6 @@ public class SpeechEventHandler {
 			case OBJECT_EXAMINE:
 				if (!config.examineChatEnabled()) return true;
 				break;
-			case DIALOG:
-				return true;
-			//				if (!config.dialogEnabled()) return true;
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
