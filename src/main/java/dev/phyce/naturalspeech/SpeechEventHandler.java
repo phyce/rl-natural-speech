@@ -145,7 +145,7 @@ public class SpeechEventHandler {
 				}
 				log.debug("NPC dialog textWidget detected:{}", textWidget.getText());
 
-				String text = textWidget.getText();
+				String text = Text.sanitizeMultilineText(textWidget.getText());
 				String npcName = npcNameWidget.getName();
 				int npcCompId = headModelWidget.getModelId();
 				VoiceID voiceID;
