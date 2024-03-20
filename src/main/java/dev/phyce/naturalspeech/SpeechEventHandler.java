@@ -61,7 +61,7 @@ public class SpeechEventHandler {
 		String username;
 		int distance;
 		VoiceID voiceId;
-		String text = Text.removeTags(message.getMessage());
+		String text = Text.sanitizeMultilineText(message.getMessage());
 
 		if (isChatMessageMuted(message)) return;
 
