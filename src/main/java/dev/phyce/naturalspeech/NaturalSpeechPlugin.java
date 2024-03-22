@@ -57,6 +57,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private VoiceManager voiceManager;
 	private MuteManager muteManager;
 	private TextToSpeech textToSpeech;
+	private SpamDetection spamDetection;
 	private SpeechEventHandler speechEventHandler;
 	private MenuEventHandler menuEventHandler;
 	private CommandExecutedEventHandler commandExecutedEventHandler;
@@ -92,6 +93,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		textToSpeech = injector.getInstance(TextToSpeech.class);
 		voiceManager = injector.getInstance(VoiceManager.class);
 		muteManager = injector.getInstance(MuteManager.class);
+		spamDetection = injector.getInstance(SpamDetection.class);
 
 		// Abstracting the massive client event handlers into their own files
 		speechEventHandler = injector.getInstance(SpeechEventHandler.class);
@@ -102,6 +104,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		eventBus.register(speechEventHandler);
 		eventBus.register(menuEventHandler);
 		eventBus.register(commandExecutedEventHandler);
+		eventBus.register(spamDetection);
 
 		// Build panel and navButton
 		{
@@ -137,6 +140,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		eventBus.unregister(speechEventHandler);
 		eventBus.unregister(menuEventHandler);
 		eventBus.unregister(commandExecutedEventHandler);
+		eventBus.unregister(spamDetection);
 
 		topLevelPanel.shutdown();
 

@@ -37,17 +37,19 @@ public class SpeechEventHandler {
 	private final TextToSpeech textToSpeech;
 	private final VoiceManager voiceManager;
 	private final MuteManager muteManager;
+	private final SpamDetection spamDetection;
 
 	private final ClientThread clientThread;
 
 	@Inject
 	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
-							  VoiceManager voiceManager, MuteManager muteManager, ClientThread clientThread) {
+							  VoiceManager voiceManager, MuteManager muteManager, SpamDetection spamDetection, ClientThread clientThread) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
+		this.spamDetection = spamDetection;
 
 		this.clientThread = clientThread;
 	}
@@ -262,8 +264,10 @@ public class SpeechEventHandler {
 
 		if (checkMuteLevelThreshold(message)) return true;
 
-		//noinspection RedundantIfStatement
 		if (!muteManager.isUsernameAllowed(Text.standardize(Text.removeTags(message.getName())))) return true;
+
+		//noinspection RedundantIfStatement
+		if (spamDetection.isSpam(message.getName(), message.getMessage())) return true;
 
 		return false;
 	}
