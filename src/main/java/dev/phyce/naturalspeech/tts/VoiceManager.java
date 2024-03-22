@@ -222,6 +222,25 @@ public class VoiceManager {
 		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
 	}
 
+	public boolean containsUsername(@NonNull String standardized_username) {
+		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
+		return voiceAndFallback != null && !voiceAndFallback.isEmpty();
+	}
+
+	public boolean containsNPC(int npcId, @NonNull String standardized_name) {
+		{
+			List<VoiceID> voiceAndFallback = voiceConfig.findNpcId(npcId);
+			if (voiceAndFallback != null && !voiceAndFallback.isEmpty()) {
+				return true;
+			}
+		}
+
+		{
+			List<VoiceID> voiceAndFallback = voiceConfig.findNpcName(standardized_name);
+			return voiceAndFallback != null && !voiceAndFallback.isEmpty();
+		}
+	}
+
 	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
 		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);

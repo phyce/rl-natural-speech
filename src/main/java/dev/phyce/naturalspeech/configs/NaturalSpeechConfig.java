@@ -37,6 +37,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String MUTE_LEVEL_THRESHOLD = "muteLevelThreshold";
 		public static final String MUTE_CROWDS = "muteCrowds";
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
+		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -114,6 +115,17 @@ public interface NaturalSpeechConfig extends Config {
 	@Range(min = 0, max = 100)
 	default int masterVolume() {
 		return 100;
+	}
+
+	@ConfigItem(
+		position = 7,
+		keyName = ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
+		name = "Hold shift for right-click menu",
+		description = "Only show the right-click menu when holding shift.",
+		section = generalSettingsSection
+	)
+	default boolean holdShiftRightClickMenu() {
+		return false;
 	}
 
 //	@ConfigItem(
@@ -338,6 +350,7 @@ public interface NaturalSpeechConfig extends Config {
 	default int muteCrowds() {
 		return 0;
 	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="> Other Settings">

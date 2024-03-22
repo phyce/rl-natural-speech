@@ -107,6 +107,19 @@ public final class TextUtil {
 		else return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
 	}
 
+	private static final Pattern patternTargetWithLevel = Pattern.compile("(.+)  \\(level-\\d+\\)");
+	/**
+	 * For MenuEntry menuTarget name.
+	 * Keeps tag information, removes level information.
+	 * For example <col=ffffff>Guard</col>  (level-32) -> Guard
+	 * @return
+	 */
+	public static String removeLevelFromTargetName(String menuTarget) {
+		Matcher matcher = patternTargetWithLevel.matcher(menuTarget);
+		if (matcher.matches()) menuTarget = matcher.group(1);
+		return menuTarget;
+	}
+
 	public static String removeTags(String input) {
 		return input.replaceAll("<[^>]+>", "");
 	}

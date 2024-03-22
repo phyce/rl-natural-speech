@@ -6,11 +6,11 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import javax.annotation.Nullable;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
+import net.runelite.api.NPC;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.api.widgets.WidgetSizeMode;
@@ -26,10 +26,10 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private static final int LINE_HEIGHT = 20;
 	private static final int CHATBOX_HEIGHT = 120;
 	private final ChatboxPanelManager chatboxPanelManager;
-	private Actor actor;
+	private NPC npc;
 	@SuppressWarnings("FieldCanBeLocal")
 	private final VoiceManager voiceManager;
-	private String type;
+	private String standardActorName;
 
 	@Inject
 	public VoiceConfigChatboxTextInput(
@@ -45,33 +45,38 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 
 		onDone(string ->
 		{
-			if (string != null && !string.isEmpty()) {
+			if (string == null) return;
+			if (!string.isEmpty()) {
 				VoiceID voiceId = VoiceID.fromIDString(string);
 				if (voiceId != null) {
-					switch (type) {
-						case "individual":
-							voiceManager.setActorVoiceID(actor, voiceId);
-							break;
-						case "all":
-							voiceManager.setDefaultVoiceIDForNPC(actor.getName(), voiceId);
-							break;
+					if (npc != null) {
+						log.info("NPC Name:{} NPC ID:{} set to {}", standardActorName, npc.getId(), voiceId);
+						voiceManager.setActorVoiceID(npc, voiceId);
+					} else {
+						log.info("Username:{} set to {}", standardActorName, voiceId);
+						voiceManager.setDefaultVoiceIDForUsername(standardActorName, voiceId);
 					}
-
 					voiceManager.saveVoiceConfig();
 				} else {
 					log.info("Attempting to set invalid voiceID with {}", string);
+				}
+			} else {
+				if (npc != null) {
+					voiceManager.resetVoiceIDForNPC(npc);
+				} else {
+					voiceManager.resetForUsername(standardActorName);
 				}
 			}
 		});
 	}
 
-	public VoiceConfigChatboxTextInput setType(String type) {
-		this.type = type;
+	public VoiceConfigChatboxTextInput configNPC(@Nullable NPC actor) {
+		this.npc = actor;
 		return this;
 	}
 
-	public VoiceConfigChatboxTextInput insertActor(Actor actor) {
-		this.actor = actor;
+	public VoiceConfigChatboxTextInput configUsername(@NonNull String standardActorName) {
+		this.standardActorName = standardActorName;
 		return this;
 	}
 

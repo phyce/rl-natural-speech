@@ -8,6 +8,7 @@ import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
 import dev.phyce.naturalspeech.tts.MagicUsernames;
+import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
@@ -35,28 +36,27 @@ public class SpeechEventHandler {
 	private final NaturalSpeechConfig config;
 	private final TextToSpeech textToSpeech;
 	private final VoiceManager voiceManager;
+	private final MuteManager muteManager;
 
 	private final ClientThread clientThread;
 
 	@Inject
 	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
-							  VoiceManager voiceManager, ClientThread clientThread) {
+							  VoiceManager voiceManager, MuteManager muteManager, ClientThread clientThread) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
 		this.voiceManager = voiceManager;
+		this.muteManager = muteManager;
 
 		this.clientThread = clientThread;
 	}
 
-	@Subscribe(priority=-2)
+	@Subscribe(priority=-100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 		log.debug("Message received: " + message.toString());
 
-		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
-			return;
-		}
 
 		String username;
 		int distance;
@@ -167,8 +167,7 @@ public class SpeechEventHandler {
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;
 			NPC npc = (NPC) event.getActor();
-
-			if (PluginHelper.isBlockedOrNotAllowed(npc.getName())) return;
+			if (!muteManager.isNpcAllowed(npc.getId(), npc.getName())) return;
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
 
@@ -240,19 +239,20 @@ public class SpeechEventHandler {
 	}
 
 	public boolean isChatMessageMuted(ChatMessage message) {
+		// example: "::::::))))))" (no alpha numeric, muted)
+		if (!TextUtil.containAlphaNumeric(message.getMessage())) return true;
+
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
+
 		// console messages seems to be errors and warnings from other plugins, mute
-
 		if (message.getType() == ChatMessageType.CONSOLE) return true;
-		// dialog messages are handled in onGameTick
 
+		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
 
 		if (isMessageTypeDisabledInConfig(message)) return true;
 
 		if (isTooCrowded()) return true;
-
-		if (checkMuteAllowAndBlockList(message)) return true;
 
 		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return true;
 
@@ -260,8 +260,10 @@ public class SpeechEventHandler {
 
 		if (isMutingOthers(message)) return true;
 
-		//noinspection RedundantIfStatement
 		if (checkMuteLevelThreshold(message)) return true;
+
+		//noinspection RedundantIfStatement
+		if (!muteManager.isUsernameAllowed(Text.standardize(Text.removeTags(message.getName())))) return true;
 
 		return false;
 	}

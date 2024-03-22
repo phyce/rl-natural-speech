@@ -11,6 +11,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
@@ -54,6 +55,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Internal Dependencies">
 	private NaturalSpeechRuntimeConfig runtimeConfig;
 	private VoiceManager voiceManager;
+	private MuteManager muteManager;
 	private TextToSpeech textToSpeech;
 	private SpeechEventHandler speechEventHandler;
 	private MenuEventHandler menuEventHandler;
@@ -89,6 +91,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
 		textToSpeech = injector.getInstance(TextToSpeech.class);
 		voiceManager = injector.getInstance(VoiceManager.class);
+		muteManager = injector.getInstance(MuteManager.class);
 
 		// Abstracting the massive client event handlers into their own files
 		speechEventHandler = injector.getInstance(SpeechEventHandler.class);
@@ -157,6 +160,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		voiceManager.saveVoiceConfig();
 		textToSpeech.saveModelConfig();
 		runtimeConfig.savePiperPath(runtimeConfig.getPiperPath());
+		muteManager.saveConfig();
 	}
 
 	@Override

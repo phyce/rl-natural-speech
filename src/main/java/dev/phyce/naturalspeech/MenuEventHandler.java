@@ -2,60 +2,89 @@ package dev.phyce.naturalspeech;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.Singleton;
-import dev.phyce.naturalspeech.helpers.CustomMenuEntry;
-import dev.phyce.naturalspeech.helpers.PluginHelper;
-import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
+import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.game.VoiceConfigChatboxTextInput;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import dev.phyce.naturalspeech.utils.TextUtil;
+import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
+import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.ChatIconManager;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 
 @Slf4j
 public class MenuEventHandler {
 
 	private final Client client;
+	private final ChatIconManager chatIconManager;
+	private final NaturalSpeechConfig config;
+
 	private final TextToSpeech textToSpeech;
-
 	private final Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider;
-
 	private final VoiceManager voiceManager;
+	private final MuteManager muteManager;
+
+	private final int muteIconId;
+	private final int unmuteIconId;
+
+
+	private String getIconImgTag(int iconId) {
+		int imgId = chatIconManager.chatIconIndex(iconId);
+		return "<img=" + imgId + ">";
+	}
 
 	@Inject
-	public MenuEventHandler(Client client, TextToSpeech textToSpeech,
+	public MenuEventHandler(Client client, ChatIconManager chatIconManager, NaturalSpeechConfig config,
+							TextToSpeech textToSpeech,
 							Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider,
-							VoiceManager voiceManager) {
+							VoiceManager voiceManager, MuteManager muteManager) {
 		this.client = client;
+		this.chatIconManager = chatIconManager;
+		this.config = config;
 		this.textToSpeech = textToSpeech;
 		this.voiceConfigChatboxTextInputProvider = voiceConfigChatboxTextInputProvider;
 		this.voiceManager = voiceManager;
+		this.muteManager = muteManager;
+
+		muteIconId =
+			chatIconManager.registerChatIcon(ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "mute.png"));
+		unmuteIconId =
+			chatIconManager.registerChatIcon(ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "unmute.png"));
+
 	}
 
 	@Subscribe
 	private void onMenuOpened(MenuOpened event) {
+		if (config.holdShiftRightClickMenu() && !client.isKeyPressed(KeyCode.KC_SHIFT)) return;
+
 		if (textToSpeech.activePiperProcessCount() < 1) return;
 		final MenuEntry[] entries = event.getMenuEntries();
 
-		Set<Integer> interfaces = new HashSet<>();
-		interfaces.add(InterfaceID.FRIEND_LIST);
-		interfaces.add(InterfaceID.FRIENDS_CHAT);
-		interfaces.add(InterfaceID.CHATBOX);
-		interfaces.add(InterfaceID.PRIVATE_CHAT);
-		interfaces.add(InterfaceID.GROUP_IRON);
+		List<Integer> interfaces = List.of(
+			InterfaceID.FRIEND_LIST,
+			InterfaceID.FRIENDS_CHAT,
+			InterfaceID.CHATBOX,
+			InterfaceID.PRIVATE_CHAT,
+			InterfaceID.GROUP_IRON
+		);
+
+		List<String> detectableOptions = List.of("Message", "Add friend", "Remove friend");
 
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
@@ -63,105 +92,194 @@ public class MenuEventHandler {
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
 
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION) {drawOptions(entry, index);}
-			else if (entry.getType() == MenuAction.EXAMINE_NPC) {drawOptions(entry, index);}
-			else if (interfaces.contains(groupId) && entry.getOption().equals("Report")) drawOptions(entry, index);
+			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION || entry.getType() == MenuAction.EXAMINE_NPC) {
+				drawOptionsNew(entry, index);
+			}
+			else if (interfaces.contains(groupId) && detectableOptions.contains(entry.getOption())) {
+				drawOptionsNew(entry, 1);
+			}
 		}
 	}
 
-	public synchronized void drawOptions(MenuEntry entry, int index) {
-		String regex = "<col=[0-9a-f]+>([^<]+)";
-		Pattern pattern = Pattern.compile(regex);
-		Matcher matcher = pattern.matcher(entry.getTarget());
+	/**
+	 * $1 name, $2 level text
+	 */
 
-		matcher.find();
-		String username = matcher.group(1).trim();
+	public void drawOptionsNew(MenuEntry entry, int index) {
+		Actor actor = entry.getActor();
 
-		String status;
-		if (isBeingListened(username)) {status = "<col=78B159>O";}
-		else {status = "<col=DD2E44>0";}
+		// if there are no targets for this menu entry, it should be a client ui menu entry.
+		String standardActorName = actor != null
+			// example: Dawncore (level-90)
+			? Text.standardize(Objects.requireNonNull(actor.getName()))
+			// example: <img=123><col=ffffff>Dawncore</col>
+			: Text.standardize(Text.removeTags(entry.getTarget()));
+		String targetName = TextUtil.removeLevelFromTargetName(entry.getTarget());
 
-		CustomMenuEntry muteOptions =
-			new CustomMenuEntry(String.format("%s <col=ffffff>Voice <col=ffffff>(%s) <col=ffffff>>", status, username),
-				index);
+		NPC npc;
+		boolean isUnmuted;
+		boolean isListened;
+		boolean isAllowed;
+		if (actor instanceof NPC) {
+			npc = Objects.requireNonNull(entry.getNpc());
 
-		if (isBeingListened(username)) {
-			if (!getAllowList().isEmpty()) {
-				muteOptions.addChild(new CustomMenuEntry("Stop listening", -1, function -> {
-					unlisten(username);
-				}));
-			}
-			else {
-				muteOptions.addChild(new CustomMenuEntry("Mute", -1, function -> {
-					mute(username);
-				}));
-			}
-			if (getAllowList().isEmpty() && PluginHelper.getBlockList().isEmpty()) {
-				muteOptions.addChild(new CustomMenuEntry("Mute others", -1, function -> {
-					listen(username);
-					textToSpeech.clearOtherPlayersAudioQueue(username);
-				}));
-			}
+			isUnmuted = muteManager.isNpcUnmuted(npc.getId(), standardActorName);
+			isListened = muteManager.isNpcListened(npc.getId(), standardActorName);
+			isAllowed = muteManager.isNpcAllowed(npc.getId(), standardActorName);
+		}
+		else if (actor instanceof Player) {
+			npc = null;
+
+			isUnmuted = muteManager.isUsernameUnmuted(standardActorName);
+			isListened = muteManager.isUsernameListened(standardActorName);
+			isAllowed = muteManager.isUsernameAllowed(standardActorName);
 		}
 		else {
-			if (!PluginHelper.getBlockList().isEmpty()) {
-				muteOptions.addChild(new CustomMenuEntry("Unmute", -1, function -> {
-					unmute(username);
-				}));
+			npc = null;
+			isUnmuted = muteManager.isUsernameUnmuted(standardActorName);
+			isListened = muteManager.isUsernameListened(standardActorName);
+			isAllowed = muteManager.isUsernameAllowed(standardActorName);
+		}
+
+		String statusColorTag = isAllowed ? "<col=78B159>" : "<col=DD2E44>";
+		String status = isAllowed ? getIconImgTag(unmuteIconId) : getIconImgTag(muteIconId);
+
+		{
+			VoiceID voiceID;
+			if (npc != null) {
+				try {
+					voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
+				} catch (VoiceSelectionOutOfOption ignored) {
+					voiceID = null;
+				}
+
+				if (!voiceManager.containsNPC(npc.getId(), Objects.requireNonNull(npc.getName()))) {
+					statusColorTag = "<col=666666>";
+				}
 			}
 			else {
-				muteOptions.addChild(new CustomMenuEntry("Listen", -1, function -> {
-					listen(username);
-				}));
-			}
-		}
+				try {
+					voiceID = voiceManager.getVoiceIDFromUsername(standardActorName);
+				} catch (VoiceSelectionOutOfOption ignored) {
+					voiceID = null;
+					log.error("Voice Selection Out of option for {}", standardActorName);
+				}
 
-		if (!getBlockList().isEmpty()) {
-			muteOptions.addChild(new CustomMenuEntry("Clear block list", -1, function -> {
-				getBlockList().clear();
-			}));
-		}
-		else if (!getAllowList().isEmpty()) {
-			muteOptions.addChild(new CustomMenuEntry("Clear allow list", -1, function -> {
-				getAllowList().clear();
-			}));
-		}
-
-		Actor actor = entry.getActor();
-		muteOptions.addChild(new CustomMenuEntry("Reset", -1, function -> {
-
-			if(actor instanceof NPC) {
-				voiceManager.resetVoiceIDForNPC((NPC) actor);
-			} else {
-				voiceManager.resetForUsername(Text.standardize(actor.getName()));
+				if (!voiceManager.containsUsername(standardActorName)) {
+					statusColorTag = "<col=666666>";
+				}
 			}
 
-		}));
 
-		muteOptions.addChild(new CustomMenuEntry("Configure", -1, function -> {
-			voiceConfigChatboxTextInputProvider.get()
-				.setType("individual")
-				.insertActor(actor)
-				.build();
-		}));
+			String target;
+			if (voiceID != null) {
+				target = String.format("%s %s(%s)</col>", targetName, statusColorTag, voiceID);
+			}
+			else {
+				target = String.format("%s %s(voice-error)</col>", targetName, statusColorTag);
+			}
 
-		//if player show Configure/Reset
-		//if npc also show -all options
+			MenuEntry parent = client.createMenuEntry(index + 1)
+				.setOption(status + " Voice")
+				.setTarget(target)
+				.setType(MenuAction.RUNELITE_SUBMENU);
+
+			{
+				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
+				MenuEntry configVoiceEntry = client.createMenuEntry(1)
+					.setOption("Configure")
+					.setTarget(target)
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> {
+						voiceConfigChatboxTextInputProvider.get()
+							.configNPC(npc) // can be null and will be ignored
+							.configUsername(standardActorName)
+							.value(value)
+							.build();
+					});
+				configVoiceEntry.setParent(parent);
+			}
+			if (muteManager.isListenMode()) {
+				MenuEntry stopListenEntry = client.createMenuEntry(1)
+					.setOption("Stop Listen Mode")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> {
+						muteManager.setListenMode(false);
+						muteManager.clearListens();
+					});
+				stopListenEntry.setParent(parent);
+			}
+			else {
+				if (isUnmuted) {
+					MenuEntry muteEntry = client.createMenuEntry(1)
+						.setOption("Mute")
+						.setTarget(entry.getTarget())
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> {
+							if (npc != null) {
+								muteManager.muteNpcId(npc.getId());
+								// deprecating using npc name
+							}
+							else {
+								muteManager.muteUsername(standardActorName);
+							}
+						});
+					muteEntry.setParent(parent);
+
+				}
+				else {
+					MenuEntry unmuteEntry = client.createMenuEntry(1)
+						.setOption("Unmute")
+						.setTarget(entry.getTarget())
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> {
+							if (npc != null) {
+								muteManager.unmuteNpcId(npc.getId());
+								muteManager.unmuteNpcName(standardActorName);
+							}
+							else {
+								muteManager.unmuteUsername(standardActorName);
+							}
+						});
+					unmuteEntry.setParent(parent);
+				}
+			}
+
+			if (isListened) {
+				MenuEntry unlistenEntry = client.createMenuEntry(0)
+					.setOption("Unlisten")
+					.setTarget(entry.getTarget())
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> {
+						if (npc != null) {
+							muteManager.unlistenNpcId(npc.getId());
+						}
+						else {
+							muteManager.unlistenUsername(standardActorName);
+						}
+					});
+				unlistenEntry.setParent(parent);
+			}
+			else {
+				MenuEntry listenEntry = client.createMenuEntry(0)
+					.setOption("Listen")
+					.setTarget(entry.getTarget())
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> {
+						if (npc != null) {
+							muteManager.listenNpcId(npc.getId());
+						}
+						else {
+							muteManager.listenUsername(standardActorName);
+						}
+						muteManager.setListenMode(true);
+					});
+				listenEntry.setParent(parent);
+			}
 
 
-//		if(actor instanceof NPC) {
-//			muteOptions.addChild(new CustomMenuEntry("Configure-all", -1, function -> {
-//				voiceConfigChatboxTextInputProvider.get()
-//					.setType("all")
-//					.insertActor(actor)
-//					.build();
-//			}));
-//
-//			muteOptions.addChild(new CustomMenuEntry("Reset-all", -1, function -> {
-//				voiceManager.resetVoiceIDForNPCName(actor.getName());
-//			}));
-//		}
-
-		muteOptions.addTo(client);
+		}
 	}
+
+
 }
