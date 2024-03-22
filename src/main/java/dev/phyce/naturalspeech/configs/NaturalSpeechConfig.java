@@ -305,11 +305,10 @@ public interface NaturalSpeechConfig extends Config {
 		return true;
 	}
 	
-	@ConfigItem(
-		position = 2,
-		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE_GUIDE_NPCS,
-		
-	)
+//	@ConfigItem(
+//		position = 2,
+//		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE_GUIDE_NPCS,
+//	)
 
 	@ConfigItem(
 		position=4,
