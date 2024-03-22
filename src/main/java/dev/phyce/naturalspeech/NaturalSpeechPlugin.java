@@ -11,6 +11,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
@@ -59,6 +60,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private MuteManager muteManager;
 	private TextToSpeech textToSpeech;
 	private SpamFilterPluglet spamFilterPluglet;
+	private ChatFilterPluglet chatFilterPluglet;
 	private SpamDetection spamDetection;
 	private SpeechEventHandler speechEventHandler;
 	private MenuEventHandler menuEventHandler;
@@ -71,8 +73,16 @@ public class NaturalSpeechPlugin extends Plugin {
 	//</editor-fold>
 
 	static {
+
 		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
-		logger.setLevel(Level.INFO);
+
+		String result = System.getProperty("nslogger");
+		if (result != null) {
+			log.info("nslogger VM property found, setting logger level to {}", result);
+			logger.setLevel(Level.valueOf(result));
+		} else {
+			logger.setLevel(Level.INFO);
+		}
 	}
 
 	private TopLevelPanel topLevelPanel;
@@ -96,6 +106,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		voiceManager = injector.getInstance(VoiceManager.class);
 		muteManager = injector.getInstance(MuteManager.class);
 		spamFilterPluglet = injector.getInstance(SpamFilterPluglet.class);
+		chatFilterPluglet = injector.getInstance(ChatFilterPluglet.class);
 		spamDetection = injector.getInstance(SpamDetection.class);
 
 		// Abstracting the massive client event handlers into their own files
@@ -108,6 +119,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		eventBus.register(menuEventHandler);
 		eventBus.register(commandExecutedEventHandler);
 		eventBus.register(spamFilterPluglet);
+		eventBus.register(chatFilterPluglet);
 
 		// Build panel and navButton
 		{
@@ -144,6 +156,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		eventBus.unregister(menuEventHandler);
 		eventBus.unregister(commandExecutedEventHandler);
 		eventBus.unregister(spamFilterPluglet);
+		eventBus.unregister(chatFilterPluglet);
 
 		topLevelPanel.shutdown();
 
