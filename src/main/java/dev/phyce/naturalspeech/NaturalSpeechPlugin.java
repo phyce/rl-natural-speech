@@ -11,6 +11,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
@@ -57,6 +58,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private VoiceManager voiceManager;
 	private MuteManager muteManager;
 	private TextToSpeech textToSpeech;
+	private SpamFilterPluglet spamFilterPluglet;
 	private SpamDetection spamDetection;
 	private SpeechEventHandler speechEventHandler;
 	private MenuEventHandler menuEventHandler;
@@ -93,6 +95,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		textToSpeech = injector.getInstance(TextToSpeech.class);
 		voiceManager = injector.getInstance(VoiceManager.class);
 		muteManager = injector.getInstance(MuteManager.class);
+		spamFilterPluglet = injector.getInstance(SpamFilterPluglet.class);
 		spamDetection = injector.getInstance(SpamDetection.class);
 
 		// Abstracting the massive client event handlers into their own files
@@ -104,7 +107,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		eventBus.register(speechEventHandler);
 		eventBus.register(menuEventHandler);
 		eventBus.register(commandExecutedEventHandler);
-		eventBus.register(spamDetection);
+		eventBus.register(spamFilterPluglet);
 
 		// Build panel and navButton
 		{
@@ -140,7 +143,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		eventBus.unregister(speechEventHandler);
 		eventBus.unregister(menuEventHandler);
 		eventBus.unregister(commandExecutedEventHandler);
-		eventBus.unregister(spamDetection);
+		eventBus.unregister(spamFilterPluglet);
 
 		topLevelPanel.shutdown();
 

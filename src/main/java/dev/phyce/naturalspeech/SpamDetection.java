@@ -1,15 +1,11 @@
 package dev.phyce.naturalspeech;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Objects;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.config.ConfigManager;
-import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.events.PluginChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
 import net.runelite.client.plugins.chatfilter.ChatFilterPlugin;
@@ -18,13 +14,7 @@ import net.runelite.client.plugins.chatfilter.ChatFilterPlugin;
 public class SpamDetection {
 
 	private final PluginManager pluginManager;
-	private final ConfigManager configManager;
-
-
-	private Plugin spamFilterPlugin;
-	private static final String SPAM_FILTER_GROUP_NAME = "spamfilter";
-	private static final String SPAM_FILTER_CONFIG_THRESHOLD_KEY = "threshold";
-	private Method spamFilterPlugin_pMessageBad;
+	private final SpamFilterPluglet spamFilterPluglet;
 
 	private ChatFilterPlugin chatFilterPlugin;
 	private Method chatFilterPlugin_censorMessage;
@@ -34,17 +24,15 @@ public class SpamDetection {
 
 
 	@Inject
-	private SpamDetection(PluginManager pluginManager, ConfigManager configManager) {
+	private SpamDetection(
+		PluginManager pluginManager,
+		SpamFilterPluglet spamFilterPluglet
+	) {
 		this.pluginManager = pluginManager;
-		this.configManager = configManager;
+		this.spamFilterPluglet = spamFilterPluglet;
 
 		// look for spam plugin, if it's already installed
 		for (Plugin plugin : pluginManager.getPlugins()) {
-			if (plugin.getClass().getSimpleName().equals("SpamFilterPlugin")) {
-				log.info("Spam Filter Plugin Detected.");
-				spamFilterPlugin = plugin;
-			}
-
 			if (plugin instanceof ChatFilterPlugin) {
 				log.info("Chat Filter Plugin Detected.");
 				chatFilterPlugin = (ChatFilterPlugin) plugin;
@@ -53,42 +41,9 @@ public class SpamDetection {
 	}
 
 	public boolean isSpam(String username, String text) {
-		return isSpam_SpamFilterPlugin(text) || isSpam_ChatFilter(username, text);
+		return spamFilterPluglet.isSpam(text) || isSpam_ChatFilter(username, text);
 	}
 
-	private boolean isSpam_SpamFilterPlugin(String text) {
-		if (spamFilterPlugin == null || !pluginManager.isPluginEnabled(spamFilterPlugin)) {
-			return false;
-		}
-
-		if (spamFilterPlugin_pMessageBad == null) {
-			try {
-				// private float pMessageBad(String text)
-				spamFilterPlugin_pMessageBad =
-					spamFilterPlugin.getClass().getDeclaredMethod("pMessageBad", String.class);
-				spamFilterPlugin_pMessageBad.setAccessible(true);
-			} catch (NoSuchMethodException e) {
-				log.error("Spam Filter method pMessageBad reflection failed.", e);
-				return false;
-			}
-		}
-
-		String result = configManager.getConfiguration(SPAM_FILTER_GROUP_NAME, SPAM_FILTER_CONFIG_THRESHOLD_KEY);
-		if (result == null) {
-			log.error("Spam filter did not have {} config value set.", SPAM_FILTER_CONFIG_THRESHOLD_KEY);
-			return false;
-		}
-		float threshold = Float.parseFloat(result) / 100f;
-		float spamScore;
-		try {
-			spamScore = (float) spamFilterPlugin_pMessageBad.invoke(spamFilterPlugin, text.strip());
-		} catch (IllegalAccessException | InvocationTargetException e) {
-			log.error("Spam Filter private method pMessageBad reflection failed.", e);
-			return false;
-		}
-
-		return spamScore > threshold;
-	}
 
 	private boolean isSpam_ChatFilter(String username, String text) {
 		if (chatFilterPlugin == null || !pluginManager.isPluginEnabled(chatFilterPlugin)) {
@@ -118,15 +73,5 @@ public class SpamDetection {
 			return false;
 		}
 	}
-
-	@Subscribe
-	private void onPluginChanged(PluginChanged event) {
-		// if spam filter was installed after runelite session started
-		if (event.getPlugin().getClass().getSimpleName().equals("SpamFilterPlugin")) {
-			log.info("Spam Filter Plugin Detected.");
-			spamFilterPlugin = event.getPlugin();
-		}
-	}
-
 
 }
