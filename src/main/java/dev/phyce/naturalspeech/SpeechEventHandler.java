@@ -88,7 +88,6 @@ public class SpeechEventHandler {
 				username = MagicUsernames.SYSTEM;
 				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
-				text = message.getMessage();
 
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}

@@ -33,6 +33,7 @@ import org.apache.commons.lang3.StringUtils;
 
 // A "pluglet" is defined as a small or simplified version of a plugin.
 // Only things needed (as a bare minimum) to re-implement a single function
+// Hub rules disallows reflection, so Natural Speech re-implements the code, but uses ChatFilters' user configs.
 @Slf4j
 @Singleton
 public class ChatFilterPluglet {
@@ -183,9 +184,9 @@ public class ChatFilterPluglet {
 		}
 
 		Duplicate duplicateCacheEntry = duplicateChatCache.get(username + ":" + message);
-		log.trace("Duplicate chat entry count:{} for ({})", duplicateCacheEntry.count, duplicateCacheEntry);
+//		log.trace("Duplicate chat entry count:{} for ({})", duplicateCacheEntry.count, duplicateCacheEntry);
 		if (config.maxRepeatedPublicChats() > 0 && duplicateCacheEntry.count > config.maxRepeatedPublicChats()) {
-			log.trace("Duplicate chat filtered ({})", duplicateCacheEntry);
+//			log.trace("Duplicate chat filtered ({})", duplicateCacheEntry);
 			return true;
 		}
 
@@ -227,6 +228,8 @@ public class ChatFilterPluglet {
 
 	@Subscribe(priority=-2) // run after ChatMessageManager
 	public void onChatMessage(ChatMessage chatMessage) {
+		if (!isChatFilterEnabled) return;
+
 		if (COLLAPSIBLE_MESSAGETYPES.contains(chatMessage.getType())) {
 			final MessageNode messageNode = chatMessage.getMessageNode();
 			// remove and re-insert into map to move to end of list
@@ -242,8 +245,9 @@ public class ChatFilterPluglet {
 		}
 	}
 	@Subscribe
-	public void onGameStateChanged(GameStateChanged gameStateChanged)
-	{
+	public void onGameStateChanged(GameStateChanged gameStateChanged) {
+		if (!isChatFilterEnabled) return;
+
 		switch (gameStateChanged.getGameState())
 		{
 			// Login drops references to all messages and also resets the global message id counter.

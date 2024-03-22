@@ -21,7 +21,6 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.RuneLite;
-import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -38,8 +37,6 @@ public class SpamFilterPluglet {
 
 	private final PluginManager pluginManager;
 	private final ConfigManager configManager;
-
-	private Plugin spamFilterPlugin;
 
 	private static final String SPAM_FILTER_GROUP_NAME = "spamfilter";
 	private static final String SPAM_FILTER_CONFIG_KEY_THRESHOLD = "threshold";
@@ -63,18 +60,22 @@ public class SpamFilterPluglet {
 	private static final String FILE_NAME_GOOD_CORPUS = "spamfilter_good_corpus.txt";
 	private static final String FILE_NAME_BAD_CORPUS = "spamfilter_bad_corpus.txt";
 
+	private boolean isPluginEnabled;
+
 	@Inject
 	public SpamFilterPluglet(PluginManager pluginManager, ConfigManager configManager) {
 		this.pluginManager = pluginManager;
 		this.configManager = configManager;
 
 		// look for spam filter if it's already loaded
+		Plugin spamFilterPlugin = null;
 		for (Plugin plugin : pluginManager.getPlugins()) {
 			if (plugin.getClass().getSimpleName().equals("SpamFilterPlugin")) {
 				log.info("Spam Filter Plugin Detected.");
 				spamFilterPlugin = plugin;
 			}
 		}
+		isPluginEnabled = spamFilterPlugin != null && pluginManager.isPluginEnabled(spamFilterPlugin);
 
 		// spam-filter saves user corupus in .runelite/spam-filter/user_good_corpus.txt
 		loadUserCorpus();
@@ -87,17 +88,17 @@ public class SpamFilterPluglet {
 	}
 
 	public boolean isSpam(String text) {
-		if (spamFilterPlugin == null || !pluginManager.isPluginEnabled(spamFilterPlugin)) {
+		if (!isPluginEnabled) {
 			return false;
 		}
 
 		if (goodCorpusDirty) {
-			log.trace("Reloading good corpus, due to dirty flag...");
+//			log.trace("Reloading good corpus, due to dirty flag...");
 			loadUserGoodCorpus();
 			goodCorpusDirty = false;
 		}
 		if (badCorpusDirty) {
-			log.trace("Reloading bad corpus, due to dirty flag...");
+//			log.trace("Reloading bad corpus, due to dirty flag...");
 			loadUserBadCorpus();
 			badCorpusDirty = false;
 
@@ -250,11 +251,11 @@ public class SpamFilterPluglet {
 		if (event.getPlugin().getClass().getSimpleName().equals("SpamFilterPlugin")) {
 			if (event.isLoaded()) {
 				log.trace("Detected SpamFilter plugin activated.");
-				spamFilterPlugin = event.getPlugin();
 				loadUserCorpus();
 				loadThreshold();
+				isPluginEnabled = true;
 			} else {
-				spamFilterPlugin = null;
+				isPluginEnabled = false;
 				log.trace("Detected SpamFilter plugin deactivated.");
 			}
 		}
@@ -262,6 +263,8 @@ public class SpamFilterPluglet {
 
 	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {
+		if (!isPluginEnabled) return;
+
 		if (event.getGroup().equals(SPAM_FILTER_GROUP_NAME)
 			&& event.getKey().equals(SPAM_FILTER_CONFIG_KEY_THRESHOLD)) {
 			loadThreshold();
@@ -271,15 +274,17 @@ public class SpamFilterPluglet {
 
 	@Subscribe
 	private void onMenuOptionClicked(MenuOptionClicked event) {
+		if (!isPluginEnabled) return;
+
 		MenuEntry menuEntry = event.getMenuEntry();
 		if (menuEntry.getType() == MenuAction.RUNELITE) {
 			if (menuEntry.getOption().equals(SPAM_FILTER_MARK_HAM_OPTION)) {
 				goodCorpusDirty = true;
-				log.trace("Detected SpamFilter Mark ham. wtf");
+				log.trace("Detected SpamFilter Mark ham. Marking goodCorpus file dirty.");
 			}
 			if (menuEntry.getOption().equals(SPAM_FILTER_MARK_SPAM_OPTION)) {
 				badCorpusDirty = true;
-				log.trace("Detected SpamFilter Mark spam wtf.");
+				log.trace("Detected SpamFilter Mark spam. Marking badCorpus file dirty.");
 			}
 		}
 	}
