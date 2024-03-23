@@ -115,7 +115,7 @@ public class SpeechEventHandler {
 					log.error("Player dialog textWidget or textWidget.getText() is null");
 					return;
 				}
-				log.debug("Player dialog textWidget detected:{}", textWidget.getText());
+				log.trace("Player dialog textWidget detected:{}", textWidget.getText());
 				String text = Text.sanitizeMultilineText(textWidget.getText());
 				VoiceID voiceID;
 				try {
@@ -144,14 +144,14 @@ public class SpeechEventHandler {
 					log.error("NPC name textWidget is null");
 					return;
 				}
-				log.debug("NPC dialog textWidget detected:{}", textWidget.getText());
+				log.trace("NPC dialog textWidget detected:{}", textWidget.getText());
 
 				String text = Text.sanitizeMultilineText(textWidget.getText());
 				String npcName = npcNameWidget.getName();
 				int npcCompId = headModelWidget.getModelId();
 
 				if (!muteManager.isNpcIdAllowed(npcCompId)) {
-					log.trace("NPC Dialogue is muted. COMP ID:{} NPC name:{}", npcCompId, npcName);
+					log.debug("NPC Dialogue is muted. CompId:{} NPC name:{}", npcCompId, npcName);
 					return;
 				}
 
