@@ -77,14 +77,16 @@ public class SpamFilterPluglet {
 		}
 		isPluginEnabled = spamFilterPlugin != null && pluginManager.isPluginEnabled(spamFilterPlugin);
 
+		// built-in corpus is copied into Natural Speech's resource folder
+		// Must be loaded first beauce loadUserCorpus implicitly counts
+		// but load Built-in does not. This is to avoid reading the built-in over and over again.
+		loadBuiltinCorpus();
+
 		// spam-filter saves user corupus in .runelite/spam-filter/user_good_corpus.txt
 		loadUserCorpus();
-		// built-in corpus is copied into Natural Speech's resource folder
-		loadBuiltinCorpus();
 
 		// try load threshold
 		loadThreshold();
-
 	}
 
 	public boolean isSpam(String text) {
@@ -141,8 +143,8 @@ public class SpamFilterPluglet {
 				log.trace("Loaded user bad corpus of {} lines", userBadCorpus.size());
 
 				badCounts.clear();
-				countTokens(badCounts, userBadCorpus);
 				countTokens(badCounts, builtinBadCorpus);
+				countTokens(badCounts, userBadCorpus);
 			} catch (IOException e) {
 				log.error("Error reading {}", userBadCorpusFile);
 			}
@@ -167,8 +169,8 @@ public class SpamFilterPluglet {
 				log.trace("Loaded user good corpus of {} lines", userGoodCorpus.size());
 
 				goodCounts.clear();
-				countTokens(goodCounts, userGoodCorpus);
 				countTokens(goodCounts, builtinGoodCorpus);
+				countTokens(goodCounts, userGoodCorpus);
 			} catch (IOException e) {
 				log.error("Error reading {}", userGoodCorpusFile);
 			}
