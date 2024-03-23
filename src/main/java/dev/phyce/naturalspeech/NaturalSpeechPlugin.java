@@ -192,31 +192,56 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {
-		if (event.getGroup().equals(CONFIG_GROUP)) {
+		if (!event.getGroup().equals(CONFIG_GROUP)) return;
 
-			if (textToSpeech.activePiperProcessCount() < 1) {
-				switch (event.getKey()) {
-					case ConfigKeys.MUTE_SELF:
-						textToSpeech.clearPlayerAudioQueue(MagicUsernames.LOCAL_USER);
-						break;
+		if (textToSpeech.activePiperProcessCount() < 1) {
+			switch (event.getKey()) {
+				case ConfigKeys.MUTE_SELF:
+					log.trace("Detected mute-self toggle, clearing audio queue.");
+					textToSpeech.clearPlayerAudioQueue(MagicUsernames.LOCAL_USER);
+					break;
 
-					case ConfigKeys.MUTE_OTHERS:
-						textToSpeech.clearOtherPlayersAudioQueue(MagicUsernames.LOCAL_USER);
-						break;
+				case ConfigKeys.MUTE_OTHERS:
+					log.trace("Detected mute-others toggle, clearing audio queue.");
+					textToSpeech.clearOtherPlayersAudioQueue(MagicUsernames.LOCAL_USER);
+					break;
 
-				}
 			}
+		}
 
-			switch(event.getKey()) {
-				case ConfigKeys.SHORTENED_PHRASES:
-					textToSpeech.loadShortenedPhrases();
-					break;
+		switch (event.getKey()) {
+			case ConfigKeys.SHORTENED_PHRASES:
+				log.trace("Detected short phrase changes, reloading into TextToSpeech");
+				textToSpeech.loadShortenedPhrases();
+				break;
 
-				case ConfigKeys.PERSONAL_VOICE:
-				case ConfigKeys.GLOBAL_NPC_VOICE:
-				case ConfigKeys.SYSTEM_VOICE:
-					updateConfigVoice(event.getKey(), event.getNewValue());
-					break;
+			case ConfigKeys.PERSONAL_VOICE:
+			case ConfigKeys.GLOBAL_NPC_VOICE:
+			case ConfigKeys.SYSTEM_VOICE:
+				log.trace("Detected voice changes from config, loading in new voices");
+				updateConfigVoice(event.getKey(), event.getNewValue());
+				break;
+		}
+
+		if (event.getKey().equals(ConfigKeys.MUTE_GRAND_EXCHANGE_EXPERT_NPCS)) {
+			log.trace("Detected mute grand exchange expert npcs toggle, clearing audio queue.");
+			// Bob Barter: 5449
+			// Murky Matt: 5450
+			// Hofuhand: 5452
+			// Relobo Blinyo: 5451
+			// Brugsen Bursen: 2152
+			// Fraid Morrisane: 3115
+			// Perdu: 7456
+			int[] geExpertNpcIds = {5449, 5450, 5451, 5452, 2152, 3115, 7456};
+			boolean value = Boolean.parseBoolean(event.getNewValue());
+			if (value) {
+				for (int npcId : geExpertNpcIds) {
+					muteManager.muteNpcId(npcId);
+				}
+			} else {
+				for (int npcId : geExpertNpcIds) {
+					muteManager.unmuteNpcId(npcId);
+				}
 			}
 		}
 	}

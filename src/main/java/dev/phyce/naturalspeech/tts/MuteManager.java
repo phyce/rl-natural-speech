@@ -69,7 +69,6 @@ public class MuteManager {
 		return npcIdListenList.contains(npcId) || npcIdListenList.contains(compId);
 	}
 
-
 	public boolean isNpcUnmuted(NPC npc) {
 		int npcId = npc.getId();
 		int compId = npc.getComposition().getId();
@@ -129,16 +128,16 @@ public class MuteManager {
 		unlistenNpcId(compId);
 	}
 
-	private void unmuteNpcId(Integer npcId) {
+	public void unmuteNpcId(Integer npcId) {
 		npcIdMuteList.remove(npcId);
 	}
 
-	private void listenNpcId(Integer npcId) {
+	public void listenNpcId(Integer npcId) {
 		npcIdListenList.remove(npcId); // de-duplicate
 		npcIdListenList.add(npcId);
 	}
 
-	private void unlistenNpcId(Integer npcId) {
+	public void unlistenNpcId(Integer npcId) {
 		npcIdListenList.remove(npcId);
 	}
 

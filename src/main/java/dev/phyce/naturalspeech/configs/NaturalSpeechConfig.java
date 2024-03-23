@@ -38,7 +38,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String MUTE_CROWDS = "muteCrowds";
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
-		public static final String MUTE_GRAND_EXCHANGE_GUIDE_NPCS = "muteGrandExchangeGuideNpcs";
+		public static final String MUTE_GRAND_EXCHANGE_EXPERT_NPCS = "muteGrandExchangeExpertNpcs";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -329,10 +329,16 @@ public interface NaturalSpeechConfig extends Config {
 		return true;
 	}
 
-	//	@ConfigItem(
-	//		position = 2,
-	//		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE_GUIDE_NPCS,
-	//	)
+	@ConfigItem(
+		position=4,
+		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE_EXPERT_NPCS,
+		name="Grand Exchange Expert NPCs",
+		description="These six spam overhead: Brugsen Bursen, Farid Morrisane, Relobo Blinyo, Bob Barter, Murky Matt, Hofuthand.",
+		section=muteOptionsSection
+	)
+	default boolean muteGrandExchangeExperts() {
+		return true;
+	}
 
 
 	@ConfigItem(
