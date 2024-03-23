@@ -223,28 +223,8 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 		}
 
-		if (event.getKey().equals(ConfigKeys.MUTE_GRAND_EXCHANGE_EXPERT_NPCS)) {
-			log.trace("Detected mute grand exchange expert npcs toggle, clearing audio queue.");
-			// Bob Barter: 5449
-			// Murky Matt: 5450
-			// Hofuhand: 5452
-			// Relobo Blinyo: 5451
-			// Brugsen Bursen: 2152
-			// Fraid Morrisane: 3115
-			// Perdu: 7456
-			int[] geExpertNpcIds = {5449, 5450, 5451, 5452, 2152, 3115, 7456};
-			boolean value = Boolean.parseBoolean(event.getNewValue());
-			if (value) {
-				for (int npcId : geExpertNpcIds) {
-					muteManager.muteNpcId(npcId);
-				}
-			} else {
-				for (int npcId : geExpertNpcIds) {
-					muteManager.unmuteNpcId(npcId);
-				}
-			}
-		}
 	}
+
 
 	private void updateConfigVoice(String configKey, String voiceString) {
 		VoiceID voiceID;
