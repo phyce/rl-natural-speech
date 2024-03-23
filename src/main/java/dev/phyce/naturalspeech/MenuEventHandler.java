@@ -188,7 +188,7 @@ public class MenuEventHandler {
 				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
 				MenuEntry configVoiceEntry = client.createMenuEntry(1)
 					.setOption("Configure")
-					.setTarget(target)
+					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						voiceConfigChatboxTextInputProvider.get()
