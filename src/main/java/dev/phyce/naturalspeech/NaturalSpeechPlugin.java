@@ -5,25 +5,23 @@ import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
-import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
+import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
-import dev.phyce.naturalspeech.tts.MagicUsernames;
 import java.awt.image.BufferedImage;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -80,7 +78,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (result != null) {
 			log.info("nslogger VM property found, setting logger level to {}", result);
 			logger.setLevel(Level.valueOf(result));
-		} else {
+		}
+		else {
 			logger.setLevel(Level.INFO);
 		}
 	}
@@ -193,17 +192,22 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {
-		if (textToSpeech.activePiperProcessCount() < 1) return;
 		if (event.getGroup().equals(CONFIG_GROUP)) {
-			switch (event.getKey()) {
-				case ConfigKeys.MUTE_SELF:
-					textToSpeech.clearPlayerAudioQueue(MagicUsernames.LOCAL_USER);
-					break;
 
-				case ConfigKeys.MUTE_OTHERS:
-					textToSpeech.clearOtherPlayersAudioQueue(MagicUsernames.LOCAL_USER);
-					break;
+			if (textToSpeech.activePiperProcessCount() < 1) {
+				switch (event.getKey()) {
+					case ConfigKeys.MUTE_SELF:
+						textToSpeech.clearPlayerAudioQueue(MagicUsernames.LOCAL_USER);
+						break;
 
+					case ConfigKeys.MUTE_OTHERS:
+						textToSpeech.clearOtherPlayersAudioQueue(MagicUsernames.LOCAL_USER);
+						break;
+
+				}
+			}
+
+			switch(event.getKey()) {
 				case ConfigKeys.SHORTENED_PHRASES:
 					textToSpeech.loadShortenedPhrases();
 					break;
@@ -221,12 +225,13 @@ public class NaturalSpeechPlugin extends Plugin {
 		VoiceID voiceID;
 		voiceID = VoiceID.fromIDString(voiceString);
 
-		switch(configKey) {
+		switch (configKey) {
 			case ConfigKeys.PERSONAL_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting voice for {} to {}", MagicUsernames.LOCAL_USER, voiceID);
 					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.LOCAL_USER, voiceID);
-				} else {
+				}
+				else {
 					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.LOCAL_USER);
 					voiceManager.resetForUsername(MagicUsernames.LOCAL_USER);
 				}
@@ -235,7 +240,8 @@ public class NaturalSpeechPlugin extends Plugin {
 				if (voiceID != null) {
 					log.debug("Setting voice for {} to {}", MagicUsernames.GLOBAL_NPC, voiceID);
 					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.GLOBAL_NPC, voiceID);
-				} else {
+				}
+				else {
 					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.GLOBAL_NPC);
 					voiceManager.resetForUsername(MagicUsernames.GLOBAL_NPC);
 				}
@@ -244,7 +250,8 @@ public class NaturalSpeechPlugin extends Plugin {
 				if (voiceID != null) {
 					log.debug("Setting voice for {} to {}", MagicUsernames.SYSTEM, voiceID);
 					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.SYSTEM, voiceID);
-				} else {
+				}
+				else {
 					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.SYSTEM);
 					voiceManager.resetForUsername(MagicUsernames.SYSTEM);
 				}
