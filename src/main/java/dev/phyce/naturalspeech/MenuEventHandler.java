@@ -123,9 +123,9 @@ public class MenuEventHandler {
 		if (actor instanceof NPC) {
 			npc = Objects.requireNonNull(entry.getNpc());
 
-			isUnmuted = muteManager.isNpcUnmuted(npc.getId(), standardActorName);
-			isListened = muteManager.isNpcListened(npc.getId(), standardActorName);
-			isAllowed = muteManager.isNpcAllowed(npc.getId(), standardActorName);
+			isUnmuted = muteManager.isNpcUnmuted(npc);
+			isListened = muteManager.isNpcListened(npc);
+			isAllowed = muteManager.isNpcAllowed(npc);
 		}
 		else if (actor instanceof Player) {
 			npc = null;
@@ -217,8 +217,7 @@ public class MenuEventHandler {
 						.setType(MenuAction.RUNELITE)
 						.onClick(e -> {
 							if (npc != null) {
-								muteManager.muteNpcId(npc.getId());
-								// deprecating using npc name
+								muteManager.muteNpc(npc);
 							}
 							else {
 								muteManager.muteUsername(standardActorName);
@@ -234,8 +233,7 @@ public class MenuEventHandler {
 						.setType(MenuAction.RUNELITE)
 						.onClick(e -> {
 							if (npc != null) {
-								muteManager.unmuteNpcId(npc.getId());
-								muteManager.unmuteNpcName(standardActorName);
+								muteManager.unmuteNpc(npc);
 							}
 							else {
 								muteManager.unmuteUsername(standardActorName);
@@ -252,7 +250,7 @@ public class MenuEventHandler {
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						if (npc != null) {
-							muteManager.unlistenNpcId(npc.getId());
+							muteManager.unlistenNpc(npc);
 						}
 						else {
 							muteManager.unlistenUsername(standardActorName);
@@ -267,7 +265,7 @@ public class MenuEventHandler {
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						if (npc != null) {
-							muteManager.listenNpcId(npc.getId());
+							muteManager.listenNpc(npc);
 						}
 						else {
 							muteManager.listenUsername(standardActorName);

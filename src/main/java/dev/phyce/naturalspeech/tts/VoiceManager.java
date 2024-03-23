@@ -319,6 +319,11 @@ public class VoiceManager {
 	public void resetVoiceIDForNPC(@NonNull NPC actor) {
 		voiceConfig.resetNpcIdVoices(actor.getId());
 		voiceConfig.resetNpcIdVoices(actor.getComposition().getId());
+
+		if (actor.getName() != null) {
+			String standardNpcName = Text.standardize(Text.removeTags(actor.getName()));
+			voiceConfig.resetNpcNameVoices(standardNpcName);
+		}
 	}
 
 	public void resetVoiceIDForNPCName(@NonNull String npcName) {

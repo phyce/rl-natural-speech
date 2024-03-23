@@ -149,6 +149,12 @@ public class SpeechEventHandler {
 				String text = Text.sanitizeMultilineText(textWidget.getText());
 				String npcName = npcNameWidget.getName();
 				int npcCompId = headModelWidget.getModelId();
+
+				if (!muteManager.isNpcIdAllowed(npcCompId)) {
+					log.trace("NPC Dialogue is muted. COMP ID:{} NPC name:{}", npcCompId, npcName);
+					return;
+				}
+
 				VoiceID voiceID;
 				try {
 					voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName);
@@ -168,7 +174,7 @@ public class SpeechEventHandler {
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;
 			NPC npc = (NPC) event.getActor();
-			if (!muteManager.isNpcAllowed(npc.getId(), npc.getName())) return;
+			if (!muteManager.isNpcAllowed(npc)) return;
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
 

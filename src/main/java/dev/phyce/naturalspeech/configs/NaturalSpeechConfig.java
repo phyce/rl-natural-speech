@@ -113,34 +113,34 @@ public interface NaturalSpeechConfig extends Config {
 		section=generalSettingsSection
 
 	)
-	@Range(min = 0, max = 100)
+	@Range(min=0, max=100)
 	default int masterVolume() {
 		return 100;
 	}
 
 	@ConfigItem(
-		position = 7,
-		keyName = ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
-		name = "Hold shift for right-click menu",
-		description = "Only show the right-click menu when holding shift.",
-		section = generalSettingsSection
+		position=7,
+		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
+		name="Hold shift for right-click menu",
+		description="Only show the right-click menu when holding shift.",
+		section=generalSettingsSection
 	)
 	default boolean holdShiftRightClickMenu() {
 		return false;
 	}
 
-//	@ConfigItem(
-//		position=5,
-//		keyName="playbackSpeed",
-//		name="Playback speed",
-//		description="The speed at which to play audio",
-//		section=generalSettingsSection
-//
-//	)
-//	@Range(min = 1, max = 500)
-//	default int playbackSpeed() {
-//		return 100;
-//	}
+	//	@ConfigItem(
+	//		position=5,
+	//		keyName="playbackSpeed",
+	//		name="Playback speed",
+	//		description="The speed at which to play audio",
+	//		section=generalSettingsSection
+	//
+	//	)
+	//	@Range(min = 1, max = 500)
+	//	default int playbackSpeed() {
+	//		return 100;
+	//	}
 
 	//</editor-fold>
 
@@ -230,16 +230,16 @@ public interface NaturalSpeechConfig extends Config {
 		return true;
 	}
 
-//	@ConfigItem(
-//		keyName="playerOverhead",
-//		name="Player overhead dialog",
-//		description="Enable text-to-speech to overhead text that is not a message.",
-//		section=ttsOptionsSection,
-//		position=8
-//	)
-//	default boolean playerOverheadEnabled() {
-//		return true;
-//	}
+	//	@ConfigItem(
+	//		keyName="playerOverhead",
+	//		name="Player overhead dialog",
+	//		description="Enable text-to-speech to overhead text that is not a message.",
+	//		section=ttsOptionsSection,
+	//		position=8
+	//	)
+	//	default boolean playerOverheadEnabled() {
+	//		return true;
+	//	}
 
 	@ConfigItem(
 		keyName=ConfigKeys.NPC_OVERHEAD,
@@ -296,22 +296,18 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=1,
-		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE,
-		name="Grand Exchange",
-		description="Disable text-to-speech in the grand exchange area.",
+		keyName=ConfigKeys.MUTE_OTHERS,
+		name="Others",
+		description="Do not generate text-to-speech for messages from other players.",
 		section=muteOptionsSection
+
 	)
-	default boolean muteGrandExchange() {
-		return true;
+	default boolean muteOthers() {
+		return false;
 	}
-	
-//	@ConfigItem(
-//		position = 2,
-//		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE_GUIDE_NPCS,
-//	)
 
 	@ConfigItem(
-		position=4,
+		position=2,
 		keyName=ConfigKeys.MUTE_SELF,
 		name="Yourself",
 		description="Do not generate text-to-speech for messages that you send.",
@@ -323,16 +319,21 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=5,
-		keyName=ConfigKeys.MUTE_OTHERS,
-		name="Others",
-		description="Do not generate text-to-speech for messages from other players.",
+		position=3,
+		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE,
+		name="Grand Exchange",
+		description="Disable text-to-speech in the grand exchange area.",
 		section=muteOptionsSection
-
 	)
-	default boolean muteOthers() {
-		return false;
+	default boolean muteGrandExchange() {
+		return true;
 	}
+
+	//	@ConfigItem(
+	//		position = 2,
+	//		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE_GUIDE_NPCS,
+	//	)
+
 
 	@ConfigItem(
 		position=6,

@@ -7,8 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.NPC;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.util.Text;
 
@@ -24,15 +26,14 @@ public class MuteManager {
 
 
 	private static final String KEY_NPC_ID_LISTEN_LIST = "npcIdListenList";
+
+	// WARNING: Most List.remove List.get have overloads for using index,
+	// Can easily use List.remove(int index) accidentally
+	// When we want to use List.remove(Integer value)
 	private final List<Integer> npcIdListenList = new ArrayList<>();
 	private static final String KEY_NPC_ID_MUTE_LIST = "npcIdMuteList";
 	private final List<Integer> npcIdMuteList = new ArrayList<>();
 
-
-	private static final String KEY_NPC_NAME_LISTEN_LIST = "npcNameListenList";
-	private final List<String> npcNameListenList = new ArrayList<>();
-	private static final String KEY_NPC_NAME_MUTE_LIST = "npcNameMuteList";
-	private final List<String> npcNameMuteList = new ArrayList<>();
 	private final ConfigManager configManager;
 
 	@Getter
@@ -46,35 +47,36 @@ public class MuteManager {
 		loadConfig();
 	}
 
-	public boolean isNpcAllowed(int npcId, String standardized_npcName) {
+	public boolean isNpcAllowed(NPC npc) {
 		if (listenMode) {
-			return isNpcListened(npcId, standardized_npcName);
+			return isNpcListened(npc);
 		} else {
-			return isNpcUnmuted(npcId, standardized_npcName);
+			return isNpcUnmuted(npc);
 		}
 	}
-	public boolean isNpcListened(int npcId, String standardized_npcName) {
-		return npcIdListenList.contains(npcId) || npcNameListenList.contains(standardized_npcName);
+	public boolean isNpcIdAllowed(Integer npcId) {
+		if (listenMode) {
+			return npcIdListenList.contains(npcId);
+		} else {
+			return !npcIdMuteList.contains(npcId);
+		}
 	}
 
-	public boolean isNpcUnmuted(int npcId, String standardized_npcName) {
-		return !npcIdMuteList.contains(npcId) && !npcNameMuteList.contains(standardized_npcName);
+	public boolean isNpcListened(NPC npc) {
+		int npcId = npc.getId();
+		int compId = npc.getComposition().getId();
+
+		return npcIdListenList.contains(npcId) || npcIdListenList.contains(compId);
 	}
 
-//	public void unlistenNpcName(String npcName) {
-//		npcNameListenList.remove(npcName);
-//	}
-//
-//	public boolean isNpcIdAllowed(int npcId) {
-//		return (listenMode && npcIdListenList.contains(npcId))
-//			|| (!listenMode && !npcIdMuteList.contains(npcId));
-//	}
-//
-	//	public boolean isNpcNameAllowed(String standardized_npcName) {
-	//		return (listenMode && npcNameListenList.contains(standardized_npcName))
 
-	//			|| (!listenMode && !npcNameMuteList.contains(standardized_npcName));
-	//	}
+	public boolean isNpcUnmuted(NPC npc) {
+		int npcId = npc.getId();
+		int compId = npc.getComposition().getId();
+
+		return !npcIdMuteList.contains(npcId) && !npcIdMuteList.contains(compId);
+	}
+
 	public boolean isUsernameAllowed(String standardized_username) {
 		if (listenMode) {
 			return isUsernameListened(standardized_username);
@@ -91,36 +93,53 @@ public class MuteManager {
 		return usernameListenList.contains(standardActorName);
 	}
 
-	public void muteNpcId(int npcId) {
-		npcIdMuteList.remove(Integer.valueOf(npcId)); // de-duplicate
+	public void muteNpcId(Integer npcId) {
+		npcIdMuteList.remove(npcId); // de-duplicate
 		npcIdMuteList.add(npcId);
 	}
 
-	public void unmuteNpcId(int npcId) {
-		npcIdMuteList.remove(Integer.valueOf(npcId));
+	public void muteNpc(@NonNull NPC npc) {
+		muteNpcId(npc.getId());
+		muteNpcId(npc.getComposition().getId());
+		// deprecating muting NPC names
+		log.trace("Muting NpcId:{} CompID:{}",
+			npc.getId(), npc.getComposition().getId());
 	}
 
-	public void listenNpcId(int npcId) {
-		npcIdListenList.remove(Integer.valueOf(npcId)); // de-duplicate
+	public void unmuteNpc(@NonNull NPC npc) {
+		unmuteNpcId(npc.getId());
+		unmuteNpcId(npc.getComposition().getId());
+		log.trace("Unmuting NpcId:{} CompID:{}",
+			npc.getId(), npc.getComposition().getId());
+	}
+
+	public void listenNpc(NPC npc) {
+		int npcId = npc.getId();
+		int compId = npc.getComposition().getId();
+
+		listenNpcId(npcId);
+		listenNpcId(compId);
+	}
+
+	public void unlistenNpc(NPC npc) {
+		int npcId = npc.getId();
+		int compId = npc.getComposition().getId();
+
+		unlistenNpcId(npcId);
+		unlistenNpcId(compId);
+	}
+
+	private void unmuteNpcId(Integer npcId) {
+		npcIdMuteList.remove(npcId);
+	}
+
+	private void listenNpcId(Integer npcId) {
+		npcIdListenList.remove(npcId); // de-duplicate
 		npcIdListenList.add(npcId);
 	}
 
-	public void unlistenNpcId(int npcId) {
-		npcIdListenList.remove(Integer.valueOf(npcId));
-	}
-
-	public void muteNpcName(String npcName) {
-		npcNameMuteList.remove(npcName); // de-duplicate
-		npcNameMuteList.add(npcName);
-	}
-
-	public void unmuteNpcName(String npcName) {
-		npcNameMuteList.remove(npcName);
-	}
-
-	public void listenNpcName(String npcName) {
-		npcNameListenList.remove(npcName); // de-duplicate
-		npcNameListenList.add(npcName);
+	private void unlistenNpcId(Integer npcId) {
+		npcIdListenList.remove(npcId);
 	}
 
 	public void muteUsername(String username) {
@@ -142,7 +161,6 @@ public class MuteManager {
 	}
 
 	public void clearListens() {
-		this.npcNameListenList.clear();
 		this.npcIdListenList.clear();
 		this.usernameListenList.clear();
 	}
@@ -150,7 +168,6 @@ public class MuteManager {
 	public void saveConfig() {
 		saveUsernameConfig();
 		saveNpcIdConfig();
-		saveNpcNameConfig();
 		saveListenModeConfig();
 	}
 
@@ -159,7 +176,6 @@ public class MuteManager {
 	public void loadConfig() {
 		loadUsernameConfig();
 		loadNpcIdConfig();
-		loadNpcNameConfig();
 		loadListenModeConfig();
 	}
 
@@ -167,12 +183,6 @@ public class MuteManager {
 		configManager.setConfiguration(NaturalSpeechConfig.CONFIG_GROUP, KEY_LISTEN_MODE, listenMode);
 	}
 
-	private void saveNpcNameConfig() {
-		configManager.setConfiguration(NaturalSpeechConfig.CONFIG_GROUP, KEY_NPC_NAME_LISTEN_LIST,
-			Text.toCSV(npcNameListenList));
-		configManager.setConfiguration(NaturalSpeechConfig.CONFIG_GROUP, KEY_NPC_NAME_MUTE_LIST,
-			Text.toCSV(npcNameMuteList));
-	}
 
 	private void saveNpcIdConfig() {
 		configManager.setConfiguration(NaturalSpeechConfig.CONFIG_GROUP, KEY_NPC_ID_LISTEN_LIST,
@@ -205,23 +215,6 @@ public class MuteManager {
 		}
 	}
 
-	private void loadNpcNameConfig() {
-		{
-			npcNameListenList.clear();
-			String result = configManager.getConfiguration(NaturalSpeechConfig.CONFIG_GROUP, KEY_NPC_NAME_LISTEN_LIST);
-			if (result != null) {
-				npcNameListenList.addAll(Text.fromCSV(result));
-			}
-		}
-
-		{
-			npcNameMuteList.clear();
-			String result = configManager.getConfiguration(NaturalSpeechConfig.CONFIG_GROUP, KEY_NPC_NAME_MUTE_LIST);
-			if (result != null) {
-				npcNameMuteList.addAll(Text.fromCSV(result));
-			}
-		}
-	}
 
 	private void loadNpcIdConfig() {
 		{
