@@ -246,33 +246,59 @@ public class SpeechEventHandler {
 	}
 
 	public boolean isChatMessageMuted(ChatMessage message) {
-		// example: "::::::))))))" (no alpha numeric, muted)
-		if (!TextUtil.containAlphaNumeric(message.getMessage())) return true;
-
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
-
-		// console messages seems to be errors and warnings from other plugins, mute
-		if (message.getType() == ChatMessageType.CONSOLE) return true;
-
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
 
-		if (isMessageTypeDisabledInConfig(message)) return true;
+		// example: "::::::))))))" (no alpha numeric, muted)
+		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
+			log.trace("Muting message. No alpha numeric characters. Message:{}", message.getMessage());
+			return true;
+		}
+		// console messages seems to be errors and warnings from other plugins, mute
+		if (message.getType() == ChatMessageType.CONSOLE) {
+			log.trace("Muting console message. Message:{}", message.getMessage());
+			return true;
+		}
+
+		if (isMessageTypeDisabledInConfig(message)) {
+			log.trace("Muting message. Disabled message type {}. Message:{}", message.getType(), message.getMessage());
+			return true;
+		}
 
 		if (isTooCrowded()) return true;
 
-		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) return true;
+		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) {
+			log.trace("Muting message. Area is disabled. Message:{}", message.getMessage());
+			return true;
+		}
 
-		if (isSelfMuted(message)) return true;
+		if (isSelfMuted(message)) {
+			log.trace("Muting message. Self muted. Message:{}", message.getMessage());
+			return true;
+		}
 
-		if (isMutingOthers(message)) return true;
 
-		if (checkMuteLevelThreshold(message)) return true;
+		if (isMutingOthers(message)) {
+			log.trace("Muting message. Muting others. Message:{}", message.getMessage());
+			return true;
+		}
 
-		if (!muteManager.isUsernameAllowed(Text.standardize(Text.removeTags(message.getName())))) return true;
+		if (checkMuteLevelThreshold(message)) {
+			log.trace("Muting message. Mute level threshold. Message:{}", message.getMessage());
+			return true;
+		}
+
+		if (!muteManager.isUsernameAllowed(Text.standardize(Text.removeTags(message.getName())))) {
+			log.trace("Muting message. Username is muted. Message:{}", message.getMessage());
+			return true;
+		}
 
 		//noinspection RedundantIfStatement
-		if (spamDetection.isSpam(message.getName(), message.getMessage())) return true;
+		if (spamDetection.isSpam(message.getName(), message.getMessage())) {
+			log.trace("Muting message. Spam detected. Message:{}", message.getMessage());
+			return true;
+		}
 
 		return false;
 	}
