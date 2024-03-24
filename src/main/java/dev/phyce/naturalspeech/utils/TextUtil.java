@@ -64,6 +64,7 @@ public final class TextUtil {
 	}
 
 	public static String expandShortenedPhrases(String text, Map<String, String> phrases) {
+		text = preprocessAbbreviations(text);
 		List<String> tokens = tokenize(text);
 		StringBuilder parsedMessage = new StringBuilder();
 
@@ -71,10 +72,18 @@ public final class TextUtil {
 			String key = token.replaceAll("\\p{Punct}", "").toLowerCase();
 
 			String replacement = phrases.getOrDefault(key, token);
-			parsedMessage.append(replacement.equals(token)? token: replacement).append(" ");
+			parsedMessage.append(replacement.equals(token) ? token : replacement).append(" ");
 		}
 
 		return parsedMessage.toString().trim();
+	}
+
+	private static String preprocessAbbreviations(String text) {
+		text = text.replaceAll("(?i)(\\d+)k\\b", "$1 thousand");
+		text = text.replaceAll("(?i)(\\d+)m\\b", "$1 million");
+		text = text.replaceAll("(?i)(\\d+)b\\b", "$1 billion");
+		text = text.replaceAll("(?i)(\\d+)t\\b", "$1 trillion");
+		return text;
 	}
 
 	public static List<String> tokenize(String text) {
