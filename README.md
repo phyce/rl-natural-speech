@@ -29,10 +29,10 @@ At the moment the only supported TTS engine is  [Piper](https://github.com/rhass
 
 ### Post installation notes
 
-After Installing Piper you should be able to use TTS in-game once the voice model is downloaded, and the engine has been started.
+After Installing Piper you should be able to use TTS in-game once the voice pack is downloaded, and the engine has been started.
 
 ## Setting up Natural Speech
-To set up Natural Speech, you will need to install a TTS engine, and download atleast one voice model through the plugin's panel.
+To set up Natural Speech, you will need to install a TTS engine, and download atleast one voice pack through the plugin's panel.
 
 After intalling the plugin, open the panel by clicking the button on the side:
 
@@ -47,7 +47,7 @@ If it's not, piper will not work. To change it click on the browse button, and n
 
 ![](https://mechanic.ink/img/osrs/readme/naturalspeech-2.png)
 
-Click `Download` on a voice repository.
+Click `Download` on a voice pack.
 
 ![](https://mechanic.ink/img/osrs/readme/naturalspeech-3.png)
 
