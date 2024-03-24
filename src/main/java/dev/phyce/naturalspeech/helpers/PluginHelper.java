@@ -125,9 +125,13 @@ public final class PluginHelper {
 	}
 
 	public static boolean isFriend(String username) {
+		username = Text.sanitize(username);
+		System.out.println(username + "\n\n\n");
 		if (username.equals(getLocalPlayerUsername()))return true;
 		for(Friend friend: getFriends()){
-			if(friend.getName().equals(username))return true;
+			System.out.println(friend.getName());
+			String friendName = Text.sanitize(friend.getName());
+			if(friendName.equals(username))return true;
 		}
 		return false;
 	}

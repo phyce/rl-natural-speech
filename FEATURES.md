@@ -42,7 +42,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 ## 1.3.0
  - Added `Friends only` mode
- ~~- Added `Friend volume boost` option~~
+ - Added `Friend volume boost` option
  - Reworked the way master volume is set
 
 ## 1.2.0

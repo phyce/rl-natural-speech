@@ -61,7 +61,8 @@ public class AudioPlayer {
 			audioInputStream = new AudioInputStream(
 				new ByteArrayInputStream(audioData),
 				this.format,
-				audioData.length / this.format.getFrameSize());
+				audioData.length / this.format.getFrameSize()
+			);
 
 			DataLine.Info info = new DataLine.Info(SourceDataLine.class, this.format);
 			line = (SourceDataLine) AudioSystem.getLine(info);

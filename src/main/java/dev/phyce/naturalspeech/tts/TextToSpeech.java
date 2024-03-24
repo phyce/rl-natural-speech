@@ -115,9 +115,9 @@ public class TextToSpeech {
 		triggerOnStop();
 	}
 
-	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
+	public void speak(VoiceID voiceID, String text, float volume, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
-		assert distance >= 0;
+//		assert distance >= 0;
 
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
@@ -133,8 +133,8 @@ public class TextToSpeech {
 
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				float volume = getVolumeWithDistance(distance);
-				System.out.println(volume);
+//				float volume = getVolumeWithDistance(distance);
+//				System.out.println(volume);
 				piper.speak(sentence, voiceID, volume, audioQueueName);
 			}
 		} catch (IOException e) {
@@ -149,34 +149,6 @@ public class TextToSpeech {
 	//</editor-fold>
 
 	//<editor-fold desc="> Audio">
-	public float getVolumeWithDistance(int distance) {
-		float volumeWithDistance;
-		if (distance <= 1) {
-			volumeWithDistance = 0;
-		} else {
-			volumeWithDistance = -6.0f * (float) (Math.log(distance) / Math.log(2));
-		}
-
-		int masterVolumePercentage = PluginHelper.getConfig().masterVolume();
-		if (masterVolumePercentage == 0) return -80;
-
-		// Adjust the exponent to fine-tune the volume decrease curve
-		float exponent = 0.3f; // Lower than 0.5 to make the curve more gradual at high volumes and steeper at low volumes
-		float dBReduction;
-		if (masterVolumePercentage >= 100) {
-			dBReduction = 0;
-		} else {
-			dBReduction = (float) (80.0 - (80.0 * Math.pow(masterVolumePercentage / 100.0, exponent)));
-		}
-
-		float finalVolume = volumeWithDistance - dBReduction;
-
-		// Ensure the final volume does not exceed the limits
-		finalVolume = Math.max(-80, Math.min(0, finalVolume));
-
-		return finalVolume;
-	}
-
 	public void clearAllAudioQueues() {
 		for (String modelName : pipers.keySet()) {
 			pipers.get(modelName).clearQueue();

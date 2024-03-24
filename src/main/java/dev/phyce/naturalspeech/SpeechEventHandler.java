@@ -27,6 +27,7 @@ import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.plugins.Plugin;
 import net.runelite.client.util.Text;
 
 @Slf4j
@@ -59,7 +60,8 @@ public class SpeechEventHandler {
 
 
 		String username;
-		int distance;
+//		int distance;
+		float volume = 0f;
 		VoiceID voiceId;
 		String text = Text.sanitizeMultilineText(message.getMessage());
 
@@ -68,7 +70,7 @@ public class SpeechEventHandler {
 		try {
 			if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
-				distance = 0;
+//				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
 
@@ -76,7 +78,13 @@ public class SpeechEventHandler {
 			}
 			else if (isChatOtherPlayerVoice(message)) {
 				username = Text.standardize(message.getName());
-				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
+				System.out.println("is friend?");
+				System.out.println(PluginHelper.isFriend(message.getName()));
+				int distance = config.distanceFadeEnabled()? getDistance(username) : 0;
+
+				volume = calculateVolume(PluginHelper.isFriend(message.getName()), distance);
+				System.out.println(volume);
+
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
 
@@ -84,7 +92,6 @@ public class SpeechEventHandler {
 			}
 			else if (isChatSystemVoice(message.getType())) {
 				username = MagicUsernames.SYSTEM;
-				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
@@ -100,7 +107,7 @@ public class SpeechEventHandler {
 			return;
 		}
 
-		textToSpeech.speak(voiceId, text, distance, username);
+		textToSpeech.speak(voiceId, text, volume, username);
 	}
 
 	@Subscribe
@@ -175,11 +182,12 @@ public class SpeechEventHandler {
 			if (!muteManager.isNpcAllowed(npc)) return;
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
+			float volume = calculateVolume(false, distance);
 
 			VoiceID voiceID = null;
 			try {
 				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
-				textToSpeech.speak(voiceID, event.getOverheadText(), distance, npc.getName());
+				textToSpeech.speak(voiceID, event.getOverheadText(), volume, npc.getName());
 			} catch (VoiceSelectionOutOfOption e) {
 				log.error(
 					"Voice Selection ran out of options for NPC. No suitable active voice found NPC ID:{} NPC name:{}",
@@ -399,6 +407,36 @@ public class SpeechEventHandler {
 		return false;
 	}
 
+	public float calculateVolume(boolean isFriend, int distance) {
+		float volumeWithDistance;
+		if (distance <= 1) volumeWithDistance = 0;
+		else volumeWithDistance = -6.0f * (float) (Math.log(distance) / Math.log(2));
+
+		int masterVolumePercentage = PluginHelper.getConfig().masterVolume();
+		int friendsVolumeBoost = isFriend ? PluginHelper.getConfig().friendsVolumeBoost() : 0;
+
+		int boostedVolume = masterVolumePercentage + friendsVolumeBoost;
+
+		float exponent = 0.3f;
+		float dBReduction;
+		if (boostedVolume >= 100) {
+			dBReduction = 0;
+			friendsVolumeBoost = boostedVolume - 100;
+			boostedVolume = 100;
+		}
+		else dBReduction = (float) (80.0 - (80.0 * Math.pow(boostedVolume / 100.0, exponent)));
+
+		float finalVolume = volumeWithDistance - dBReduction;
+
+		if (isFriend) {
+			float effectiveBoost = Math.min(6, friendsVolumeBoost + (100 - boostedVolume) * 0.06f);
+			finalVolume += effectiveBoost;
+		}
+
+		finalVolume = Math.max(-80, Math.min(6, finalVolume));
+
+		return finalVolume;
+	}
 
 	private static int getGroupId(int component) {
 		return component >> 16;
