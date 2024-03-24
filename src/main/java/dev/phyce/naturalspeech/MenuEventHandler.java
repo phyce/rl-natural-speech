@@ -154,7 +154,7 @@ public class MenuEventHandler {
 				}
 
 				if (!voiceManager.containsNPC(npc.getId(), Objects.requireNonNull(npc.getName()))) {
-					statusColorTag = "<col=666666>";
+					statusColorTag = "<col=888888>";
 				}
 			}
 			else {
@@ -166,7 +166,7 @@ public class MenuEventHandler {
 				}
 
 				if (!voiceManager.containsUsername(standardActorName)) {
-					statusColorTag = "<col=666666>";
+					statusColorTag = "<col=888888>";
 				}
 			}
 
@@ -188,7 +188,7 @@ public class MenuEventHandler {
 				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
 				MenuEntry configVoiceEntry = client.createMenuEntry(1)
 					.setOption("Configure")
-					.setTarget(entry.getTarget())
+//					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						voiceConfigChatboxTextInputProvider.get()
@@ -213,7 +213,7 @@ public class MenuEventHandler {
 				if (isUnmuted) {
 					MenuEntry muteEntry = client.createMenuEntry(1)
 						.setOption("Mute")
-						.setTarget(entry.getTarget())
+//						.setTarget(entry.getTarget())
 						.setType(MenuAction.RUNELITE)
 						.onClick(e -> {
 							if (npc != null) {
@@ -229,7 +229,7 @@ public class MenuEventHandler {
 				else {
 					MenuEntry unmuteEntry = client.createMenuEntry(1)
 						.setOption("Unmute")
-						.setTarget(entry.getTarget())
+//						.setTarget(entry.getTarget())
 						.setType(MenuAction.RUNELITE)
 						.onClick(e -> {
 							if (npc != null) {
@@ -246,7 +246,7 @@ public class MenuEventHandler {
 			if (isListened) {
 				MenuEntry unlistenEntry = client.createMenuEntry(0)
 					.setOption("Unlisten")
-					.setTarget(entry.getTarget())
+//					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						if (npc != null) {
@@ -261,7 +261,7 @@ public class MenuEventHandler {
 			else {
 				MenuEntry listenEntry = client.createMenuEntry(0)
 					.setOption("Listen")
-					.setTarget(entry.getTarget())
+//					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						if (npc != null) {

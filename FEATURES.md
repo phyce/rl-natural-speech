@@ -1,16 +1,53 @@
 # Features
 
-### *WIP*
-Show Right click menu options: mute, focus, change voice
+### Right click option menu
+Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
+![](https://mechanic.ink/img/osrs/features/right-click.png)
 
-Show console commands
+### Voice Explorer
+Choose from over 1000 different voices for your character. 
+You can use the Included voice explorer to preview a voice:<br/>
+![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
 
-Show voice explorer
+### Vast Customization
+
+Explore the many customization options to fine-tune your TTS experience:<br/>
+![](https://mechanic.ink/img/osrs/features/config.png)
+
+### Spam Prevention
+
+Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
+![](https://mechanic.ink/img/osrs/features/spam-prevention.png)
+
+### Commands
+
+`::setvoice` - Use this command to set the voice of a player.<br>
+**Example**: `::setvoice libritts:120 Zezima`
+
+`::unsetvoice` - Use this command to unset a previously configured voice of a player.<br>
+**Example**: `::unsetvoice Zezima`
+
+`::checkvoice` - Use this command to check your own currently set voices or the voice of another player.<br>
+**Example**: `::checkvoice zezima`
+
+`::nslogger` - Use this to change the logging level. Available options - `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`.<br>
+**Example**: `::nslogger TRACE` 
+
 
 
 
 ---
 # Changelog
+## 1.2.0
+ - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)
+ - Muting a player/npc will persist between sessions
+ - Right click menu entry UI improvements, including new icons.
+ - Added ability to enable right-click menu only when holding the shift key
+ - Configuring a voice now pre-populates field with current voice
+ - `Mute-others` has been renamed to `Listen`
+ - NPC Overhead text now also goes through block/allow filters
+ - Removed rich text information from messages going into the TTS engine
+ - Many performance, stability and codebase improvements
 
 ## 1.1.1
  - Removed a few voice packs as they need retraining

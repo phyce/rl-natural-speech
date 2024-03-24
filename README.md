@@ -36,31 +36,31 @@ To set up Natural Speech, you will need to install a TTS engine, and download at
 
 After intalling the plugin, open the panel by clicking the button on the side:
 
-![](https://mechanic.ink/img/osrs/naturalspeech-0.png)
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-0.png)
 
 You should see a plugin panel looking like the screenshot below.
 
-![](https://mechanic.ink/img/osrs/naturalspeech-1.png)
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-1.png)
 
 Make sure that under the `Play` and `Stop` control buttons the location of your piper installation is correct.
 If it's not, piper will not work. To change it click on the browse button, and navigate to find `piper.exe` and press `Open`.
 
-![](https://mechanic.ink/img/osrs/naturalspeech-2.png)
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-2.png)
 
 Click `Download` on a voice repository.
 
-![](https://mechanic.ink/img/osrs/naturalspeech-3.png)
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-3.png)
 
 
 The button will get greyed out, the download will start and might take a while. Be patient.
 
-![](https://mechanic.ink/img/osrs/naturalspeech-4.png)
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-4.png)
 
 After it's finished downloading, **toggle the repository on**.
 
-![](https://mechanic.ink/img/osrs/naturalspeech-5.png)
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-5.png)
 
 Piper status should update to `Running`, which means the plugin is ready to go!
 
-![](https://mechanic.ink/img/osrs/naturalspeech-6.png)
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-6.png)
 
