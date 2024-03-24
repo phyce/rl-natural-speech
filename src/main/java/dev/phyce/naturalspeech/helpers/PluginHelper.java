@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
+import net.runelite.api.Friend;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
@@ -117,6 +118,18 @@ public final class PluginHelper {
 		if (distance < 0 || 15 < distance) return 0;
 
 		return distance;
+	}
+
+	public static Friend[] getFriends() {
+		return instance.client.getFriendContainer().getMembers();
+	}
+
+	public static boolean isFriend(String username) {
+		if (username.equals(getLocalPlayerUsername()))return true;
+		for(Friend friend: getFriends()){
+			if(friend.getName().equals(username))return true;
+		}
+		return false;
 	}
 
 //	public static boolean isBeingListened(@NonNull String username) {

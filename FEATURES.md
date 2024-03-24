@@ -1,5 +1,7 @@
 # Features
 
+# TODO add distance fade explanation
+
 ### Right click option menu
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
 ![](https://mechanic.ink/img/osrs/features/right-click.png)
@@ -38,6 +40,11 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 
 ---
 # Changelog
+## 1.3.0
+ - Added `Friends only` mode
+ ~~- Added `Friend volume boost` option~~
+ - Reworked the way master volume is set
+
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)
  - Muting a player/npc will persist between sessions

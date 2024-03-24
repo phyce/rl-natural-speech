@@ -39,6 +39,8 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
+		public static final String FRIENDS_ONLY_MODE = "friendsOnlyMode";
+		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -117,9 +119,21 @@ public interface NaturalSpeechConfig extends Config {
 	default int masterVolume() {
 		return 100;
 	}
-
 	@ConfigItem(
 		position=7,
+		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
+		name="Friends volume boost",
+		description="Friend volume boost percentage",
+		section=generalSettingsSection
+
+	)
+	@Range(min=0, max=100)
+	default int friendsVolumeBoost() {
+		return 20;
+	}
+
+	@ConfigItem(
+		position=8,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",
@@ -128,6 +142,16 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean holdShiftRightClickMenu() {
 		return false;
 	}
+
+	@ConfigItem(
+		position=9,
+		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
+		name="Friends only mode",
+		description="Only generate text-to-speech for friends.",
+		section=generalSettingsSection
+	)
+	default boolean friendsOnlyMode() { return false; }
+
 
 	//	@ConfigItem(
 	//		position=5,

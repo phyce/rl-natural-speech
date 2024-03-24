@@ -31,14 +31,12 @@ import net.runelite.client.util.Text;
 
 @Slf4j
 public class SpeechEventHandler {
-
 	private final Client client;
 	private final NaturalSpeechConfig config;
 	private final TextToSpeech textToSpeech;
 	private final VoiceManager voiceManager;
 	private final MuteManager muteManager;
 	private final SpamDetection spamDetection;
-
 	private final ClientThread clientThread;
 
 	@Inject
@@ -246,6 +244,17 @@ public class SpeechEventHandler {
 	}
 
 	public boolean isChatMessageMuted(ChatMessage message) {
+		if (config.friendsOnlyMode()) {
+			switch(message.getType()){
+				case PUBLICCHAT:
+				case PRIVATECHAT:
+				case CLAN_CHAT:
+				case CLAN_GUEST_CHAT:
+				case MODCHAT:
+					if(!PluginHelper.isFriend(message.getName()))return true;
+
+			}
+		}
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
