@@ -1,7 +1,11 @@
 # Natural Speech [![Plugin Installs](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/naturalspeech)](https://runelite.net/plugin-hub/show/naturalspeech) [![Plugin Rank](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/rank/plugin/naturalspeech)](https://runelite.net/plugin-hub)
+
+
 Give everyone a voice in OldSchool RuneScape! For all characters and players, with over 1000 different voices.
 
-Natural Speech requires an installing external tool to process text to generate speech. 
+### To see a list of features, check out [FEATURES.md](FEATURES.md)
+
+Natural Speech requires an installing external tool to process text to generate speech.
 At the moment the only supported TTS engine is  [Piper](https://github.com/rhasspy/piper).
 
 [![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/FYPM226s)
