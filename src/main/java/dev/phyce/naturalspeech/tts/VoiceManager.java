@@ -255,10 +255,11 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
+			log.debug("No existing settings found for username {}, generate random voice.", standardized_username);
 			Player player = PluginHelper.findPlayerWithUsername(standardized_username);
 			if (player != null) {
 				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
-				log.debug("No existing settings found for {}, using randomize gendered voice.", standardized_username);
+				log.debug("Using randomize gendered voice for {}.", standardized_username);
 				VoiceID voiceID = randomGenderedVoice(standardized_username, gender);
 				if (voiceID != null) {
 					return voiceID;
@@ -267,7 +268,8 @@ public class VoiceManager {
 				}
 			}
 			else {
-				log.debug("No Player object found with {}, using random voice.", standardized_username);
+				log.debug("Could not determine gender, no Player object found with {}, using random voice.",
+					standardized_username);
 				VoiceID voiceID = randomVoiceFromActiveModels(standardized_username);
 				if (voiceID == null) {
 					throw new VoiceSelectionOutOfOption();
