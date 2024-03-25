@@ -208,9 +208,11 @@ public class VoiceManager {
 		if (result == null) {
 			// 4. If no NPC Global is available, randomize using npc name
 			result = randomVoiceFromActiveModels(npcName);
+			log.debug("No global NPC voice found, using random voice {}", result);
 		}
 
 		if (result == null) {
+			log.debug("Voice selection out of options. Likely no models are active.");
 			throw new VoiceSelectionOutOfOption();
 		}
 
