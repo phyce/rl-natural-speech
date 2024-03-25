@@ -250,12 +250,15 @@ public class VoiceManager {
 		VoiceID result;
 		if (voiceAndFallback != null) {
 			result = getFirstActiveVoice(voiceAndFallback);
+			if (result == null) {
+				log.debug("Existing settings {} found for username {}, but model is not active.", voiceAndFallback, standardized_username);
+			}
 		} else {
 			result = null;
+			log.debug("No existing settings found for username {}, generate random voice.", standardized_username);
 		}
 
 		if (result == null) {
-			log.debug("No existing settings found for username {}, generate random voice.", standardized_username);
 			Player player = PluginHelper.findPlayerWithUsername(standardized_username);
 			if (player != null) {
 				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
