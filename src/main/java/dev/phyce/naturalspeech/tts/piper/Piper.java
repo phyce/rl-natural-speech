@@ -133,7 +133,7 @@ public class Piper {
 					if (audioClip != null && audioClip.length > 0) {
 						AudioQueue audioQueue =
 							namedAudioQueueMap.computeIfAbsent(task.audioQueueName, audioQueueName -> new AudioQueue());
-						audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getVolume()));
+						audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getGainDb()));
 
 						synchronized (namedAudioQueueMap) {namedAudioQueueMap.notify();}
 
@@ -178,7 +178,7 @@ public class Piper {
 	}
 
 	// Refactored to decouple from dependencies
-	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
+	public void speak(String text, VoiceID voiceID, float volumnDb, String audioQueueName) throws IOException {
 		if (countAlive() == 0) {
 			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
 		}
@@ -188,7 +188,7 @@ public class Piper {
 			clearQueue();
 		}
 
-		piperTaskQueue.add(new PiperTask(text, voiceID, volume, audioQueueName));
+		piperTaskQueue.add(new PiperTask(text, voiceID, volumnDb, audioQueueName));
 		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 	}
 
@@ -274,7 +274,7 @@ public class Piper {
 	private static class PiperTask {
 		String text;
 		VoiceID voiceID;
-		float volume;
+		float gainDb;
 		String audioQueueName;
 	}
 
