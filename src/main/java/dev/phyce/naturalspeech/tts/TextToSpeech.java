@@ -115,7 +115,7 @@ public class TextToSpeech {
 		triggerOnStop();
 	}
 
-	public void speak(VoiceID voiceID, String text, float volume, String audioQueueName)
+	public void speak(VoiceID voiceID, String text, float volumeDb, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
 //		assert distance >= 0;
 
@@ -133,7 +133,8 @@ public class TextToSpeech {
 
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				piper.speak(sentence, voiceID, volume, audioQueueName);
+
+				piper.speak(sentence, voiceID, volumeDb, audioQueueName);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);

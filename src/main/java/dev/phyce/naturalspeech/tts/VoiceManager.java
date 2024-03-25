@@ -208,9 +208,11 @@ public class VoiceManager {
 		if (result == null) {
 			// 4. If no NPC Global is available, randomize using npc name
 			result = randomVoiceFromActiveModels(npcName);
+			log.debug("No global NPC voice found, using random voice {}", result);
 		}
 
 		if (result == null) {
+			log.debug("Voice selection out of options. Likely no models are active.");
 			throw new VoiceSelectionOutOfOption();
 		}
 
@@ -248,15 +250,19 @@ public class VoiceManager {
 		VoiceID result;
 		if (voiceAndFallback != null) {
 			result = getFirstActiveVoice(voiceAndFallback);
+			if (result == null) {
+				log.debug("Existing settings {} found for username {}, but model is not active.", voiceAndFallback, standardized_username);
+			}
 		} else {
 			result = null;
+			log.debug("No existing settings found for username {}, generate random voice.", standardized_username);
 		}
 
 		if (result == null) {
 			Player player = PluginHelper.findPlayerWithUsername(standardized_username);
 			if (player != null) {
 				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
-				log.debug("No existing settings found for {}, using randomize gendered voice.", standardized_username);
+				log.debug("Using randomize gendered voice for {}.", standardized_username);
 				VoiceID voiceID = randomGenderedVoice(standardized_username, gender);
 				if (voiceID != null) {
 					return voiceID;
@@ -265,7 +271,8 @@ public class VoiceManager {
 				}
 			}
 			else {
-				log.debug("No Player object found with {}, using random voice.", standardized_username);
+				log.debug("Could not determine gender, no Player object found with {}, using random voice.",
+					standardized_username);
 				VoiceID voiceID = randomVoiceFromActiveModels(standardized_username);
 				if (voiceID == null) {
 					throw new VoiceSelectionOutOfOption();

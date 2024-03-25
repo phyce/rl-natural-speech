@@ -28,11 +28,6 @@ public final class PluginHelper {
 	@Inject
 	private Client client;
 
-	@Getter
-	private static final Set<String> allowList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-	@Getter
-	private static final Set<String> blockList = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-
 	public PluginHelper() {
 		// single guarantees one instance, no checks needed
 		instance = this;
@@ -134,34 +129,6 @@ public final class PluginHelper {
 		return false;
 	}
 
-//	public static boolean isBeingListened(@NonNull String username) {
-//		if (allowList.isEmpty() && blockList.isEmpty()) return true;
-//		if (!allowList.isEmpty() && allowList.contains(username)) return true;
-//		return !blockList.isEmpty() && !blockList.contains(username);
-//	}
-//
-//	public static void listen(@NonNull String username) {
-//		blockList.clear();
-//		if (allowList.contains(username)) return;
-//		allowList.add(username);
-//	}
-//
-//	public static void unlisten(@NonNull String username) {
-//		if (allowList.isEmpty()) return;
-//		allowList.remove(username);
-//	}
-//
-//	public static void mute(@NonNull String username) {
-//		allowList.clear();
-//		if (blockList.contains(username)) return;
-//		blockList.add(username);
-//	}
-//
-//	public static void unmute(@NonNull String username) {
-//		if (blockList.isEmpty()) return;
-//		blockList.remove(username);
-//	}
-
 	public static boolean isPlayerChatMessage(@NonNull ChatMessage message) {
 		return !isNPCChatMessage(message);
 	}
@@ -181,25 +148,4 @@ public final class PluginHelper {
 		return false;
 	}
 
-//	public static boolean checkMuteAllowAndBlockList(@NonNull ChatMessage message) {
-//		switch (message.getType()) {
-//			case PUBLICCHAT:
-//			case PRIVATECHAT:
-//			case PRIVATECHATOUT:
-//			case FRIENDSCHAT:
-//			case CLAN_CHAT:
-//			case CLAN_GUEST_CHAT:
-//				if (isBlockedOrNotAllowed(message.getName())) return true;
-//		}
-//		return false;
-//	}
-
-//	public static boolean isBlockedOrNotAllowed(String name) {
-//		if (!PluginHelper.getAllowList().isEmpty() &&
-//			!PluginHelper.getAllowList().contains(name)) {return true;}
-//		if (!PluginHelper.getBlockList().isEmpty() && PluginHelper.getBlockList().contains(name)) {
-//			return true;
-//		}
-//		return false;
-//	}
 }

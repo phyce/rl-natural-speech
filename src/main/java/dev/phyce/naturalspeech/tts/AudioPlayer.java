@@ -27,11 +27,11 @@ public class AudioPlayer {
 			false); // Little Endian
 	}
 
-	public static void setVolume(SourceDataLine line, float volume) {
+	public static void setVolume(SourceDataLine line, float volumeDb) {
 
 		if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
 			FloatControl volumeControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
-			volumeControl.setValue(volume);
+			volumeControl.setValue(volumeDb);
 		}
 	}
 
@@ -53,7 +53,7 @@ public class AudioPlayer {
 	}
 
 	// decoupled audio system from plugin logic
-	public void playClip(byte[] audioData, float volume) {
+	public void playClip(byte[] audioData, float volumeDb) {
 		AudioInputStream audioInputStream = null;
 		SourceDataLine line = null;
 
@@ -70,7 +70,7 @@ public class AudioPlayer {
 			line.open(this.format);
 			line.start();
 
-			setVolume(line, volume);
+			setVolume(line, volumeDb);
 
 			byte[] buffer = new byte[1024];
 			int bytesRead;
