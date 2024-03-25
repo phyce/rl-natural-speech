@@ -36,7 +36,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String MUTE_OTHERS = "muteOthers";
 		public static final String MUTE_LEVEL_THRESHOLD = "muteLevelThreshold";
 		public static final String MUTE_CROWDS = "muteCrowds";
-		public static final String SHORTENED_PHRASES = "shortenedPhrases";
+		public static final String ABBREVIATIONS = "abbreviations";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
 		public static final String FRIENDS_ONLY_MODE = "friendsOnlyMode";
@@ -90,7 +90,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=4,
 		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
-		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
+		description="If executable and voice models available, autostart the TTS engine when the plugin loads",
 		section=generalSettingsSection
 	)
 	default boolean autoStart() {return true;}
@@ -99,7 +99,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=5,
 		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
-		description="Players standing further away will sound quieter.",
+		description="Players standing further away will sound quieter",
 		section=generalSettingsSection
 
 	)
@@ -179,7 +179,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.PUBLIC_CHAT,
 		name="Public messages",
-		description="Enable text-to-speech to the public chat messages.",
+		description="Enable text-to-speech to the public chat messages",
 		section=ttsOptionsSection,
 		position=1
 	)
@@ -190,7 +190,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.PRIVATE_CHAT,
 		name="Private received messages",
-		description="Enable text-to-speech to the received private chat messages.",
+		description="Enable text-to-speech to the received private chat messages",
 		section=ttsOptionsSection,
 		position=2
 	)
@@ -201,7 +201,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.PRIVATE_OUT_CHAT,
 		name="Private sent out messages",
-		description="Enable text-to-speech to the sent out private chat messages.",
+		description="Enable text-to-speech to the sent out private chat messages",
 		section=ttsOptionsSection
 		,
 		position=3
@@ -213,7 +213,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.FRIENDS_CHAT,
 		name="Friends chat",
-		description="Enable text-to-speech to friends chat messages.",
+		description="Enable text-to-speech to friends chat messages",
 		section=ttsOptionsSection,
 		position=4
 	)
@@ -224,7 +224,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.CLAN_CHAT,
 		name="Clan chat",
-		description="Enable text-to-speech to the clan chat messages.",
+		description="Enable text-to-speech to the clan chat messages",
 		section=ttsOptionsSection,
 		position=5
 	)
@@ -235,7 +235,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.CLAN_GUEST_CHAT,
 		name="Guest clan chat",
-		description="Enable text-to-speech to the guest clan chat messages.",
+		description="Enable text-to-speech to the guest clan chat messages",
 		section=ttsOptionsSection,
 		position=6
 	)
@@ -246,7 +246,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.EXAMINE_CHAT,
 		name="Examine text",
-		description="Enable text-to-speech to the 'Examine' messages.",
+		description="Enable text-to-speech to the 'Examine' messages",
 		section=ttsOptionsSection,
 		position=7
 	)
@@ -257,7 +257,7 @@ public interface NaturalSpeechConfig extends Config {
 	//	@ConfigItem(
 	//		keyName="playerOverhead",
 	//		name="Player overhead dialog",
-	//		description="Enable text-to-speech to overhead text that is not a message.",
+	//		description="Enable text-to-speech to overhead text that is not a message",
 	//		section=ttsOptionsSection,
 	//		position=8
 	//	)
@@ -268,7 +268,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.NPC_OVERHEAD,
 		name="NPC overhead dialog",
-		description="Enable text-to-speech to the overhead dialog for NPCs.",
+		description="Enable text-to-speech to the overhead dialog for NPCs",
 		section=ttsOptionsSection,
 		position=9
 	)
@@ -279,7 +279,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.DIALOG,
 		name="Dialogs",
-		description="Enable text-to-speech to dialog text.",
+		description="Enable text-to-speech to dialog text",
 		section=ttsOptionsSection,
 		position=10
 	)
@@ -290,7 +290,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		keyName=ConfigKeys.REQUESTS,
 		name="Trade/Challenge requests",
-		description="Enable text-to-speech to trade and challenge requests.",
+		description="Enable text-to-speech to trade and challenge requests",
 		section=ttsOptionsSection,
 		position=11
 	)
@@ -322,7 +322,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=1,
 		keyName=ConfigKeys.MUTE_OTHERS,
 		name="Others",
-		description="Do not generate text-to-speech for messages from other players.",
+		description="Do not generate text-to-speech for messages from other players",
 		section=muteOptionsSection
 
 	)
@@ -334,7 +334,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=2,
 		keyName=ConfigKeys.MUTE_SELF,
 		name="Yourself",
-		description="Do not generate text-to-speech for messages that you send.",
+		description="Do not generate text-to-speech for messages that you send",
 		section=muteOptionsSection
 
 	)
@@ -346,7 +346,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=3,
 		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE,
 		name="Grand Exchange",
-		description="Disable text-to-speech in the grand exchange area.",
+		description="Disable text-to-speech in the grand exchange area",
 		section=muteOptionsSection
 	)
 	default boolean muteGrandExchange() {
@@ -359,7 +359,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=6,
 		keyName=ConfigKeys.MUTE_LEVEL_THRESHOLD,
 		name="Below level",
-		description="Do not generate text-to-speech for messages from players with levels lower than this value.",
+		description="Do not generate text-to-speech for messages from players with levels lower than this value",
 		section=muteOptionsSection
 	)
 	@Range(min=3, max=126)
@@ -371,7 +371,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=7,
 		keyName=ConfigKeys.MUTE_CROWDS,
 		name="Crowds larger than",
-		description="When there are more players than the specified number around you, TTS will not trigger. 0 for no limit.",
+		description="When there are more players than the specified number around you, TTS will not trigger. 0 for no limit",
 		section=muteOptionsSection
 	)
 	default int muteCrowds() {
@@ -390,12 +390,12 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=4,
-		keyName=ConfigKeys.SHORTENED_PHRASES,
-		name="Shortened phrases",
-		description="Replace commonly used shortened sentences with whole words",
+		keyName=ConfigKeys.ABBREVIATIONS,
+		name="Abbreviations",
+		description="Replace commonly used abbreviations with whole words",
 		section=otherOptionsSection
 	)
-	default String shortenedPhrases() {
+	default String abbreviations() {
 		return "ags=armadyl godsword\n" +
 			"ags2=ancient godsword\n" +
 			"bgs=bandos godsword\n" +

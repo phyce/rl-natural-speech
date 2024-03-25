@@ -46,6 +46,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
  - Reworked the way master volume is set
  - Renamed `Shortened phrases` to `Abbreviations`
  - Added numerical abbreviations (k, m, b, t)
+ - 
 
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)

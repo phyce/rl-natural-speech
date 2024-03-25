@@ -43,7 +43,7 @@ public class TextToSpeech {
 	private final ModelRepository modelRepository;
 	private final NaturalSpeechConfig config;
 
-	private Map<String, String> shortenedPhrases;
+	private Map<String, String> abbreviations;
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
@@ -133,8 +133,6 @@ public class TextToSpeech {
 
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-//				float volume = getVolumeWithDistance(distance);
-//				System.out.println(volume);
 				piper.speak(sentence, voiceID, volume, audioQueueName);
 			}
 		} catch (IOException e) {
@@ -142,8 +140,8 @@ public class TextToSpeech {
 		}
 	}
 
-	public String expandShortenedPhrases(String text) {
-		return TextUtil.expandShortenedPhrases(text, shortenedPhrases);
+	public String expandAbbreviations(String text) {
+		return TextUtil.expandAbbreviations(text, abbreviations);
 	}
 
 	//</editor-fold>
@@ -300,13 +298,13 @@ public class TextToSpeech {
 	}
 
 	// In method so we can load again when user changes config
-	public void loadShortenedPhrases() {
-		String phrases = config.shortenedPhrases();
-		shortenedPhrases = new HashMap<>();
+	public void loadAbbreviations() {
+		String phrases = config.abbreviations();
+		abbreviations = new HashMap<>();
 		String[] lines = phrases.split("\n");
 		for (String line : lines) {
 			String[] parts = line.split("=", 2);
-			if (parts.length == 2) shortenedPhrases.put(parts[0].trim(), parts[1].trim());
+			if (parts.length == 2) abbreviations.put(parts[0].trim(), parts[1].trim());
 		}
 	}
 

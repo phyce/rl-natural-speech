@@ -63,7 +63,7 @@ public final class TextUtil {
 		return lastSpace;
 	}
 
-	public static String expandShortenedPhrases(String text, Map<String, String> phrases) {
+	public static String expandAbbreviations(String text, Map<String, String> phrases) {
 		text = preprocessAbbreviations(text);
 		List<String> tokens = tokenize(text);
 		StringBuilder parsedMessage = new StringBuilder();

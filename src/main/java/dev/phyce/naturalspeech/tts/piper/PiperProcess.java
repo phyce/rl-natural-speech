@@ -121,10 +121,8 @@ public class PiperProcess {
 			byte[] result = null;
 			boolean valid = false;
 
-			synchronized (streamCapture) {
-				streamCapture.reset();
-			}
-
+			synchronized (streamCapture) { streamCapture.reset(); }
+			
 			processStdIn.write(TextUtil.generateJson(text, piperVoiceID));
 			processStdIn.newLine();
 			processStdIn.flush();
@@ -132,13 +130,12 @@ public class PiperProcess {
 			synchronized (streamCapture) {
 				streamCapture.wait();
 
-				if (!valid) {
-					result = streamCapture.toByteArray();
-				}
+				if (!valid) result = streamCapture.toByteArray();
 			}
 
 			audioClip = result;
 		} finally {
+			streamCapture.reset();
 			piperLocked.set(false);
 		}
 		return audioClip;

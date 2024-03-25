@@ -133,8 +133,8 @@ public class NaturalSpeechPlugin extends Plugin {
 			clientToolbar.addNavigation(navButton);
 		}
 
-		// Load ShortenedPhrases is a method that can be called later when configs are changed
-		textToSpeech.loadShortenedPhrases();
+		// Load Abbreviations is a method that can be called later when configs are changed
+		textToSpeech.loadAbbreviations();
 
 
 		if (config.autoStart()) {
@@ -210,9 +210,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		switch (event.getKey()) {
-			case ConfigKeys.SHORTENED_PHRASES:
+			case ConfigKeys.ABBREVIATIONS:
 				log.trace("Detected short phrase changes, reloading into TextToSpeech");
-				textToSpeech.loadShortenedPhrases();
+				textToSpeech.loadAbbreviations();
 				break;
 
 			case ConfigKeys.PERSONAL_VOICE:

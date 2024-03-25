@@ -114,7 +114,7 @@ public class VoiceListItem extends JPanel {
 						if (textToSpeech.isModelActive(modelLocal)) {
 							textToSpeech.speak(
 								voiceMetadata.toVoiceID(),
-								textToSpeech.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
+								textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
 								0,
 								"&VoiceExplorer");
 						}
