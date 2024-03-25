@@ -14,12 +14,15 @@ import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
+import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +50,15 @@ public class TextToSpeech {
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
+
+	private final Map<String, SpeechAPI4> sapis = new HashMap<>();
+	static final String[] sapiModels = {
+		"sam",
+		"mary",
+		"mike",
+		"robo1"
+	};
+
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
@@ -96,6 +108,11 @@ public class TextToSpeech {
 			return;
 		}
 
+		// FIXME(Louis): Sapi init
+		for (String sapiModel : sapiModels) {
+			sapis.put(sapiModel, SpeechAPI4.start(sapiModel, Path.of("")));
+		}
+
 		if (started) {
 			triggerOnStart();
 		}
@@ -112,6 +129,10 @@ public class TextToSpeech {
 			triggerOnPiperExit(piper);
 		}
 		pipers.clear();
+
+		// FIXME(Louis) Sapi exit
+		sapis.clear();
+
 		triggerOnStop();
 	}
 
@@ -120,7 +141,9 @@ public class TextToSpeech {
 //		assert distance >= 0;
 
 		try {
-			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
+			if (!modelRepository.hasModelLocal(voiceID.modelName)
+				// FIXME(Louis): Implement SAPI Models into ModelRepository
+			&& !sapis.containsKey(voiceID.modelName)) {
 				throw new ModelLocalUnavailableException(text, voiceID);
 			}
 
@@ -129,16 +152,35 @@ public class TextToSpeech {
 			}
 
 			// Piper should be guaranteed to be present due to checks above
-			Piper piper = pipers.get(voiceID.modelName);
 
-			List<String> fragments = splitSentence(text);
-			for (String sentence : fragments) {
-//				float volume = getVolumeWithDistance(distance);
-//				System.out.println(volume);
-				piper.speak(sentence, voiceID, volumeDb, audioQueueName);
+			Object ttsEngine = resolveEngine(voiceID);
+
+			if (ttsEngine instanceof Piper) {
+				Piper piper = (Piper) ttsEngine;
+				List<String> fragments = splitSentence(text);
+				for (String sentence : fragments) {
+					//				float volume = getVolumeWithDistance(distance);
+					//				System.out.println(volume);
+					piper.speak(sentence, voiceID, volumeDb, audioQueueName);
+				}
+			} else if (ttsEngine instanceof SpeechAPI4) {
+				SpeechAPI4 sapi = (SpeechAPI4) ttsEngine;
+				sapi.speak(text, voiceID, volumeDb, audioQueueName);
+			} else {
+				log.info("Model for VoiceID is unavailable {}", voiceID);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
+		}
+	}
+
+	// FIXME(Louis): Returns Object right now, eventually we can return a TTSEngine interface
+	public Object resolveEngine(VoiceID voiceID) {
+
+		if (sapis.containsKey(voiceID.modelName)) {
+			return sapis.get(voiceID.modelName);
+		} else {
+			return pipers.get(voiceID.modelName);
 		}
 	}
 
@@ -260,6 +302,12 @@ public class TextToSpeech {
 	}
 
 	public boolean isModelActive(String modelName) {
+
+		// FIXME(Louis): Double check later
+		if (sapis.containsKey(modelName)) {
+			return true;
+		}
+
 		Piper piper = pipers.get(modelName);
 		return piper != null && piper.countAlive() > 0;
 	}
