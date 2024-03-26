@@ -36,7 +36,14 @@ public class NaturalSpeechRuntimeConfig {
 		return path;
 	}
 
-
+	public Path getSAPI4Path() {
+		//FIXME(Louis): Use piper path for now
+		if (OSValidator.IS_WINDOWS) {
+			return getPiperPath().resolveSibling("SAPI4").resolve("sapi4out.exe");
+		} else {
+			throw new RuntimeException("Windows Speech API4.0 not supported on this operating system");
+		}
+	}
 
 	public void savePiperPath(Path path) {
 		configManager.setConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH, path.toString());

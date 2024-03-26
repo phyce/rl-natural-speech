@@ -78,12 +78,12 @@ public class SpeechEventHandler {
 			}
 			else if (isChatOtherPlayerVoice(message)) {
 				username = Text.standardize(message.getName());
-				System.out.println("is friend?");
-				System.out.println(PluginHelper.isFriend(message.getName()));
+//				System.out.println("is friend?");
+//				System.out.println(PluginHelper.isFriend(message.getName()));
 				int distance = config.distanceFadeEnabled()? getDistance(username) : 0;
 
 				volume = calculateVolume(PluginHelper.isFriend(message.getName()), distance);
-				System.out.println(volume);
+//				System.out.println(volume);
 
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);

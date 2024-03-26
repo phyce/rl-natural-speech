@@ -93,6 +93,8 @@ public class AudioPlayer {
 		}
 	}
 
+
+
 	//	public static int calculateAudioLength(byte[] audioClip) {
 	//		final int bytesPerSample = 2; // 16-bit mono
 	//		final int sampleRate = 22050; // Hz

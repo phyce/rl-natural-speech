@@ -110,7 +110,7 @@ public class TextToSpeech {
 
 		// FIXME(Louis): Sapi init
 		for (String sapiModel : sapiModels) {
-			sapis.put(sapiModel, SpeechAPI4.start(sapiModel, Path.of("")));
+			sapis.put(sapiModel, SpeechAPI4.start(sapiModel, runtimeConfig.getSAPI4Path()));
 		}
 
 		if (started) {
