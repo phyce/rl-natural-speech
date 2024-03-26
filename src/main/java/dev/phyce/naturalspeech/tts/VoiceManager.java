@@ -120,6 +120,12 @@ public class VoiceManager {
 		int hashCode = standardized_username.hashCode();
 
 		long count = activeVoiceMap.values().size();
+
+		System.out.println("hashCode");
+		System.out.println(hashCode);
+		System.out.println("count");
+		System.out.println(count);
+
 		Optional<VoiceID> first = activeVoiceMap.values().stream().skip(Math.abs(hashCode) % count).findFirst();
 
 		return first.orElse(null);

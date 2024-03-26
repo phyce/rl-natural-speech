@@ -1,6 +1,6 @@
 # Features
 
-# TODO add distance fade explanation
+## TODO add distance fade explanation
 
 ### Right click option menu
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
@@ -53,8 +53,10 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 ## 1.3.0
  - Added `Friends only` mode
  - Added `Friend volume boost` option
- - Reworked the way master volume is set
- - Renamed `Shortened phrases` to `Abbreviations`
+ - Added `Use common abbreviations` option
+ - `Shortened phrases` are `Abbreviations`
+ - `Abbreviations` field is now `Custom abbreviations`
+ - Reworked the way master volume is adjusted internally
  - Added numerical abbreviations (k, m, b, t)
  - Fixed having multiple instances never using more than one
 

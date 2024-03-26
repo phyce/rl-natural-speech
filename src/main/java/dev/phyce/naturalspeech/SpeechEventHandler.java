@@ -159,7 +159,6 @@ public class SpeechEventHandler {
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-
 				textToSpeech.speak(voiceID, text, 0, npcName);
 			});
 		}

@@ -210,8 +210,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		switch (event.getKey()) {
-			case ConfigKeys.ABBREVIATIONS:
-				log.trace("Detected short phrase changes, reloading into TextToSpeech");
+			case ConfigKeys.COMMON_ABBREVIATIONS:
+			case ConfigKeys.CUSTOM_ABBREVIATIONS:
+				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
 				textToSpeech.loadAbbreviations();
 				break;
 
@@ -222,9 +223,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				updateConfigVoice(event.getKey(), event.getNewValue());
 				break;
 		}
-
 	}
-
 
 	private void updateConfigVoice(String configKey, String voiceString) {
 		VoiceID voiceID;
@@ -263,14 +262,10 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 		}
 	}
-
 	//</editor-fold>
-
 
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);
 	}
-
-
 }

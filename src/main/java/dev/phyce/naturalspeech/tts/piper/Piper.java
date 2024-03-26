@@ -121,7 +121,6 @@ public class Piper {
 					audioQueueName -> new AudioQueue());
 
 				synchronized (audioQueue) { audioQueue.queue.add(audioClipFuture); }
-
 				continue TaskIteration;
 			}
 		}
