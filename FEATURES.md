@@ -53,9 +53,9 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 ## 1.3.0
  - Added `Friends only` mode
  - Added `Friend volume boost` option
- - Added `Use common abbreviations` option
- - `Shortened phrases` are `Abbreviations`
+ - `Shortened phrases` are now `Abbreviations`
  - `Abbreviations` field is now `Custom abbreviations`
+ - Added `Use common abbreviations` option
  - Reworked the way master volume is adjusted internally
  - Added numerical abbreviations (k, m, b, t)
  - Fixed having multiple instances never using more than one

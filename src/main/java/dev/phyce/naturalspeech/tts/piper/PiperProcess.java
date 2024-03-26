@@ -135,7 +135,7 @@ public class PiperProcess {
 
 			audioClip = result;
 		} finally {
-			try { Thread.sleep(10); }
+			try { Thread.sleep(5); }
 			catch(InterruptedException e) { throw new RuntimeException(e); }
 			streamCapture.reset();
 			piperLocked.set(false);

@@ -129,7 +129,6 @@ public class TextToSpeech {
 
 	public void speak(VoiceID voiceID, String text, float volumeDb, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
-//		assert distance >= 0;
 
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
@@ -143,11 +142,8 @@ public class TextToSpeech {
 			// Piper should be guaranteed to be present due to checks above
 			Piper piper = pipers.get(voiceID.modelName);
 
-			List<String> fragments = splitSentence(text);
-			for (String sentence : fragments) {
+			piper.speak(text, voiceID, volumeDb, audioQueueName);
 
-				piper.speak(sentence, voiceID, volumeDb, audioQueueName);
-			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
 		}
@@ -156,7 +152,6 @@ public class TextToSpeech {
 	public String expandAbbreviations(String text) {
 		return TextUtil.expandAbbreviations(text, abbreviations);
 	}
-
 	//</editor-fold>
 
 	//<editor-fold desc="> Audio">
@@ -294,7 +289,6 @@ public class TextToSpeech {
 	}
 	//</editor-fold>
 
-
 	public void loadModelConfig() {
 		String json = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_MODEL_CONFIG);
 
@@ -371,6 +365,5 @@ public class TextToSpeech {
 		default void onStart() {}
 
 		default void onStop() {}
-
 	}
 }

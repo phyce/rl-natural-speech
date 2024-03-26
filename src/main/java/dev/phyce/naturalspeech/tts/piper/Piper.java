@@ -4,8 +4,10 @@ import dev.phyce.naturalspeech.tts.AudioPlayer;
 import dev.phyce.naturalspeech.tts.AudioQueue;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.tts.VoiceID;
+import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,6 +17,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
@@ -38,6 +42,8 @@ public class Piper {
 	private final Thread processAudioQueueThread;
 
 	private final List<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new ArrayList<>();
+
+	private ExecutorService executorService = Executors.newCachedThreadPool();
 
 	/**
 	 * Create a piper and immediately start
@@ -64,6 +70,8 @@ public class Piper {
 		processAudioQueueThread =
 			new Thread(this::processAudioQueue, String.format("[%s] Piper::processAudioQueue Thread", this));
 		processAudioQueueThread.start();
+
+		ExecutorService executorService = Executors.newCachedThreadPool();
 	}
 
 	public void startMore(int instanceCount) throws IOException {
@@ -91,10 +99,8 @@ public class Piper {
 		TaskIteration:
 		while (!processPiperTaskThread.isInterrupted()) {
 			if (piperTaskQueue.isEmpty()) {
-				try { Thread.sleep(5); }
-				catch(InterruptedException e) {
-					throw new RuntimeException(e);
-				}
+//				try { Thread.sleep(5); }
+//				catch(InterruptedException e) { throw new RuntimeException(e); }
 				continue TaskIteration;
 			}
 
@@ -121,6 +127,7 @@ public class Piper {
 					audioQueueName -> new AudioQueue());
 
 				synchronized (audioQueue) { audioQueue.queue.add(audioClipFuture); }
+
 				continue TaskIteration;
 			}
 		}
@@ -138,7 +145,7 @@ public class Piper {
 					AudioQueue.AudioTask audioTask = new AudioQueue.AudioTask(audioClip, task.getGainDb());
 					future.complete(audioTask);
 				} else {
-					future.complete(null); // or consider using future.completeExceptionally(new SomeException("Error message"));
+					future.complete(null);
 				}
 			} catch (IOException | InterruptedException e) {
 				log.error("{} had an unexpected exit, either crashed or terminated by user.", process);
@@ -158,7 +165,7 @@ public class Piper {
 				if (!audioQueue.isPlaying() && !audioQueue.queue.isEmpty()) {
 					new Thread(() -> processAudioFuture(audioQueue, queueName)).start();
 				} else {
-					try { Thread.sleep(5); }
+					try { Thread.sleep(10); }
 					catch(InterruptedException e) {
 						audioQueue.setPlaying(false);
 						throw new RuntimeException(e);
@@ -170,34 +177,78 @@ public class Piper {
 
 	public void processAudioFuture(AudioQueue audioQueue, String queueName) {
 		audioQueue.setPlaying(true);
+//		ConcurrentLinkedQueue<AudioQueue.AudioTask> subQueue = new ConcurrentLinkedQueue<>();
+//		Thread playbackThread = new Thread(() -> {
+//			while (audioQueue.isPlaying() || !subQueue.isEmpty()) {
+//				AudioQueue.AudioTask task = subQueue.poll();
+//				if (task != null) {
+//					audioPlayer.playClip(task.getAudioClip(), task.getVolume());
+//				}
+//			}
+//		});
+//		playbackThread.start();
+
 		try {
 			CompletableFuture<AudioQueue.AudioTask> future;
 			while ((future = audioQueue.queue.poll()) != null) {
-				// Wait for the future to complete and then play the audio clip
 				future.thenAccept(audioTask -> {
-					if (audioTask != null) {
-						audioPlayer.playClip(audioTask.getAudioClip(), audioTask.getVolume());
-					}
-				}).join(); // Wait for completion
+//					if (audioTask != null) subQueue.add(audioTask);
+					if (audioTask != null) audioPlayer.playClip(audioTask.getAudioClip(), audioTask.getVolume());
+				}).join();
 			}
 		} finally {
 			audioQueue.setPlaying(false);
+//			try {
+//				playbackThread.join();
+//			} catch (InterruptedException e) {
+//				Thread.currentThread().interrupt();
+//				log.error("Playback thread was interrupted", e);
+//			}
 		}
 	}
 
+
 	// Refactored to decouple from dependencies
-	public void speak(String text, VoiceID voiceID, float volumnDb, String audioQueueName) throws IOException {
-		if (countAlive() == 0) {
-			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
-		}
+	public void speak(String text, VoiceID voiceID, float volumeDb, String audioQueueName) throws IOException {
+		if (countAlive() == 0) throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
 
 		if (piperTaskQueue.size() > 10) {
-			log.info("Cleared queue because queue size is too large. (more then 10)");
+			log.info("Cleared queue because queue size is too large. (more than 10)");
 			clearQueue();
 		}
 
-		piperTaskQueue.add(new PiperTask(text, voiceID, volumnDb, audioQueueName));
-		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
+		executorService.submit(() -> {
+			List<String> fragments = splitSentence(text);
+			FragmentIteration:
+			for (String sentence : fragments) {
+
+				Iterator<Long> processMapItem = processMap.keySet().iterator();
+				PiperProcessIteration:
+				while (processMapItem.hasNext()) {
+					long processId = processMapItem.next();
+					PiperProcess process = processMap.get(processId);
+
+					if (!process.isAlive()) {
+						processMapItem.remove();
+						triggerOnPiperProcessCrash(process);
+						continue PiperProcessIteration;
+					}
+
+					if (process.getPiperLocked().get()) continue PiperProcessIteration;
+
+					PiperTask task = new PiperTask(sentence, voiceID, volumeDb, audioQueueName);
+
+					CompletableFuture<AudioQueue.AudioTask> audioClipFuture = generateClip(process, task);
+
+					AudioQueue audioQueue = namedAudioQueueMap.computeIfAbsent(task.audioQueueName, queue -> new AudioQueue());
+
+					synchronized (audioQueue) { audioQueue.queue.add(audioClipFuture); }
+					continue FragmentIteration;
+				}
+			}
+		});
+
+//		piperTaskQueue.add(new PiperTask(text, voiceID, volumeDb, audioQueueName));
 	}
 
 	public void clearQueue() {
