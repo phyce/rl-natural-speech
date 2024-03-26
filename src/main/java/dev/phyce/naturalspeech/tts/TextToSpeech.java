@@ -1,17 +1,23 @@
 package dev.phyce.naturalspeech.tts;
 
+import com.google.common.io.Resources;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
+import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
+import static dev.phyce.naturalspeech.tts.VoiceManager.VOICE_CONFIG_FILE;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
 import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
@@ -21,15 +27,20 @@ import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.lang.reflect.Type;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.http.api.RuneLiteAPI;
 
 // Renamed from TTSManager
 @Slf4j
@@ -37,6 +48,7 @@ import net.runelite.client.config.ConfigManager;
 public class TextToSpeech {
 
 	//<editor-fold desc="> Properties">
+	public final static String ABBREVIATION_FILE = "abbreviations.json";
 	private static final String CONFIG_KEY_MODEL_CONFIG = "ttsConfig";
 	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
 
@@ -46,7 +58,7 @@ public class TextToSpeech {
 	private final ModelRepository modelRepository;
 	private final NaturalSpeechConfig config;
 
-	private Map<String, String> shortenedPhrases;
+	private Map<String, String> abbreviations;
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
@@ -184,8 +196,8 @@ public class TextToSpeech {
 		}
 	}
 
-	public String expandShortenedPhrases(String text) {
-		return TextUtil.expandShortenedPhrases(text, shortenedPhrases);
+	public String expandAbbreviations(String text) {
+		return TextUtil.expandAbbreviations(text, abbreviations);
 	}
 
 	//</editor-fold>
@@ -348,13 +360,29 @@ public class TextToSpeech {
 	}
 
 	// In method so we can load again when user changes config
-	public void loadShortenedPhrases() {
-		String phrases = config.shortenedPhrases();
-		shortenedPhrases = new HashMap<>();
+	public void loadAbbreviations() {
+		URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(ABBREVIATION_FILE));
+		String jsonString;
+		try { jsonString = Resources.toString(resourceUrl, StandardCharsets.UTF_8); }
+		catch(IOException e) { throw new RuntimeException(e); }
+
+		abbreviations = new HashMap<>();
+
+		if(config.useCommonAbbreviations()) try {
+			if (jsonString != null) {
+				Type listOfAbbreviationEntryDatumType = new TypeToken<AbbreviationEntryDatum[]>() {}.getType();
+				AbbreviationEntryDatum[] data = RuneLiteAPI.GSON.fromJson(jsonString, listOfAbbreviationEntryDatumType);
+
+				for(AbbreviationEntryDatum entry: data) abbreviations.put(entry.acronym, entry.sentence);
+			}
+		}
+		catch(JsonSyntaxException e) { throw new RuntimeException(e); }
+
+		String phrases = config.customAbbreviations();
 		String[] lines = phrases.split("\n");
 		for (String line : lines) {
 			String[] parts = line.split("=", 2);
-			if (parts.length == 2) shortenedPhrases.put(parts[0].trim(), parts[1].trim());
+			if (parts.length == 2) abbreviations.put(parts[0].trim(), parts[1].trim());
 		}
 	}
 

@@ -7,10 +7,12 @@ import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import lombok.AllArgsConstructor;
@@ -86,94 +88,100 @@ public class Piper {
 
 	//Process message queue
 	public void processPiperTask() {
+		TaskIteration:
 		while (!processPiperTaskThread.isInterrupted()) {
 			if (piperTaskQueue.isEmpty()) {
-				synchronized (piperTaskQueue) {
-					try {
-						piperTaskQueue.wait();
-					} catch (InterruptedException e) {
-						return; // just exit on interrupt
-					}
+				try { Thread.sleep(5); }
+				catch(InterruptedException e) {
+					throw new RuntimeException(e);
 				}
-				continue; // double check emptiness after notify.
+				continue TaskIteration;
 			}
 
 			PiperTask task = piperTaskQueue.poll();
+			if (task == null) continue TaskIteration;
 
-			if (processMap.isEmpty()) {
-			}
-
-			// using iterator to loop, so if an invalid PiperProcess is found we can remove.
-			Iterator<Long> iter = processMap.keySet().iterator();
-			while (iter.hasNext()) {
-				long pid = iter.next();
-				PiperProcess process = processMap.get(pid);
+			Iterator<Long> processMapItem = processMap.keySet().iterator();
+			ProcessIteration:
+			while (processMapItem.hasNext()) {
+				long processId = processMapItem.next();
+				PiperProcess process = processMap.get(processId);
 
 				if (!process.isAlive()) {
-					iter.remove();
+					processMapItem.remove();
 					triggerOnPiperProcessCrash(process);
-					continue;
+					continue ProcessIteration;
 				}
 
-				if (!process.getPiperLocked().get()) {
-					byte[] audioClip;
-					try {
-						triggerOnPiperProcessBusy(process);
-						audioClip = process.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
-						triggerOnPiperProcessDone(process);
-					} catch (IOException | InterruptedException e) {
-						// PiperProcess exited unexpectedly, remove the process
-						log.error("{} had an unexpected exited, either crashed or terminated by user.", process);
-						triggerOnPiperProcessCrash(process);
+				if (process.getPiperLocked().get()) continue ProcessIteration;
 
-						process.stop();
-						iter.remove();
-						continue;
-					}
-					if (audioClip != null && audioClip.length > 0) {
-						AudioQueue audioQueue =
-							namedAudioQueueMap.computeIfAbsent(task.audioQueueName, audioQueueName -> new AudioQueue());
-						audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getGainDb()));
+				CompletableFuture<AudioQueue.AudioTask> audioClipFuture = generateClip(process, task);
 
-						synchronized (namedAudioQueueMap) {namedAudioQueueMap.notify();}
+				AudioQueue audioQueue = namedAudioQueueMap.computeIfAbsent(task.audioQueueName,
+					audioQueueName -> new AudioQueue());
 
-						break;
-					}
-				}
+				synchronized (audioQueue) { audioQueue.queue.add(audioClipFuture); }
+				continue TaskIteration;
 			}
 		}
 	}
 
+	public CompletableFuture<AudioQueue.AudioTask> generateClip(PiperProcess process, PiperTask task) {
+		CompletableFuture<AudioQueue.AudioTask> future = new CompletableFuture<>();
+
+		new Thread(() -> {
+			triggerOnPiperProcessBusy(process);
+			try {
+				byte[] audioClip = process.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
+
+				if (audioClip != null && audioClip.length > 0) {
+					AudioQueue.AudioTask audioTask = new AudioQueue.AudioTask(audioClip, task.getGainDb());
+					future.complete(audioTask);
+				} else {
+					future.complete(null); // or consider using future.completeExceptionally(new SomeException("Error message"));
+				}
+			} catch (IOException | InterruptedException e) {
+				log.error("{} had an unexpected exit, either crashed or terminated by user.", process);
+				triggerOnPiperProcessCrash(process);
+				process.stop();
+				future.completeExceptionally(e);
+			}
+			triggerOnPiperProcessDone(process);
+		}).start();
+
+		return future;
+	}
+
 	public void processAudioQueue() {
 		while (!processAudioQueueThread.isInterrupted()) {
-
-			synchronized (namedAudioQueueMap) {
-				try {
-					namedAudioQueueMap.wait();
-				} catch (InterruptedException e) {
-					return;
-				}
-			}
-
 			namedAudioQueueMap.forEach((queueName, audioQueue) -> {
-
 				if (!audioQueue.isPlaying() && !audioQueue.queue.isEmpty()) {
-					audioQueue.setPlaying(true);
-
-					// start a thread for each named audio queue
-					new Thread(() -> {
-						try {
-							AudioQueue.AudioTask task;
-							while ((task = audioQueue.queue.poll()) != null) {
-								audioPlayer.playClip(task.getAudioClip(), task.getVolume());
-							}
-						} finally {
-							audioQueue.setPlaying(false);
-						}
-					}, String.format("[%s] AudioPlayer Thread for %s", this, queueName)).start();
+					new Thread(() -> processAudioFuture(audioQueue, queueName)).start();
+				} else {
+					try { Thread.sleep(5); }
+					catch(InterruptedException e) {
+						audioQueue.setPlaying(false);
+						throw new RuntimeException(e);
+					}
 				}
-
 			});
+		}
+	}
+
+	public void processAudioFuture(AudioQueue audioQueue, String queueName) {
+		audioQueue.setPlaying(true);
+		try {
+			CompletableFuture<AudioQueue.AudioTask> future;
+			while ((future = audioQueue.queue.poll()) != null) {
+				// Wait for the future to complete and then play the audio clip
+				future.thenAccept(audioTask -> {
+					if (audioTask != null) {
+						audioPlayer.playClip(audioTask.getAudioClip(), audioTask.getVolume());
+					}
+				}).join(); // Wait for completion
+			}
+		} finally {
+			audioQueue.setPlaying(false);
 		}
 	}
 

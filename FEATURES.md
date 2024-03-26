@@ -1,25 +1,35 @@
 # Features
 
-# TODO add distance fade explanation
+## TODO add distance fade explanation
 
 ### Right click option menu
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
 ![](https://mechanic.ink/img/osrs/features/right-click.png)
+
+### Spam Prevention
+
+Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
+![](https://mechanic.ink/img/osrs/features/spam-prevention.png)
 
 ### Voice Explorer
 Choose from over 1000 different voices for your character. 
 You can use the Included voice explorer to preview a voice:<br/>
 ![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
 
-### Vast Customization
+### Multiple processes per voice pack
+You can choose to run multiple instances of the TTS engine to offload the sound generation to allow
+Natural Speech to process more messages at once. this is useful for crowded areas. Simply right click on a voice pack and click on `Set process count`
+
+![](https://mechanic.ink/img/osrs/features/change-process-count.png)
+
+**Warning! Each process that you add will add will consume as much additional memory as the size of the voice pack and can be detrimental to the gameplay on lower end PCs - change this setting with caution.**
+
+### Vast amount of customization
 
 Explore the many customization options to fine-tune your TTS experience:<br/>
 ![](https://mechanic.ink/img/osrs/features/config.png)
 
-### Spam Prevention
 
-Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
-![](https://mechanic.ink/img/osrs/features/spam-prevention.png)
 
 ### Commands
 
@@ -43,9 +53,12 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ## 1.3.0
  - Added `Friends only` mode
  - Added `Friend volume boost` option
- - Reworked the way master volume is set
- - Renamed `Shortened phrases` to `Abbreviations`
+ - Added `Use common abbreviations` option
+ - `Shortened phrases` are `Abbreviations`
+ - `Abbreviations` field is now `Custom abbreviations`
+ - Reworked the way master volume is adjusted internally
  - Added numerical abbreviations (k, m, b, t)
+ - Fixed having multiple instances never using more than one
 
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)

@@ -27,7 +27,6 @@ import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.plugins.Plugin;
 import net.runelite.client.util.Text;
 
 @Slf4j
@@ -58,9 +57,7 @@ public class SpeechEventHandler {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 		log.debug("Message received: " + message.toString());
 
-
 		String username;
-//		int distance;
 		float volume = 0f;
 		VoiceID voiceId;
 		String text = Text.sanitizeMultilineText(message.getMessage());
@@ -70,23 +67,19 @@ public class SpeechEventHandler {
 		try {
 			if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
-//				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
-				text = textToSpeech.expandShortenedPhrases(text);
+				text = textToSpeech.expandAbbreviations(text);
 
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
 			else if (isChatOtherPlayerVoice(message)) {
 				username = Text.standardize(message.getName());
-//				System.out.println("is friend?");
-//				System.out.println(PluginHelper.isFriend(message.getName()));
 				int distance = config.distanceFadeEnabled()? getDistance(username) : 0;
 
 				volume = calculateVolume(PluginHelper.isFriend(message.getName()), distance);
-//				System.out.println(volume);
 
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
-				text = textToSpeech.expandShortenedPhrases(text);
+				text = textToSpeech.expandAbbreviations(text);
 
 				log.debug("Player voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
@@ -166,7 +159,6 @@ public class SpeechEventHandler {
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-
 				textToSpeech.speak(voiceID, text, 0, npcName);
 			});
 		}

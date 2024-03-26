@@ -133,8 +133,8 @@ public class NaturalSpeechPlugin extends Plugin {
 			clientToolbar.addNavigation(navButton);
 		}
 
-		// Load ShortenedPhrases is a method that can be called later when configs are changed
-		textToSpeech.loadShortenedPhrases();
+		// Load Abbreviations is a method that can be called later when configs are changed
+		textToSpeech.loadAbbreviations();
 
 
 		if (config.autoStart()) {
@@ -210,9 +210,10 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		switch (event.getKey()) {
-			case ConfigKeys.SHORTENED_PHRASES:
-				log.trace("Detected short phrase changes, reloading into TextToSpeech");
-				textToSpeech.loadShortenedPhrases();
+			case ConfigKeys.COMMON_ABBREVIATIONS:
+			case ConfigKeys.CUSTOM_ABBREVIATIONS:
+				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
+				textToSpeech.loadAbbreviations();
 				break;
 
 			case ConfigKeys.PERSONAL_VOICE:
@@ -222,9 +223,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				updateConfigVoice(event.getKey(), event.getNewValue());
 				break;
 		}
-
 	}
-
 
 	private void updateConfigVoice(String configKey, String voiceString) {
 		VoiceID voiceID;
@@ -263,14 +262,10 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 		}
 	}
-
 	//</editor-fold>
-
 
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);
 	}
-
-
 }
