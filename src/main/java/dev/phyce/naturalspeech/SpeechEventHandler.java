@@ -147,7 +147,7 @@ public class SpeechEventHandler {
 				log.trace("NPC dialog textWidget detected:{}", textWidget.getText());
 
 				String text = Text.sanitizeMultilineText(textWidget.getText());
-				String npcName = npcNameWidget.getName();
+				String npcName = npcNameWidget.getText();
 				int npcCompId = headModelWidget.getModelId();
 
 				if (!muteManager.isNpcIdAllowed(npcCompId)) {
@@ -156,11 +156,8 @@ public class SpeechEventHandler {
 				}
 
 				VoiceID voiceID;
-				try {
-					voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName);
-				} catch (VoiceSelectionOutOfOption e) {
-					throw new RuntimeException(e);
-				}
+				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcNameWidget.getModelId(), npcName); }
+				catch (VoiceSelectionOutOfOption e) { throw new RuntimeException(e); }
 
 				textToSpeech.speak(voiceID, text, 0, npcName);
 			});
