@@ -93,7 +93,8 @@ public class Piper {
 			if (piperTaskQueue.isEmpty()) {
 				try { Thread.sleep(5); }
 				catch(InterruptedException e) {
-					throw new RuntimeException(e);
+//					throw new RuntimeException(e);
+					return;
 				}
 				continue TaskIteration;
 			}
@@ -161,7 +162,8 @@ public class Piper {
 					try { Thread.sleep(5); }
 					catch(InterruptedException e) {
 						audioQueue.setPlaying(false);
-						throw new RuntimeException(e);
+//						throw new RuntimeException(e);
+						return;
 					}
 				}
 			});
