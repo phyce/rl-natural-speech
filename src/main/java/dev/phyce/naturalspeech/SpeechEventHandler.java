@@ -145,7 +145,7 @@ public class SpeechEventHandler {
 				log.trace("NPC dialog textWidget detected:{}", textWidget.getText());
 
 				String text = Text.sanitizeMultilineText(textWidget.getText());
-				String npcName = npcNameWidget.getName();
+				String npcName = npcNameWidget.getText();
 				int npcCompId = headModelWidget.getModelId();
 
 				if (!muteManager.isNpcIdAllowed(npcCompId)) {
