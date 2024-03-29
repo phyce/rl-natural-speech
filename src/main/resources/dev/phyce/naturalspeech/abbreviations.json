@@ -65,6 +65,6 @@
   {"acronym":"poh",		"sentence": "player owned home"},
   {"acronym":"gz",		"sentence": "congratulations"},
   {"acronym":"wuu2",	"sentence": "what you up to"},
-  {"acronym":"cya",  "sentence": "see ya"},
+  {"acronym":"cya",     "sentence": "see ya"},
   {"acronym":"tbh",		"sentence": "to be "}
 ]

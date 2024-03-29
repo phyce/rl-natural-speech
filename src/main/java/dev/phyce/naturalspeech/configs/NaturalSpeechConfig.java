@@ -42,6 +42,8 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 		public static final String COMMON_ABBREVIATIONS = "commonAbbreviations";
 		public static final String CUSTOM_ABBREVIATIONS = "customAbbreviations";
+		public static final String CUSTOM_ABBREVIATIONS_NPC = "customAbbreviationsNpc";
+		public static final String OVERRIDE_CUSTOM_NPC_VOICES = "overrideCustomNpcVoices";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -67,16 +69,25 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=2,
 		keyName=ConfigKeys.GLOBAL_NPC_VOICE,
-		name="Global default NPC voice",
-		description="Choose one of the voices for all NPCs, example: libritts:0",
+		name="Global NPC voice",
+		description="Choose one voice for all NPCs, example: libritts:0",
 		section=generalSettingsSection
 	)
 	default String globalNpcVoice() {
 		return "";
 	}
 
+//	@ConfigItem(
+//		position=3,
+//		keyName=ConfigKeys.OVERRIDE_CUSTOM_NPC_VOICES,
+//		name="Override custom NPC Voices",
+//		description="Check this option if you also want to ovveride the custom-set voices",
+//		section=generalSettingsSection
+//	)
+//	default boolean overrideCustomNpcVoices() {return true;}
+
 	@ConfigItem(
-		position=3,
+		position=4,
 		keyName=ConfigKeys.SYSTEM_VOICE,
 		name="System message voice",
 		description="Choose one of the voices for system messages, example: libritts:0",
@@ -88,7 +99,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=4,
+		position=5,
 		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads",
@@ -97,7 +108,7 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position=5,
+		position=6,
 		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter",
@@ -109,7 +120,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=6,
+		position=7,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",
@@ -120,7 +131,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=7,
+		position=8,
 		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Master volume control",
 		description="Volume percentage",
@@ -132,7 +143,7 @@ public interface NaturalSpeechConfig extends Config {
 		return 100;
 	}
 	@ConfigItem(
-		position=8,
+		position=9,
 		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
 		name="Friends volume boost",
 		description="Friend volume boost percentage",
@@ -145,7 +156,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=9,
+		position=10,
 		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
 		name="Friends only mode",
 		description="Only generate text-to-speech for friends.",
@@ -400,6 +411,15 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=2,
+		keyName=ConfigKeys.CUSTOM_ABBREVIATIONS_NPC,
+		name="Use for NPC dialogs",
+		description="Enable custom abbreviations for NPC dialogs",
+		section=otherOptionsSection
+	)
+	default boolean useNpcCustomAbbreviations() {return true;}
+
+	@ConfigItem(
+		position=3,
 		keyName=ConfigKeys.CUSTOM_ABBREVIATIONS,
 		name="Custom Abbreviations",
 		description="One per line. Example:wuu2=what you up to",
