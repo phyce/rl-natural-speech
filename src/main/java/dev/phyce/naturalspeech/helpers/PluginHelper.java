@@ -143,6 +143,8 @@ public final class PluginHelper {
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
+			case MESBOX:
+				System.out.println(message);
 				return true;
 		}
 		return false;

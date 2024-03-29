@@ -39,6 +39,13 @@ public class SpeechEventHandler {
 	private final SpamDetection spamDetection;
 	private final ClientThread clientThread;
 
+	private LastDialogMessage lastDialogMessage = new LastDialogMessage();
+
+	class LastDialogMessage {
+		public String message = "";
+		public long timestamp = 0;
+	}
+
 	@Inject
 	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
 							  VoiceManager voiceManager, MuteManager muteManager, SpamDetection spamDetection, ClientThread clientThread) {
@@ -86,8 +93,14 @@ public class SpeechEventHandler {
 			else if (isChatSystemVoice(message.getType())) {
 				username = MagicUsernames.SYSTEM;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
-
+				long currentTime = System.currentTimeMillis();
+				if(lastDialogMessage.message.equals(text)) {
+					if((currentTime - lastDialogMessage.timestamp) < 5000) return;
+				}
+				lastDialogMessage.timestamp = currentTime;
+				lastDialogMessage.message = text;
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
+
 			}
 			else {
 				log.debug("ChatMessage ignored, didn't match innerVoice, otherPlayerVoice, or SystemVoice. name:{} type:{} message:{}",
@@ -121,7 +134,7 @@ public class SpeechEventHandler {
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-				textToSpeech.speak(voiceID, text, 0, MagicUsernames.LOCAL_USER);
+				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
 			// InvokeAtTickEnd to wait until the text has loaded in
@@ -144,6 +157,7 @@ public class SpeechEventHandler {
 				}
 				log.trace("NPC dialog textWidget detected:{}", textWidget.getText());
 
+
 				String text = Text.sanitizeMultilineText(textWidget.getText());
 				String npcName = npcNameWidget.getText();
 				int npcCompId = headModelWidget.getModelId();
@@ -159,7 +173,7 @@ public class SpeechEventHandler {
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-				textToSpeech.speak(voiceID, text, 0, npcName);
+				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		}
 	}
@@ -237,6 +251,7 @@ public class SpeechEventHandler {
 			case CLAN_GIM_FORM_GROUP:
 			case CLAN_GIM_GROUP_WITH:
 			case GAMEMESSAGE:
+			case MESBOX:
 				return true;
 			default:
 				return false;
