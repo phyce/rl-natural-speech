@@ -1,19 +1,29 @@
 package dev.phyce.naturalspeech.tts;
 
+import javax.annotation.CheckForNull;
 import lombok.Data;
 
 @Data
 public class VoiceID {
 	public String modelName;
-	public int piperVoiceID;
+	public String id;
 
 	public VoiceID() {
 
 	}
 
-	public VoiceID(String modelName, int piperVoiceID) {
+	public VoiceID(String modelName, String id) {
 		this.modelName = modelName;
-		this.piperVoiceID = piperVoiceID;
+		this.id = id;
+	}
+
+	@CheckForNull
+	public Integer getIntId() {
+		try {
+			return Integer.parseInt(id);
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	/**
@@ -32,20 +42,14 @@ public class VoiceID {
 		// verify model short name
 		if (split[0].isEmpty() || split[0].isBlank()) return null;
 
-		// verify voice ID
-		int voiceID;
+		// verify id
+		if (split[1].isEmpty() || split[1].isBlank()) return null;
 
-		try {
-			voiceID = Integer.parseUnsignedInt(split[1]);
-		} catch (NumberFormatException ignored) {
-			return null;
-		}
-
-		return new VoiceID(split[0], voiceID);
+		return new VoiceID(split[0], split[1]);
 	}
 
 	public String toVoiceIDString() {
-		return String.format("%s:%d", modelName, piperVoiceID);
+		return String.format("%s:%s", modelName, id);
 	}
 
 	public String toString() {

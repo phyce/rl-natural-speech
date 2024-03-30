@@ -20,6 +20,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 // Renamed from TTSModel
 @Slf4j
@@ -136,7 +137,14 @@ public class Piper {
 		new Thread(() -> {
 			triggerOnPiperProcessBusy(process);
 			try {
-				byte[] audioClip = process.generateAudio(task.getText(), task.getVoiceID().getPiperVoiceID());
+				Integer intId = task.getVoiceID().getIntId();
+				if (intId == null) {
+					log.error("VoiceID {} is not supported by Piper", task.getVoiceID());
+					future.completeExceptionally(new IllegalArgumentException("VoiceID not supported by Piper"));
+					return;
+				}
+
+				byte[] audioClip = process.generateAudio(task.getText(), intId);
 
 				if (audioClip != null && audioClip.length > 0) {
 					AudioQueue.AudioTask audioTask = new AudioQueue.AudioTask(audioClip, task.getGainDb());

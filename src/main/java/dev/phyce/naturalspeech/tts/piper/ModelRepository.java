@@ -292,7 +292,7 @@ public class ModelRepository {
 		String modelName;
 
 		public VoiceID toVoiceID() {
-			return new VoiceID(modelName, piperVoiceID);
+			return new VoiceID(modelName, Integer.toString(piperVoiceID));
 		}
 	}
 
