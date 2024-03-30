@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.tts.piper.ModelRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

@@ -12,6 +12,7 @@ import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.tts.piper.ModelRepository;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import java.io.IOException;
 import java.net.URL;

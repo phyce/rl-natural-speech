@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.tts.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.ModelRepository;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;

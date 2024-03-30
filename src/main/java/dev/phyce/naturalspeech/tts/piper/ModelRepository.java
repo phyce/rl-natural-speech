@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.tts;
+package dev.phyce.naturalspeech.tts.piper;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonDeserializationContext;
@@ -17,6 +17,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

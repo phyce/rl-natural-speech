@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
-import dev.phyce.naturalspeech.tts.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.ModelRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import java.awt.Color;
 import java.awt.Component;

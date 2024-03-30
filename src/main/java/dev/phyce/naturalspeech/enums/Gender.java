@@ -1,7 +1,5 @@
 package dev.phyce.naturalspeech.enums;
 
-import dev.phyce.naturalspeech.tts.ModelRepository;
-
 public enum Gender {
 	OTHER,
 	MALE,

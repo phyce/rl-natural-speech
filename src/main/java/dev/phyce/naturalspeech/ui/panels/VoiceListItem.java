@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.tts.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.ModelRepository;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;

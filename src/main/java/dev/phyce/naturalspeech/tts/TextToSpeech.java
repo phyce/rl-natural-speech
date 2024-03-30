@@ -17,7 +17,7 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
-import static dev.phyce.naturalspeech.tts.VoiceManager.VOICE_CONFIG_FILE;
+import dev.phyce.naturalspeech.tts.piper.ModelRepository;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
 import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
@@ -26,12 +26,10 @@ import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.lang.reflect.Type;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,13 +62,6 @@ public class TextToSpeech {
 	private final Map<String, Piper> pipers = new HashMap<>();
 
 	private final Map<String, SpeechAPI4> sapis = new HashMap<>();
-	static final String[] sapiModels = {
-		"sam",
-		"mary",
-		"mike",
-		"robo1"
-	};
-
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
@@ -121,8 +112,11 @@ public class TextToSpeech {
 		}
 
 		// FIXME(Louis): Sapi init
-		for (String sapiModel : sapiModels) {
-			sapis.put(sapiModel, SpeechAPI4.start(sapiModel, runtimeConfig.getSAPI4Path()));
+		List<String> sapiModels = SpeechAPI4.getModels(runtimeConfig.getSAPI4Path());
+		if (sapiModels != null) {
+			for (String sapiModel : sapiModels) {
+				sapis.put(sapiModel, SpeechAPI4.start(sapiModel, runtimeConfig.getSAPI4Path()));
+			}
 		}
 
 		if (started) {
