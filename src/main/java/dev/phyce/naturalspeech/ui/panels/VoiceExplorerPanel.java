@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.ui.panels;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.tts.piper.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
@@ -60,7 +60,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
-	private final ModelRepository modelRepository;
+	private final PiperRepository piperRepository;
 	private final TextToSpeech textToSpeech;
 	@Getter
 	private final IconTextField speechText;
@@ -71,11 +71,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 	@Getter
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
-	private final ModelRepository.ModelRepositoryListener modelRepositoryListener;
+	private final PiperRepository.ModelRepositoryListener modelRepositoryListener;
 
 	@Inject
-	public VoiceExplorerPanel(ModelRepository modelRepository, TextToSpeech textToSpeech) {
-		this.modelRepository = modelRepository;
+	public VoiceExplorerPanel(PiperRepository piperRepository, TextToSpeech textToSpeech) {
+		this.piperRepository = piperRepository;
 		this.textToSpeech = textToSpeech;
 
 		this.setLayout(new BorderLayout());
@@ -141,7 +141,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		this.add(speakerScrollPane);
 
-		modelRepositoryListener = new ModelRepository.ModelRepositoryListener() {
+		modelRepositoryListener = new PiperRepository.ModelRepositoryListener() {
 			@Override
 			public void onRepositoryChanged(String modelName) {
 				SwingUtilities.invokeLater(() -> buildSpeakerList());
@@ -152,16 +152,16 @@ public class VoiceExplorerPanel extends EditorPanel {
 				SwingUtilities.invokeLater(() -> buildSpeakerList());
 			}
 		};
-		this.modelRepository.addRepositoryChangedListener(modelRepositoryListener);
+		this.piperRepository.addRepositoryChangedListener(modelRepositoryListener);
 
 		buildSpeakerList();
 	}
 
 	void buildSpeakerList() {
 		sectionListPanel.removeAll();
-		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
 			try {
-				if (modelRepository.hasModelLocal(modelURL.getModelName())) {
+				if (piperRepository.hasModelLocal(modelURL.getModelName())) {
 					buildSpeakerSegmentForVoice(modelURL.getModelName());
 				}
 			} catch (IOException ignore) {
@@ -229,7 +229,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionHeader.addMouseListener(adapter);
 
 		try {
-			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voice_name);
+			PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(voice_name);
 
 			Arrays.stream(modelLocal.getVoiceMetadata())
 				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
@@ -274,7 +274,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		searchInput = StringUtils.join(searchTerms, " ");
 
 		for (VoiceListItem speakerItem : voiceListItems) {
-			ModelRepository.VoiceMetadata voiceMetadata = speakerItem.getVoiceMetadata();
+			PiperRepository.VoiceMetadata voiceMetadata = speakerItem.getVoiceMetadata();
 
 			boolean visible = genderSearch == null || genderSearch.equals(voiceMetadata.getGender());
 
@@ -294,7 +294,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	public void shutdown() {
-		modelRepository.removeRepositoryChangedListener(modelRepositoryListener);
+		piperRepository.removeRepositoryChangedListener(modelRepositoryListener);
 		this.removeAll();
 	}
 

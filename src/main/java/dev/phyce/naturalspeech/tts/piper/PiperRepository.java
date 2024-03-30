@@ -37,7 +37,7 @@ import okhttp3.HttpUrl;
 
 @Slf4j
 @Singleton
-public class ModelRepository {
+public class PiperRepository {
 
 	public final static String EXTENSION = ".onnx";
 	public final static String MODEL_METADATA_EXTENSION = ".onnx.json";
@@ -60,7 +60,7 @@ public class ModelRepository {
 	private final Gson gson;
 
 	@Inject
-	public ModelRepository(Downloader downloader,
+	public PiperRepository(Downloader downloader,
 						   NaturalSpeechRuntimeConfig runtimeConfig,
 						   ScheduledExecutorService executor,
 						   Gson gson) throws IOException {

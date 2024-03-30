@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
-import dev.phyce.naturalspeech.tts.piper.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import java.awt.Color;
 import java.awt.Component;
@@ -35,8 +35,8 @@ import net.runelite.client.util.SwingUtil;
 public class ModelListItem extends JPanel {
 
 	private final TextToSpeech textToSpeech;
-	private final ModelRepository modelRepository;
-	private final ModelRepository.ModelURL modelUrl;
+	private final PiperRepository piperRepository;
+	private final PiperRepository.ModelURL modelUrl;
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
 	private static final ImageIcon ON_SWITCHER;
@@ -57,10 +57,10 @@ public class ModelListItem extends JPanel {
 
 	private MouseAdapter contextMenuMouseListener;
 
-	public ModelListItem(TextToSpeech textToSpeech, ModelRepository modelRepository,
-						 ModelRepository.ModelURL modelUrl) {
+	public ModelListItem(TextToSpeech textToSpeech, PiperRepository piperRepository,
+						 PiperRepository.ModelURL modelUrl) {
 		this.textToSpeech = textToSpeech;
-		this.modelRepository = modelRepository;
+		this.piperRepository = piperRepository;
 		this.modelUrl = modelUrl;
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -99,7 +99,7 @@ public class ModelListItem extends JPanel {
 				log.debug("Toggling {} into {}", modelUrl.getModelName(), toggleButton.isSelected());
 				textToSpeech.getModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
 				try {
-					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelUrl.getModelName());
+					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
 					if (textToSpeech.isStarted()) {
 						if (toggleButton.isSelected()) {
 							textToSpeech.startPiperForModel(modelLocal);
@@ -129,12 +129,12 @@ public class ModelListItem extends JPanel {
 				download.setBorder(new LineBorder(download.getBackground().darker()));
 				download.setEnabled(false);
 
-				modelRepository.getExecutor().execute(() -> {
+				piperRepository.getExecutor().execute(() -> {
 					try {
 						// reset model configs, in case there are previous settings
 						textToSpeech.getModelConfig().resetPiperConfig(modelUrl.getModelName());
 
-						modelRepository.loadModelLocal(modelUrl.getModelName());
+						piperRepository.loadModelLocal(modelUrl.getModelName());
 
 					} catch (IOException ignored) {
 						SwingUtilities.invokeLater(this::rebuild);
@@ -145,7 +145,7 @@ public class ModelListItem extends JPanel {
 
 		boolean hasLocal;
 		try {
-			hasLocal = modelRepository.hasModelLocal(modelUrl.getModelName());
+			hasLocal = piperRepository.hasModelLocal(modelUrl.getModelName());
 		} catch (IOException ignored) {
 			hasLocal = false;
 		}
@@ -195,10 +195,10 @@ public class ModelListItem extends JPanel {
 			JMenuItem remove = new JMenuItem("Remove");
 			remove.addActionListener(ev -> {
 				try {
-					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelUrl.getModelName());
+					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
 
 					// stop the piper
-					if (textToSpeech.isStarted() && textToSpeech.isModelActive(modelLocal)) {
+					if (textToSpeech.isStarted() && textToSpeech.isPiperModelActive(modelLocal.getModelName())) {
 						textToSpeech.stopPiperForModel(modelLocal);
 					}
 
@@ -206,7 +206,7 @@ public class ModelListItem extends JPanel {
 					textToSpeech.getModelConfig().resetPiperConfig(modelUrl.getModelName());
 
 					// delete the files
-					modelRepository.deleteModelLocal(modelLocal);
+					piperRepository.deleteModelLocal(modelLocal);
 
 				} catch (IOException e) {
 					throw new RuntimeException(e);

@@ -20,7 +20,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 // Renamed from TTSModel
 @Slf4j
@@ -33,7 +32,7 @@ public class Piper {
 	private final AudioPlayer audioPlayer;
 
 	@Getter
-	private final ModelRepository.ModelLocal modelLocal;
+	private final PiperRepository.ModelLocal modelLocal;
 	@Getter
 	private final Path piperPath;
 	private final Thread processPiperTaskThread;
@@ -48,12 +47,12 @@ public class Piper {
 	 *
 	 * @throws IOException if piper fails to start an IOException will be thrown. (because stdin cannot be opened).
 	 */
-	public static Piper start(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount)
+	public static Piper start(PiperRepository.ModelLocal modelLocal, Path piperPath, int instanceCount)
 		throws IOException {
 		return new Piper(modelLocal, piperPath, instanceCount);
 	}
 
-	private Piper(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount) throws IOException {
+	private Piper(PiperRepository.ModelLocal modelLocal, Path piperPath, int instanceCount) throws IOException {
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
 

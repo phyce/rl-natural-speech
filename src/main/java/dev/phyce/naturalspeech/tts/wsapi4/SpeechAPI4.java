@@ -16,16 +16,21 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SpeechAPI4 {
 
+	@Getter
 	private final String modelName;
-	private final Path sapi4Path;
+	@Getter
 	private final int speed;
+	@Getter
 	private final int pitch;
+
+	private final Path sapi4Path;
 	private final File outputFolder;
 
 
@@ -81,7 +86,7 @@ public class SpeechAPI4 {
 
 		if (SAPI4ModelCache.isCached(sapiName)) {
 			SAPI4ModelCache cached = Objects.requireNonNull(SAPI4ModelCache.findSapiName(sapiName), sapiName);
-			log.debug("Found SAPI4 Model cache for {}", cached);
+			log.trace("Found SAPI4 Model cache for {}", cached);
 			speed = cached.defaultSpeed;
 			pitch = cached.defaultPitch;
 		}
@@ -93,7 +98,7 @@ public class SpeechAPI4 {
 
 			Process process;
 			try {
-				log.debug("Starting {}", processBuilder.command());
+				log.trace("Starting {}", processBuilder.command());
 				process = processBuilder.start();
 			} catch (IOException e) {
 				throw new RuntimeException(e);

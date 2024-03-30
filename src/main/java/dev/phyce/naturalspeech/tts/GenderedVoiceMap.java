@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.tts;
 
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.tts.piper.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -12,8 +12,8 @@ public class GenderedVoiceMap {
 	public List<VoiceID> FemaleList = new ArrayList<>();
 	public List<VoiceID> OtherList = new ArrayList<>();
 
-	public void addModel(ModelRepository.ModelLocal modelLocal) {
-		for (ModelRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
+	public void addModel(PiperRepository.ModelLocal modelLocal) {
+		for (PiperRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
 			VoiceID voiceID = voiceMetadata.toVoiceID();
 			if (voiceMetadata.getGender() == Gender.MALE) {
 				MaleList.add(voiceID);
@@ -25,8 +25,8 @@ public class GenderedVoiceMap {
 		}
 	}
 
-	public void removeModel(ModelRepository.ModelLocal modelLocal) {
-		for (ModelRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
+	public void removeModel(PiperRepository.ModelLocal modelLocal) {
+		for (PiperRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
 			VoiceID voiceID = voiceMetadata.toVoiceID();
 			if (voiceMetadata.getGender() == Gender.MALE) {
 				MaleList.remove(voiceID);

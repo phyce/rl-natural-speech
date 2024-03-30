@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.tts.piper.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
@@ -27,8 +27,8 @@ public class VoiceListItem extends JPanel {
 	private final VoiceExplorerPanel voiceExplorerPanel;
 	private final TextToSpeech textToSpeech;
 	@Getter
-	private final ModelRepository.VoiceMetadata voiceMetadata;
-	private final ModelRepository.ModelLocal modelLocal;
+	private final PiperRepository.VoiceMetadata voiceMetadata;
+	private final PiperRepository.ModelLocal modelLocal;
 
 	private static final ImageIcon PLAY_BUTTON;
 	private static final ImageIcon PLAY_BUTTON_DISABLED;
@@ -46,8 +46,8 @@ public class VoiceListItem extends JPanel {
 	public VoiceListItem(
 		VoiceExplorerPanel voiceExplorerPanel,
 		TextToSpeech textToSpeech,
-		ModelRepository.VoiceMetadata voiceMetadata,
-		ModelRepository.ModelLocal modelLocal) {
+		PiperRepository.VoiceMetadata voiceMetadata,
+		PiperRepository.ModelLocal modelLocal) {
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.textToSpeech = textToSpeech;
 		this.voiceMetadata = voiceMetadata;
@@ -111,7 +111,7 @@ public class VoiceListItem extends JPanel {
 			event -> {
 				if (textToSpeech != null && textToSpeech.activePiperProcessCount() > 0) {
 					try {
-						if (textToSpeech.isModelActive(modelLocal)) {
+						if (textToSpeech.isPiperModelActive(modelLocal.getModelName())) {
 							textToSpeech.speak(
 								voiceMetadata.toVoiceID(),
 								textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),

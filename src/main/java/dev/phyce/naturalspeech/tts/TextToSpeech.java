@@ -6,9 +6,9 @@ import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
@@ -17,7 +17,7 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
-import dev.phyce.naturalspeech.tts.piper.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
 import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
@@ -53,7 +53,7 @@ public class TextToSpeech {
 	private final ConfigManager configManager;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final ClientThread clientThread;
-	private final ModelRepository modelRepository;
+	private final PiperRepository piperRepository;
 	private final NaturalSpeechConfig config;
 
 	private Map<String, String> abbreviations;
@@ -61,7 +61,14 @@ public class TextToSpeech {
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
 
-	private final Map<String, SpeechAPI4> sapis = new HashMap<>();
+	// TODO(Louis) mid-refactor.
+	// "microsoft" does not denote any specific models and has no lifetime
+	// The VoiceID::ids are the actual models and can be available or not.
+	// We want "microsoft:sam", not "sam:0"
+	// A more generalized approach can be done at a later time.
+	public static final String SAPI4ModelName = "microsoft";
+	private final Map<String, SpeechAPI4> sapi4s = new HashMap<>();
+
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
@@ -72,13 +79,13 @@ public class TextToSpeech {
 	private TextToSpeech(
 		ConfigManager configManager,
 		ClientThread clientThread,
-		ModelRepository modelRepository,
+		PiperRepository piperRepository,
 		NaturalSpeechRuntimeConfig runtimeConfig,
 		NaturalSpeechConfig config) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.clientThread = clientThread;
-		this.modelRepository = modelRepository;
+		this.piperRepository = piperRepository;
 		this.config = config;
 
 		loadModelConfig();
@@ -94,11 +101,11 @@ public class TextToSpeech {
 		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
 		started = false;
 		try {
-			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+			for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
 				try {
-					if (modelRepository.hasModelLocal(modelURL.getModelName()) &&
+					if (piperRepository.hasModelLocal(modelURL.getModelName()) &&
 						modelConfig.isModelEnabled(modelURL.getModelName())) {
-						ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelURL.getModelName());
+						PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
 						startPiperForModel(modelLocal);
 						started = true; // if even a single piper started successful, then it's running.
 					}
@@ -115,7 +122,7 @@ public class TextToSpeech {
 		List<String> sapiModels = SpeechAPI4.getModels(runtimeConfig.getSAPI4Path());
 		if (sapiModels != null) {
 			for (String sapiModel : sapiModels) {
-				sapis.put(sapiModel, SpeechAPI4.start(sapiModel, runtimeConfig.getSAPI4Path()));
+				sapi4s.put(sapiModel, SpeechAPI4.start(sapiModel, runtimeConfig.getSAPI4Path()));
 			}
 		}
 
@@ -136,8 +143,8 @@ public class TextToSpeech {
 		}
 		pipers.clear();
 
-		// FIXME(Louis) Sapi exit
-		sapis.clear();
+		// sapis objects spawn one-shot sapi4 processes, does not need to be stopped
+		sapi4s.clear();
 
 		triggerOnStop();
 	}
@@ -145,46 +152,44 @@ public class TextToSpeech {
 	public void speak(VoiceID voiceID, String text, float volumeDb, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
 
-		try {
-			if (!modelRepository.hasModelLocal(voiceID.modelName)
-				// FIXME(Louis): Implement SAPI Models into ModelRepository
-			&& !sapis.containsKey(voiceID.modelName)) {
-				throw new ModelLocalUnavailableException(text, voiceID);
-			}
+		// Piper should be guaranteed to be present due to checks above
+		Object ttsEngine = resolveEngine(voiceID);
 
-			if (!isModelActive(voiceID.getModelName())) {
-				throw new PiperNotActiveException(text, voiceID);
-			}
+		if (ttsEngine instanceof Piper) {
+			try {
+				if (!piperRepository.hasModelLocal(voiceID.modelName)) {
+					// FIXME(Louis): Implement SAPI Models into ModelRepository
+					throw new ModelLocalUnavailableException(text, voiceID);
+				}
 
-			// Piper should be guaranteed to be present due to checks above
-
-			Object ttsEngine = resolveEngine(voiceID);
-
-			if (ttsEngine instanceof Piper) {
+				if (!isPiperModelActive(voiceID.getModelName())) {
+					throw new PiperNotActiveException(text, voiceID);
+				}
 				Piper piper = (Piper) ttsEngine;
 				List<String> fragments = splitSentence(text);
 				for (String sentence : fragments) {
-					//				float volume = getVolumeWithDistance(distance);
-					//				System.out.println(volume);
 					piper.speak(sentence, voiceID, volumeDb, audioQueueName);
 				}
-			} else if (ttsEngine instanceof SpeechAPI4) {
-				SpeechAPI4 sapi = (SpeechAPI4) ttsEngine;
-				sapi.speak(text, voiceID, volumeDb, audioQueueName);
-			} else {
-				log.info("Model for VoiceID is unavailable {}", voiceID);
+			} catch (IOException e) {
+				throw new RuntimeException("Error loading " + voiceID, e);
 			}
-		} catch (IOException e) {
-			throw new RuntimeException("Error loading " + voiceID, e);
+		}
+		else if (ttsEngine instanceof SpeechAPI4) {
+			SpeechAPI4 sapi = (SpeechAPI4) ttsEngine;
+			sapi.speak(text, voiceID, volumeDb, audioQueueName);
+		}
+		else {
+			log.info("Model for VoiceID is unavailable {}", voiceID);
 		}
 	}
 
 	// FIXME(Louis): Returns Object right now, eventually we can return a TTSEngine interface
 	public Object resolveEngine(VoiceID voiceID) {
 
-		if (sapis.containsKey(voiceID.modelName)) {
-			return sapis.get(voiceID.modelName);
-		} else {
+		if (voiceID.modelName.equals(SAPI4ModelName)) {
+			return sapi4s.get(voiceID.getId());
+		}
+		else {
 			return pipers.get(voiceID.modelName);
 		}
 	}
@@ -233,7 +238,6 @@ public class TextToSpeech {
 	/**
 	 * Starts Piper for specific ModelLocal
 	 */
-
 	public boolean isPiperPathValid() {
 		File piper_file = runtimeConfig.getPiperPath().toFile();
 
@@ -241,12 +245,13 @@ public class TextToSpeech {
 			String filename = piper_file.getName();
 			// naive canExecute check for windows, 99.99% of humans use .exe extension for executables on Windows
 			return filename.endsWith(".exe") && piper_file.exists() && !piper_file.isDirectory();
-		} else {
+		}
+		else {
 			return piper_file.exists() && piper_file.canExecute() && !piper_file.isDirectory();
 		}
 	}
 
-	public void startPiperForModel(ModelRepository.ModelLocal modelLocal) throws IOException {
+	public void startPiperForModel(PiperRepository.ModelLocal modelLocal) throws IOException {
 		if (pipers.get(modelLocal.getModelName()) != null) {
 			log.warn("Starting piper for {} when there are already pipers running for the model.",
 				modelLocal.getModelName());
@@ -280,7 +285,7 @@ public class TextToSpeech {
 		triggerOnPiperStart(piper);
 	}
 
-	public void stopPiperForModel(ModelRepository.ModelLocal modelLocal)
+	public void stopPiperForModel(PiperRepository.ModelLocal modelLocal)
 		throws PiperNotActiveException {
 		Piper piper;
 		if ((piper = pipers.remove(modelLocal.getModelName())) != null) {
@@ -301,19 +306,19 @@ public class TextToSpeech {
 		return result;
 	}
 
-	public boolean isModelActive(ModelRepository.ModelLocal modelLocal) {
-		return isModelActive(modelLocal.getModelName());
-	}
-
-	public boolean isModelActive(String modelName) {
-
-		// FIXME(Louis): Double check later
-		if (sapis.containsKey(modelName)) {
-			return true;
-		}
-
+	public boolean isPiperModelActive(String modelName) {
 		Piper piper = pipers.get(modelName);
 		return piper != null && piper.countAlive() > 0;
+	}
+
+	public boolean isModelActive(VoiceID voiceID) {
+
+		// FIXME(Louis): Double check later
+		if (voiceID.modelName.equals(SAPI4ModelName)) {
+			return sapi4s.containsKey(voiceID.getId());
+		}
+
+		return isPiperModelActive(voiceID.getModelName());
 	}
 
 	public void triggerOnPiperStart(Piper piper) {
@@ -354,20 +359,23 @@ public class TextToSpeech {
 	public void loadAbbreviations() {
 		URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(ABBREVIATION_FILE));
 		String jsonString;
-		try { jsonString = Resources.toString(resourceUrl, StandardCharsets.UTF_8); }
-		catch(IOException e) { throw new RuntimeException(e); }
+		try {jsonString = Resources.toString(resourceUrl, StandardCharsets.UTF_8);} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 
 		abbreviations = new HashMap<>();
 
-		if(config.useCommonAbbreviations()) try {
-			if (jsonString != null) {
-				Type listOfAbbreviationEntryDatumType = new TypeToken<AbbreviationEntryDatum[]>() {}.getType();
-				AbbreviationEntryDatum[] data = RuneLiteAPI.GSON.fromJson(jsonString, listOfAbbreviationEntryDatumType);
+		if (config.useCommonAbbreviations()) {
+			try {
+				if (jsonString != null) {
+					Type listOfAbbreviationEntryDatumType = new TypeToken<AbbreviationEntryDatum[]>() {}.getType();
+					AbbreviationEntryDatum[] data =
+						RuneLiteAPI.GSON.fromJson(jsonString, listOfAbbreviationEntryDatumType);
 
-				for(AbbreviationEntryDatum entry: data) abbreviations.put(entry.acronym, entry.sentence);
-			}
+					for (AbbreviationEntryDatum entry : data) {abbreviations.put(entry.acronym, entry.sentence);}
+				}
+			} catch (JsonSyntaxException e) {throw new RuntimeException(e);}
 		}
-		catch(JsonSyntaxException e) { throw new RuntimeException(e); }
 
 		String phrases = config.customAbbreviations();
 		String[] lines = phrases.split("\n");

@@ -12,7 +12,7 @@ import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
-import dev.phyce.naturalspeech.tts.piper.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import java.io.IOException;
 import java.net.URL;
@@ -40,7 +40,7 @@ public class VoiceManager {
 	private final ConfigManager configManager;
 	private final GenderedVoiceMap genderedVoiceMap;
 
-	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
+	private final Multimap<PiperRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
 
 	@Inject
 	public VoiceManager(TextToSpeech textToSpeech, ConfigManager configManager) {
@@ -53,9 +53,9 @@ public class VoiceManager {
 			new TextToSpeech.TextToSpeechListener() {
 				@Override
 				public void onPiperStart(Piper piper) {
-					ModelRepository.ModelLocal modelLocal = piper.getModelLocal();
+					PiperRepository.ModelLocal modelLocal = piper.getModelLocal();
 					genderedVoiceMap.addModel(modelLocal);
-					for (ModelRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
+					for (PiperRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
 						activeVoiceMap.put(modelLocal, voiceMetadata.toVoiceID());
 					}
 				}
@@ -154,7 +154,7 @@ public class VoiceManager {
 			// if the config is invalid, a null might be present
 			if (voiceID == null) continue;
 
-			if (textToSpeech.isModelActive(voiceID.getModelName())) {
+			if (textToSpeech.isModelActive(voiceID)) {
 				return voiceID;
 			}
 		}

@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.tts.piper.ModelRepository;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
@@ -69,15 +69,15 @@ public class MainSettingsPanel extends PluginPanel {
 
 	private final ClientThread clientThread;
 	private final FixedWidthPanel mainContentPanel;
-	private final ModelRepository modelRepository;
+	private final PiperRepository piperRepository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
-	private final List<ModelRepository.ModelRepositoryListener> modelRepositoryListeners;
+	private final List<PiperRepository.ModelRepositoryListener> modelRepositoryListeners;
 
 	@Inject
 	public MainSettingsPanel(
 		NaturalSpeechConfig config,
-		ModelRepository modelRepository,
+		PiperRepository piperRepository,
 		ConfigManager configManager,
 		Downloader downloader, ClientThread clientThread,
 		TextToSpeech textToSpeech,
@@ -85,7 +85,7 @@ public class MainSettingsPanel extends PluginPanel {
 	) {
 		super(false);
 		this.textToSpeech = textToSpeech;
-		this.modelRepository = modelRepository;
+		this.piperRepository = piperRepository;
 		this.clientThread = clientThread;
 		this.runtimeConfig = runtimeConfig;
 		this.modelRepositoryListeners = new ArrayList<>();
@@ -250,12 +250,12 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
 
-		List<ModelRepository.ModelURL> modelURLS = modelRepository.getModelURLS();
-		for (ModelRepository.ModelURL modelUrl : modelURLS) {
-			ModelListItem listItem = new ModelListItem(textToSpeech, modelRepository, modelUrl);
+		List<PiperRepository.ModelURL> modelURLS = piperRepository.getModelURLS();
+		for (PiperRepository.ModelURL modelUrl : modelURLS) {
+			ModelListItem listItem = new ModelListItem(textToSpeech, piperRepository, modelUrl);
 			sectionContent.add(listItem);
 
-			ModelRepository.ModelRepositoryListener modelRepoListener = new ModelRepository.ModelRepositoryListener() {
+			PiperRepository.ModelRepositoryListener modelRepoListener = new PiperRepository.ModelRepositoryListener() {
 				@Override
 				public void onRepositoryChanged(String modelName) {
 					SwingUtilities.invokeLater(() -> {
@@ -274,7 +274,7 @@ public class MainSettingsPanel extends PluginPanel {
 					});
 				}
 			};
-			modelRepository.addRepositoryChangedListener(modelRepoListener);
+			piperRepository.addRepositoryChangedListener(modelRepoListener);
 			this.modelRepositoryListeners.add(modelRepoListener);
 		}
 	}
@@ -499,7 +499,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 				filePathField.setText(newPath.toString());
 				runtimeConfig.savePiperPath(newPath);
-				modelRepository.refresh();
+				piperRepository.refresh();
 
 				// if text to speech is running, restart
 				if (textToSpeech.isStarted()) {
@@ -534,8 +534,8 @@ public class MainSettingsPanel extends PluginPanel {
 
 	public void shutdown() {
 		this.removeAll();
-		for (ModelRepository.ModelRepositoryListener listener : this.modelRepositoryListeners) {
-			modelRepository.removeRepositoryChangedListener(listener);
+		for (PiperRepository.ModelRepositoryListener listener : this.modelRepositoryListeners) {
+			piperRepository.removeRepositoryChangedListener(listener);
 		}
 	}
 
