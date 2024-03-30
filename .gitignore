@@ -8,3 +8,6 @@ build
 nbactions.xml
 nb-configuration.xml
 nbproject/
+
+# for Intellij run configuration
+.run/
