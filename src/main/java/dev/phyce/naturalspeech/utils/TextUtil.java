@@ -64,7 +64,7 @@ public final class TextUtil {
 	}
 
 	public static String expandAbbreviations(String text, Map<String, String> phrases) {
-		text = preprocessAbbreviations(text);
+		text = preprocessNumbers(text);
 		List<String> tokens = tokenize(text);
 		StringBuilder parsedMessage = new StringBuilder();
 
@@ -78,11 +78,14 @@ public final class TextUtil {
 		return parsedMessage.toString().trim();
 	}
 
-	private static String preprocessAbbreviations(String text) {
-		text = text.replaceAll("(?i)(\\d+)k\\b", "$1 thousand");
-		text = text.replaceAll("(?i)(\\d+)m\\b", "$1 million");
-		text = text.replaceAll("(?i)(\\d+)b\\b", "$1 billion");
-		text = text.replaceAll("(?i)(\\d+)t\\b", "$1 trillion");
+	private static String preprocessNumbers(String text) {
+		text = text.replaceAll("(?i)(\\d{1,3})(,)(\\d{3})", "$1$3");
+		text = text.replaceAll("(?i)(\\d)(,)(\\d{3})(\\.\\d+)?", "$1$3$4");
+
+		text = text.replaceAll("(?i)(\\d+)\\s?k\\b", "$1 thousand");
+		text = text.replaceAll("(?i)(\\d+)\\s?m\\b", "$1 million");
+		text = text.replaceAll("(?i)(\\d+)\\s?b\\b", "$1 billion");
+		text = text.replaceAll("(?i)(\\d+)\\s?t\\b", "$1 trillion");
 		return text;
 	}
 

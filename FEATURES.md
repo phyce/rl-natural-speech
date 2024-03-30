@@ -53,6 +53,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 ## 1.3.0
  - Added `Friends only` mode
  - Added `Friend volume boost` option
+ - Added numerical abbreviations (k, m, b, t)
  - `Shortened phrases` are now `Abbreviations`
  - `Abbreviations` field is now `Custom abbreviations`
  - Added `Use common abbreviations` option
@@ -60,7 +61,6 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - `Global default NPC voice` is now `Global NPC voice` and will override any NPC voice regardless of pre-set voices.
  - Reworked the way master volume is adjusted internally
  - Fixed issue where master volume was not being applied to all audio sources
- - Added numerical abbreviations (k, m, b, t)
  - Fixed having multiple instances never using more than one
  - Duplicate system messages won't be played every time anymore
  - Fixed issue where certain dialogs were not working (eg Spirit Tree)
