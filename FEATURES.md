@@ -64,12 +64,12 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Fixed having multiple instances never using more than one
  - Duplicate system messages won't be played every time anymore
  - Fixed issue where certain dialogs were not working (eg Spirit Tree)
- - NPC Dialogs now have an individual queue for NPC + Player dialog messages.
+ - NPC Dialogs now have an individual queue for NPC + Player dialog messages
 
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)
  - Muting a player/npc will persist between sessions
- - Right click menu entry UI improvements, including new icons.
+ - Right click menu entry UI improvements, including new icons
  - Added ability to enable right-click menu only when holding the shift key
  - Configuring a voice now pre-populates field with current voice
  - `Mute-others` has been renamed to `Listen`
@@ -96,7 +96,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Fixed Engine status now shows the right information when piper is not found
  - Fixed Voice Repository now disables download when engine path is invalid
  - Fixed Text to speech engine now stops after user changes engine path 
- - Fixed MacOS now un-quarantines piper after initial attempt failed due to incorrect piper path.
+ - Fixed MacOS now un-quarantines piper after initial attempt failed due to incorrect piper path
  - Fixed Voice Explorer search by gender
  - Fixed TTS issues with dialog text decoration
  - Fixed Piper clears task and audio queue when stopped
