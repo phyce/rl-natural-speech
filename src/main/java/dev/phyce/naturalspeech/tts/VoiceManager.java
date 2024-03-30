@@ -164,10 +164,14 @@ public class VoiceManager {
 	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) throws VoiceSelectionOutOfOption {
 		npcName = Text.standardize(npcName);
 
-		VoiceID result;
-		{
-			// 1. Check NPC ID, takes priority over everything.
-			List<VoiceID> results = voiceConfig.findNpcId(npcId);
+		VoiceID result = null;
+
+		List<VoiceID> results = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
+		if (results != null) return getFirstActiveVoice(results);
+
+		if (results == null) {
+			// Check NPC ID, takes priority over everything.
+			results = voiceConfig.findNpcId(npcId);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
 				if (result == null) {
@@ -183,11 +187,10 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
-			// 2. Check NPC Name
-			List<VoiceID> results = voiceConfig.findNpcName(npcName);
-			if (results != null) {
-				result = getFirstActiveVoice(results);
-			}
+			// Check NPC Name
+			results = voiceConfig.findNpcName(npcName);
+			if (results != null) result = getFirstActiveVoice(results);
+
 			if (result == null) {
 				log.debug("No NPC ID voice found, NPC Name is also not available for NPC id:{} npcName:{}",
 					npcId, npcName);
@@ -198,16 +201,7 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
-			// 3. Fallback to NPC Global (or random if NPC global isn't set).
-			log.debug("No NPC ID or NPC Name voice found, falling back to global NPC player username &globalnpc");
-			List<VoiceID> results = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
-			if (results != null) {
-				result = getFirstActiveVoice(results);
-			}
-		}
-
-		if (result == null) {
-			// 4. If no NPC Global is available, randomize using npc name
+			// If no NPC Global is available, randomize using npc name
 			result = randomVoiceFromActiveModels(npcName);
 			log.debug("No global NPC voice found, using random voice {}", result);
 		}

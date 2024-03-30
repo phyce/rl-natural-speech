@@ -68,6 +68,7 @@ public class SpeechEventHandler {
 		float volume = 0f;
 		VoiceID voiceId;
 		String text = Text.sanitizeMultilineText(message.getMessage());
+		int distance = 0;
 
 		if (isChatMessageMuted(message)) return;
 
@@ -81,9 +82,9 @@ public class SpeechEventHandler {
 			}
 			else if (isChatOtherPlayerVoice(message)) {
 				username = Text.standardize(message.getName());
-				int distance = config.distanceFadeEnabled()? getDistance(username) : 0;
+				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
 
-				volume = calculateVolume(PluginHelper.isFriend(message.getName()), distance);
+
 
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandAbbreviations(text);
@@ -113,11 +114,13 @@ public class SpeechEventHandler {
 			return;
 		}
 
+		volume = calculateVolume(distance, PluginHelper.isFriend(message.getName()));
 		textToSpeech.speak(voiceId, text, volume, username);
 	}
 
 	@Subscribe
 	private void onWidgetLoaded(WidgetLoaded event) {
+		float volume = calculateVolume(0, false);
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
@@ -134,7 +137,9 @@ public class SpeechEventHandler {
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
+
+				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
+				textToSpeech.speak(voiceID, text, volume, MagicUsernames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
 			// InvokeAtTickEnd to wait until the text has loaded in
@@ -173,7 +178,9 @@ public class SpeechEventHandler {
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
+
+				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
+				textToSpeech.speak(voiceID, text, volume, MagicUsernames.DIALOG);
 			});
 		}
 	}
@@ -188,7 +195,7 @@ public class SpeechEventHandler {
 			if (!muteManager.isNpcAllowed(npc)) return;
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
-			float volume = calculateVolume(false, distance);
+			float volume = calculateVolume(distance, false);
 
 			VoiceID voiceID = null;
 			try {
@@ -414,7 +421,7 @@ public class SpeechEventHandler {
 		return false;
 	}
 
-	public float calculateVolume(boolean isFriend, int distance) {
+	public float calculateVolume(int distance, boolean isFriend) {
 		float volumeWithDistance;
 		if (distance <= 1) volumeWithDistance = 0;
 		else volumeWithDistance = -6.0f * (float) (Math.log(distance) / Math.log(2));
