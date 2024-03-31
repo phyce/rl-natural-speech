@@ -32,7 +32,7 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
 @Slf4j
-public class ModelListItem extends JPanel {
+public class PiperModelListItem extends JPanel {
 
 	private final TextToSpeech textToSpeech;
 	private final PiperRepository piperRepository;
@@ -57,8 +57,8 @@ public class ModelListItem extends JPanel {
 
 	private MouseAdapter contextMenuMouseListener;
 
-	public ModelListItem(TextToSpeech textToSpeech, PiperRepository piperRepository,
-						 PiperRepository.ModelURL modelUrl) {
+	public PiperModelListItem(TextToSpeech textToSpeech, PiperRepository piperRepository,
+							  PiperRepository.ModelURL modelUrl) {
 		this.textToSpeech = textToSpeech;
 		this.piperRepository = piperRepository;
 		this.modelUrl = modelUrl;

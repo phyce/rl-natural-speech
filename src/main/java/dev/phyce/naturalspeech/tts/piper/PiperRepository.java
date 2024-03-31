@@ -214,19 +214,19 @@ public class PiperRepository {
 
 		// Read Speaker File into an HashSet of Array of Speaker
 		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(modelName + METADATA_EXTENSION).toFile())) {
-			VoiceMetadata[] voiceMetadatas =
-				gson.fromJson(new InputStreamReader(fis), new TypeToken<VoiceMetadata[]>() {
+			PiperVoiceMetadata[] metadatas =
+				gson.fromJson(new InputStreamReader(fis), new TypeToken<PiperVoiceMetadata[]>() {
 				}.getType());
 
-			for (VoiceMetadata voiceMetadata : voiceMetadatas) {
-				voiceMetadata.setModelName(modelURL.getModelName());
+			for (PiperVoiceMetadata metadata : metadatas) {
+				metadata.setModelName(modelURL.getModelName());
 			}
 
 			return new ModelLocal(
 				modelURL.getModelName(),
 				voiceFolder.resolve(modelName + EXTENSION).toFile(),
 				voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION).toFile(),
-				voiceMetadatas
+				metadatas
 			);
 
 		} catch (IOException e) {
@@ -277,7 +277,7 @@ public class PiperRepository {
 
 	// Partially Serialized JSON Object
 	@Data
-	public static class VoiceMetadata {
+	public static class PiperVoiceMetadata {
 		// (Serialized in JSON) The speaker name from the model data set
 		@Expose
 		String name;
@@ -328,7 +328,7 @@ public class PiperRepository {
 		String modelName;
 		File onnx;
 		File onnxMetadata;
-		VoiceMetadata[] voiceMetadata;
+		PiperVoiceMetadata[] piperVoiceMetadata;
 	}
 
 	public interface ModelRepositoryListener {

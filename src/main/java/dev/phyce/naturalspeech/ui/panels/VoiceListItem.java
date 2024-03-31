@@ -1,7 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
@@ -27,8 +26,7 @@ public class VoiceListItem extends JPanel {
 	private final VoiceExplorerPanel voiceExplorerPanel;
 	private final TextToSpeech textToSpeech;
 	@Getter
-	private final PiperRepository.VoiceMetadata voiceMetadata;
-	private final PiperRepository.ModelLocal modelLocal;
+	private final VoiceMetadata voiceMetadata;
 
 	private static final ImageIcon PLAY_BUTTON;
 	private static final ImageIcon PLAY_BUTTON_DISABLED;
@@ -42,20 +40,17 @@ public class VoiceListItem extends JPanel {
 
 	}
 
-
 	public VoiceListItem(
 		VoiceExplorerPanel voiceExplorerPanel,
 		TextToSpeech textToSpeech,
-		PiperRepository.VoiceMetadata voiceMetadata,
-		PiperRepository.ModelLocal modelLocal) {
+		VoiceMetadata voiceMetadata) {
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.textToSpeech = textToSpeech;
 		this.voiceMetadata = voiceMetadata;
-		this.modelLocal = modelLocal;
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("%s %s (%s)", voiceMetadata.getPiperVoiceID(), voiceMetadata.getName(),
+		this.setToolTipText(String.format("%s %s (%s)", voiceMetadata.voiceId.id, voiceMetadata.getName(),
 			voiceMetadata.getGender()));
 
 		JPanel speakerPanel = new JPanel();
@@ -82,12 +77,12 @@ public class VoiceListItem extends JPanel {
 		JLabel genderLabel = new JLabel(genderString);
 		genderLabel.setForeground(Color.white);
 
-		JLabel piperIdLabel = new JLabel(String.format("ID%d", voiceMetadata.getPiperVoiceID()));
+		JLabel piperIdLabel = new JLabel(voiceMetadata.voiceId.id);
 
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
 			.addGap(5)
-			.addComponent(piperIdLabel, 35, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+			.addComponent(piperIdLabel, 25, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
 			.addGap(5)
 			.addComponent(nameLabel)
 			.addGap(5).addComponent(genderLabel));
@@ -107,19 +102,18 @@ public class VoiceListItem extends JPanel {
 		playButton.setPreferredSize(
 			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
 		playButton.addActionListener(
-
 			event -> {
-				if (textToSpeech != null && textToSpeech.activePiperProcessCount() > 0) {
+				if (textToSpeech != null) {
 					try {
-						if (textToSpeech.isPiperModelActive(modelLocal.getModelName())) {
+						if (textToSpeech.isModelActive(voiceMetadata.voiceId)) {
 							textToSpeech.speak(
-								voiceMetadata.toVoiceID(),
+								voiceMetadata.voiceId,
 								textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
 								0,
 								"&VoiceExplorer");
 						}
 						else {
-							log.info("Model {} is currently not running.", modelLocal.getModelName());
+							log.error("Model {} is currently not running.", voiceMetadata.voiceId.modelName);
 						}
 					} catch (ModelLocalUnavailableException e) {
 						throw new RuntimeException(e);
@@ -140,7 +134,7 @@ public class VoiceListItem extends JPanel {
 			new TextToSpeech.TextToSpeechListener() {
 				@Override
 				public void onPiperStart(Piper piper) {
-					if (piper.getModelLocal().getModelName().equals(modelLocal.getModelName())) {
+					if (piper.getModelLocal().getModelName().equals(voiceMetadata.voiceId.modelName)) {
 						playButton.setIcon(PLAY_BUTTON);
 						playButton.setEnabled(true);
 					}
@@ -148,11 +142,20 @@ public class VoiceListItem extends JPanel {
 
 				@Override
 				public void onPiperExit(Piper piper) {
-					if (piper.getModelLocal().getModelName().equals(modelLocal.getModelName())) {
+					if (piper.getModelLocal().getModelName().equals(voiceMetadata.voiceId.modelName)) {
 						playButton.setIcon(PLAY_BUTTON_DISABLED);
 						playButton.setEnabled(false);
 					}
 				}
+
+				@Override
+				public void onSAPI4Start(String modelName) {
+					if (modelName.equals(voiceMetadata.voiceId.id)) {
+						playButton.setIcon(PLAY_BUTTON);
+						playButton.setEnabled(true);
+					}
+				}
+
 			}
 		);
 	}

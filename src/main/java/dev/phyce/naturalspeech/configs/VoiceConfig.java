@@ -14,8 +14,11 @@ import lombok.NonNull;
 import net.runelite.http.api.RuneLiteAPI;
 
 public class VoiceConfig {
+	// FIXME(Louis): VoiceID::id is now string, old configs will need to be migrated to new string format
 	private final Map<String, PlayerNameVoiceConfigDatum> playerVoices;
+	// FIXME(Louis): VoiceID::id is now string, old configs will need to be migrated to new string format
 	private final Map<Integer, NPCIDVoiceConfigDatum> npcIDVoices;
+	// FIXME(Louis): VoiceID::id is now string, old configs will need to be migrated to new string format
 	private final Map<String, NPCNameVoiceConfigDatum> npcNameVoices;
 
 	public VoiceConfig() {

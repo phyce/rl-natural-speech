@@ -3,8 +3,13 @@ package dev.phyce.naturalspeech.ui.panels;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceID;
+import dev.phyce.naturalspeech.tts.piper.Piper;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4ModelCache;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
+import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
@@ -37,7 +42,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
@@ -61,6 +65,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
 	private final PiperRepository piperRepository;
+	private final SAPI4Repository sapi4Repository;
 	private final TextToSpeech textToSpeech;
 	@Getter
 	private final IconTextField speechText;
@@ -74,8 +79,10 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final PiperRepository.ModelRepositoryListener modelRepositoryListener;
 
 	@Inject
-	public VoiceExplorerPanel(PiperRepository piperRepository, TextToSpeech textToSpeech) {
+	public VoiceExplorerPanel(PiperRepository piperRepository, SAPI4Repository sapi4Repository,
+							  TextToSpeech textToSpeech) {
 		this.piperRepository = piperRepository;
+		this.sapi4Repository = sapi4Repository;
 		this.textToSpeech = textToSpeech;
 
 		this.setLayout(new BorderLayout());
@@ -126,8 +133,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		// Speakers panel containing individual speaker item panels
 		sectionListPanel = new FixedWidthPanel();
-		sectionListPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
-		sectionListPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionListPanel.setBorder(new EmptyBorder(0, 5, 0, 5));
+		sectionListPanel.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 		// North panel wraps and fixes the speakerList north
@@ -159,29 +166,26 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	void buildSpeakerList() {
 		sectionListPanel.removeAll();
+		List<String> sapi4Models = sapi4Repository.getModels();
+		if (sapi4Models != null && !sapi4Models.isEmpty()) {
+			buildSAPI4ModelSegment();
+		}
+
 		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
 			try {
 				if (piperRepository.hasModelLocal(modelURL.getModelName())) {
-					buildSpeakerSegmentForVoice(modelURL.getModelName());
+					buildPiperModelSegment(modelURL.getModelName());
 				}
-			} catch (IOException ignore) {
-			}
+			} catch (IOException ignore) {}
 		}
+
 	}
 
-	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
-		boolean newState = !sectionContent.isVisible();
-		sectionContent.setVisible(newState);
-		toggleButton.setIcon(newState? SECTION_RETRACT_ICON: SECTION_EXPAND_ICON);
-		toggleButton.setToolTipText(newState? "Retract": "Expand");
-		SwingUtilities.invokeLater(sectionContent::revalidate);
-	}
-
-	private void buildSpeakerSegmentForVoice(String voice_name) {
-
+	private void buildSAPI4ModelSegment() {
 		final JPanel section = new JPanel();
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setVisible(true);
 
 		final JPanel sectionHeader = new JPanel();
 		sectionHeader.setLayout(new BorderLayout());
@@ -200,8 +204,86 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final String name = voice_name;
-		final String description = voice_name;
+		final String name = "microsoft";
+		final String description = name;
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		// Add listeners to each part of the header so that it's easier to toggle them
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSpeakerSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSpeakerSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
+		List<String> models = sapi4Repository.getModels();
+
+		models.stream()
+			.sorted()
+			.forEach((modelName) -> {
+				SAPI4ModelCache cache = SAPI4ModelCache.findModelName(modelName);
+				String sapi4Name = cache != null ? cache.sapiName : modelName;
+
+				VoiceMetadata metadata =
+					new VoiceMetadata("", Gender.MALE, new VoiceID("microsoft", modelName));
+				VoiceListItem speakerItem = new VoiceListItem(this, textToSpeech, metadata);
+				voiceListItems.add(speakerItem);
+				sectionContent.add(speakerItem);
+			});
+
+		sectionListPanel.add(section);
+	}
+
+	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
+		boolean newState = !sectionContent.isVisible();
+		sectionContent.setVisible(newState);
+		toggleButton.setIcon(newState ? SECTION_RETRACT_ICON : SECTION_EXPAND_ICON);
+		toggleButton.setToolTipText(newState ? "Retract" : "Expand");
+		SwingUtilities.invokeLater(sectionContent::revalidate);
+	}
+
+	private void buildPiperModelSegment(String modelName) {
+
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setVisible(false);
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = modelName;
+		final String description = modelName;
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
@@ -229,17 +311,38 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionHeader.addMouseListener(adapter);
 
 		try {
-			PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(voice_name);
+			PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelName);
 
-			Arrays.stream(modelLocal.getVoiceMetadata())
-				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
-				.forEach((voiceMetadata) -> {
-					VoiceListItem speakerItem = new VoiceListItem(this, textToSpeech, voiceMetadata, modelLocal);
+			Arrays.stream(modelLocal.getPiperVoiceMetadata())
+				.sorted(Comparator.comparing(a -> a.getPiperVoiceID()))
+				.forEach((piperVoiceMetadata) -> {
+					VoiceListItem speakerItem =
+						new VoiceListItem(this, textToSpeech, VoiceMetadata.from(piperVoiceMetadata));
 					voiceListItems.add(speakerItem);
 					sectionContent.add(speakerItem);
 				});
 
 		} catch (IOException e) {throw new RuntimeException(e);}
+
+		textToSpeech.addTextToSpeechListener(
+			new TextToSpeech.TextToSpeechListener() {
+				@Override
+				public void onPiperStart(Piper piper) {
+					if (piper.getModelLocal().getModelName().equals(modelName)) {
+						section.setVisible(true);
+						SwingUtilities.invokeLater(sectionListPanel::revalidate);
+					}
+				}
+
+				@Override
+				public void onPiperExit(Piper piper) {
+					if (piper.getModelLocal().getModelName().equals(modelName)) {
+						section.setVisible(false);
+						SwingUtilities.invokeLater(sectionListPanel::revalidate);
+					}
+				}
+			}
+		);
 
 		sectionListPanel.add(section);
 	}
@@ -274,14 +377,14 @@ public class VoiceExplorerPanel extends EditorPanel {
 		searchInput = StringUtils.join(searchTerms, " ");
 
 		for (VoiceListItem speakerItem : voiceListItems) {
-			PiperRepository.VoiceMetadata voiceMetadata = speakerItem.getVoiceMetadata();
+			VoiceMetadata piperVoiceMetadata = speakerItem.getVoiceMetadata();
 
-			boolean visible = genderSearch == null || genderSearch.equals(voiceMetadata.getGender());
+			boolean visible = genderSearch == null || genderSearch.equals(piperVoiceMetadata.getGender());
 
 			// name search
 			if (!searchInput.isEmpty()) {
 				boolean term_matched = false;
-				if (!searchTerms.isEmpty() && voiceMetadata.getName().toLowerCase().contains(searchInput)) {
+				if (!searchTerms.isEmpty() && piperVoiceMetadata.getName().toLowerCase().contains(searchInput)) {
 					term_matched = true;
 				}
 

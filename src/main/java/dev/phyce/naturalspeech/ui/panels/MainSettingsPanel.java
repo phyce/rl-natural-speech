@@ -7,6 +7,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -70,6 +71,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final ClientThread clientThread;
 	private final FixedWidthPanel mainContentPanel;
 	private final PiperRepository piperRepository;
+	private final SAPI4Repository sapi4Repository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final List<PiperRepository.ModelRepositoryListener> modelRepositoryListeners;
@@ -79,11 +81,12 @@ public class MainSettingsPanel extends PluginPanel {
 		NaturalSpeechConfig config,
 		PiperRepository piperRepository,
 		ConfigManager configManager,
-		Downloader downloader, ClientThread clientThread,
+		Downloader downloader, ClientThread clientThread, SAPI4Repository sapi4Repository,
 		TextToSpeech textToSpeech,
 		NaturalSpeechRuntimeConfig runtimeConfig
 	) {
 		super(false);
+		this.sapi4Repository = sapi4Repository;
 		this.textToSpeech = textToSpeech;
 		this.piperRepository = piperRepository;
 		this.clientThread = clientThread;
@@ -252,7 +255,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		List<PiperRepository.ModelURL> modelURLS = piperRepository.getModelURLS();
 		for (PiperRepository.ModelURL modelUrl : modelURLS) {
-			ModelListItem listItem = new ModelListItem(textToSpeech, piperRepository, modelUrl);
+			PiperModelListItem listItem = new PiperModelListItem(textToSpeech, piperRepository, modelUrl);
 			sectionContent.add(listItem);
 
 			PiperRepository.ModelRepositoryListener modelRepoListener = new PiperRepository.ModelRepositoryListener() {
@@ -276,6 +279,12 @@ public class MainSettingsPanel extends PluginPanel {
 			};
 			piperRepository.addRepositoryChangedListener(modelRepoListener);
 			this.modelRepositoryListeners.add(modelRepoListener);
+		}
+
+		// Sapi Model
+		List<String> sapi4Models = sapi4Repository.getModels();
+		if (sapi4Models != null && !sapi4Models.isEmpty()) {
+			sectionContent.add(new SAPI4ListItem(), 0);
 		}
 	}
 

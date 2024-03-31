@@ -4,9 +4,10 @@ import com.google.common.collect.ImmutableBiMap;
 import javax.annotation.CheckForNull;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import lombok.Value;
 
 @AllArgsConstructor
-enum SAPI4ModelCache {
+public enum SAPI4ModelCache {
 	SAM("Sam", "sam", 100, 50, 200, 150, 30, 450),
 	MARY("Mary", "mary", 169, 84, 338, 170, 30, 510),
 	MARY_PHONE("Mary (for Telephone)", "maryphone", 169, 84, 338, 170, 30, 510),
@@ -28,14 +29,14 @@ enum SAPI4ModelCache {
 	WHISPER_MALE("Male Whisper", "whispermale", 113, 56, 226, 170, 30, 510)
 	;
 
-	final String sapiName;
-	final String modelName;
-	final int defaultSpeed;
-	final int minSpeed;
-	final int maxSpeed;
-	final int defaultPitch;
-	final int minPitch;
-	final int maxPitch;
+	public final String sapiName;
+	public final String modelName;
+	public final int defaultSpeed;
+	public final int minSpeed;
+	public final int maxSpeed;
+	public final int defaultPitch;
+	public final int minPitch;
+	public final int maxPitch;
 
 	public final static ImmutableBiMap<String, String> sapiToModelName;
 	public final static ImmutableBiMap<String, String> modelToSapiName;
@@ -53,6 +54,16 @@ enum SAPI4ModelCache {
 	public static SAPI4ModelCache findSapiName(@NonNull String sapiName) {
 		for (SAPI4ModelCache cached : SAPI4ModelCache.values()) {
 			if (cached.sapiName.equals(sapiName)) {
+				return cached;
+			}
+		}
+		return null;
+	}
+
+	@CheckForNull
+	public static SAPI4ModelCache findModelName(@NonNull String modelName) {
+		for (SAPI4ModelCache cached : SAPI4ModelCache.values()) {
+			if (cached.modelName.equals(modelName)) {
 				return cached;
 			}
 		}

@@ -55,8 +55,8 @@ public class VoiceManager {
 				public void onPiperStart(Piper piper) {
 					PiperRepository.ModelLocal modelLocal = piper.getModelLocal();
 					genderedVoiceMap.addModel(modelLocal);
-					for (PiperRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
-						activeVoiceMap.put(modelLocal, voiceMetadata.toVoiceID());
+					for (PiperRepository.PiperVoiceMetadata piperVoiceMetadata : modelLocal.getPiperVoiceMetadata()) {
+						activeVoiceMap.put(modelLocal, piperVoiceMetadata.toVoiceID());
 					}
 				}
 

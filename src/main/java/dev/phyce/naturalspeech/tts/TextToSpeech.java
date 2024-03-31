@@ -17,9 +17,10 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
-import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
@@ -54,6 +55,7 @@ public class TextToSpeech {
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final ClientThread clientThread;
 	private final PiperRepository piperRepository;
+	private final SAPI4Repository sapi4Repository;
 	private final NaturalSpeechConfig config;
 
 	private Map<String, String> abbreviations;
@@ -80,12 +82,13 @@ public class TextToSpeech {
 		ConfigManager configManager,
 		ClientThread clientThread,
 		PiperRepository piperRepository,
-		NaturalSpeechRuntimeConfig runtimeConfig,
+		NaturalSpeechRuntimeConfig runtimeConfig, SAPI4Repository sapi4Repository,
 		NaturalSpeechConfig config) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.clientThread = clientThread;
 		this.piperRepository = piperRepository;
+		this.sapi4Repository = sapi4Repository;
 		this.config = config;
 
 		loadModelConfig();
@@ -119,15 +122,24 @@ public class TextToSpeech {
 		}
 
 		// FIXME(Louis): Sapi init
-		List<String> sapiModels = SpeechAPI4.getModels(runtimeConfig.getSAPI4Path());
-		if (sapiModels != null) {
-			for (String sapiModel : sapiModels) {
-				sapi4s.put(sapiModel, SpeechAPI4.start(sapiModel, runtimeConfig.getSAPI4Path()));
+		{
+			List<String> modelNames = sapi4Repository.getModels();
+			if (modelNames != null) {
+				for (String modelName : modelNames) {
+					sapi4s.put(modelName, SpeechAPI4.start(modelName, runtimeConfig.getSAPI4Path()));
+					triggerOnSAPI4Start(modelName);
+				}
 			}
 		}
 
 		if (started) {
 			triggerOnStart();
+		}
+	}
+
+	private void triggerOnSAPI4Start(String modelName) {
+		for (TextToSpeechListener listener : textToSpeechListeners) {
+			listener.onSAPI4Start(modelName);
 		}
 	}
 
@@ -144,7 +156,7 @@ public class TextToSpeech {
 		pipers.clear();
 
 		// sapis objects spawn one-shot sapi4 processes, does not need to be stopped
-		sapi4s.clear();
+//		sapi4s.clear();
 
 		triggerOnStop();
 	}
@@ -413,6 +425,8 @@ public class TextToSpeech {
 		default void onPiperStart(Piper piper) {}
 
 		default void onPiperExit(Piper piper) {}
+
+		default void onSAPI4Start(String modelName) {}
 
 		default void onPiperInvalid() {}
 

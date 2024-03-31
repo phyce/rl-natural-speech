@@ -6,10 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -17,7 +15,6 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -33,38 +30,6 @@ public class SpeechAPI4 {
 	private final Path sapi4Path;
 	private final File outputFolder;
 
-
-	@CheckForNull
-	public static List<String> getModels(@NonNull Path sapi4Path) {
-		Path sapi4limits = sapi4Path.resolveSibling("sapi4limits.exe");
-
-		if (!sapi4limits.toFile().exists()) {
-			log.debug("SAPI4 not installed. {} does not exist.", sapi4limits);
-			return null;
-		}
-
-		ProcessBuilder processBuilder = new ProcessBuilder(sapi4limits.toString());
-
-		Process process;
-		try {
-			process = processBuilder.start();
-		} catch (IOException e) {
-			log.error("Failed to start SAPI4 limits, used for fetching available models.", e);
-			throw new RuntimeException(e);
-		}
-
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-			List<String> limits = reader.lines()
-				.skip(2)
-				.map((String key) -> SAPI4ModelCache.sapiToModelName.getOrDefault(key, key))
-				.collect(Collectors.toList());
-			log.debug("{}", limits);
-			return limits;
-		} catch (IOException e) {
-			log.error("Failed to read SAPI4 limits", e);
-			return null;
-		}
-	}
 
 	private SpeechAPI4(String modelName, Path sapi4Path, Path outputPath, int speed, int pitch) {
 		this.modelName = modelName;
