@@ -15,7 +15,7 @@ import java.util.Map;
  * <code>seed(key, value)</code> before the injector will be called upon to
  * provide for this key.
  */
-public class PluginScopeSingleton implements Scope {
+public class PluginSingletonScope implements Scope {
 
 	private static final Provider<Object> SEEDED_KEY_PROVIDER =
 		new Provider<Object>() {
