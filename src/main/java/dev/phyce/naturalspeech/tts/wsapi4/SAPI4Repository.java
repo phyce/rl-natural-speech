@@ -25,8 +25,6 @@ public class SAPI4Repository {
 	public SAPI4Repository(NaturalSpeechRuntimeConfig runtimeConfig) {
 		this.runtimeConfig = runtimeConfig;
 
-		log.info("SAPI4REPO INSTANTIATED");
-
 		reload();
 	}
 

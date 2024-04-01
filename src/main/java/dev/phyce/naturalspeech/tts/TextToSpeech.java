@@ -92,6 +92,16 @@ public class TextToSpeech {
 		this.config = config;
 
 		loadModelConfig();
+
+		// SAPI4 models don't have lifecycles and does not need to be cleared on stop
+		{
+			List<String> modelNames = sapi4Repository.getModels();
+			if (modelNames != null) {
+				for (String modelName : modelNames) {
+					sapi4s.put(modelName, SpeechAPI4.start(modelName, runtimeConfig.getSAPI4Path()));
+				}
+			}
+		}
 	}
 
 	// <editor-fold desc="> API">
@@ -121,25 +131,8 @@ public class TextToSpeech {
 			return;
 		}
 
-		// FIXME(Louis): Sapi init
-		{
-			List<String> modelNames = sapi4Repository.getModels();
-			if (modelNames != null) {
-				for (String modelName : modelNames) {
-					sapi4s.put(modelName, SpeechAPI4.start(modelName, runtimeConfig.getSAPI4Path()));
-					triggerOnSAPI4Start(modelName);
-				}
-			}
-		}
-
 		if (started) {
 			triggerOnStart();
-		}
-	}
-
-	private void triggerOnSAPI4Start(String modelName) {
-		for (TextToSpeechListener listener : textToSpeechListeners) {
-			listener.onSAPI4Start(modelName);
 		}
 	}
 
@@ -154,9 +147,6 @@ public class TextToSpeech {
 			triggerOnPiperExit(piper);
 		}
 		pipers.clear();
-
-		// sapis objects spawn one-shot sapi4 processes, does not need to be stopped
-//		sapi4s.clear();
 
 		triggerOnStop();
 	}
@@ -425,8 +415,6 @@ public class TextToSpeech {
 		default void onPiperStart(Piper piper) {}
 
 		default void onPiperExit(Piper piper) {}
-
-		default void onSAPI4Start(String modelName) {}
 
 		default void onPiperInvalid() {}
 

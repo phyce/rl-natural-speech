@@ -97,7 +97,9 @@ public class VoiceListItem extends JPanel {
 			.addGap(5));
 
 
-		JButton playButton = new JButton(PLAY_BUTTON_DISABLED);
+		boolean isModelActive = textToSpeech.isModelActive(voiceMetadata.voiceId);
+		JButton playButton = new JButton(isModelActive ? PLAY_BUTTON : PLAY_BUTTON_DISABLED);
+		playButton.setEnabled(isModelActive);
 		SwingUtil.removeButtonDecorations(playButton);
 		playButton.setPreferredSize(
 			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
@@ -121,7 +123,6 @@ public class VoiceListItem extends JPanel {
 				}
 			});
 
-		playButton.setEnabled(false);
 
 		BorderLayout rootLayout = new BorderLayout();
 		this.setLayout(rootLayout);
@@ -145,14 +146,6 @@ public class VoiceListItem extends JPanel {
 					if (piper.getModelLocal().getModelName().equals(voiceMetadata.voiceId.modelName)) {
 						playButton.setIcon(PLAY_BUTTON_DISABLED);
 						playButton.setEnabled(false);
-					}
-				}
-
-				@Override
-				public void onSAPI4Start(String modelName) {
-					if (modelName.equals(voiceMetadata.voiceId.id)) {
-						playButton.setIcon(PLAY_BUTTON);
-						playButton.setEnabled(true);
 					}
 				}
 

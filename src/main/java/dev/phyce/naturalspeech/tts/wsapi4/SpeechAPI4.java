@@ -123,6 +123,10 @@ public class SpeechAPI4 {
 		return () -> {
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String filename = reader.readLine();
+				if (filename == null) {
+					log.error("SAPI4 failed to execute, likely due to missing SAPI4 installation.");
+					return;
+				}
 				File audioFile = outputFolder.toPath().resolve(filename).toFile();
 				try (AudioInputStream audioFileStream = AudioSystem.getAudioInputStream(audioFile)) {
 
