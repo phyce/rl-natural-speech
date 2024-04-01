@@ -4,8 +4,8 @@ import com.google.common.io.Resources;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
@@ -43,7 +43,7 @@ import net.runelite.http.api.RuneLiteAPI;
 
 // Renamed from TTSManager
 @Slf4j
-@Singleton
+@PluginSingleton
 public class TextToSpeech {
 
 	//<editor-fold desc="> Properties">

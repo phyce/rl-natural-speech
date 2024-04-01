@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.tts.wsapi4;
 
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,16 +8,12 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Singleton
+@PluginSingleton
 public class SAPI4Repository {
 
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
@@ -27,6 +24,8 @@ public class SAPI4Repository {
 	@Inject
 	public SAPI4Repository(NaturalSpeechRuntimeConfig runtimeConfig) {
 		this.runtimeConfig = runtimeConfig;
+
+		log.info("SAPI4REPO INSTANTIATED");
 
 		reload();
 	}

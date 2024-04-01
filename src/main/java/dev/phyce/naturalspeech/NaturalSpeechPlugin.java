@@ -10,6 +10,8 @@ import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.guice.PluginScopeSingleton;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
@@ -33,7 +35,6 @@ import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
 import org.slf4j.LoggerFactory;
-
 
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
@@ -67,6 +68,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	//</editor-fold>
 
 	//<editor-fold desc="> Runtime Variables">
+	private PluginScopeSingleton pluginScopeSingleton;
 	private NavigationButton navButton;
 	//</editor-fold>
 
@@ -86,9 +88,12 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	private TopLevelPanel topLevelPanel;
 
+
 	//<editor-fold desc="> Override Methods">
 	@Override
 	public void configure(Binder binder) {
+		pluginScopeSingleton = new PluginScopeSingleton();
+		binder.bindScope(PluginSingleton.class, pluginScopeSingleton);
 		// Instantiate PluginHelper early, Plugin relies on static PluginHelper::Instance
 		// No cycling-dependencies back at NaturalSpeechPlugin allowed
 		// quality-of-life abstraction for coding
@@ -99,6 +104,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	public void startUp() {
+		pluginScopeSingleton.enter();
 
 		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
 		textToSpeech = injector.getInstance(TextToSpeech.class);
@@ -165,6 +171,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		clientToolbar.removeNavigation(navButton);
 
 		saveConfigs();
+
+		pluginScopeSingleton.exit();
 
 		log.info("NaturalSpeech plugin has shutDown");
 	}

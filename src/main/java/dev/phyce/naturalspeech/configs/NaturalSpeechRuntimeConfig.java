@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.configs;
 
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.nio.file.Path;
@@ -10,7 +10,7 @@ import net.runelite.client.config.ConfigManager;
 /**
  * Runtime Configs are serialized configurations invisible to the player but used at plugin runtime.
  */
-@Singleton
+@PluginSingleton
 public class NaturalSpeechRuntimeConfig {
 	public static final String KEY_TTS_ENGINE_PATH = "ttsEngine";
 	private final ConfigManager configManager;

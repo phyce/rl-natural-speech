@@ -5,7 +5,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.io.Resources;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
@@ -31,7 +31,7 @@ import net.runelite.client.util.Text;
 
 
 @Slf4j
-@Singleton
+@PluginSingleton
 public class VoiceManager {
 
 	public final static String VOICE_CONFIG_FILE = "speaker_config.json";

@@ -11,8 +11,8 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 
 @Slf4j
-@Singleton
+@PluginSingleton
 public class PiperRepository {
 
 	public final static String EXTENSION = ".onnx";

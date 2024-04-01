@@ -1,15 +1,11 @@
 package dev.phyce.naturalspeech.helpers;
 
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
-import java.util.Collections;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.CheckForNull;
 import javax.inject.Inject;
-import javax.inject.Singleton;
-import lombok.Getter;
 import lombok.NonNull;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
@@ -20,7 +16,7 @@ import net.runelite.api.events.ChatMessage;
 import net.runelite.client.util.Text;
 
 // renamed: PlayerCommon
-@Singleton
+@PluginSingleton
 public final class PluginHelper {
 	private static PluginHelper instance;
 	@Inject
