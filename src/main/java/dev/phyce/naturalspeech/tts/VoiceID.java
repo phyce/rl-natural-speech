@@ -1,9 +1,11 @@
 package dev.phyce.naturalspeech.tts;
 
+import com.google.gson.annotations.JsonAdapter;
 import javax.annotation.CheckForNull;
 import lombok.Data;
 
 @Data
+@JsonAdapter(VoiceIDSerializer.class)
 public class VoiceID {
 	public String modelName;
 	public String id;
@@ -55,4 +57,5 @@ public class VoiceID {
 	public String toString() {
 		return toVoiceIDString();
 	}
+
 }
