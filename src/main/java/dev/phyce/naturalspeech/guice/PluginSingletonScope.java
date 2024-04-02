@@ -75,12 +75,11 @@ public class PluginSingletonScope implements Scope {
 	}
 
 	private <T> Map<Key<?>, Object> getScopedObjectMap(Key<T> key) {
-		Map<Key<?>, Object> scopedObjects = values;
-		if (scopedObjects == null) {
+		if (values == null) {
 			throw new OutOfScopeException("Cannot access " + key
 				+ " outside of a scoping block");
 		}
-		return scopedObjects;
+		return values;
 	}
 
 	/**
