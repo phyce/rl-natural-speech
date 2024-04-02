@@ -7,7 +7,9 @@ import com.google.inject.OutOfScopeException;
 import com.google.inject.Provider;
 import com.google.inject.Scope;
 import com.google.inject.Scopes;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
@@ -26,17 +28,16 @@ public class PluginSingletonScope implements Scope {
 					" SimpleScope.seed(), but was not.");
 			}
 		};
-	private final ThreadLocal<Map<Key<?>, Object>> values
-		= new ThreadLocal<Map<Key<?>, Object>>();
+	private ConcurrentHashMap<Key<?>, Object> values = null;
 
 	public void enter() {
-		checkState(values.get() == null, "A scoping block is already in progress");
-		values.set(Maps.<Key<?>, Object>newHashMap());
+		checkState(values == null, "A scoping block is already in progress");
+		values = new ConcurrentHashMap<>();
 	}
 
 	public void exit() {
-		checkState(values.get() != null, "No scoping block in progress");
-		values.remove();
+		checkState(values != null, "No scoping block in progress");
+		values = null;
 	}
 
 	public <T> void seed(Key<T> key, T value) {
@@ -74,7 +75,7 @@ public class PluginSingletonScope implements Scope {
 	}
 
 	private <T> Map<Key<?>, Object> getScopedObjectMap(Key<T> key) {
-		Map<Key<?>, Object> scopedObjects = values.get();
+		Map<Key<?>, Object> scopedObjects = values;
 		if (scopedObjects == null) {
 			throw new OutOfScopeException("Cannot access " + key
 				+ " outside of a scoping block");
