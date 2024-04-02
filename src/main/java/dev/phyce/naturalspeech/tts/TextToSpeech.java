@@ -168,10 +168,7 @@ public class TextToSpeech {
 					throw new PiperNotActiveException(text, voiceID);
 				}
 				Piper piper = (Piper) ttsEngine;
-				List<String> fragments = splitSentence(text);
-				for (String sentence : fragments) {
-					piper.speak(sentence, voiceID, volumeDb, audioQueueName);
-				}
+				piper.speak(text, voiceID, volumeDb, audioQueueName);
 			} catch (IOException e) {
 				throw new RuntimeException("Error loading " + voiceID, e);
 			}
