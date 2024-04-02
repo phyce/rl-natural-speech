@@ -62,7 +62,6 @@ public class SpeechEventHandler {
 	@Subscribe(priority=-100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
-		log.debug("Message received: " + message.toString());
 
 		String username;
 		float volume = 0f;
