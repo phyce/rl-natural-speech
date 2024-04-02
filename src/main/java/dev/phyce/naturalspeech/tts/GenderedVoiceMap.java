@@ -8,19 +8,19 @@ import java.util.List;
 
 public class GenderedVoiceMap {
 
-	public List<VoiceID> MaleList = new ArrayList<>();
-	public List<VoiceID> FemaleList = new ArrayList<>();
-	public List<VoiceID> OtherList = new ArrayList<>();
+	private final List<VoiceID> maleList = new ArrayList<>();
+	private final List<VoiceID> femaleList = new ArrayList<>();
+	private final List<VoiceID> otherList = new ArrayList<>();
 
 	public void addModel(PiperRepository.ModelLocal modelLocal) {
 		for (PiperRepository.PiperVoiceMetadata piperVoiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 			VoiceID voiceID = piperVoiceMetadata.toVoiceID();
 			if (piperVoiceMetadata.getGender() == Gender.MALE) {
-				MaleList.add(voiceID);
+				maleList.add(voiceID);
 			} else if (piperVoiceMetadata.getGender() == Gender.FEMALE) {
-				FemaleList.add(voiceID);
+				femaleList.add(voiceID);
 			} else {
-				OtherList.add(voiceID);
+				otherList.add(voiceID);
 			}
 		}
 	}
@@ -29,22 +29,22 @@ public class GenderedVoiceMap {
 		for (PiperRepository.PiperVoiceMetadata piperVoiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 			VoiceID voiceID = piperVoiceMetadata.toVoiceID();
 			if (piperVoiceMetadata.getGender() == Gender.MALE) {
-				MaleList.remove(voiceID);
+				maleList.remove(voiceID);
 			} else if (piperVoiceMetadata.getGender() == Gender.FEMALE) {
-				FemaleList.remove(voiceID);
+				femaleList.remove(voiceID);
 			} else {
-				OtherList.remove(voiceID);
+				otherList.remove(voiceID);
 			}
 		}
 	}
 
 	public List<VoiceID> find(Gender gender) {
 		if (gender == Gender.MALE) {
-			return Collections.unmodifiableList(MaleList);
+			return Collections.unmodifiableList(maleList);
 		} else if (gender == Gender.FEMALE) {
-			return Collections.unmodifiableList(FemaleList);
+			return Collections.unmodifiableList(femaleList);
 		} else {
-			return Collections.unmodifiableList(OtherList);
+			return Collections.unmodifiableList(otherList);
 		}
 	}
 }
