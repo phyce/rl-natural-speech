@@ -81,6 +81,7 @@ public class PiperListItem extends JPanel {
 
 		@Override
 		public void onPiperProcessCrash(PiperProcess process) {
+			log.error("PiperListItem was alerted that {} crashed", process);
 		}
 
 		@Override

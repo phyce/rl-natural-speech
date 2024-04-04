@@ -11,9 +11,11 @@ import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -21,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PiperProcess {
 	public static final Pattern piperLogMatcher = Pattern.compile("\\[.+] \\[piper] \\[info] (.+)");
-	@Getter
 	private final AtomicBoolean piperLocked;
 	private final ByteArrayOutputStream streamCapture = new ByteArrayOutputStream();
 	private final Path modelPath;
@@ -106,7 +107,7 @@ public class PiperProcess {
 						streamCapture.notify();
 					}
 				}
-				log.trace("[pid:{}-StdErr]: {}", this.getPid(), stripPiperLogPrefix(line));
+				log.trace("[pid:{}-StdErr]:{}", this.getPid(), stripPiperLogPrefix(line));
 			}
 		} catch (IOException e) {
 			log.error("{}: readStdErr threw exception", this, e);
@@ -114,15 +115,31 @@ public class PiperProcess {
 	}
 
 	// refactor: inlined the speak(TTSItem) method into one generateAudio function
-	public byte[] generateAudio(String text, int piperVoiceID) throws IOException, InterruptedException {
+	public void generateAudio(String text, int piperVoiceID, Consumer<byte[]> onComplete) {
+		if (piperLocked.get()) {
+			log.error("attempting to generateAudio with locked PiperProcess({}):{}", this, text);
+			return;
+		}
 		piperLocked.set(true);
-		byte[] audioClip;
+
+		new Thread(() -> {
+			try {
+				onComplete.accept(_blockedGenerateAudio(text, piperVoiceID));
+			} catch (IOException e) {
+				log.error("PiperProcess {} failed to generate:{}", this, text);
+				onComplete.accept(null);
+			}
+		}).start();
+	}
+
+	@SneakyThrows(InterruptedException.class)
+	private byte[] _blockedGenerateAudio(String text, int piperVoiceID) throws IOException {
 		try {
 			byte[] result = null;
 			boolean valid = false;
 
 			synchronized (streamCapture) { streamCapture.reset(); }
-			
+
 			processStdIn.write(TextUtil.generateJson(text, piperVoiceID));
 			processStdIn.newLine();
 			processStdIn.flush();
@@ -133,18 +150,19 @@ public class PiperProcess {
 				if (!valid) result = streamCapture.toByteArray();
 			}
 
-			audioClip = result;
+			return result;
 		} finally {
-			try { Thread.sleep(5); }
-			catch(InterruptedException e) { throw new RuntimeException(e); }
 			streamCapture.reset();
 			piperLocked.set(false);
 		}
-		return audioClip;
 	}
 
 	public boolean isAlive() {
 		return process.isAlive();
+	}
+
+	public boolean isLocked() {
+		return piperLocked.get();
 	}
 
 	public long getPid() {

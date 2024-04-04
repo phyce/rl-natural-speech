@@ -5,6 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
@@ -57,6 +58,7 @@ public class TextToSpeech {
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
 	private final NaturalSpeechConfig config;
+	private final AudioEngine audioEngine;
 
 	private Map<String, String> abbreviations;
 	@Getter
@@ -82,14 +84,18 @@ public class TextToSpeech {
 		ConfigManager configManager,
 		ClientThread clientThread,
 		PiperRepository piperRepository,
-		NaturalSpeechRuntimeConfig runtimeConfig, SAPI4Repository sapi4Repository,
-		NaturalSpeechConfig config) {
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		SAPI4Repository sapi4Repository,
+		NaturalSpeechConfig config,
+		AudioEngine audioEngine
+	) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.clientThread = clientThread;
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
 		this.config = config;
+		this.audioEngine = audioEngine;
 
 		loadModelConfig();
 
@@ -98,7 +104,7 @@ public class TextToSpeech {
 			List<String> modelNames = sapi4Repository.getModels();
 			if (modelNames != null) {
 				for (String modelName : modelNames) {
-					sapi4s.put(modelName, SpeechAPI4.start(modelName, runtimeConfig.getSAPI4Path()));
+					sapi4s.put(modelName, SpeechAPI4.start(audioEngine, modelName, runtimeConfig.getSAPI4Path()));
 				}
 			}
 		}
@@ -206,29 +212,29 @@ public class TextToSpeech {
 	}
 
 	public void clearOtherPlayersAudioQueue(String username) {
-		for (String modelName : pipers.keySet()) {
-			Piper piper = pipers.get(modelName);
-			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
-				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-				if (audioQueueName.equals(PluginHelper.getLocalPlayerUsername())) continue;
-				if (audioQueueName.equals(username)) continue;
-				piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
-			}
-		}
+//		for (String modelName : pipers.keySet()) {
+//			Piper piper = pipers.get(modelName);
+//			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
+//				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
+//				if (audioQueueName.equals(PluginHelper.getLocalPlayerUsername())) continue;
+//				if (audioQueueName.equals(username)) continue;
+//				piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+//			}
+//		}
 	}
 
 	public void clearPlayerAudioQueue(String username) {
-		for (String modelName : pipers.keySet()) {
-			Piper piper = pipers.get(modelName);
-			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
-				// Don't clear dialogue
-				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-
-				if (audioQueueName.equals(username)) {
-					piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
-				}
-			}
-		}
+//		for (String modelName : pipers.keySet()) {
+//			Piper piper = pipers.get(modelName);
+//			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
+//				// Don't clear dialogue
+//				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
+//
+//				if (audioQueueName.equals(username)) {
+//					piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+//				}
+//			}
+//		}
 	}
 	//</editor-fold>
 
@@ -264,6 +270,7 @@ public class TextToSpeech {
 		}
 
 		Piper piper = Piper.start(
+			audioEngine,
 			modelLocal,
 			runtimeConfig.getPiperPath(),
 			modelConfig.getModelProcessCount(modelLocal.getModelName())

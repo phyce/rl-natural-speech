@@ -1,5 +1,7 @@
 package dev.phyce.naturalspeech.tts.wsapi4;
 
+import static com.google.common.base.Preconditions.checkState;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,9 +31,11 @@ public class SpeechAPI4 {
 
 	private final Path sapi4Path;
 	private final File outputFolder;
+	private final AudioEngine audioEngine;
 
 
-	private SpeechAPI4(String modelName, Path sapi4Path, Path outputPath, int speed, int pitch) {
+	private SpeechAPI4(AudioEngine audioEngine, String modelName, Path sapi4Path, Path outputPath, int speed, int pitch) {
+		this.audioEngine = audioEngine;
 		this.modelName = modelName;
 		this.sapi4Path = sapi4Path;
 		this.speed = speed;
@@ -43,7 +47,7 @@ public class SpeechAPI4 {
 		}
 	}
 
-	public static SpeechAPI4 start(String modelName, Path sapi4Path) {
+	public static SpeechAPI4 start(AudioEngine audioEngine, String modelName, Path sapi4Path) {
 		String sapiName = SAPI4ModelCache.modelToSapiName.getOrDefault(modelName, modelName);
 
 		int speed;
@@ -90,7 +94,7 @@ public class SpeechAPI4 {
 			}
 		}
 		Path outputPath = sapi4Path.getParent().resolve("output");
-		return new SpeechAPI4(sapiName, sapi4Path, outputPath, speed, pitch);
+		return new SpeechAPI4(audioEngine, sapiName, sapi4Path, outputPath, speed, pitch);
 	}
 
 
@@ -129,16 +133,12 @@ public class SpeechAPI4 {
 				}
 				File audioFile = outputFolder.toPath().resolve(filename).toFile();
 				try (AudioInputStream audioFileStream = AudioSystem.getAudioInputStream(audioFile)) {
-
-					AudioFormat format = audioFileStream.getFormat();
-					Clip clip = AudioSystem.getClip();
-					clip.open(audioFileStream);
-					clip.start();
-					clip.drain();
-				} catch (UnsupportedAudioFileException | LineUnavailableException e) {
-					throw new RuntimeException(e);
+					audioEngine.play("&temp", audioFileStream, () -> 0f);
+				} catch (UnsupportedAudioFileException e) {
+					log.error("Unsupported audio file", e);
+					return; // keep the audioFile for inspection, don't delete.
 				}
-				assert audioFile.delete();
+				checkState(audioFile.delete(), "Failed to delete SAPI4 speech wav file:" + audioFile);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

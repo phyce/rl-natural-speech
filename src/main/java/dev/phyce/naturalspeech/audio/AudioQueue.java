@@ -1,13 +1,12 @@
-package dev.phyce.naturalspeech.tts;
+package dev.phyce.naturalspeech.audio;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Value;
 
 public class AudioQueue {
 	private final AtomicBoolean playing = new AtomicBoolean(false);
-	public ConcurrentLinkedQueue<CompletableFuture<AudioTask>> queue = new ConcurrentLinkedQueue<>();
+	public ConcurrentLinkedQueue<AudioTask> queue = new ConcurrentLinkedQueue<>();
 
 	public boolean isPlaying() {
 		return playing.get();
@@ -16,6 +15,7 @@ public class AudioQueue {
 	public void setPlaying(boolean playing) {
 		this.playing.set(playing);
 	}
+
 
 	// decoupled audio queue from plugin logic
 	@Value

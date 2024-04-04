@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
@@ -22,8 +23,11 @@ import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.ExecutorService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -31,6 +35,7 @@ import net.runelite.client.events.ClientShutdown;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.task.Schedule;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
@@ -64,6 +69,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	private SpeechEventHandler speechEventHandler;
 	private MenuEventHandler menuEventHandler;
 	private CommandExecutedEventHandler commandExecutedEventHandler;
+
+	private AudioEngine audioEngine;
 
 	//</editor-fold>
 
@@ -106,6 +113,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void startUp() {
 		pluginSingletonScope.enter();
 
+		audioEngine = injector.getInstance(AudioEngine.class);
 		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
 		textToSpeech = injector.getInstance(TextToSpeech.class);
 		voiceManager = injector.getInstance(VoiceManager.class);
@@ -142,7 +150,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Load Abbreviations is a method that can be called later when configs are changed
 		textToSpeech.loadAbbreviations();
 
-
 		if (config.autoStart()) {
 			textToSpeech.start();
 		}
@@ -172,7 +179,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		saveConfigs();
 
-		pluginSingletonScope.exit();
+		pluginSingletonScope.exit(); // objects in this scope will be garbage collected after scope exit
 
 		log.info("NaturalSpeech plugin has shutDown");
 	}
@@ -197,6 +204,12 @@ public class NaturalSpeechPlugin extends Plugin {
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
+
+	// update audio engine twice per tick on the client thread
+	@Schedule(period=300, unit=ChronoUnit.MILLIS)
+	public void updateAudioEngine() {
+		audioEngine.update();
+	}
 
 	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {

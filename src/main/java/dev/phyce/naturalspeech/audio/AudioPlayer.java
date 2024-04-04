@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.tts;
+package dev.phyce.naturalspeech.audio;
 
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.ByteArrayInputStream;

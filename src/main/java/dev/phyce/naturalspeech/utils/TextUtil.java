@@ -1,10 +1,12 @@
 package dev.phyce.naturalspeech.utils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class TextUtil {
 
@@ -51,6 +53,18 @@ public final class TextUtil {
 		if (currentFragment.length() > 0) fragments.add(currentFragment.toString().trim());
 
 		return fragments;
+	}
+
+	public static List<String> splitSentenceV2(String text) {
+		String[] segments = text.split("[.,!?:;]");
+		return Arrays.stream(segments)
+			.map(String::trim)
+			.filter(s -> !s.isEmpty())
+			.collect(Collectors.toList());
+	}
+
+	public static String sentenceSegmentPrettyPrint(List<String> segments) {
+		return segments.stream().map(s -> "[" + s + "]").reduce("", (a, b) ->  a + b);
 	}
 
 	private static int findLastBreakPoint(String fragment, int softLimit, int hardLimit) {
@@ -120,7 +134,7 @@ public final class TextUtil {
 	}
 
 	private static final Pattern patternTargetWithLevel = Pattern.compile("(.+)  \\(level-\\d+\\)");
-	/**
+	/*
 	 * For MenuEntry menuTarget name.
 	 * Keeps tag information, removes level information.
 	 * For example <col=ffffff>Guard</col>  (level-32) -> Guard
