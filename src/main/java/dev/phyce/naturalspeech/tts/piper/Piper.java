@@ -29,10 +29,7 @@ public class Piper {
 	@Getter
 	private final Map<Long, PiperProcess> processMap = new HashMap<>();
 	private final ConcurrentLinkedQueue<PiperTask> piperTaskQueue = new ConcurrentLinkedQueue<>();
-
-	private final AudioPlayer audioPlayer;
 	private final AudioEngine audioEngine;
-
 	@Getter
 	private final PiperRepository.ModelLocal modelLocal;
 	@Getter
@@ -47,7 +44,6 @@ public class Piper {
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
 
-		audioPlayer = new AudioPlayer();
 
 		startMore(instanceCount);
 
@@ -186,8 +182,6 @@ public class Piper {
 						triggerOnPiperProcessDone(process);
 					};
 
-					CompletableFuture<byte[]> a = new CompletableFuture<>();
-
 					log.trace("{} -> {}", pid, text);
 					process.generateAudio(text, id, onComplete);
 					break;
@@ -217,7 +211,6 @@ public class Piper {
 	}
 
 	public void stop() {
-		audioPlayer.stop();
 
 		for (PiperProcess instance : processMap.values()) {
 			instance.stop();
