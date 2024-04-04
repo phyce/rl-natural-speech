@@ -14,13 +14,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 import javax.sound.sampled.AudioInputStream;
-import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 // Renamed from TTSModel
@@ -29,6 +29,7 @@ public class Piper {
 	@Getter
 	private final Map<Long, PiperProcess> processMap = new HashMap<>();
 	private final ConcurrentLinkedQueue<PiperTask> piperTaskQueue = new ConcurrentLinkedQueue<>();
+
 	private final AudioPlayer audioPlayer;
 	private final AudioEngine audioEngine;
 
@@ -39,7 +40,6 @@ public class Piper {
 	private final Thread processPiperTaskThread;
 
 	private final List<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new ArrayList<>();
-
 
 	private Piper(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath, int instanceCount)
 		throws IOException {
@@ -69,7 +69,7 @@ public class Piper {
 		return new Piper(audioEngine, modelLocal, piperPath, instanceCount);
 	}
 
-	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
+	public void speak(String text, VoiceID voiceID, float volume, String lineName) throws IOException {
 		if (countAlive() == 0) {
 			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
 		}
@@ -83,9 +83,16 @@ public class Piper {
 		//		List<String> segments = List.of(text);
 		if (segments.size() > 1) {
 			log.trace("Piper speech segmentation: {}", TextUtil.sentenceSegmentPrettyPrint(segments));
-		}
-		for (String segment : segments) {
-			piperTaskQueue.add(new PiperTask(segment, voiceID, volume, audioQueueName));
+
+			// build a linked list of tasks
+			PiperTask parent = null;
+			for (String segment : segments) {
+				PiperTask child = new PiperTask(segment, voiceID, volume, lineName, parent);
+				piperTaskQueue.add(child);
+				parent = child;
+			}
+		} else {
+			piperTaskQueue.add(new PiperTask(text, voiceID, volume, lineName, null));
 		}
 		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 	}
@@ -146,24 +153,40 @@ public class Piper {
 					String text = Objects.requireNonNull(task).getText();
 					Integer id = Objects.requireNonNull(task.getVoiceID().getIntId());
 					Consumer<byte[]> onComplete = (byte[] audioClip) -> {
+
 						if (audioClip != null && audioClip.length > 0) {
+
+							// if there are parent tasks, wait for them to complete
+							if (task.parent != null) {
+								synchronized (task.parent) {
+									while (!task.parent.completed) {
+										try { task.parent.wait();} catch (InterruptedException ignored) {}
+									}
+								}
+							}
 
 							AudioInputStream inStream = new AudioInputStream(
 								new ByteArrayInputStream(audioClip),
 								AudioEngine.getFormat(),
 								audioClip.length);
 
-							audioEngine.play(task.audioQueueName, inStream, () -> task.volume);
+							audioEngine.play(task.lineName, inStream, () -> task.volume);
 
+							// notify any child tasks that the parent (this task) is completed
+							synchronized (task) {
+								task.completed = true;
+								task.notify();
+							}
 						}
 						else {
 							log.warn("PiperProcess returned null and did not generate, likely due to crash.");
 						}
-
 						// even in the case audioClip failed to generate, we must notify that the generation is finished
 						synchronized (processMap) {processMap.notify();}
 						triggerOnPiperProcessDone(process);
 					};
+
+					CompletableFuture<byte[]> a = new CompletableFuture<>();
 
 					log.trace("{} -> {}", pid, text);
 					process.generateAudio(text, id, onComplete);
@@ -254,13 +277,23 @@ public class Piper {
 	}
 
 	// Renamed from TTSItem, decoupled from dependencies
-	@Value
-	@AllArgsConstructor
+	@Data
 	private static class PiperTask {
-		String text;
-		VoiceID voiceID;
-		float volume;
-		String audioQueueName;
+		final String text;
+		final VoiceID voiceID;
+		final float volume;
+		final String lineName;
+		final PiperTask parent;
+
+		boolean completed = false;
+
+		public PiperTask(String text, VoiceID voiceID, float volume, String lineName, PiperTask parent) {
+			this.text = text;
+			this.voiceID = voiceID;
+			this.volume = volume;
+			this.lineName = lineName;
+			this.parent = parent;
+		}
 	}
 
 	public interface PiperProcessLifetimeListener {
