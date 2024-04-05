@@ -16,7 +16,6 @@ import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
-import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
@@ -25,7 +24,6 @@ import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
-import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -36,6 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
@@ -152,12 +152,14 @@ public class TextToSpeech {
 			}
 			triggerOnPiperExit(piper);
 		}
+
+		cancelAll();
 		pipers.clear();
 
 		triggerOnStop();
 	}
 
-	public void speak(VoiceID voiceID, String text, float volumeDb, String audioQueueName)
+	public void speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
 
 		// Piper should be guaranteed to be present due to checks above
@@ -174,14 +176,14 @@ public class TextToSpeech {
 					throw new PiperNotActiveException(text, voiceID);
 				}
 				Piper piper = (Piper) ttsEngine;
-				piper.speak(text, voiceID, volumeDb, audioQueueName);
+				piper.speak(text, voiceID, gainSupplier, lineName);
 			} catch (IOException e) {
 				throw new RuntimeException("Error loading " + voiceID, e);
 			}
 		}
 		else if (ttsEngine instanceof SpeechAPI4) {
 			SpeechAPI4 sapi = (SpeechAPI4) ttsEngine;
-			sapi.speak(text, voiceID, volumeDb, audioQueueName);
+			sapi.speak(text, voiceID, gainSupplier, lineName);
 		}
 		else {
 			log.info("Model for VoiceID is unavailable {}", voiceID);
@@ -205,36 +207,37 @@ public class TextToSpeech {
 	//</editor-fold>
 
 	//<editor-fold desc="> Audio">
-	public void clearAllAudioQueues() {
+	public void cancelAll() {
 		for (String modelName : pipers.keySet()) {
-			pipers.get(modelName).clearQueue();
+			pipers.get(modelName).cancelAll();
 		}
+		audioEngine.closeAll();
 	}
 
-	public void clearOtherPlayersAudioQueue(String username) {
-//		for (String modelName : pipers.keySet()) {
-//			Piper piper = pipers.get(modelName);
-//			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
-//				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-//				if (audioQueueName.equals(PluginHelper.getLocalPlayerUsername())) continue;
-//				if (audioQueueName.equals(username)) continue;
-//				piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
-//			}
-//		}
+	public void cancelOtherLines(String lineName) {
+
+		Predicate<String> linePredicate = (otherLineName) -> {
+
+			if (otherLineName.equals(AUDIO_QUEUE_DIALOGUE)) return false;
+			if (otherLineName.equals(AudioLineNames.LOCAL_USER)) return false;
+			if (otherLineName.equals(lineName)) return false;
+
+			return true;
+		};
+
+		for (Piper piper : pipers.values()) {
+			piper.cancelConditional(linePredicate);
+		}
+
+		audioEngine.closeLineConditional(linePredicate);
 	}
 
-	public void clearPlayerAudioQueue(String username) {
-//		for (String modelName : pipers.keySet()) {
-//			Piper piper = pipers.get(modelName);
-//			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
-//				// Don't clear dialogue
-//				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
-//
-//				if (audioQueueName.equals(username)) {
-//					piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
-//				}
-//			}
-//		}
+	public void cancelLine(String lineName) {
+		log.trace("Canceling {}", lineName);
+		for (Piper piper : pipers.values()) {
+			piper.cancelLine(lineName);
+		}
+		audioEngine.closeLineName(lineName);
 	}
 	//</editor-fold>
 

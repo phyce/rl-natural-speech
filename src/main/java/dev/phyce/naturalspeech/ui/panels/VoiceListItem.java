@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
+import dev.phyce.naturalspeech.tts.AudioLineNames;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import java.awt.BorderLayout;
@@ -39,6 +40,7 @@ public class VoiceListItem extends JPanel {
 				.getScaledInstance(25, 25, Image.SCALE_SMOOTH));
 
 	}
+
 
 	public VoiceListItem(
 		VoiceExplorerPanel voiceExplorerPanel,
@@ -111,8 +113,8 @@ public class VoiceListItem extends JPanel {
 							textToSpeech.speak(
 								voiceMetadata.voiceId,
 								textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
-								0,
-								"&VoiceExplorer");
+								() -> 0f,
+								AudioLineNames.VOICE_EXPLORER);
 						}
 						else {
 							log.error("Model {} is currently not running.", voiceMetadata.voiceId.modelName);

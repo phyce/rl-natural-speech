@@ -9,12 +9,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -101,7 +99,7 @@ public class SpeechAPI4 {
 	public void speak(
 		String text,
 		VoiceID voiceID,
-		float volumnDb,
+		Supplier<Float> gainDB,
 		String audioQueueName) {
 
 		log.debug("Fake Speech API 4 speaking with voice {}: {}", modelName, text);

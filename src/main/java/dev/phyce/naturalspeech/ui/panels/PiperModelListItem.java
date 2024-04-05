@@ -231,7 +231,10 @@ public class PiperModelListItem extends JPanel {
 					textToSpeech.getModelConfig().setModelProcessCount(modelUrl.getModelName(), result);
 
 					// TODO(Louis) lazy hack, just reboot all processes with new configuration
-					if (textToSpeech.isStarted()) textToSpeech.start();
+					if (textToSpeech.isStarted()) {
+						textToSpeech.stop();
+						textToSpeech.start();
+					}
 				}
 				else {
 					log.debug("Cancelled!");

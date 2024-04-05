@@ -1,8 +1,7 @@
 package dev.phyce.naturalspeech.tts.piper;
 
-import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.audio.AudioPlayer;
 import dev.phyce.naturalspeech.tts.VoiceID;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import static dev.phyce.naturalspeech.utils.CommonUtil.silentInterruptHandler;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.ByteArrayInputStream;
@@ -14,9 +13,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import javax.sound.sampled.AudioInputStream;
 import lombok.Data;
 import lombok.Getter;
@@ -29,6 +29,7 @@ public class Piper {
 	@Getter
 	private final Map<Long, PiperProcess> processMap = new HashMap<>();
 	private final ConcurrentLinkedQueue<PiperTask> piperTaskQueue = new ConcurrentLinkedQueue<>();
+	private final ConcurrentLinkedQueue<PiperTask> dispatchedQueue = new ConcurrentLinkedQueue<>();
 	private final AudioEngine audioEngine;
 	@Getter
 	private final PiperRepository.ModelLocal modelLocal;
@@ -65,14 +66,9 @@ public class Piper {
 		return new Piper(audioEngine, modelLocal, piperPath, instanceCount);
 	}
 
-	public void speak(String text, VoiceID voiceID, float volume, String lineName) throws IOException {
+	public void speak(String text, VoiceID voiceID, Supplier<Float> gainDB, String lineName) throws IOException {
 		if (countAlive() == 0) {
 			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
-		}
-
-		if (piperTaskQueue.size() > 10) {
-			log.warn("Cleared queue because queue size is too large. (more then 10)");
-			clearQueue();
 		}
 
 		List<String> segments = TextUtil.splitSentenceV2(text);
@@ -83,12 +79,17 @@ public class Piper {
 			// build a linked list of tasks
 			PiperTask parent = null;
 			for (String segment : segments) {
-				PiperTask child = new PiperTask(segment, voiceID, volume, lineName, parent);
+				PiperTask child = new PiperTask(segment, voiceID, gainDB, lineName, parent);
+				log.trace("{} piperTaskQueue Added lineName:{} parent:{} text:{} ", this.modelLocal.getModelName(),
+					lineName, parent != null, segment);
 				piperTaskQueue.add(child);
 				parent = child;
 			}
-		} else {
-			piperTaskQueue.add(new PiperTask(text, voiceID, volume, lineName, null));
+		}
+		else {
+			log.trace("{} piperTaskQueue Added lineName:{} parent:null text:{}", this.modelLocal.getModelName(),
+				lineName, text);
+			piperTaskQueue.add(new PiperTask(text, voiceID, gainDB, lineName, null));
 		}
 		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 	}
@@ -105,90 +106,61 @@ public class Piper {
 				throw e;
 			}
 
-			process.onExit().thenAccept(p -> {
-				triggerOnPiperProcessExit(p);
-			});
+			process.onExit().thenAccept(this::triggerOnPiperProcessExit);
 
 			processMap.put(process.getPid(), process);
+			synchronized (processMap) {processMap.notify();}
 		}
 	}
-	//Process message queue
 
+	//Process message queue
 	@SneakyThrows(InterruptedException.class)
 	public void processPiperTask() {
 		while (!processPiperTaskThread.isInterrupted()) {
-			if (piperTaskQueue.isEmpty()) {
+
+			while (piperTaskQueue.isEmpty()) {
 				synchronized (piperTaskQueue) {piperTaskQueue.wait();}
-				continue; // double check emptiness after notify.
 			}
 
-			if (processMap.isEmpty()) {
-				log.error("Processing thread running while no PiperProcess is alive. Stopping.");
-				return;
+			while (processMap.isEmpty()) {
+				synchronized (processMap) {processMap.wait();}
 			}
+
+			boolean polled = false;
 
 			// using iterator to loop, so if an invalid PiperProcess is found we can remove.
-			boolean polled = false;
+			// find alive and non-locked process to dispatch piperTask to
 			Iterator<Map.Entry<Long, PiperProcess>> iter = processMap.entrySet().iterator();
 			while (iter.hasNext()) {
 				var keyValue = iter.next();
-				long pid = keyValue.getKey();
 				PiperProcess process = keyValue.getValue();
 
 				if (!process.isAlive()) {
+					// found crashed piper, remove
 					iter.remove();
 					triggerOnPiperProcessCrash(process);
 					continue;
 				}
 
-				// Found available task
 				if (!process.isLocked()) {
-					triggerOnPiperProcessBusy(process);
-					PiperTask task = piperTaskQueue.poll();
+					// found available piperProcess, dispatch
+					PiperTask task = Objects.requireNonNull(piperTaskQueue.poll());
+
+					if (!task.skip) {
+						dispatchedQueue.add(task);
+						dispatchTask(process, task);
+					}
+					else {
+						log.trace("Skipped task before dispatching:{}", task.text);
+					}
+
 					polled = true;
-					String text = Objects.requireNonNull(task).getText();
-					Integer id = Objects.requireNonNull(task.getVoiceID().getIntId());
-					Consumer<byte[]> onComplete = (byte[] audioClip) -> {
-
-						if (audioClip != null && audioClip.length > 0) {
-
-							// if there are parent tasks, wait for them to complete
-							if (task.parent != null) {
-								synchronized (task.parent) {
-									while (!task.parent.completed) {
-										try { task.parent.wait();} catch (InterruptedException ignored) {}
-									}
-								}
-							}
-
-							AudioInputStream inStream = new AudioInputStream(
-								new ByteArrayInputStream(audioClip),
-								AudioEngine.getFormat(),
-								audioClip.length);
-
-							audioEngine.play(task.lineName, inStream, () -> task.volume);
-
-							// notify any child tasks that the parent (this task) is completed
-							synchronized (task) {
-								task.completed = true;
-								task.notify();
-							}
-						}
-						else {
-							log.warn("PiperProcess returned null and did not generate, likely due to crash.");
-						}
-						// even in the case audioClip failed to generate, we must notify that the generation is finished
-						synchronized (processMap) {processMap.notify();}
-						triggerOnPiperProcessDone(process);
-					};
-
-					log.trace("{} -> {}", pid, text);
-					process.generateAudio(text, id, onComplete);
 					break;
 				}
 			}
 
-			// all processes are busy, wait for PiperProcess to finish task, and try again.
+			// processMap is not empty, but all processes are busy,
+			// wait for any processes to finish task and become available
 			if (!polled) {
 				synchronized (processMap) {processMap.wait();}
 			}
@@ -196,10 +168,103 @@ public class Piper {
 		}
 	}
 
-	// Refactored to decouple from dependencies
+	private void dispatchTask(PiperProcess process, PiperTask task) {
+		log.trace("dispatching task:{}", task.text);
+		triggerOnPiperProcessBusy(process);
+		String text = Objects.requireNonNull(task).getText();
+		Integer id = Objects.requireNonNull(task.getVoiceID().getIntId());
 
-	public void clearQueue() {
-		piperTaskQueue.clear();
+		Consumer<byte[]> onComplete = ((byte[] audioClip) -> {
+
+			if (audioClip != null && audioClip.length > 0) {
+				// if there are parent tasks, wait for them to complete
+				if (task.parent != null) {
+					synchronized (task.parent) {
+						// wait until parent is completed or skipped
+						while (!(task.parent.completed || task.parent.skip)) {
+							try {task.parent.wait();} catch (InterruptedException ignored) {}
+						}
+					}
+				}
+
+				synchronized (task) {
+					if (!task.skip) {
+						AudioInputStream inStream = new AudioInputStream(
+							new ByteArrayInputStream(audioClip),
+							AudioEngine.getFormat(),
+							audioClip.length);
+
+						log.trace("Pumping into AudioEngine:{}", task.text);
+						audioEngine.play(task.lineName, inStream, task.gainDB);
+
+						// notify any child tasks that the parent (this task) is completed
+						task.completed = true;
+					}
+					else {
+						log.trace("Skipped task after completion, discarded result:{}", task.text);
+					}
+				}
+			}
+			else {
+				log.warn("PiperProcess returned null and did not generate, likely due to crash.");
+			}
+
+			// task either skipped or completed from here on
+			// even in the case audioClip failed to generate, we must notify that the generation is finished
+
+			triggerOnPiperProcessDone(process);
+			synchronized (task) {task.notify();}
+			// notify that this process has become available
+			synchronized (processMap) {processMap.notify();}
+			dispatchedQueue.remove(task);
+
+		}); // onComplete lambda block
+
+		log.trace("generating audio {} -> {}", process, text);
+		process.generateAudio(text, id, onComplete);
+	}
+
+	/**
+	 * cancels any remaining tasks going into {@link AudioEngine#play(String, AudioInputStream, Supplier)}
+	 *
+	 * @param lineName Audio line name for {@link AudioEngine#play(String, AudioInputStream, Supplier)}
+	 */
+	public void cancelLine(String lineName) {
+
+		for (PiperTask task : piperTaskQueue) {
+			if (task.getLineName().equals(lineName)) {
+				log.trace("Setting skipped to true for:{}", task.text);
+				task.skip = true;
+			}
+		}
+
+		for (PiperTask task : dispatchedQueue) {
+			if (task.getLineName().equals(lineName)) {
+				log.trace("Setting skipped to true for:{}", task.text);
+				task.skip = true;
+			}
+		}
+
+	}
+
+	public void cancelConditional(Predicate<String> condition) {
+		piperTaskQueue.forEach(task -> {
+			if (condition.test(task.getLineName())) {
+				task.skip = true;
+			}
+		});
+
+		dispatchedQueue.forEach(task -> {
+			if (condition.test(task.getLineName())) {
+				task.skip = true;
+			}
+		});
+	}
+
+	// Refactored to decouple from dependencies
+	public void cancelAll() {
+		piperTaskQueue.forEach(task -> task.skip = true);
+		dispatchedQueue.forEach(task -> task.skip = true);
 	}
 
 	public int countAlive() {
@@ -218,7 +283,7 @@ public class Piper {
 		processMap.clear();
 
 		// clear task and audio queue on stop
-		clearQueue();
+		cancelAll();
 
 		processPiperTaskThread.interrupt();
 	}
@@ -274,16 +339,17 @@ public class Piper {
 	private static class PiperTask {
 		final String text;
 		final VoiceID voiceID;
-		final float volume;
+		final Supplier<Float> gainDB;
 		final String lineName;
 		final PiperTask parent;
 
-		boolean completed = false;
+		volatile boolean skip = false;
+		volatile boolean completed = false;
 
-		public PiperTask(String text, VoiceID voiceID, float volume, String lineName, PiperTask parent) {
+		public PiperTask(String text, VoiceID voiceID, Supplier<Float> gainDB, String lineName, PiperTask parent) {
 			this.text = text;
 			this.voiceID = voiceID;
-			this.volume = volume;
+			this.gainDB = gainDB;
 			this.lineName = lineName;
 			this.parent = parent;
 		}

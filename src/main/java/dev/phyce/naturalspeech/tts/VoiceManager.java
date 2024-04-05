@@ -54,6 +54,7 @@ public class VoiceManager {
 				@Override
 				public void onPiperStart(Piper piper) {
 					PiperRepository.ModelLocal modelLocal = piper.getModelLocal();
+
 					genderedVoiceMap.addModel(modelLocal);
 					for (PiperRepository.PiperVoiceMetadata piperVoiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 						activeVoiceMap.put(modelLocal, piperVoiceMetadata.toVoiceID());
@@ -167,7 +168,7 @@ public class VoiceManager {
 
 		VoiceID result = null;
 
-		List<VoiceID> results = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
+		List<VoiceID> results = voiceConfig.findUsername(AudioLineNames.GLOBAL_NPC);
 		if (results != null) return getFirstActiveVoice(results);
 
 		if (results == null) {
@@ -217,7 +218,7 @@ public class VoiceManager {
 
 	@NonNull
 	public VoiceID getVoiceIdForLocalPlayer() throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
+		return getVoiceIDFromUsername(AudioLineNames.LOCAL_USER);
 	}
 
 	public boolean containsUsername(@NonNull String standardized_username) {

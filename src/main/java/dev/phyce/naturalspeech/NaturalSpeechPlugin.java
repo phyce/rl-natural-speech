@@ -16,7 +16,7 @@ import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
-import dev.phyce.naturalspeech.tts.MagicUsernames;
+import dev.phyce.naturalspeech.tts.AudioLineNames;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
@@ -24,10 +24,8 @@ import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.ExecutorService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -219,12 +217,12 @@ public class NaturalSpeechPlugin extends Plugin {
 			switch (event.getKey()) {
 				case ConfigKeys.MUTE_SELF:
 					log.trace("Detected mute-self toggle, clearing audio queue.");
-					textToSpeech.clearPlayerAudioQueue(MagicUsernames.LOCAL_USER);
+					textToSpeech.cancelLine(AudioLineNames.LOCAL_USER);
 					break;
 
 				case ConfigKeys.MUTE_OTHERS:
 					log.trace("Detected mute-others toggle, clearing audio queue.");
-					textToSpeech.clearOtherPlayersAudioQueue(MagicUsernames.LOCAL_USER);
+					textToSpeech.cancelOtherLines(AudioLineNames.LOCAL_USER);
 					break;
 
 			}
@@ -253,32 +251,32 @@ public class NaturalSpeechPlugin extends Plugin {
 		switch (configKey) {
 			case ConfigKeys.PERSONAL_VOICE:
 				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", MagicUsernames.LOCAL_USER, voiceID);
-					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.LOCAL_USER, voiceID);
+					log.debug("Setting voice for {} to {}", AudioLineNames.LOCAL_USER, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.LOCAL_USER, voiceID);
 				}
 				else {
-					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.LOCAL_USER);
-					voiceManager.resetForUsername(MagicUsernames.LOCAL_USER);
+					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.LOCAL_USER);
+					voiceManager.resetForUsername(AudioLineNames.LOCAL_USER);
 				}
 				break;
 			case ConfigKeys.GLOBAL_NPC_VOICE:
 				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", MagicUsernames.GLOBAL_NPC, voiceID);
-					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.GLOBAL_NPC, voiceID);
+					log.debug("Setting voice for {} to {}", AudioLineNames.GLOBAL_NPC, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.GLOBAL_NPC, voiceID);
 				}
 				else {
-					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.GLOBAL_NPC);
-					voiceManager.resetForUsername(MagicUsernames.GLOBAL_NPC);
+					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.GLOBAL_NPC);
+					voiceManager.resetForUsername(AudioLineNames.GLOBAL_NPC);
 				}
 				break;
 			case ConfigKeys.SYSTEM_VOICE:
 				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", MagicUsernames.SYSTEM, voiceID);
-					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.SYSTEM, voiceID);
+					log.debug("Setting voice for {} to {}", AudioLineNames.SYSTEM, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.SYSTEM, voiceID);
 				}
 				else {
-					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.SYSTEM);
-					voiceManager.resetForUsername(MagicUsernames.SYSTEM);
+					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.SYSTEM);
+					voiceManager.resetForUsername(AudioLineNames.SYSTEM);
 				}
 				break;
 		}

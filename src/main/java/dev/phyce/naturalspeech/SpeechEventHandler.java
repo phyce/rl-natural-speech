@@ -7,7 +7,7 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
-import dev.phyce.naturalspeech.tts.MagicUsernames;
+import dev.phyce.naturalspeech.tts.AudioLineNames;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
@@ -47,8 +47,15 @@ public class SpeechEventHandler {
 	}
 
 	@Inject
-	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
-							  VoiceManager voiceManager, MuteManager muteManager, SpamDetection spamDetection, ClientThread clientThread) {
+	public SpeechEventHandler(
+		Client client,
+		TextToSpeech textToSpeech,
+		NaturalSpeechConfig config,
+		VoiceManager voiceManager,
+		MuteManager muteManager,
+		SpamDetection spamDetection,
+		ClientThread clientThread
+	) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
@@ -64,7 +71,8 @@ public class SpeechEventHandler {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 
 		String username;
-		float volume = 0f;
+		String lineName;
+		float volume;
 		VoiceID voiceId;
 		String text = Text.sanitizeMultilineText(message.getMessage());
 		int distance = 0;
@@ -73,7 +81,8 @@ public class SpeechEventHandler {
 
 		try {
 			if (isChatInnerVoice(message)) {
-				username = MagicUsernames.LOCAL_USER;
+				username = AudioLineNames.LOCAL_USER;
+				lineName = AudioLineNames.LOCAL_USER;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandAbbreviations(text);
 
@@ -81,9 +90,9 @@ public class SpeechEventHandler {
 			}
 			else if (isChatOtherPlayerVoice(message)) {
 				username = Text.standardize(message.getName());
+				// avoid rare (and expensive) usernames colliding with NPC names.
+				lineName = AudioLineNames.Username(username);
 				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
-
-
 
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandAbbreviations(text);
@@ -91,8 +100,11 @@ public class SpeechEventHandler {
 				log.debug("Player voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
 			else if (isChatSystemVoice(message.getType())) {
-				username = MagicUsernames.SYSTEM;
+				username = AudioLineNames.SYSTEM;
+				lineName = AudioLineNames.SYSTEM;
+
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
+
 				long currentTime = System.currentTimeMillis();
 				if(lastDialogMessage.message.equals(text)) {
 					if((currentTime - lastDialogMessage.timestamp) < 5000) return;
@@ -113,16 +125,21 @@ public class SpeechEventHandler {
 			return;
 		}
 
-		volume = calculateVolume(distance, PluginHelper.isFriend(message.getName()));
-		textToSpeech.speak(voiceId, text, volume, username);
+		volume = calculateVolume(distance, PluginHelper.isFriend(username));
+
+		textToSpeech.speak(voiceId, text, () -> volume, lineName);
 	}
 
 	@Subscribe
 	private void onWidgetLoaded(WidgetLoaded event) {
 		float volume = calculateVolume(0, false);
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
+
+
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
+				textToSpeech.cancelLine(AudioLineNames.DIALOG);
+
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
 				if (textWidget == null || textWidget.getText() == null) {
 					log.error("Player dialog textWidget or textWidget.getText() is null");
@@ -132,17 +149,21 @@ public class SpeechEventHandler {
 				String text = Text.sanitizeMultilineText(textWidget.getText());
 				VoiceID voiceID;
 				try {
-					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
+					voiceID = voiceManager.getVoiceIDFromUsername(AudioLineNames.LOCAL_USER);
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
 
 				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
-				textToSpeech.speak(voiceID, text, volume, MagicUsernames.DIALOG);
+				textToSpeech.speak(voiceID, text, () -> volume, AudioLineNames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
+
+
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
+				textToSpeech.cancelLine(AudioLineNames.DIALOG);
+
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
 				Widget headModelWidget = client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL);
 				Widget npcNameWidget = client.getWidget(ComponentID.DIALOG_NPC_NAME);
@@ -179,7 +200,7 @@ public class SpeechEventHandler {
 				}
 
 				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
-				textToSpeech.speak(voiceID, text, volume, MagicUsernames.DIALOG);
+				textToSpeech.speak(voiceID, text, () -> volume, AudioLineNames.DIALOG);
 			});
 		}
 	}
@@ -193,13 +214,15 @@ public class SpeechEventHandler {
 			NPC npc = (NPC) event.getActor();
 			if (!muteManager.isNpcAllowed(npc)) return;
 
+			String npcName = Text.standardize(npc.getName());
+			String lineName = AudioLineNames.NPCName(npcName);
 			int distance = PluginHelper.getActorDistance(event.getActor());
 			float volume = calculateVolume(distance, false);
 
-			VoiceID voiceID = null;
+			VoiceID voiceID;
 			try {
-				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
-				textToSpeech.speak(voiceID, event.getOverheadText(), volume, npc.getName());
+				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npcName);
+				textToSpeech.speak(voiceID, event.getOverheadText(), () -> volume, lineName);
 			} catch (VoiceSelectionOutOfOption e) {
 				log.error(
 					"Voice Selection ran out of options for NPC. No suitable active voice found NPC ID:{} NPC name:{}",
@@ -396,19 +419,19 @@ public class SpeechEventHandler {
 
 	private boolean isSelfMuted(ChatMessage message) {
 		//noinspection RedundantIfStatement
-		if (config.muteSelf() && message.getName().equals(MagicUsernames.LOCAL_USER)) return true;
+		if (config.muteSelf() && message.getName().equals(AudioLineNames.LOCAL_USER)) return true;
 		return false;
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 
-		return config.muteOthers() && !message.getName().equals(MagicUsernames.LOCAL_USER);
+		return config.muteOthers() && !message.getName().equals(AudioLineNames.LOCAL_USER);
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
-		if (Objects.equals(MagicUsernames.LOCAL_USER, message.getName())) return false;
+		if (Objects.equals(AudioLineNames.LOCAL_USER, message.getName())) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
 		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
