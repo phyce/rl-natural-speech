@@ -116,7 +116,6 @@ public class AudioEngine {
 		DynamicLine line = lines.get(lineName);
 		if (line != null) {
 			line.stop();
-			line.flush();
 			return true;
 		}
 		return false;
