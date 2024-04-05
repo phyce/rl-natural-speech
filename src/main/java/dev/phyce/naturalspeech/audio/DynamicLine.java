@@ -124,9 +124,43 @@ public class DynamicLine implements SourceDataLine {
 		synchronized (byteBuffer) {byteBuffer.notify();}
 	}
 
+	@Override
+	public void open(AudioFormat format, int bufferSize) throws LineUnavailableException {
+		sourceLine.open(format, bufferSize);
+		bufferFlusherThread.start();
+	}
+
+	@Override
+	public void open(AudioFormat format) throws LineUnavailableException {
+		sourceLine.open(format);
+		bufferFlusherThread.start();
+	}
+
+	@Override
+	public void open() throws LineUnavailableException {
+		sourceLine.open();
+		bufferFlusherThread.start();
+	}
+
+	@Override
+	public void close() {
+		sourceLine.close();
+		bufferFlusherThread.interrupt();
+		byteBuffer.clear();
+	}
 
 	// region: useless function wrappers
-	@Override
+
+	/**
+	 * This write will conflict and write over data from {@link #buffer(byte[])}.
+	 * Part of Java API.
+	 * @param b a byte array containing data to be written to the data line
+	 * @param off the offset from the beginning of the array, in bytes
+	 * @param len the length, in bytes, of the valid data in the array (in
+	 *         other words, the requested amount of data to write, in bytes)
+	 * @return
+	 */
+	@Override @Deprecated
 	public int write(byte[] b, int off, int len) {
 		return sourceLine.write(b, off, len);
 	}
@@ -206,30 +240,7 @@ public class DynamicLine implements SourceDataLine {
 		return sourceLine.getLineInfo();
 	}
 
-	@Override
-	public void open(AudioFormat format, int bufferSize) throws LineUnavailableException {
-		sourceLine.open(format, bufferSize);
-		bufferFlusherThread.start();
-	}
 
-	@Override
-	public void open(AudioFormat format) throws LineUnavailableException {
-		sourceLine.open(format);
-		bufferFlusherThread.start();
-	}
-
-	@Override
-	public void open() throws LineUnavailableException {
-		sourceLine.open();
-		bufferFlusherThread.start();
-	}
-
-	@Override
-	public void close() {
-		sourceLine.close();
-		bufferFlusherThread.interrupt();
-		byteBuffer.clear();
-	}
 
 	@Override
 	public boolean isOpen() {
