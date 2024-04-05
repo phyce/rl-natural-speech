@@ -39,14 +39,14 @@ public class Piper {
 
 	private final List<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new ArrayList<>();
 
-	private Piper(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath, int instanceCount)
+	private Piper(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath, int processCount)
 		throws IOException {
 		this.audioEngine = audioEngine;
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
 
 
-		startMore(instanceCount);
+		startProcess(processCount);
 
 		processPiperTaskThread =
 			new Thread(this::processPiperTask, String.format("[%s] Piper::processPiperTask Thread", this));
@@ -94,9 +94,9 @@ public class Piper {
 		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 	}
 
-	public void startMore(int instanceCount) throws IOException {
+	public void startProcess(int processCount) throws IOException {
 		//Instance count should not be more than 2
-		for (int index = 0; index < instanceCount; index++) {
+		for (int index = 0; index < processCount; index++) {
 			PiperProcess process;
 			try {
 				process = PiperProcess.start(piperPath, modelLocal.getOnnx().toPath());
