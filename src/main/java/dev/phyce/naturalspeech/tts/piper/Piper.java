@@ -187,22 +187,19 @@ public class Piper {
 					}
 				}
 
-				synchronized (task) {
-					if (!task.skip) {
-						AudioInputStream inStream = new AudioInputStream(
-							new ByteArrayInputStream(audioClip),
-							AudioEngine.getFormat(),
-							audioClip.length);
+				if (!task.skip) {
+					AudioInputStream inStream = new AudioInputStream(
+						new ByteArrayInputStream(audioClip),
+						AudioEngine.getFormat(),
+						audioClip.length);
 
-						log.trace("Pumping into AudioEngine:{}", task.text);
-						audioEngine.play(task.lineName, inStream, task.gainDB);
+					log.trace("Pumping into AudioEngine:{}", task.text);
+					audioEngine.play(task.lineName, inStream, task.gainDB);
 
-						// notify any child tasks that the parent (this task) is completed
-						task.completed = true;
-					}
-					else {
-						log.trace("Skipped task after completion, discarded result:{}", task.text);
-					}
+					task.completed = true;
+				}
+				else {
+					log.trace("Skipped task after completion, discarded result:{}", task.text);
 				}
 			}
 			else {
@@ -213,6 +210,7 @@ public class Piper {
 			// even in the case audioClip failed to generate, we must notify that the generation is finished
 
 			triggerOnPiperProcessDone(process);
+			// alerts any child tasks waiting on parent
 			synchronized (task) {task.notify();}
 			// notify that this process has become available
 			synchronized (processMap) {processMap.notify();}
@@ -233,14 +231,14 @@ public class Piper {
 
 		for (PiperTask task : piperTaskQueue) {
 			if (task.getLineName().equals(lineName)) {
-				log.trace("Setting skipped to true for:{}", task.text);
+				log.trace("CancelLine - Setting skipped to true for:{}", task.text);
 				task.skip = true;
 			}
 		}
 
 		for (PiperTask task : dispatchedQueue) {
 			if (task.getLineName().equals(lineName)) {
-				log.trace("Setting skipped to true for:{}", task.text);
+				log.trace("CancelLine - Setting skipped to true for:{}", task.text);
 				task.skip = true;
 			}
 		}
@@ -250,19 +248,21 @@ public class Piper {
 	public void cancelConditional(Predicate<String> condition) {
 		piperTaskQueue.forEach(task -> {
 			if (condition.test(task.getLineName())) {
+				log.trace("CancelConditional - Setting skipped to true for:{}", task.text);
 				task.skip = true;
 			}
 		});
 
 		dispatchedQueue.forEach(task -> {
 			if (condition.test(task.getLineName())) {
+				log.trace("CancelConditional - Setting skipped to true for:{}", task.text);
 				task.skip = true;
 			}
 		});
 	}
 
-	// Refactored to decouple from dependencies
 	public void cancelAll() {
+		log.trace("CancelAll - Setting skipped true for all tasks.");
 		piperTaskQueue.forEach(task -> task.skip = true);
 		dispatchedQueue.forEach(task -> task.skip = true);
 	}
