@@ -67,14 +67,15 @@ public class DynamicLine implements SourceDataLine {
 	private void bufferFlusher() {
 		boolean buffering = false;
 		while (!bufferFlusherThread.isInterrupted()) {
-			if (byteBuffer.isEmpty()) {
+
+			// until byteBuffer contains bytes
+			while (byteBuffer.isEmpty()) {
 				if (buffering) {
 					log.trace("{} DONE BUFFERING EVENT", this);
 					triggerEvent(DynamicLineEvent.DONE_BUFFERING);
 					buffering = false;
 				}
 				synchronized (byteBuffer) { byteBuffer.wait(); }
-				continue;
 			}
 
 			if (!buffering) {
