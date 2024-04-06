@@ -12,8 +12,10 @@ import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.VolumeManager;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.Objects;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -38,8 +40,8 @@ public class SpeechEventHandler {
 	private final MuteManager muteManager;
 	private final SpamDetection spamDetection;
 	private final ClientThread clientThread;
-
 	private LastDialogMessage lastDialogMessage = new LastDialogMessage();
+
 
 	class LastDialogMessage {
 		public String message = "";
@@ -132,10 +134,7 @@ public class SpeechEventHandler {
 
 	@Subscribe
 	private void onWidgetLoaded(WidgetLoaded event) {
-		float volume = calculateVolume(0, false);
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
-
-
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				textToSpeech.cancelLine(AudioLineNames.DIALOG);
@@ -155,7 +154,7 @@ public class SpeechEventHandler {
 				}
 
 				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
-				textToSpeech.speak(voiceID, text, () -> volume, AudioLineNames.DIALOG);
+				textToSpeech.speak(voiceID, text, VolumeManager.ZERO_GAIN, AudioLineNames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
 
@@ -200,7 +199,7 @@ public class SpeechEventHandler {
 				}
 
 				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
-				textToSpeech.speak(voiceID, text, () -> volume, AudioLineNames.DIALOG);
+				textToSpeech.speak(voiceID, text, VolumeManager.ZERO_GAIN, AudioLineNames.DIALOG);
 			});
 		}
 	}

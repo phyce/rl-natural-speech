@@ -100,7 +100,7 @@ public class SpeechAPI4 {
 		String text,
 		VoiceID voiceID,
 		Supplier<Float> gainDB,
-		String audioQueueName) {
+		String lineName) {
 
 		log.debug("Fake Speech API 4 speaking with voice {}: {}", modelName, text);
 		ProcessBuilder processBuilder = new ProcessBuilder(
@@ -115,13 +115,13 @@ public class SpeechAPI4 {
 		Process process;
 		try {
 			process = processBuilder.start();
-			new Thread(processStdOut(process)).start();
+			new Thread(processStdOut(process, lineName)).start();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private Runnable processStdOut(Process process) {
+	private Runnable processStdOut(Process process, String lineName) {
 		return () -> {
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String filename = reader.readLine();
@@ -131,7 +131,7 @@ public class SpeechAPI4 {
 				}
 				File audioFile = outputFolder.toPath().resolve(filename).toFile();
 				try (AudioInputStream audioFileStream = AudioSystem.getAudioInputStream(audioFile)) {
-					audioEngine.play("&temp", audioFileStream, () -> 0f);
+					audioEngine.play(lineName, audioFileStream, () -> 0f);
 				} catch (UnsupportedAudioFileException e) {
 					log.error("Unsupported audio file", e);
 					return; // keep the audioFile for inspection, don't delete.
