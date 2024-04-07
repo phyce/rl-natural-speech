@@ -291,7 +291,7 @@ public class TextToSpeech {
 
 						// if this is the last piper running this model, unregister from voiceMap
 						if (piper.countAlive() == 0) {
-							if (!pipers.containsKey(piper.getModelLocal().getModelName())) {
+							if (pipers.containsKey(piper.getModelLocal().getModelName())) {
 								voiceManager.unregisterPiperModel(piper.getModelLocal());
 							}
 							triggerOnPiperExit(piper);
