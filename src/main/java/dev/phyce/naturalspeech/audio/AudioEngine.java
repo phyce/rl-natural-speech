@@ -24,6 +24,7 @@ public class AudioEngine {
 
 	private final ConcurrentHashMap<String, DynamicLine> lines = new ConcurrentHashMap<>();
 	private final Mixer mixer;
+	private float masterGain = 0;
 
 	@Getter
 	private static final AudioFormat format =
@@ -44,7 +45,6 @@ public class AudioEngine {
 
 	public void update() {
 		lines.forEachValue(Long.MAX_VALUE, DynamicLine::update);
-
 	}
 
 	public void play(
@@ -71,8 +71,6 @@ public class AudioEngine {
 			return;
 		}
 
-		FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
-		gainControl.setValue(gainSupplier.get());
 		line.setGainSupplier(gainSupplier);
 
 		log.trace("Buffering bytes into line {}", lineName);
@@ -126,8 +124,10 @@ public class AudioEngine {
 	}
 
 	public void setMasterGain(float gainDb) {
-		FloatControl gainControl = (FloatControl) mixer.getControl(FloatControl.Type.MASTER_GAIN);
-		gainControl.setValue(gainDb);
+		masterGain = gainDb;
+		for (DynamicLine line : lines.values()) {
+			line.setMasterGain(masterGain);
+		}
 	}
 
 	public void closeAll() {
@@ -139,6 +139,7 @@ public class AudioEngine {
 		DynamicLine line;
 		try {
 			line = new DynamicLine((SourceDataLine) mixer.getLine(sourceDataLineInfo));
+			line.setMasterGain(masterGain);
 			line.open(); // takes 2 millisecond on my machine
 			line.start();
 

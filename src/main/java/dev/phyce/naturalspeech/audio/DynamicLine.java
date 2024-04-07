@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.audio;
 
 import static com.google.common.base.Preconditions.checkState;
+import dev.phyce.naturalspeech.tts.VolumeManager;
 import static dev.phyce.naturalspeech.utils.CommonUtil.silentInterruptHandler;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -28,9 +29,20 @@ public class DynamicLine implements SourceDataLine {
 	private final Thread bufferFlusherThread;
 
 	@Getter
-	@Setter
 	private Supplier<Float> gainSupplier = null;
 	private FloatControl gainControl = null;
+
+	/**
+	 * Note, this is the user controlled master gain.
+	 * Mixed with gainSupplier then provided to line master gain.
+	 */
+	@Setter
+	private float masterGain = 0;
+
+	public void setGainSupplier(Supplier<Float> gainSupplier) {
+		this.gainSupplier = gainSupplier;
+		update();
+	}
 
 	public enum DynamicLineEvent {
 		BEGUN_BUFFERING,
@@ -109,8 +121,10 @@ public class DynamicLine implements SourceDataLine {
 			gainControl = (FloatControl) getControl(FloatControl.Type.MASTER_GAIN);
 		}
 
-		float volume = gainSupplier.get();
-		gainControl.setValue(volume);
+		float suppliedGain = gainSupplier.get() ;
+		float mixedGain = suppliedGain + masterGain;
+		mixedGain = Math.min(6, Math.max(VolumeManager.NOISE_FLOOR, mixedGain));
+		gainControl.setValue(mixedGain);
 	}
 
 	/**

@@ -6,6 +6,7 @@ import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
+import net.runelite.client.config.Units;
 
 @ConfigGroup(CONFIG_GROUP)
 public interface NaturalSpeechConfig extends Config {
@@ -46,20 +47,18 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String OVERRIDE_CUSTOM_NPC_VOICES = "overrideCustomNpcVoices";
 	}
 
-	//<editor-fold desc="> General Settings">
 	@ConfigSection(
-		name="General",
-		description="General settings",
-		position=0
+		name="Voice Setting",
+		description = "",
+		position = -1
 	)
-	String generalSettingsSection = "generalSettingsSection";
-
+	String voiceSettingsSection = "voiceSettingsSection";
 	@ConfigItem(
 		position=1,
 		keyName=ConfigKeys.PERSONAL_VOICE,
 		name="Personal voice ID",
 		description="Choose one of the voices for your character, example: libritts:0",
-		section=generalSettingsSection
+		section=voiceSettingsSection
 
 	)
 	default String personalVoiceID() {
@@ -71,31 +70,44 @@ public interface NaturalSpeechConfig extends Config {
 		keyName=ConfigKeys.GLOBAL_NPC_VOICE,
 		name="Global NPC voice",
 		description="Choose one voice for all NPCs, example: libritts:0",
-		section=generalSettingsSection
+		section=voiceSettingsSection
 	)
 	default String globalNpcVoice() {
 		return "";
 	}
 
-//	@ConfigItem(
-//		position=3,
-//		keyName=ConfigKeys.OVERRIDE_CUSTOM_NPC_VOICES,
-//		name="Override custom NPC Voices",
-//		description="Check this option if you also want to ovveride the custom-set voices",
-//		section=generalSettingsSection
-//	)
-//	default boolean overrideCustomNpcVoices() {return true;}
-
 	@ConfigItem(
-		position=4,
+		position=3,
 		keyName=ConfigKeys.SYSTEM_VOICE,
 		name="System message voice",
 		description="Choose one of the voices for system messages, example: libritts:0",
-		section=generalSettingsSection
+		section=voiceSettingsSection
 
 	)
 	default String systemVoice() {
 		return "libritts:1";
+	}
+
+	//<editor-fold desc="> General Settings">
+	@ConfigSection(
+		name="General",
+		description="General settings",
+		position=0
+	)
+	String generalSettingsSection = "generalSettingsSection";
+
+	@ConfigItem(
+		position=4,
+		keyName=ConfigKeys.MASTER_VOLUME,
+		name="Volume",
+		description="Volume percentage",
+		section=generalSettingsSection
+
+	)
+	@Range(min=0, max=100)
+	@Units(Units.PERCENT)
+	default int masterVolume() {
+		return 100;
 	}
 
 	@ConfigItem(
@@ -128,31 +140,6 @@ public interface NaturalSpeechConfig extends Config {
 	)
 	default boolean holdShiftRightClickMenu() {
 		return false;
-	}
-
-	@ConfigItem(
-		position=8,
-		keyName=ConfigKeys.MASTER_VOLUME,
-		name="Master volume control",
-		description="Volume percentage",
-		section=generalSettingsSection
-
-	)
-	@Range(min=0, max=100)
-	default int masterVolume() {
-		return 100;
-	}
-	@ConfigItem(
-		position=9,
-		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
-		name="Friends volume boost",
-		description="Friend volume boost percentage",
-		section=generalSettingsSection
-
-	)
-	@Range(min=0, max=100)
-	default int friendsVolumeBoost() {
-		return 20;
 	}
 
 	@ConfigItem(

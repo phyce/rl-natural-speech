@@ -21,9 +21,13 @@ import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.VolumeManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.Set;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.config.ConfigManager;
@@ -67,6 +71,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private SpeechEventHandler speechEventHandler;
 	private MenuEventHandler menuEventHandler;
 	private CommandExecutedEventHandler commandExecutedEventHandler;
+	private VolumeManager volumeManager;
 
 	private AudioEngine audioEngine;
 
@@ -75,10 +80,10 @@ public class NaturalSpeechPlugin extends Plugin {
 	//<editor-fold desc="> Runtime Variables">
 	private PluginSingletonScope pluginSingletonScope;
 	private NavigationButton navButton;
+	private final Set<Object> eventBusSubscribers = new HashSet<>();
 	//</editor-fold>
 
 	static {
-
 		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
 
 		String result = System.getProperty("nslogger");
@@ -119,18 +124,20 @@ public class NaturalSpeechPlugin extends Plugin {
 		spamFilterPluglet = injector.getInstance(SpamFilterPluglet.class);
 		chatFilterPluglet = injector.getInstance(ChatFilterPluglet.class);
 		spamDetection = injector.getInstance(SpamDetection.class);
+		volumeManager = injector.getInstance(VolumeManager.class);
 
 		// Abstracting the massive client event handlers into their own files
 		speechEventHandler = injector.getInstance(SpeechEventHandler.class);
 		menuEventHandler = injector.getInstance(MenuEventHandler.class);
 		commandExecutedEventHandler = injector.getInstance(CommandExecutedEventHandler.class);
 
-		// registers to eventbus, make sure to unregister on shutdown()
-		eventBus.register(speechEventHandler);
-		eventBus.register(menuEventHandler);
-		eventBus.register(commandExecutedEventHandler);
-		eventBus.register(spamFilterPluglet);
-		eventBus.register(chatFilterPluglet);
+		// registers to eventbus, unregistered automatically using unregisterEventBusAll()
+		registerEventBus(speechEventHandler);
+		registerEventBus(menuEventHandler);
+		registerEventBus(commandExecutedEventHandler);
+		registerEventBus(spamFilterPluglet);
+		registerEventBus(chatFilterPluglet);
+		registerEventBus(volumeManager);
 
 		// Build panel and navButton
 		{
@@ -156,24 +163,22 @@ public class NaturalSpeechPlugin extends Plugin {
 		updateConfigVoice(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice());
 		updateConfigVoice(ConfigKeys.SYSTEM_VOICE, config.systemVoice());
 
+		audioEngine.setMasterGain(VolumeManager.volumeToGain(config.masterVolume()));
+
 		log.info("NaturalSpeech plugin has started");
 	}
 
 	@Override
 	public void shutDown() {
 		// unregister eventBus so handlers do not run after shutdown.
-		eventBus.unregister(speechEventHandler);
-		eventBus.unregister(menuEventHandler);
-		eventBus.unregister(commandExecutedEventHandler);
-		eventBus.unregister(spamFilterPluglet);
-		eventBus.unregister(chatFilterPluglet);
+		unregisterEventBusAll();
 
 		topLevelPanel.shutdown();
+		clientToolbar.removeNavigation(navButton);
 
 		if (textToSpeech != null) {
 			textToSpeech.stop();
 		}
-		clientToolbar.removeNavigation(navButton);
 
 		saveConfigs();
 
@@ -199,12 +204,34 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void resetConfiguration() {
 		runtimeConfig.reset();
 	}
+
+	/**
+	 * registers and remembers, used to safely unregister all objects with {@link #unregisterEventBusAll()}.
+	 */
+	private void registerEventBus(@NonNull Object object) {
+		if (eventBusSubscribers.contains(object)) {
+			log.error("Attempting to double register {} to eventBus, skipping.", object.getClass().getSimpleName());
+		} else {
+			eventBus.register(object);
+			eventBusSubscribers.add(object);
+		}
+	}
+
+	/**
+	 * unregisters all eventBus objects registered using {@link #registerEventBus(Object)}
+ 	 */
+	private void unregisterEventBusAll() {
+		for (Object object : eventBusSubscribers) {
+			eventBus.unregister(object);
+		}
+		eventBusSubscribers.clear();
+	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
 
-	// update audio engine twice per tick on the client thread
-	@Schedule(period=300, unit=ChronoUnit.MILLIS)
+	// 4 times per tick
+	@Schedule(period=300/4, unit=ChronoUnit.MILLIS)
 	public void updateAudioEngine() {
 		audioEngine.update();
 	}
@@ -240,6 +267,13 @@ public class NaturalSpeechPlugin extends Plugin {
 			case ConfigKeys.SYSTEM_VOICE:
 				log.trace("Detected voice changes from config, loading in new voices");
 				updateConfigVoice(event.getKey(), event.getNewValue());
+				break;
+		}
+
+		switch (event.getKey()) {
+			case ConfigKeys.MASTER_VOLUME:
+				log.trace("Detected master volume change to {}, updating audio engine", config.masterVolume());
+				audioEngine.setMasterGain(VolumeManager.volumeToGain(config.masterVolume()));
 				break;
 		}
 	}

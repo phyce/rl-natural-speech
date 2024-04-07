@@ -36,6 +36,7 @@ public class SpeechEventHandler {
 	private final Client client;
 	private final NaturalSpeechConfig config;
 	private final TextToSpeech textToSpeech;
+	private final VolumeManager volumeManager;
 	private final VoiceManager voiceManager;
 	private final MuteManager muteManager;
 	private final SpamDetection spamDetection;
@@ -53,6 +54,7 @@ public class SpeechEventHandler {
 		Client client,
 		TextToSpeech textToSpeech,
 		NaturalSpeechConfig config,
+		VolumeManager volumeManager,
 		VoiceManager voiceManager,
 		MuteManager muteManager,
 		SpamDetection spamDetection,
@@ -61,6 +63,7 @@ public class SpeechEventHandler {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
+		this.volumeManager = volumeManager;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
 		this.spamDetection = spamDetection;
@@ -74,10 +77,9 @@ public class SpeechEventHandler {
 
 		String username;
 		String lineName;
-		float volume;
 		VoiceID voiceId;
 		String text = Text.sanitizeMultilineText(message.getMessage());
-		int distance = 0;
+		Supplier<Float> volume;
 
 		if (isChatMessageMuted(message)) return;
 
@@ -87,6 +89,7 @@ public class SpeechEventHandler {
 				lineName = AudioLineNames.LOCAL_USER;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandAbbreviations(text);
+				volume = volumeManager.localplayer();
 
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
@@ -94,7 +97,14 @@ public class SpeechEventHandler {
 				username = Text.standardize(message.getName());
 				// avoid rare (and expensive) usernames colliding with NPC names.
 				lineName = AudioLineNames.Username(username);
-				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
+
+				Player player = findPlayerWithUsername(username);
+				if (isFriend(username)) {
+					volume = volumeManager.friend(player);
+				}
+				else {
+					volume = volumeManager.overhead(player);
+				}
 
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandAbbreviations(text);
@@ -104,12 +114,13 @@ public class SpeechEventHandler {
 			else if (isChatSystemVoice(message.getType())) {
 				username = AudioLineNames.SYSTEM;
 				lineName = AudioLineNames.SYSTEM;
+				volume = volumeManager.system();
 
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 
 				long currentTime = System.currentTimeMillis();
-				if(lastDialogMessage.message.equals(text)) {
-					if((currentTime - lastDialogMessage.timestamp) < 5000) return;
+				if (lastDialogMessage.message.equals(text)) {
+					if ((currentTime - lastDialogMessage.timestamp) < 5000) return;
 				}
 				lastDialogMessage.timestamp = currentTime;
 				lastDialogMessage.message = text;
@@ -117,7 +128,8 @@ public class SpeechEventHandler {
 
 			}
 			else {
-				log.debug("ChatMessage ignored, didn't match innerVoice, otherPlayerVoice, or SystemVoice. name:{} type:{} message:{}",
+				log.debug(
+					"ChatMessage ignored, didn't match innerVoice, otherPlayerVoice, or SystemVoice. name:{} type:{} message:{}",
 					message.getName(), message.getType(), message.getMessage());
 				return;
 			}
@@ -127,9 +139,7 @@ public class SpeechEventHandler {
 			return;
 		}
 
-		volume = calculateVolume(distance, PluginHelper.isFriend(username));
-
-		textToSpeech.speak(voiceId, text, () -> volume, lineName);
+		textToSpeech.speak(voiceId, text, volume, lineName);
 	}
 
 	@Subscribe
@@ -153,10 +163,11 @@ public class SpeechEventHandler {
 					throw new RuntimeException(e);
 				}
 
-				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
-				textToSpeech.speak(voiceID, text, VolumeManager.ZERO_GAIN, AudioLineNames.DIALOG);
+				if (PluginHelper.getConfig().useNpcCustomAbbreviations()) text = textToSpeech.expandAbbreviations(text);
+				textToSpeech.speak(voiceID, text, volumeManager.dialog(), AudioLineNames.DIALOG);
 			});
-		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
+		}
+		else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
 
 
 			// InvokeAtTickEnd to wait until the text has loaded in
@@ -198,8 +209,8 @@ public class SpeechEventHandler {
 					throw new RuntimeException(e);
 				}
 
-				if(PluginHelper.getConfig().useNpcCustomAbbreviations())text = textToSpeech.expandAbbreviations(text);
-				textToSpeech.speak(voiceID, text, VolumeManager.ZERO_GAIN, AudioLineNames.DIALOG);
+				if (PluginHelper.getConfig().useNpcCustomAbbreviations()) text = textToSpeech.expandAbbreviations(text);
+				textToSpeech.speak(voiceID, text, volumeManager.dialog(), AudioLineNames.DIALOG);
 			});
 		}
 	}
@@ -215,13 +226,12 @@ public class SpeechEventHandler {
 
 			String npcName = Text.standardize(npc.getName());
 			String lineName = AudioLineNames.NPCName(npcName);
-			int distance = PluginHelper.getActorDistance(event.getActor());
-			float volume = calculateVolume(distance, false);
+			Supplier<Float> volume = volumeManager.npc(npc);
 
 			VoiceID voiceID;
 			try {
 				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npcName);
-				textToSpeech.speak(voiceID, event.getOverheadText(), () -> volume, lineName);
+				textToSpeech.speak(voiceID, event.getOverheadText(), volume, lineName);
 			} catch (VoiceSelectionOutOfOption e) {
 				log.error(
 					"Voice Selection ran out of options for NPC. No suitable active voice found NPC ID:{} NPC name:{}",
@@ -287,15 +297,17 @@ public class SpeechEventHandler {
 	}
 
 	public boolean isChatMessageMuted(ChatMessage message) {
+
 		if (config.friendsOnlyMode()) {
-			switch(message.getType()){
+			switch (message.getType()) {
 				case PUBLICCHAT:
 				case PRIVATECHAT:
 				case CLAN_CHAT:
 				case CLAN_GUEST_CHAT:
 				case MODCHAT:
-					if(!PluginHelper.isFriend(message.getName()))return true;
-
+					if (!PluginHelper.isFriend(message.getName())) {
+						return true;
+					}
 			}
 		}
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
@@ -329,7 +341,6 @@ public class SpeechEventHandler {
 			log.trace("Muting message. Self muted. Message:{}", message.getMessage());
 			return true;
 		}
-
 
 		if (isMutingOthers(message)) {
 			log.trace("Muting message. Muting others. Message:{}", message.getMessage());
@@ -418,14 +429,14 @@ public class SpeechEventHandler {
 
 	private boolean isSelfMuted(ChatMessage message) {
 		//noinspection RedundantIfStatement
-		if (config.muteSelf() && message.getName().equals(AudioLineNames.LOCAL_USER)) return true;
+		if (config.muteSelf() && Text.standardize(message.getName()).equals(getLocalPlayerUsername())) return true;
 		return false;
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
 
-		return config.muteOthers() && !message.getName().equals(AudioLineNames.LOCAL_USER);
+		return config.muteOthers() && !Text.standardize(message.getName()).equals(getLocalPlayerUsername());
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
@@ -440,45 +451,6 @@ public class SpeechEventHandler {
 
 
 		return false;
-	}
-
-	public float calculateVolume(int distance, boolean isFriend) {
-		float volumeWithDistance;
-		if (distance <= 1) volumeWithDistance = 0;
-		else volumeWithDistance = -6.0f * (float) (Math.log(distance) / Math.log(2));
-
-		int masterVolumePercentage = PluginHelper.getConfig().masterVolume();
-		int friendsVolumeBoost = isFriend ? PluginHelper.getConfig().friendsVolumeBoost() : 0;
-
-		int boostedVolume = masterVolumePercentage + friendsVolumeBoost;
-
-		float exponent = 0.3f;
-		float dBReduction;
-		if (boostedVolume >= 100) {
-			dBReduction = 0;
-			friendsVolumeBoost = boostedVolume - 100;
-			boostedVolume = 100;
-		}
-		else dBReduction = (float) (80.0 - (80.0 * Math.pow(boostedVolume / 100.0, exponent)));
-
-		float finalVolume = volumeWithDistance - dBReduction;
-
-		if (isFriend) {
-			float effectiveBoost = Math.min(6, friendsVolumeBoost + (100 - boostedVolume) * 0.06f);
-			finalVolume += effectiveBoost;
-		}
-
-		finalVolume = Math.max(-80, Math.min(6, finalVolume));
-
-		return finalVolume;
-	}
-
-	private static int getGroupId(int component) {
-		return component >> 16;
-	}
-
-	private static int getChildId(int component) {
-		return component & '\uffff';
 	}
 
 }
