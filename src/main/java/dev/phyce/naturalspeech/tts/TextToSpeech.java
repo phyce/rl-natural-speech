@@ -34,10 +34,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -65,7 +65,7 @@ public class TextToSpeech {
 	private Map<String, String> abbreviations;
 	@Getter
 	private ModelConfig modelConfig;
-	private final Map<String, Piper> pipers = new HashMap<>();
+	private final ConcurrentHashMap<String, Piper> pipers = new ConcurrentHashMap<>();
 
 	// TODO(Louis) mid-refactor.
 	// "microsoft" does not denote any specific models and has no lifetime
@@ -123,24 +123,19 @@ public class TextToSpeech {
 			return;
 		}
 
-		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
 		started = true;
-		try {
-			for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
-				try {
-					if (piperRepository.hasModelLocal(modelURL.getModelName())
-						&& modelConfig.isModelEnabled(modelURL.getModelName())) {
 
-						PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
-						startPiper(modelLocal);
-					}
-				} catch (IOException e) {
-					log.error("Failed to start {}", modelURL.getModelName(), e);
+		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
+		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
+			try {
+				if (piperRepository.hasModelLocal(modelURL.getModelName())
+					&& modelConfig.isModelEnabled(modelURL.getModelName())) {
+					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
+					startPiperModel(modelLocal);
 				}
+			} catch (IOException e) {
+				log.error("Failed to start {}", modelURL.getModelName(), e);
 			}
-		} catch (RuntimeException e) {
-			log.error("Unexpected exception starting text to speech", e);
-			return;
 		}
 
 		triggerOnStart();
@@ -149,15 +144,11 @@ public class TextToSpeech {
 	public void stop() {
 		started = false;
 		for (Piper piper : pipers.values()) {
-			try {
-				piper.stop();
-			} catch (RuntimeException e) {
-				log.error("Error stopping piper: {}", piper, e);
-			}
-			triggerOnPiperExit(piper);
+			stopPiperModel(piper.getModelLocal());
 		}
 
 		cancelAll();
+
 		pipers.clear();
 
 		triggerOnStop();
@@ -263,12 +254,12 @@ public class TextToSpeech {
 		}
 	}
 
-	public void startPiper(PiperRepository.ModelLocal modelLocal) throws IOException {
+	public void startPiperModel(PiperRepository.ModelLocal modelLocal) throws IOException {
 		if (pipers.get(modelLocal.getModelName()) != null) {
 			log.warn("Starting piper for {} when there are already pipers running for the model.",
 				modelLocal.getModelName());
 			Piper duplicate = pipers.remove(modelLocal.getModelName());
-			stopPiper(duplicate);
+			stopPiperModel(duplicate.getModelLocal());
 		}
 
 		if (!isPiperUnquarantined && OSValidator.IS_MAC) {
@@ -287,41 +278,27 @@ public class TextToSpeech {
 			new Piper.PiperProcessLifetimeListener() {
 				@Override
 				public void onPiperProcessExit(PiperProcess process) {
-					clientThread.invokeLater(() -> {
-
-						// if this is the last piper running this model, unregister from voiceMap
-						if (piper.countAlive() == 0) {
-							if (pipers.containsKey(piper.getModelLocal().getModelName())) {
-								voiceManager.unregisterPiperModel(piper.getModelLocal());
-							}
-							triggerOnPiperExit(piper);
-						}
-
-					});
+					// if this is the last piper running this model, unregister from voiceMap
+					if (piper.countAlive() == 0) {
+						stopPiperModel(piper.getModelLocal());
+					}
 				}
 			}
 		);
 
 		// if this is going to be the first piper running this model register
-		if (!pipers.containsKey(modelLocal.getModelName())) {
-			voiceManager.registerPiperModel(modelLocal);
-		}
-
 		pipers.put(modelLocal.getModelName(), piper);
+		voiceManager.registerPiperModel(modelLocal);
 
 		triggerOnPiperStart(piper);
 	}
 
-	private void stopPiper(@NonNull Piper piper) {
-		stopModel(piper.getModelLocal());
-	}
-
-	public void stopModel(PiperRepository.ModelLocal modelLocal)
+	public void stopPiperModel(PiperRepository.ModelLocal modelLocal)
 		throws PiperNotActiveException {
 		Piper piper;
 		if ((piper = pipers.remove(modelLocal.getModelName())) != null) {
 			piper.stop();
-			voiceManager.unregisterPiperModel(modelLocal);
+			voiceManager.unregisterPiperModel(piper.getModelLocal());
 			triggerOnPiperExit(piper);
 		}
 		else {
