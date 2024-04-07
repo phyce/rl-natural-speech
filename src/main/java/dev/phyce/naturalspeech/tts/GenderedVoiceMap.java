@@ -5,7 +5,9 @@ import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class GenderedVoiceMap {
 
 	private final List<VoiceID> maleList = new ArrayList<>();
@@ -16,11 +18,23 @@ public class GenderedVoiceMap {
 		for (PiperRepository.PiperVoiceMetadata piperVoiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 			VoiceID voiceID = piperVoiceMetadata.toVoiceID();
 			if (piperVoiceMetadata.getGender() == Gender.MALE) {
-				maleList.add(voiceID);
+				if (maleList.contains(voiceID)) {
+					log.warn("Adding duplicate {} to male voice list", voiceID);
+				} else {
+					maleList.add(voiceID);
+				}
 			} else if (piperVoiceMetadata.getGender() == Gender.FEMALE) {
-				femaleList.add(voiceID);
+				if (femaleList.contains(voiceID)) {
+					log.warn("Adding duplicate {} to female voice list", voiceID);
+				} else {
+					femaleList.add(voiceID);
+				}
 			} else {
-				otherList.add(voiceID);
+				if (otherList.contains(voiceID)) {
+					log.warn("Adding duplicate other {} to other voice list", voiceID);
+				} else {
+					otherList.add(voiceID);
+				}
 			}
 		}
 	}
