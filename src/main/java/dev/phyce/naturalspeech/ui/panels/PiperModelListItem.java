@@ -102,10 +102,10 @@ public class PiperModelListItem extends JPanel {
 					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
 					if (textToSpeech.isStarted()) {
 						if (toggleButton.isSelected()) {
-							textToSpeech.startPiperForModel(modelLocal);
+							textToSpeech.startPiper(modelLocal);
 						}
 						else {
-							textToSpeech.stopPiperForModel(modelLocal);
+							textToSpeech.stopModel(modelLocal);
 						}
 					}
 				} catch (IOException e) {
@@ -199,7 +199,7 @@ public class PiperModelListItem extends JPanel {
 
 					// stop the piper
 					if (textToSpeech.isStarted() && textToSpeech.isPiperModelActive(modelLocal.getModelName())) {
-						textToSpeech.stopPiperForModel(modelLocal);
+						textToSpeech.stopModel(modelLocal);
 					}
 
 					// reset the model configs

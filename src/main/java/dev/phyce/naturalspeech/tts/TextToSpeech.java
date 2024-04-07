@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -59,6 +60,7 @@ public class TextToSpeech {
 	private final SAPI4Repository sapi4Repository;
 	private final NaturalSpeechConfig config;
 	private final AudioEngine audioEngine;
+	private final VoiceManager voiceManager;
 
 	private Map<String, String> abbreviations;
 	@Getter
@@ -70,7 +72,7 @@ public class TextToSpeech {
 	// The VoiceID::ids are the actual models and can be available or not.
 	// We want "microsoft:sam", not "sam:0"
 	// A more generalized approach can be done at a later time.
-	public static final String SAPI4ModelName = "microsoft";
+	public static final String SAPI4_MODEL_NAME = "microsoft";
 	private final Map<String, SpeechAPI4> sapi4s = new HashMap<>();
 
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
@@ -87,7 +89,8 @@ public class TextToSpeech {
 		NaturalSpeechRuntimeConfig runtimeConfig,
 		SAPI4Repository sapi4Repository,
 		NaturalSpeechConfig config,
-		AudioEngine audioEngine
+		AudioEngine audioEngine,
+		VoiceManager voiceManager
 	) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
@@ -96,15 +99,18 @@ public class TextToSpeech {
 		this.sapi4Repository = sapi4Repository;
 		this.config = config;
 		this.audioEngine = audioEngine;
+		this.voiceManager = voiceManager;
 
 		loadModelConfig();
 
 		// SAPI4 models don't have lifecycles and does not need to be cleared on stop
 		{
-			List<String> modelNames = sapi4Repository.getModels();
-			if (modelNames != null) {
-				for (String modelName : modelNames) {
-					sapi4s.put(modelName, SpeechAPI4.start(audioEngine, modelName, runtimeConfig.getSAPI4Path()));
+			List<String> voiceNames = sapi4Repository.getVoices();
+			if (voiceNames != null) {
+				for (String voiceName : voiceNames) {
+					SpeechAPI4 sapi = SpeechAPI4.start(audioEngine, voiceName, runtimeConfig.getSAPI4Path());
+					sapi4s.put(voiceName, sapi);
+					voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
 				}
 			}
 		}
@@ -118,15 +124,15 @@ public class TextToSpeech {
 		}
 
 		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
-		started = false;
+		started = true;
 		try {
 			for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
 				try {
-					if (piperRepository.hasModelLocal(modelURL.getModelName()) &&
-						modelConfig.isModelEnabled(modelURL.getModelName())) {
+					if (piperRepository.hasModelLocal(modelURL.getModelName())
+						&& modelConfig.isModelEnabled(modelURL.getModelName())) {
+
 						PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
-						startPiperForModel(modelLocal);
-						started = true; // if even a single piper started successful, then it's running.
+						startPiper(modelLocal);
 					}
 				} catch (IOException e) {
 					log.error("Failed to start {}", modelURL.getModelName(), e);
@@ -137,9 +143,7 @@ public class TextToSpeech {
 			return;
 		}
 
-		if (started) {
-			triggerOnStart();
-		}
+		triggerOnStart();
 	}
 
 	public void stop() {
@@ -183,7 +187,7 @@ public class TextToSpeech {
 		}
 		else if (ttsEngine instanceof SpeechAPI4) {
 			SpeechAPI4 sapi = (SpeechAPI4) ttsEngine;
-			sapi.speak(text, voiceID, gainSupplier, lineName);
+			sapi.speak(text, gainSupplier, lineName);
 		}
 		else {
 			log.info("Model for VoiceID is unavailable {}", voiceID);
@@ -193,7 +197,7 @@ public class TextToSpeech {
 	// FIXME(Louis): Returns Object right now, eventually we can return a TTSEngine interface
 	public Object resolveEngine(VoiceID voiceID) {
 
-		if (voiceID.modelName.equals(SAPI4ModelName)) {
+		if (voiceID.modelName.equals(SAPI4_MODEL_NAME)) {
 			return sapi4s.get(voiceID.getId());
 		}
 		else {
@@ -259,13 +263,12 @@ public class TextToSpeech {
 		}
 	}
 
-	public void startPiperForModel(PiperRepository.ModelLocal modelLocal) throws IOException {
+	public void startPiper(PiperRepository.ModelLocal modelLocal) throws IOException {
 		if (pipers.get(modelLocal.getModelName()) != null) {
 			log.warn("Starting piper for {} when there are already pipers running for the model.",
 				modelLocal.getModelName());
 			Piper duplicate = pipers.remove(modelLocal.getModelName());
-			duplicate.stop();
-			triggerOnPiperExit(duplicate);
+			stopPiper(duplicate);
 		}
 
 		if (!isPiperUnquarantined && OSValidator.IS_MAC) {
@@ -284,35 +287,60 @@ public class TextToSpeech {
 			new Piper.PiperProcessLifetimeListener() {
 				@Override
 				public void onPiperProcessExit(PiperProcess process) {
-					clientThread.invokeLater(() -> triggerOnPiperExit(piper));
+					clientThread.invokeLater(() -> {
+
+						// if this is the last piper running this model, unregister from voiceMap
+						if (piper.countAlive() == 0) {
+							if (!pipers.containsKey(piper.getModelLocal().getModelName())) {
+								voiceManager.unregisterPiperModel(piper.getModelLocal());
+							}
+							triggerOnPiperExit(piper);
+						}
+
+					});
 				}
 			}
 		);
+
+		// if this is going to be the first piper running this model register
+		if (!pipers.containsKey(modelLocal.getModelName())) {
+			voiceManager.registerPiperModel(modelLocal);
+		}
 
 		pipers.put(modelLocal.getModelName(), piper);
 
 		triggerOnPiperStart(piper);
 	}
 
-	public void stopPiperForModel(PiperRepository.ModelLocal modelLocal)
+	private void stopPiper(@NonNull Piper piper) {
+		stopModel(piper.getModelLocal());
+	}
+
+	public void stopModel(PiperRepository.ModelLocal modelLocal)
 		throws PiperNotActiveException {
 		Piper piper;
 		if ((piper = pipers.remove(modelLocal.getModelName())) != null) {
 			piper.stop();
-			//			triggerOnPiperExit(piper);
+			voiceManager.unregisterPiperModel(modelLocal);
+			triggerOnPiperExit(piper);
 		}
 		else {
 			throw new RuntimeException("Removing piper for {}, but there are no pipers running that model");
 		}
 	}
 
-	public int activePiperProcessCount() {
+	public boolean canSpeak() {
+		if (!started) return false;
+
 		int result = 0;
 		for (String modelName : pipers.keySet()) {
 			Piper model = pipers.get(modelName);
 			result += model.countAlive();
 		}
-		return result;
+
+		result += sapi4s.size();
+
+		return result > 0;
 	}
 
 	public boolean isPiperModelActive(String modelName) {
@@ -323,7 +351,7 @@ public class TextToSpeech {
 	public boolean isModelActive(VoiceID voiceID) {
 
 		// FIXME(Louis): Double check later
-		if (voiceID.modelName.equals(SAPI4ModelName)) {
+		if (voiceID.modelName.equals(SAPI4_MODEL_NAME)) {
 			return sapi4s.containsKey(voiceID.getId());
 		}
 
@@ -368,7 +396,10 @@ public class TextToSpeech {
 	public void loadAbbreviations() {
 		URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(ABBREVIATION_FILE));
 		String jsonString;
-		try {jsonString = Resources.toString(resourceUrl, StandardCharsets.UTF_8);} catch (IOException e) {
+		try {
+			//noinspection UnstableApiUsage
+			jsonString = Resources.toString(resourceUrl, StandardCharsets.UTF_8);
+		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 

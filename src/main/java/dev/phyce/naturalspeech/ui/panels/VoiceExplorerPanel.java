@@ -7,9 +7,8 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
-import dev.phyce.naturalspeech.tts.wsapi4.SAPI4ModelCache;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4VoiceCache;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
-import dev.phyce.naturalspeech.tts.wsapi4.SpeechAPI4;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
@@ -166,7 +165,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	void buildSpeakerList() {
 		sectionListPanel.removeAll();
-		List<String> sapi4Models = sapi4Repository.getModels();
+		List<String> sapi4Models = sapi4Repository.getVoices();
 		if (sapi4Models != null && !sapi4Models.isEmpty()) {
 			buildSAPI4ModelSegment();
 		}
@@ -232,12 +231,12 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
 
-		List<String> models = sapi4Repository.getModels();
+		List<String> models = sapi4Repository.getVoices();
 
 		models.stream()
 			.sorted()
 			.forEach((modelName) -> {
-				SAPI4ModelCache cache = SAPI4ModelCache.findModelName(modelName);
+				SAPI4VoiceCache cache = SAPI4VoiceCache.findVoiceName(modelName);
 				String sapi4Name = cache != null ? cache.sapiName : modelName;
 
 				VoiceMetadata metadata =

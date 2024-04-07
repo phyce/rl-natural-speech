@@ -73,7 +73,7 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		if (textToSpeech.activePiperProcessCount() == 0) return;
+		if (!textToSpeech.canSpeak()) return;
 
 		String username;
 		String lineName;
@@ -217,7 +217,7 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-1)
 	private void onOverheadTextChanged(OverheadTextChanged event) {
-		if (textToSpeech.activePiperProcessCount() < 1) return;
+		if (!textToSpeech.canSpeak()) return;
 
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;

@@ -1,7 +1,5 @@
 package dev.phyce.naturalspeech.tts;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.io.Resources;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
@@ -13,13 +11,14 @@ import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
-import dev.phyce.naturalspeech.tts.piper.Piper;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -36,40 +35,49 @@ public class VoiceManager {
 
 	public final static String VOICE_CONFIG_FILE = "speaker_config.json";
 	private final VoiceConfig voiceConfig;
-	private final TextToSpeech textToSpeech;
 	private final ConfigManager configManager;
 	private final GenderedVoiceMap genderedVoiceMap;
 
-	private final Multimap<PiperRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
+	private final Set<VoiceID> activeVoiceMap = new HashSet<>();
 
 	@Inject
-	public VoiceManager(TextToSpeech textToSpeech, ConfigManager configManager) {
-		this.textToSpeech = textToSpeech;
+	public VoiceManager(ConfigManager configManager) {
 		this.configManager = configManager;
 		this.genderedVoiceMap = new GenderedVoiceMap();
 		voiceConfig = new VoiceConfig();
 
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				@Override
-				public void onPiperStart(Piper piper) {
-					PiperRepository.ModelLocal modelLocal = piper.getModelLocal();
-
-					genderedVoiceMap.addModel(modelLocal);
-				}
-
-				@Override
-				public void onPiperExit(Piper piper) {
-					genderedVoiceMap.removeModel(piper.getModelLocal());
-					activeVoiceMap.removeAll(piper.getModelLocal());
-				}
-			}
-		);
-
 		loadVoiceConfig();
 	}
 
-	@CheckForNull
+	public void registerPiperModel(PiperRepository.ModelLocal modelLocal) {
+
+		genderedVoiceMap.addModelLocal(modelLocal);
+
+		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
+			activeVoiceMap.add(voiceMetadata.toVoiceID());
+		}
+
+	}
+
+	public void unregisterPiperModel(PiperRepository.ModelLocal modelLocal) {
+		genderedVoiceMap.removeModelLocal(modelLocal);
+
+		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
+			activeVoiceMap.remove(voiceMetadata.toVoiceID());
+		}
+	}
+
+	public void registerVoiceID(VoiceID voiceID, Gender gender) {
+		activeVoiceMap.add(voiceID);
+		genderedVoiceMap.addVoiceID(gender, voiceID);
+	}
+
+	public void unregisterVoiceID(VoiceID voiceID) {
+		activeVoiceMap.remove(voiceID);
+		genderedVoiceMap.removeVoiceID(voiceID);
+	}
+
+   	@CheckForNull
 	public List<VoiceID> checkVoiceIDWithUsername(@NonNull String standardized_username) {
 		return voiceConfig.findUsername(standardized_username);
 	}
@@ -118,29 +126,29 @@ public class VoiceManager {
 	public VoiceID randomVoiceFromActiveModels(String standardized_username) {
 		int hashCode = standardized_username.hashCode();
 
-		long count = activeVoiceMap.values().size();
+		long count = activeVoiceMap.size();
 
-		Optional<VoiceID> first = activeVoiceMap.values().stream().skip(Math.abs(hashCode) % count).findFirst();
+		Optional<VoiceID> first = activeVoiceMap.stream().skip(Math.abs(hashCode) % count).findFirst();
 
 		return first.orElse(null);
 	}
 
 	@CheckForNull
 	private VoiceID randomGenderedVoice(String standardized_username, Gender gender) {
-		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
+		Set<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
 		if (voiceIDs == null || voiceIDs.isEmpty()) {
 			return null;
 		}
 		int hashCode = standardized_username.hashCode();
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
-		return voiceIDs.get(voice);
+		return voiceIDs.stream().skip(voice).findFirst().orElse(null);
 	}
 	// Ultimate fallback
 	@CheckForNull
 	public VoiceID randomVoice() {
-		long count = activeVoiceMap.values().size();
-		Optional<VoiceID> first = activeVoiceMap.values().stream().skip((int) (Math.random() * count)).findFirst();
+		long count = activeVoiceMap.size();
+		Optional<VoiceID> first = activeVoiceMap.stream().skip((int) (Math.random() * count)).findFirst();
 
 		return first.orElse(null);
 	}
@@ -152,7 +160,7 @@ public class VoiceManager {
 			// if the config is invalid, a null might be present
 			if (voiceID == null) continue;
 
-			if (textToSpeech.isModelActive(voiceID)) {
+			if (activeVoiceMap.contains(voiceID)) {
 				return voiceID;
 			}
 		}

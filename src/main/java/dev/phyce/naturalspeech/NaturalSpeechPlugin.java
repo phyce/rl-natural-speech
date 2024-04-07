@@ -240,7 +240,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void onConfigChanged(ConfigChanged event) {
 		if (!event.getGroup().equals(CONFIG_GROUP)) return;
 
-		if (textToSpeech.activePiperProcessCount() < 1) {
+		if (textToSpeech.isStarted()) {
 			switch (event.getKey()) {
 				case ConfigKeys.MUTE_SELF:
 					log.trace("Detected mute-self toggle, clearing audio queue.");

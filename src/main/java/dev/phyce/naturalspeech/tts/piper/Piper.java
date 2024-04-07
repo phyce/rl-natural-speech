@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.tts.piper;
 
-import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.audio.AudioEngine;
+import dev.phyce.naturalspeech.tts.VoiceID;
 import static dev.phyce.naturalspeech.utils.CommonUtil.silentInterruptHandler;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.ByteArrayInputStream;
@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import lombok.Data;
 import lombok.Getter;
@@ -38,6 +39,17 @@ public class Piper {
 	private final Thread processPiperTaskThread;
 
 	private final List<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new ArrayList<>();
+
+	@Getter
+	private static final AudioFormat audioFormat =
+		new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
+			22050.0F, // Sample Rate (per second)
+			16, // Sample Size (bits)
+			1, // Channels
+			2, // Frame Size (bytes)
+			22050.0F, // Frame Rate (same as sample rate because PCM is 1 sample per 1 frame)
+			false
+		); // Little Endian
 
 	private Piper(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath, int processCount)
 		throws IOException {
@@ -190,7 +202,7 @@ public class Piper {
 				if (!task.skip) {
 					AudioInputStream inStream = new AudioInputStream(
 						new ByteArrayInputStream(audioClip),
-						AudioEngine.getFormat(),
+						audioFormat,
 						audioClip.length);
 
 					log.trace("Pumping into AudioEngine:{}", task.text);

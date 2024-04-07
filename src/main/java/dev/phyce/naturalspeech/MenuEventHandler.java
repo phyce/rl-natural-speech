@@ -73,7 +73,7 @@ public class MenuEventHandler {
 	private void onMenuOpened(MenuOpened event) {
 		if (config.holdShiftRightClickMenu() && !client.isKeyPressed(KeyCode.KC_SHIFT)) return;
 
-		if (textToSpeech.activePiperProcessCount() < 1) return;
+		if (!textToSpeech.canSpeak()) return;
 		final MenuEntry[] entries = event.getMenuEntries();
 
 		List<Integer> interfaces = List.of(

@@ -19,7 +19,7 @@ public class SAPI4Repository {
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Getter
-	private final List<String> models = new ArrayList<>();
+	private final List<String> voices = new ArrayList<>();
 
 	@Inject
 	public SAPI4Repository(NaturalSpeechRuntimeConfig runtimeConfig) {
@@ -29,7 +29,7 @@ public class SAPI4Repository {
 	}
 
 	public void reload() {
-		models.clear();
+		voices.clear();
 
 		Path sapi4limits = runtimeConfig.getSAPI4Path().resolveSibling("sapi4limits.exe");
 
@@ -51,9 +51,9 @@ public class SAPI4Repository {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 			reader.lines()
 				.skip(2)
-				.map((String key) -> SAPI4ModelCache.sapiToModelName.getOrDefault(key, key))
-				.forEach(models::add);
-			log.debug("{}", models);
+				.map((String key) -> SAPI4VoiceCache.sapiToVoiceName.getOrDefault(key, key))
+				.forEach(voices::add);
+			log.debug("{}", voices);
 		} catch (IOException e) {
 			log.error("Failed to read SAPI4 limits", e);
 		}

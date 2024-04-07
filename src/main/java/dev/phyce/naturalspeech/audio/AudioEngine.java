@@ -10,7 +10,6 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
-import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
@@ -26,18 +25,7 @@ public class AudioEngine {
 	private final Mixer mixer;
 	private float masterGain = 0;
 
-	@Getter
-	private static final AudioFormat format =
-		new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
-			22050.0F, // Sample Rate (per second)
-			16, // Sample Size (bits)
-			1, // Channels
-			2, // Frame Size (bytes)
-			22050.0F, // Frame Rate (same as sample rate because PCM is 1 sample per 1 frame)
-			false
-		); // Little Endian
 
-	private static final SourceDataLine.Info sourceDataLineInfo = new DataLine.Info(SourceDataLine.class, format);
 
 	public AudioEngine() {
 		mixer = AudioSystem.getMixer(null); // null gets the default system mixer
@@ -52,14 +40,8 @@ public class AudioEngine {
 		@NonNull AudioInputStream audioStream,
 		@NonNull Supplier<Float> gainSupplier
 	) {
-		DynamicLine line = getOrNewLine(lineName);
+		DynamicLine line = getOrNewLine(lineName, audioStream.getFormat());
 		if (line == null) {
-			return;
-		}
-
-		// value comparison, because AudioFormat didn't implement Object.equals(), this is close enough
-		if (!audioStream.getFormat().toString().equals(format.toString())) {
-			log.error("Unsupported audio format {}. Current supported format {}", audioStream.getFormat(), format);
 			return;
 		}
 
@@ -78,12 +60,12 @@ public class AudioEngine {
 	}
 
 	@CheckForNull
-	private DynamicLine getOrNewLine(String lineName) {
+	private DynamicLine getOrNewLine(String lineName, AudioFormat format) {
 		DynamicLine line = lines.get(lineName);
 
 		// no existing line, new line
 		if (line == null) {
-			line = newLine(lineName);
+			line = newLine(lineName, format);
 			log.trace("New line {} for {}", line, lineName);
 		} else {
 			log.trace("Existing line {} for {}", line, lineName);
@@ -135,10 +117,10 @@ public class AudioEngine {
 		lines.clear();
 	}
 
-	private DynamicLine newLine(String lineName) {
+	private DynamicLine newLine(String lineName, AudioFormat format) {
 		DynamicLine line;
 		try {
-			line = new DynamicLine((SourceDataLine) mixer.getLine(sourceDataLineInfo));
+			line = new DynamicLine((SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, format)));
 			line.setMasterGain(masterGain);
 			line.open(); // takes 2 millisecond on my machine
 			line.start();
@@ -152,7 +134,7 @@ public class AudioEngine {
 			});
 
 		} catch (LineUnavailableException e) {
-			log.error("Failed to create line {}", lineName, e);
+			log.error("Failed to create line {} of format {}", lineName, format, e);
 			return null;
 		}
 		lines.put(lineName, line);

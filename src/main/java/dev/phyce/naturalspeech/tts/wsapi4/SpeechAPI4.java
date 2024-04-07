@@ -2,7 +2,7 @@ package dev.phyce.naturalspeech.tts.wsapi4;
 
 import static com.google.common.base.Preconditions.checkState;
 import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.tts.VoiceID;
+import dev.phyce.naturalspeech.enums.Gender;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -21,23 +21,34 @@ import lombok.extern.slf4j.Slf4j;
 public class SpeechAPI4 {
 
 	@Getter
-	private final String modelName;
+	private final String voiceName;
 	@Getter
 	private final int speed;
 	@Getter
 	private final int pitch;
+	@Getter
+	private final Gender gender;
 
 	private final Path sapi4Path;
 	private final File outputFolder;
 	private final AudioEngine audioEngine;
 
 
-	private SpeechAPI4(AudioEngine audioEngine, String modelName, Path sapi4Path, Path outputPath, int speed, int pitch) {
+	private SpeechAPI4(
+		AudioEngine audioEngine,
+		String voiceName,
+		Path sapi4Path,
+		Path outputPath,
+		int speed,
+		int pitch,
+		Gender gender
+	) {
 		this.audioEngine = audioEngine;
-		this.modelName = modelName;
+		this.voiceName = voiceName;
 		this.sapi4Path = sapi4Path;
 		this.speed = speed;
 		this.pitch = pitch;
+		this.gender = gender;
 		this.outputFolder = outputPath.toFile();
 
 		if (!outputFolder.exists()) {
@@ -45,19 +56,27 @@ public class SpeechAPI4 {
 		}
 	}
 
-	public static SpeechAPI4 start(AudioEngine audioEngine, String modelName, Path sapi4Path) {
-		String sapiName = SAPI4ModelCache.modelToSapiName.getOrDefault(modelName, modelName);
+	public static SpeechAPI4 start(AudioEngine audioEngine, String voiceName, Path sapi4Path) {
+		String sapiName = SAPI4VoiceCache.voiceToSapiName.getOrDefault(voiceName, voiceName);
 
 		int speed;
 		int pitch;
+		Gender gender;
 
-		if (SAPI4ModelCache.isCached(sapiName)) {
-			SAPI4ModelCache cached = Objects.requireNonNull(SAPI4ModelCache.findSapiName(sapiName), sapiName);
+		if (SAPI4VoiceCache.isCached(sapiName)) {
+			SAPI4VoiceCache cached = Objects.requireNonNull(SAPI4VoiceCache.findSapiName(sapiName), sapiName);
 			log.trace("Found SAPI4 Model cache for {}", cached);
 			speed = cached.defaultSpeed;
 			pitch = cached.defaultPitch;
+
+			// manually labeled gender in cache
+			gender = cached.gender;
 		}
 		else {
+			// SAPI4 models don't have gender information (maybe they do)
+			// So we assume other.
+			gender = Gender.OTHER;
+
 			ProcessBuilder processBuilder = new ProcessBuilder(
 				sapi4Path.resolveSibling("sapi4limits.exe").toString(),
 				sapiName
@@ -92,20 +111,16 @@ public class SpeechAPI4 {
 			}
 		}
 		Path outputPath = sapi4Path.getParent().resolve("output");
-		return new SpeechAPI4(audioEngine, sapiName, sapi4Path, outputPath, speed, pitch);
+		return new SpeechAPI4(audioEngine, sapiName, sapi4Path, outputPath, speed, pitch, gender);
 	}
 
 
-	public void speak(
-		String text,
-		VoiceID voiceID,
-		Supplier<Float> gainSupplier,
-		String lineName) {
+	public void speak(String text, Supplier<Float> gainSupplier, String lineName) {
 
-		log.debug("Fake Speech API 4 speaking with voice {}: {}", modelName, text);
+		log.debug("Fake Speech API 4 speaking with voice {}: {}", voiceName, text);
 		ProcessBuilder processBuilder = new ProcessBuilder(
 			sapi4Path.toString(),
-			modelName,
+			voiceName,
 			Integer.toString(speed),
 			Integer.toString(pitch),
 			text

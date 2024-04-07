@@ -282,7 +282,7 @@ public class MainSettingsPanel extends PluginPanel {
 		}
 
 		// Sapi Model
-		List<String> sapi4Models = sapi4Repository.getModels();
+		List<String> sapi4Models = sapi4Repository.getVoices();
 		if (sapi4Models != null && !sapi4Models.isEmpty()) {
 			sectionContent.add(new SAPI4ListItem(), 0);
 		}
@@ -397,20 +397,36 @@ public class MainSettingsPanel extends PluginPanel {
 		textToSpeech.addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
 				@Override
-				public void onPiperStart(Piper piper) {
+				public void onStart() {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					statusLabel.setText("Running");
-					statusLabel.setBackground(Color.GREEN.darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Text to speech is running.");
+					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
+						statusLabel.setText("No Models Enabled");
+						statusLabel.setBackground(Color.ORANGE.darker());
+						statusLabel.setForeground(Color.WHITE);
+						statusPanel.setToolTipText("Download and enable a model.");
+					} else {
+						statusLabel.setText("Running");
+						statusLabel.setBackground(Color.GREEN.darker());
+						statusLabel.setForeground(Color.WHITE);
+						statusPanel.setToolTipText("Text to speech is running.");
+					}
+
+				}
+
+				@Override
+				public void onStop() {
+					statusLabel.setText("Not running");
+					statusLabel.setBackground(Color.DARK_GRAY);
+					statusLabel.setForeground(null);
+					statusPanel.setToolTipText("Press start to begin text to speech.");
 				}
 
 				@Override
 				public void onPiperExit(Piper piper) {
 					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 					// not just one starting piper
-					if (textToSpeech.isStarted() && textToSpeech.activePiperProcessCount() == 0) {
+					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
 						// Detect if this was an unintended exit, because the model would still be enabled
 						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
 							statusLabel.setText("Crashed (Contact Us)");
@@ -432,28 +448,6 @@ public class MainSettingsPanel extends PluginPanel {
 					statusLabel.setBackground(Color.RED.darker().darker().darker());
 					statusLabel.setForeground(Color.WHITE);
 					statusPanel.setToolTipText("Please contact the developers for support.");
-				}
-
-				@Override
-				public void onStart() {
-					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-					// not just one starting piper
-					if (textToSpeech.isStarted() &&
-						textToSpeech.activePiperProcessCount() == 0) {
-						statusLabel.setText("No Models Enabled");
-						statusLabel.setBackground(Color.ORANGE.darker());
-						statusLabel.setForeground(Color.WHITE);
-						statusPanel.setToolTipText("Download and enable a model.");
-					}
-
-				}
-
-				@Override
-				public void onStop() {
-					statusLabel.setText("Not running");
-					statusLabel.setBackground(Color.DARK_GRAY);
-					statusLabel.setForeground(null);
-					statusPanel.setToolTipText("Press start to begin text to speech.");
 				}
 			}
 		);

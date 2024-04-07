@@ -4,42 +4,55 @@ import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class GenderedVoiceMap {
 
-	private final List<VoiceID> maleList = new ArrayList<>();
-	private final List<VoiceID> femaleList = new ArrayList<>();
-	private final List<VoiceID> otherList = new ArrayList<>();
+	private final Set<VoiceID> maleList = new HashSet<>();
+	private final Set<VoiceID> femaleList = new HashSet<>();
+	private final Set<VoiceID> otherList = new HashSet<>();
 
-	public void addModel(PiperRepository.ModelLocal modelLocal) {
+	public void addModelLocal(PiperRepository.ModelLocal modelLocal) {
 		for (PiperRepository.PiperVoiceMetadata piperVoiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 			VoiceID voiceID = piperVoiceMetadata.toVoiceID();
-			if (piperVoiceMetadata.getGender() == Gender.MALE) {
-				if (maleList.contains(voiceID)) {
-					log.warn("Adding duplicate {} to male voice list", voiceID);
-				} else {
-					maleList.add(voiceID);
-				}
-			} else if (piperVoiceMetadata.getGender() == Gender.FEMALE) {
-				if (femaleList.contains(voiceID)) {
-					log.warn("Adding duplicate {} to female voice list", voiceID);
-				} else {
-					femaleList.add(voiceID);
-				}
+			Gender gender = piperVoiceMetadata.getGender();
+			addVoiceID(gender, voiceID);
+		}
+	}
+
+	public void addVoiceID(Gender gender, VoiceID voiceID) {
+		if (gender == Gender.MALE) {
+			if (maleList.contains(voiceID)) {
+				log.warn("Attempting to add duplicate {} to male voice list", voiceID);
 			} else {
-				if (otherList.contains(voiceID)) {
-					log.warn("Adding duplicate other {} to other voice list", voiceID);
-				} else {
-					otherList.add(voiceID);
-				}
+				maleList.add(voiceID);
+			}
+		} else if (gender == Gender.FEMALE) {
+			if (femaleList.contains(voiceID)) {
+				log.warn("Attempting to add duplicate {} to female voice list", voiceID);
+			} else {
+				femaleList.add(voiceID);
+			}
+		} else {
+			if (otherList.contains(voiceID)) {
+				log.warn("Attempting to add duplicate other {} to other voice list", voiceID);
+			} else {
+				otherList.add(voiceID);
 			}
 		}
 	}
 
-	public void removeModel(PiperRepository.ModelLocal modelLocal) {
+	public void removeVoiceID(VoiceID voiceID) {
+		maleList.remove(voiceID);
+		femaleList.remove(voiceID);
+		otherList.remove(voiceID);
+	}
+
+	public void removeModelLocal(PiperRepository.ModelLocal modelLocal) {
 		for (PiperRepository.PiperVoiceMetadata piperVoiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 			VoiceID voiceID = piperVoiceMetadata.toVoiceID();
 			if (piperVoiceMetadata.getGender() == Gender.MALE) {
@@ -52,13 +65,13 @@ public class GenderedVoiceMap {
 		}
 	}
 
-	public List<VoiceID> find(Gender gender) {
+	public Set<VoiceID> find(Gender gender) {
 		if (gender == Gender.MALE) {
-			return Collections.unmodifiableList(maleList);
+			return Collections.unmodifiableSet(maleList);
 		} else if (gender == Gender.FEMALE) {
-			return Collections.unmodifiableList(femaleList);
+			return Collections.unmodifiableSet(femaleList);
 		} else {
-			return Collections.unmodifiableList(otherList);
+			return Collections.unmodifiableSet(otherList);
 		}
 	}
 }
