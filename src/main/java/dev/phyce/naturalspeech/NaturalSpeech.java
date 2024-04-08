@@ -16,6 +16,7 @@ import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
  * plugin fields are wrapped in a field object
  * 1. Enables Guice to perform unordered cyclic dependency injection (through proxies)
  * 2. Allows plugin objects to leave scope and be garbage collected
+ * 3. Allows better hot-reloading because we can re-instantiate plugin objects
  */
 @PluginSingleton
 class NaturalSpeech {

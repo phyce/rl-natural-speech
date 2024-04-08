@@ -4,15 +4,17 @@ import com.google.gson.annotations.JsonAdapter;
 import javax.annotation.CheckForNull;
 import lombok.Data;
 
+/**
+ * VoiceID represents the model and id for a speak request. <br>
+ * Similar to URLs for http, representing server and document.<br>
+ * <br>
+ * VoiceID can in the future accept parameters like "speed", "pitch", etc. Similar to GET parameters.
+ */
 @Data
 @JsonAdapter(VoiceIDSerializer.class)
 public class VoiceID {
 	public String modelName;
 	public String id;
-
-	public VoiceID() {
-
-	}
 
 	public VoiceID(String modelName, String id) {
 		this.modelName = modelName;

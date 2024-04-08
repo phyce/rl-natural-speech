@@ -55,7 +55,6 @@ public class TextToSpeech {
 
 	private final ConfigManager configManager;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
-	private final ClientThread clientThread;
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
 	private final NaturalSpeechConfig config;
@@ -94,7 +93,6 @@ public class TextToSpeech {
 	) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
-		this.clientThread = clientThread;
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
 		this.config = config;
@@ -251,10 +249,11 @@ public class TextToSpeech {
 		if (OSValidator.IS_WINDOWS) {
 			String filename = piper_file.getName();
 			// naive canExecute check for windows, 99.99% of humans use .exe extension for executables on Windows
+			// File::canExecute returns true for all files on Windows.
 			return filename.endsWith(".exe") && piper_file.exists() && !piper_file.isDirectory();
 		}
 		else {
-			return piper_file.exists() && piper_file.canExecute() && !piper_file.isDirectory();
+			return piper_file.canExecute() && piper_file.exists() && !piper_file.isDirectory();
 		}
 	}
 
