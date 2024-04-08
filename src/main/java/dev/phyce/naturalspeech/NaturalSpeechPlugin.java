@@ -52,14 +52,10 @@ public class NaturalSpeechPlugin extends Plugin {
 	// endregion
 
 	// region: Fields
-
 	// Scope holds references to all the singletons, provides them to guice injections
 	private PluginSingletonScope pluginSingletonScope;
-
 	private NaturalSpeech ns;
-
 	private NavigationButton navButton;
-
 	private final Set<Object> eventBusSubscribers = new HashSet<>();
 	// endregion
 
@@ -166,11 +162,12 @@ public class NaturalSpeechPlugin extends Plugin {
 		pluginSingletonScope.enter();
 
 		// plugin fields are wrapped in a field object
-		// Enables Guice to perform unordered cyclic dependency injection (through proxies)
+		// 1. Enables Guice to perform unordered cyclic dependency injection (through proxies)
+		// 2. Allows plugin objects to leave scope and be garbage collected
 		ns = injector.getInstance(NaturalSpeech.class);
 
 		// Abstracting the massive client event handlers into their own files
-		// registers to eventbus, unregistered automatically using unregisterEventBusAll()
+		// registers to eventbus, unregistered automatically using unregisterEventBusAll() in shutdown()
 		registerEventBus(ns.speechEventHandler);
 		registerEventBus(ns.menuEventHandler);
 		registerEventBus(ns.commandExecutedEventHandler);
@@ -214,12 +211,14 @@ public class NaturalSpeechPlugin extends Plugin {
 		ns.topLevelPanel.shutdown();
 
 		clientToolbar.removeNavigation(navButton);
+		navButton = null;
 
 		ns.textToSpeech.stop();
 
 		saveConfigs();
 
 		pluginSingletonScope.exit(); // objects in this scope will be garbage collected after scope exit
+		ns = null;
 
 		log.info("NaturalSpeech plugin has shutDown");
 	}
