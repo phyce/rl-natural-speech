@@ -56,7 +56,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	// Scope holds references to all the singletons, provides them to guice injections
 	private PluginSingletonScope pluginSingletonScope;
 
-	// Wrapped all fields into NaturalSpeech, set to null on shutdown() and allowed to be garbage collected.
 	private NaturalSpeech ns;
 
 	private NavigationButton navButton;
@@ -167,8 +166,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		pluginSingletonScope.enter();
 
 		// plugin fields are wrapped in a field object
-		// 1. This object will be garbage-collected when set to null on shutdown()
-		// 2. Enables unordered cyclic Guice injection
+		// Enables Guice to perform unordered cyclic dependency injection (through proxies)
 		ns = injector.getInstance(NaturalSpeech.class);
 
 		// Abstracting the massive client event handlers into their own files
@@ -216,13 +214,11 @@ public class NaturalSpeechPlugin extends Plugin {
 		ns.topLevelPanel.shutdown();
 
 		clientToolbar.removeNavigation(navButton);
-		navButton = null;
 
 		ns.textToSpeech.stop();
 
 		saveConfigs();
 
-		ns = null; // allowing all plugin fields to be GC-ed
 		pluginSingletonScope.exit(); // objects in this scope will be garbage collected after scope exit
 
 		log.info("NaturalSpeech plugin has shutDown");

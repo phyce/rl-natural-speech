@@ -12,7 +12,10 @@ import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.tts.VolumeManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
-//<editor-fold desc="> Internal Dependencies">
+/**
+ * plugin fields are wrapped in a field object
+ * Enables Guice to perform unordered cyclic dependency injection (through proxies)
+ */
 @PluginSingleton
 class NaturalSpeech {
 	final NaturalSpeechRuntimeConfig runtimeConfig;
