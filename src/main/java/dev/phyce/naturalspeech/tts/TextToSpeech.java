@@ -123,6 +123,10 @@ public class TextToSpeech {
 			return;
 		}
 
+		if (started) {
+			stop();
+		}
+
 		started = true;
 
 		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified

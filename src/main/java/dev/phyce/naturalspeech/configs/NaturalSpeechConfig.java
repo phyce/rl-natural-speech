@@ -8,6 +8,7 @@ import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
 import net.runelite.client.config.Units;
 
+@SuppressWarnings("SameReturnValue")
 @ConfigGroup(CONFIG_GROUP)
 public interface NaturalSpeechConfig extends Config {
 

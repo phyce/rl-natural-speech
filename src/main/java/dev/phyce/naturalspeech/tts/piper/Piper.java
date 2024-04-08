@@ -8,11 +8,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Piper {
 	@Getter
-	private final Map<Long, PiperProcess> processMap = new HashMap<>();
+	private final ConcurrentHashMap<Long, PiperProcess> processMap = new ConcurrentHashMap<>();
 	private final ConcurrentLinkedQueue<PiperTask> piperTaskQueue = new ConcurrentLinkedQueue<>();
 	private final ConcurrentLinkedQueue<PiperTask> dispatchedQueue = new ConcurrentLinkedQueue<>();
 	private final AudioEngine audioEngine;

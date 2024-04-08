@@ -35,10 +35,6 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
 import org.slf4j.LoggerFactory;
 
-// We eager initialize plugin scoped singletons on startup()
-// Keep visual references in as fields for reference that they were provided.
-// NaturalSpeechPlugin class itself might not directly use these fields. Suppress warning.
-@SuppressWarnings({"FieldCanBeLocal"})
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {

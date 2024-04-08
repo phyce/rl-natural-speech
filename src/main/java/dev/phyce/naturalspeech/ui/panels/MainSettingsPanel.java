@@ -375,6 +375,13 @@ public class MainSettingsPanel extends PluginPanel {
 						panel.revalidate();
 					}
 				}
+
+				@Override
+				public void onStop() {
+					piperItemList.clear();
+					panel.removeAll();
+					panel.revalidate();
+				}
 			}
 		);
 		return panel;
@@ -459,18 +466,8 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton playButton = createButton("start.png", "Start");
 		JButton stopButton = createButton("stop.png", "Stop");
 
-		playButton.addActionListener(e -> {
-			clientThread.invokeLater(() -> {
-				//noinspection Convert2MethodRef
-				textToSpeech.start();
-			});
-		});
-		stopButton.addActionListener(e -> {
-			clientThread.invokeLater(() -> {
-				//noinspection Convert2MethodRef
-				textToSpeech.stop();
-			});
-		});
+		playButton.addActionListener(e -> {textToSpeech.start();});
+		stopButton.addActionListener(e -> {textToSpeech.stop();});
 
 		buttonPanel.add(playButton);
 		buttonPanel.add(stopButton);
