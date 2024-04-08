@@ -5,24 +5,16 @@ import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
-import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
-import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.guice.PluginSingletonScope;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.guice.PluginSingletonScope;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
-import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
-import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
 import dev.phyce.naturalspeech.tts.AudioLineNames;
-import dev.phyce.naturalspeech.tts.MuteManager;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
-import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.tts.VolumeManager;
-import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
@@ -43,10 +35,14 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
 import org.slf4j.LoggerFactory;
 
+// We eager initialize plugin scoped singletons on startup()
+// Keep visual references in as fields for reference that they were provided.
+// NaturalSpeechPlugin class itself might not directly use these fields. Suppress warning.
+@SuppressWarnings({"FieldCanBeLocal"})
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
-	//<editor-fold desc="> RuneLite Dependencies">
+	// region: RuneLite Dependencies
 	@Inject
 	private ClientToolbar clientToolbar;
 	@Inject
@@ -57,35 +53,23 @@ public class NaturalSpeechPlugin extends Plugin {
 	private NaturalSpeechConfig config;
 	@Inject
 	private EventBus eventBus;
+	// endregion
 
-	//</editor-fold>
+	// region: Fields
 
-	//<editor-fold desc="> Internal Dependencies">
-	private NaturalSpeechRuntimeConfig runtimeConfig;
-	private VoiceManager voiceManager;
-	private MuteManager muteManager;
-	private TextToSpeech textToSpeech;
-	private SpamFilterPluglet spamFilterPluglet;
-	private ChatFilterPluglet chatFilterPluglet;
-	private SpamDetection spamDetection;
-	private SpeechEventHandler speechEventHandler;
-	private MenuEventHandler menuEventHandler;
-	private CommandExecutedEventHandler commandExecutedEventHandler;
-	private VolumeManager volumeManager;
-
-	private AudioEngine audioEngine;
-
-	//</editor-fold>
-
-	//<editor-fold desc="> Runtime Variables">
+	// Scope holds references to all the singletons, provides them to guice injections
 	private PluginSingletonScope pluginSingletonScope;
+
+	// Wrapped all fields into NaturalSpeech, set to null on shutdown() and allowed to be garbage collected.
+	private NaturalSpeech ns;
+
 	private NavigationButton navButton;
+
 	private final Set<Object> eventBusSubscribers = new HashSet<>();
-	//</editor-fold>
+	// endregion
 
 	static {
 		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
-
 		String result = System.getProperty("nslogger");
 		if (result != null) {
 			log.info("nslogger VM property found, setting logger level to {}", result);
@@ -96,10 +80,78 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 	}
 
-	private TopLevelPanel topLevelPanel;
+	// region: helpers
+	/**
+	 * registers and remembers, used to safely unregister all objects with {@link #unregisterEventBusAll()}.
+	 */
+	private void registerEventBus(@NonNull Object object) {
+		if (eventBusSubscribers.contains(object)) {
+			log.error("Attempting to double register {} to eventBus, skipping.", object.getClass().getSimpleName());
+		}
+		else {
+			eventBus.register(object);
+			eventBusSubscribers.add(object);
+		}
+	}
 
+	/**
+	 * unregisters all eventBus objects registered using {@link #registerEventBus(Object)}
+	 */
+	private void unregisterEventBusAll() {
+		for (Object object : eventBusSubscribers) {
+			eventBus.unregister(object);
+		}
+		eventBusSubscribers.clear();
+	}
 
-	//<editor-fold desc="> Override Methods">
+	private void saveConfigs() {
+		ns.voiceManager.saveVoiceConfig();
+		ns.textToSpeech.saveModelConfig();
+		ns.runtimeConfig.savePiperPath(ns.runtimeConfig.getPiperPath());
+		ns.muteManager.saveConfig();
+	}
+
+	private void applyConfigVoice(String configKey, String voiceString) {
+		VoiceID voiceID;
+		voiceID = VoiceID.fromIDString(voiceString);
+
+		switch (configKey) {
+			case ConfigKeys.PERSONAL_VOICE:
+				if (voiceID != null) {
+					log.debug("Setting voice for {} to {}", AudioLineNames.LOCAL_USER, voiceID);
+					ns.voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.LOCAL_USER, voiceID);
+				}
+				else {
+					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.LOCAL_USER);
+					ns.voiceManager.resetForUsername(AudioLineNames.LOCAL_USER);
+				}
+				break;
+			case ConfigKeys.GLOBAL_NPC_VOICE:
+				if (voiceID != null) {
+					log.debug("Setting voice for {} to {}", AudioLineNames.GLOBAL_NPC, voiceID);
+					ns.voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.GLOBAL_NPC, voiceID);
+				}
+				else {
+					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.GLOBAL_NPC);
+					ns.voiceManager.resetForUsername(AudioLineNames.GLOBAL_NPC);
+				}
+				break;
+			case ConfigKeys.SYSTEM_VOICE:
+				if (voiceID != null) {
+					log.debug("Setting voice for {} to {}", AudioLineNames.SYSTEM, voiceID);
+					ns.voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.SYSTEM, voiceID);
+				}
+				else {
+					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.SYSTEM);
+					ns.voiceManager.resetForUsername(AudioLineNames.SYSTEM);
+				}
+				break;
+		}
+	}
+
+	// endregion
+
+	// region: Override Methods
 	@Override
 	public void configure(Binder binder) {
 		pluginSingletonScope = new PluginSingletonScope();
@@ -114,56 +166,48 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	public void startUp() {
+		// Objects marked with @PluginScopeSingletons will enter this scope
+		// These objects will be GC-able after pluginSingletonScope.exit()
 		pluginSingletonScope.enter();
 
-		audioEngine = injector.getInstance(AudioEngine.class);
-		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
-		textToSpeech = injector.getInstance(TextToSpeech.class);
-		voiceManager = injector.getInstance(VoiceManager.class);
-		muteManager = injector.getInstance(MuteManager.class);
-		spamFilterPluglet = injector.getInstance(SpamFilterPluglet.class);
-		chatFilterPluglet = injector.getInstance(ChatFilterPluglet.class);
-		spamDetection = injector.getInstance(SpamDetection.class);
-		volumeManager = injector.getInstance(VolumeManager.class);
+		// plugin fields are wrapped in a field object
+		// 1. This object will be garbage-collected when set to null on shutdown()
+		// 2. Enables unordered cyclic Guice injection
+		ns = injector.getInstance(NaturalSpeech.class);
 
 		// Abstracting the massive client event handlers into their own files
-		speechEventHandler = injector.getInstance(SpeechEventHandler.class);
-		menuEventHandler = injector.getInstance(MenuEventHandler.class);
-		commandExecutedEventHandler = injector.getInstance(CommandExecutedEventHandler.class);
-
 		// registers to eventbus, unregistered automatically using unregisterEventBusAll()
-		registerEventBus(speechEventHandler);
-		registerEventBus(menuEventHandler);
-		registerEventBus(commandExecutedEventHandler);
-		registerEventBus(spamFilterPluglet);
-		registerEventBus(chatFilterPluglet);
-		registerEventBus(volumeManager);
+		registerEventBus(ns.speechEventHandler);
+		registerEventBus(ns.menuEventHandler);
+		registerEventBus(ns.commandExecutedEventHandler);
+		registerEventBus(ns.spamFilterPluglet);
+		registerEventBus(ns.chatFilterPluglet);
+		registerEventBus(ns.volumeManager);
 
 		// Build panel and navButton
 		{
-			topLevelPanel = injector.getInstance(TopLevelPanel.class);
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 			navButton = NavigationButton.builder()
 				.tooltip("Natural Speech")
 				.icon(icon)
 				.priority(1)
-				.panel(topLevelPanel)
+				.panel(ns.topLevelPanel)
 				.build();
 			clientToolbar.addNavigation(navButton);
 		}
 
 		// Load Abbreviations is a method that can be called later when configs are changed
-		textToSpeech.loadAbbreviations();
+		ns.textToSpeech.loadAbbreviations();
 
 		if (config.autoStart()) {
-			textToSpeech.start();
+			ns.textToSpeech.start();
 		}
 
-		updateConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
-		updateConfigVoice(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice());
-		updateConfigVoice(ConfigKeys.SYSTEM_VOICE, config.systemVoice());
+		applyConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
+		applyConfigVoice(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice());
+		applyConfigVoice(ConfigKeys.SYSTEM_VOICE, config.systemVoice());
 
-		audioEngine.setMasterGain(VolumeManager.volumeToGain(config.masterVolume()));
+		ns.audioEngine.setMasterGain(VolumeManager.volumeToGain(config.masterVolume()));
 
 		log.info("NaturalSpeech plugin has started");
 	}
@@ -173,18 +217,37 @@ public class NaturalSpeechPlugin extends Plugin {
 		// unregister eventBus so handlers do not run after shutdown.
 		unregisterEventBusAll();
 
-		topLevelPanel.shutdown();
-		clientToolbar.removeNavigation(navButton);
+		ns.topLevelPanel.shutdown();
 
-		if (textToSpeech != null) {
-			textToSpeech.stop();
-		}
+		clientToolbar.removeNavigation(navButton);
+		navButton = null;
+
+		ns.textToSpeech.stop();
 
 		saveConfigs();
 
+		ns = null; // allowing all plugin fields to be GC-ed
 		pluginSingletonScope.exit(); // objects in this scope will be garbage collected after scope exit
 
 		log.info("NaturalSpeech plugin has shutDown");
+	}
+
+	// FIXME(Louis): Apply optimal default setting on reset config
+	@Override
+	public void resetConfiguration() {
+		ns.runtimeConfig.reset();
+	}
+
+	// endregion
+
+	// region: Event Subscribers
+
+	/**
+	 * update AudioEngine 8 times per tick on the client thread.
+	 */
+	@Schedule(period=600 / 8, unit=ChronoUnit.MILLIS)
+	public void updateAudioEngine() {
+		ns.audioEngine.update();
 	}
 
 	@Subscribe
@@ -193,63 +256,20 @@ public class NaturalSpeechPlugin extends Plugin {
 		saveConfigs();
 	}
 
-	private void saveConfigs() {
-		voiceManager.saveVoiceConfig();
-		textToSpeech.saveModelConfig();
-		runtimeConfig.savePiperPath(runtimeConfig.getPiperPath());
-		muteManager.saveConfig();
-	}
-
-	@Override
-	public void resetConfiguration() {
-		runtimeConfig.reset();
-	}
-
-	/**
-	 * registers and remembers, used to safely unregister all objects with {@link #unregisterEventBusAll()}.
-	 */
-	private void registerEventBus(@NonNull Object object) {
-		if (eventBusSubscribers.contains(object)) {
-			log.error("Attempting to double register {} to eventBus, skipping.", object.getClass().getSimpleName());
-		} else {
-			eventBus.register(object);
-			eventBusSubscribers.add(object);
-		}
-	}
-
-	/**
-	 * unregisters all eventBus objects registered using {@link #registerEventBus(Object)}
- 	 */
-	private void unregisterEventBusAll() {
-		for (Object object : eventBusSubscribers) {
-			eventBus.unregister(object);
-		}
-		eventBusSubscribers.clear();
-	}
-	//</editor-fold>
-
-	//<editor-fold desc="> Hooks">
-
-	// 4 times per tick
-	@Schedule(period=300/4, unit=ChronoUnit.MILLIS)
-	public void updateAudioEngine() {
-		audioEngine.update();
-	}
-
 	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {
 		if (!event.getGroup().equals(CONFIG_GROUP)) return;
 
-		if (textToSpeech.isStarted()) {
+		if (ns.textToSpeech.isStarted()) {
 			switch (event.getKey()) {
 				case ConfigKeys.MUTE_SELF:
 					log.trace("Detected mute-self toggle, clearing audio queue.");
-					textToSpeech.cancelLine(AudioLineNames.LOCAL_USER);
+					ns.textToSpeech.cancelLine(AudioLineNames.LOCAL_USER);
 					break;
 
 				case ConfigKeys.MUTE_OTHERS:
 					log.trace("Detected mute-others toggle, clearing audio queue.");
-					textToSpeech.cancelOtherLines(AudioLineNames.LOCAL_USER);
+					ns.textToSpeech.cancelOtherLines(AudioLineNames.LOCAL_USER);
 					break;
 
 			}
@@ -259,63 +279,23 @@ public class NaturalSpeechPlugin extends Plugin {
 			case ConfigKeys.COMMON_ABBREVIATIONS:
 			case ConfigKeys.CUSTOM_ABBREVIATIONS:
 				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
-				textToSpeech.loadAbbreviations();
+				ns.textToSpeech.loadAbbreviations();
 				break;
 
 			case ConfigKeys.PERSONAL_VOICE:
 			case ConfigKeys.GLOBAL_NPC_VOICE:
 			case ConfigKeys.SYSTEM_VOICE:
 				log.trace("Detected voice changes from config, loading in new voices");
-				updateConfigVoice(event.getKey(), event.getNewValue());
+				applyConfigVoice(event.getKey(), event.getNewValue());
 				break;
 		}
 
-		switch (event.getKey()) {
-			case ConfigKeys.MASTER_VOLUME:
-				log.trace("Detected master volume change to {}, updating audio engine", config.masterVolume());
-				audioEngine.setMasterGain(VolumeManager.volumeToGain(config.masterVolume()));
-				break;
+		if (event.getKey().equals(ConfigKeys.MASTER_VOLUME)) {
+			log.trace("Detected master volume change to {}, updating audio engine", config.masterVolume());
+			ns.audioEngine.setMasterGain(VolumeManager.volumeToGain(config.masterVolume()));
 		}
 	}
-
-	private void updateConfigVoice(String configKey, String voiceString) {
-		VoiceID voiceID;
-		voiceID = VoiceID.fromIDString(voiceString);
-
-		switch (configKey) {
-			case ConfigKeys.PERSONAL_VOICE:
-				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", AudioLineNames.LOCAL_USER, voiceID);
-					voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.LOCAL_USER, voiceID);
-				}
-				else {
-					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.LOCAL_USER);
-					voiceManager.resetForUsername(AudioLineNames.LOCAL_USER);
-				}
-				break;
-			case ConfigKeys.GLOBAL_NPC_VOICE:
-				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", AudioLineNames.GLOBAL_NPC, voiceID);
-					voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.GLOBAL_NPC, voiceID);
-				}
-				else {
-					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.GLOBAL_NPC);
-					voiceManager.resetForUsername(AudioLineNames.GLOBAL_NPC);
-				}
-				break;
-			case ConfigKeys.SYSTEM_VOICE:
-				if (voiceID != null) {
-					log.debug("Setting voice for {} to {}", AudioLineNames.SYSTEM, voiceID);
-					voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.SYSTEM, voiceID);
-				}
-				else {
-					log.debug("Invalid voice for {}, resetting voices.", AudioLineNames.SYSTEM);
-					voiceManager.resetForUsername(AudioLineNames.SYSTEM);
-				}
-				break;
-		}
-	}
-	//</editor-fold>
+	// endregion
 
 	@Provides
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {

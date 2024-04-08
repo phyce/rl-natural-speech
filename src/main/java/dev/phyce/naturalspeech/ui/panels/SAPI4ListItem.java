@@ -1,25 +1,12 @@
 package dev.phyce.naturalspeech.ui.panels;
 
-import dev.phyce.naturalspeech.tts.piper.PiperRepository;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.io.IOException;
 import javax.swing.GroupLayout;
-import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JToggleButton;
 import javax.swing.LayoutStyle;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
-import net.runelite.client.util.SwingUtil;
 
 public class SAPI4ListItem extends JPanel {
 

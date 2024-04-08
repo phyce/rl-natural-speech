@@ -1,13 +1,11 @@
 package dev.phyce.naturalspeech.guice;
 
 import static com.google.common.base.Preconditions.checkState;
-import com.google.common.collect.Maps;
 import com.google.inject.Key;
 import com.google.inject.OutOfScopeException;
 import com.google.inject.Provider;
 import com.google.inject.Scope;
 import com.google.inject.Scopes;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,13 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PluginSingletonScope implements Scope {
 
 	private static final Provider<Object> SEEDED_KEY_PROVIDER =
-		new Provider<Object>() {
-			public Object get() {
-				throw new IllegalStateException("If you got here then it means that" +
-					" your code asked for scoped object which should have been" +
-					" explicitly seeded in this scope by calling" +
-					" SimpleScope.seed(), but was not.");
-			}
+		() -> {
+			throw new IllegalStateException("If you got here then it means that" +
+				" your code asked for scoped object which should have been" +
+				" explicitly seeded in this scope by calling" +
+				" SimpleScope.seed(), but was not.");
 		};
 	private ConcurrentHashMap<Key<?>, Object> values = null;
 
@@ -53,24 +49,22 @@ public class PluginSingletonScope implements Scope {
 	}
 
 	public <T> Provider<T> scope(final Key<T> key, final Provider<T> unscoped) {
-		return new Provider<T>() {
-			public T get() {
-				Map<Key<?>, Object> scopedObjects = getScopedObjectMap(key);
+		return () -> {
+			Map<Key<?>, Object> scopedObjects = getScopedObjectMap(key);
 
-				@SuppressWarnings("unchecked")
-				T current = (T) scopedObjects.get(key);
-				if (current == null && !scopedObjects.containsKey(key)) {
-					current = unscoped.get();
+			@SuppressWarnings("unchecked")
+			T current = (T) scopedObjects.get(key);
+			if (current == null && !scopedObjects.containsKey(key)) {
+				current = unscoped.get();
 
-					// don't remember proxies; these exist only to serve circular dependencies
-					if (Scopes.isCircularProxy(current)) {
-						return current;
-					}
-
-					scopedObjects.put(key, current);
+				// don't remember proxies; these exist only to serve circular dependencies
+				if (Scopes.isCircularProxy(current)) {
+					return current;
 				}
-				return current;
+
+				scopedObjects.put(key, current);
 			}
+			return current;
 		};
 	}
 

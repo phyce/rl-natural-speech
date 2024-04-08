@@ -31,7 +31,6 @@ public class CommandExecutedEventHandler {
 	private void onCommandExecuted(CommandExecuted commandExecuted) {
 		String[] args = commandExecuted.getArguments();
 
-		//noinspection SwitchStatementWithTooFewBranches
 		switch (commandExecuted.getCommand()) {
 			case "nslogger": {
 				final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());

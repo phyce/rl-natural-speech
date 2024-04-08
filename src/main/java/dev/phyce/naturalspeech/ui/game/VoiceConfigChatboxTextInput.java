@@ -2,14 +2,12 @@ package dev.phyce.naturalspeech.ui.game;
 
 import com.google.gson.Gson;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import java.util.concurrent.ScheduledExecutorService;
 import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Actor;
 import net.runelite.api.NPC;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
@@ -27,8 +25,6 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private static final int CHATBOX_HEIGHT = 120;
 	private final ChatboxPanelManager chatboxPanelManager;
 	private NPC npc;
-	@SuppressWarnings("FieldCanBeLocal")
-	private final VoiceManager voiceManager;
 	private String standardActorName;
 
 	@Inject
@@ -36,10 +32,11 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		ChatboxPanelManager chatboxPanelManager,
 		ClientThread clientThread,
 		ScheduledExecutorService scheduledExecutorService,
-		OkHttpClient okHttpClient, Gson gson, TextToSpeech textToSpeech, VoiceManager voiceManager) {
+		OkHttpClient okHttpClient,
+		Gson gson,
+		VoiceManager voiceManager) {
 		super(chatboxPanelManager, clientThread);
 		this.chatboxPanelManager = chatboxPanelManager;
-		this.voiceManager = voiceManager;
 		lines(1);
 		prompt("Enter voice in voice:id format. Example: libritts:120");
 

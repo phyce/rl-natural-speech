@@ -41,10 +41,10 @@ public class SpeechEventHandler {
 	private final MuteManager muteManager;
 	private final SpamDetection spamDetection;
 	private final ClientThread clientThread;
-	private LastDialogMessage lastDialogMessage = new LastDialogMessage();
+	private final LastDialogMessage lastDialogMessage = new LastDialogMessage();
 
 
-	class LastDialogMessage {
+	static class LastDialogMessage {
 		public String message = "";
 		public long timestamp = 0;
 	}
@@ -357,7 +357,6 @@ public class SpeechEventHandler {
 			return true;
 		}
 
-		//noinspection RedundantIfStatement
 		if (spamDetection.isSpam(message.getName(), message.getMessage())) {
 			log.trace("Muting message. Spam detected. Message:{}", message.getMessage());
 			return true;

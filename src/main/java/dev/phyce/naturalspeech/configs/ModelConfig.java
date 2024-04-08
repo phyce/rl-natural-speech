@@ -38,10 +38,6 @@ public class ModelConfig {
 		piperConfigs = datum.getPiperConfigData().stream().map(PiperConfig::fromDatum).collect(Collectors.toList());
 	}
 
-	public void saveModelConfig() {
-
-	}
-
 
 	public int getModelProcessCount(String modelName) {
 		return piperConfigs.stream()

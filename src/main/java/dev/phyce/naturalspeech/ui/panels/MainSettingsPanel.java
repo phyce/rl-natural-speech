@@ -461,11 +461,13 @@ public class MainSettingsPanel extends PluginPanel {
 
 		playButton.addActionListener(e -> {
 			clientThread.invokeLater(() -> {
+				//noinspection Convert2MethodRef
 				textToSpeech.start();
 			});
 		});
 		stopButton.addActionListener(e -> {
 			clientThread.invokeLater(() -> {
+				//noinspection Convert2MethodRef
 				textToSpeech.stop();
 			});
 		});

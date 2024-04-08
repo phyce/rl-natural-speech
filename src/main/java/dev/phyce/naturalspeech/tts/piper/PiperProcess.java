@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -170,7 +169,7 @@ public class PiperProcess {
 	}
 
 	public CompletableFuture<PiperProcess> onExit() {
-		CompletableFuture<PiperProcess> piperOnExit = new CompletableFuture<PiperProcess>();
+		CompletableFuture<PiperProcess> piperOnExit = new CompletableFuture<>();
 		process.onExit().thenRun(() -> piperOnExit.complete(this));
 		return piperOnExit;
 	}

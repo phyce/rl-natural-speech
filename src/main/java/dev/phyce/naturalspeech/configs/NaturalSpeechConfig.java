@@ -104,7 +104,7 @@ public interface NaturalSpeechConfig extends Config {
 		section=generalSettingsSection
 
 	)
-	@Range(min=0, max=100)
+	@Range(max=100)
 	@Units(Units.PERCENT)
 	default int masterVolume() {
 		return 100;
