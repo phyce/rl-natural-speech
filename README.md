@@ -8,7 +8,7 @@ Give everyone a voice in OldSchool RuneScape! For all characters and players, wi
 Natural Speech requires an installing external tool to process text to generate speech.
 At the moment the only supported TTS engine is  [Piper](https://github.com/rhasspy/piper).
 
-[![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/FYPM226s)
+[![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/Zg5hMYMZ6E)
 
 
 ## Installing  [Piper](https://github.com/rhasspy/piper) on Windows.
