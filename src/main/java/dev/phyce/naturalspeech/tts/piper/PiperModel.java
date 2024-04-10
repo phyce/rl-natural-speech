@@ -8,11 +8,11 @@ import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
@@ -39,7 +39,7 @@ public class PiperModel {
 	@Getter
 	private final Path piperPath;
 
-	private final List<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new ArrayList<>();
+	private final Vector<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new Vector<>();
 
 	private Thread processPiperTaskThread;
 

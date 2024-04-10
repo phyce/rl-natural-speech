@@ -15,9 +15,12 @@ import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 /**
  * plugin fields are wrapped in a field object
- * 1. Enables Guice to perform unordered cyclic dependency injection (through proxies)
- * 2. Allows plugin objects to leave scope and be garbage collected
- * 3. Allows better hot-reloading because we can re-instantiate plugin objects
+ * <ul>
+ * <li>Enables Guice to perform unordered cyclic dependency injection (through proxies)</li>
+ * <li>Allows plugin objects to leave scope and be garbage collected. Otherwise, RuneLite Plugin objects never leave scope.</li>
+ * <li>Allows better hot-reloading because we can re-instantiate plugin objects</li>
+ * </ul>
+ * Could be a module, but we're lazy-injecting any ways.
  */
 @PluginSingleton
 class NaturalSpeech {
@@ -54,7 +57,7 @@ class NaturalSpeech {
 		AudioEngine audioEngine,
 		TopLevelPanel topLevelPanel,
 		PluginEventBus pluginEventBus
-		) {
+	) {
 		this.runtimeConfig = runtimeConfig;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;

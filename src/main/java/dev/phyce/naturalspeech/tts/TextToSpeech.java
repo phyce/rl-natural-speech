@@ -10,6 +10,7 @@ import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
+import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
@@ -31,16 +32,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.http.api.RuneLiteAPI;
 
-// Renamed from TTSManager
 @Slf4j
 @PluginSingleton
 public class TextToSpeech implements SpeechEngine {
 
 	public final static String ABBREVIATION_FILE = "abbreviations.json";
-	public static final String AUDIO_QUEUE_DIALOGUE = "&dialogue";
 
 	private final NaturalSpeechConfig config;
-	private final AudioEngine audioEngine;
 	private final PluginEventBus pluginEventBus;
 
 	private final Vector<SpeechEngine> engines = new Vector<>();
@@ -59,7 +57,6 @@ public class TextToSpeech implements SpeechEngine {
 		PluginEventBus pluginEventBus
 	) {
 		this.config = config;
-		this.audioEngine = audioEngine;
 		this.pluginEventBus = pluginEventBus;
 	}
 
@@ -93,20 +90,31 @@ public class TextToSpeech implements SpeechEngine {
 	@Override
 	public void stop() {
 		started = false;
-		cancelAll();
+		silenceAll();
 
 		for (SpeechEngine activeEngine : activeEngines) {
 			activeEngine.stop();
+			pluginEventBus.post(new SpeechEngineStopped(activeEngine));
 		}
 		activeEngines.clear();
 		pluginEventBus.post(new TextToSpeechStopped());
 	}
 
 	@Override
-	public boolean canSpeak() {
+	public boolean canSpeakAny() {
 		for (SpeechEngine activeEngine : activeEngines) {
-			if (activeEngine.canSpeak())
+			if (activeEngine.canSpeakAny())
 			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean canSpeak(VoiceID voiceID) {
+		for (SpeechEngine activeEngine : activeEngines) {
+			if (activeEngine.canSpeak(voiceID)) {
 				return true;
 			}
 		}
@@ -140,65 +148,26 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
-	public void cancel(Predicate<String> lineCondition) {
+	public void silence(Predicate<String> lineCondition) {
 		for (SpeechEngine activeEngine : activeEngines) {
-			activeEngine.cancel(lineCondition);
+			activeEngine.silence(lineCondition);
 		}
 	}
 
 	@Override
-	public void cancelAll() {
-		for (SpeechEngine activeEngine : activeEngines) {
-			activeEngine.cancelAll();
-		}
-	}
-
-	public void silence(Predicate<String> lineCondition) {
-		for (SpeechEngine activeEngine : activeEngines) {
-			activeEngine.cancel(lineCondition);
-		}
-		audioEngine.closeLineConditional(lineCondition);
-	}
-
 	public void silenceAll() {
 		for (SpeechEngine activeEngine : activeEngines) {
-			activeEngine.cancelAll();
+			activeEngine.silenceAll();
 		}
-		audioEngine.closeAll();
 	}
-
-	public void silenceOtherLines(String lineName) {
-
-		Predicate<String> linePredicate = (otherLineName) -> {
-
-			if (otherLineName.equals(AUDIO_QUEUE_DIALOGUE)) return false;
-			if (otherLineName.equals(AudioLineNames.LOCAL_USER)) return false;
-			if (otherLineName.equals(lineName)) return false;
-
-			return true;
-		};
-
-		for (SpeechEngine activeEngine : activeEngines) {
-			activeEngine.cancel(linePredicate);
-		}
-
-		audioEngine.closeLineConditional(linePredicate);
-	}
-
-	public void cancelLine(String lineName) {
-
-		for (SpeechEngine activeEngine : activeEngines) {
-			activeEngine.cancel((otherLineName) -> otherLineName.equals(lineName));
-		}
-
-		audioEngine.closeLineName(lineName);
-	}
-
-	// In method so we can load again when user changes config
 
 	public String expandAbbreviations(String text) {
 		return TextUtil.expandAbbreviations(text, abbreviations);
 	}
+
+	/**
+	 * In method so we can load again when user changes config
+ 	 */
 	public void loadAbbreviations() {
 		URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(ABBREVIATION_FILE));
 		String jsonString;

@@ -84,7 +84,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private JPanel statusPanel;
 
 	private JPanel piperModelPanel;
-	private final Map<PiperModel, PiperListItem> piperItemList = new HashMap<>();
+	private final Map<PiperModel, PiperModelMonitorItem> piperItemList = new HashMap<>();
 
 	@Inject
 	public MainSettingsPanel(
@@ -138,7 +138,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Subscribe
 	private void onTextToSpeechStarted(TextToSpeechStarted event) {
-		if (!textToSpeech.canSpeak()) {
+		if (!textToSpeech.canSpeakAny()) {
 			statusLabel.setText("No Models Enabled");
 			statusLabel.setBackground(Color.ORANGE.darker());
 			statusLabel.setForeground(Color.WHITE);
@@ -162,7 +162,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Subscribe
 	private void onPiperModelStarted(PiperModelStarted event) {
-		PiperListItem piperItem = new PiperListItem(event.getPiper());
+		PiperModelMonitorItem piperItem = new PiperModelMonitorItem(event.getPiper());
 		piperItemList.put(event.getPiper(), piperItem);
 		piperModelPanel.add(piperItem);
 		piperModelPanel.revalidate();
@@ -170,7 +170,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Subscribe
 	private void onPiperModelStopped(PiperModelStopped event) {
-		PiperListItem remove = piperItemList.remove(event.getPiper());
+		PiperModelMonitorItem remove = piperItemList.remove(event.getPiper());
 		if (remove != null) {
 			piperModelPanel.remove(remove);
 			piperModelPanel.revalidate();
@@ -409,7 +409,7 @@ public class MainSettingsPanel extends PluginPanel {
 //				public void onStart() {
 //					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 //					// not just one starting piper
-//					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
+//					if (textToSpeech.isStarted() && !textToSpeech.canSpeakAny()) {
 //						statusLabel.setText("No Models Enabled");
 //						statusLabel.setBackground(Color.ORANGE.darker());
 //						statusLabel.setForeground(Color.WHITE);
@@ -435,7 +435,7 @@ public class MainSettingsPanel extends PluginPanel {
 //				public void onPiperExit(PiperModel piper) {
 //					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
 //					// not just one starting piper
-//					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
+//					if (textToSpeech.isStarted() && !textToSpeech.canSpeakAny()) {
 //						// Detect if this was an unintended exit, because the model would still be enabled
 //						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
 //							statusLabel.setText("Crashed (Contact Us)");

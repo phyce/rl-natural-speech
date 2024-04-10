@@ -19,7 +19,9 @@ public interface SpeechEngine {
 
 	void stop();
 
-	boolean canSpeak();
+	boolean canSpeakAny();
+
+	boolean canSpeak(VoiceID voiceID);
 
 	/**
 	 * {@link TextToSpeech} will call speak for in-coming VoiceID,
@@ -34,8 +36,13 @@ public interface SpeechEngine {
 	 */
 	SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName);
 
-	void cancel(Predicate<String> lineCondition);
+	/**
+	 * Cancels queued and processing speak tasks. Cancel should not try to silence ongoing AudioEngine lines.
+	 * For silencing + canceling, use {@link TextToSpeech#silence(Predicate)}
+	 * @param lineCondition
+	 */
+	void silence(Predicate<String> lineCondition);
 
-	void cancelAll();
+	void silenceAll();
 
 }

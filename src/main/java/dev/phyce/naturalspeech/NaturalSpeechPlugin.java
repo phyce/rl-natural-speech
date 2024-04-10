@@ -38,6 +38,20 @@ import org.slf4j.LoggerFactory;
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
+
+	static {
+		// Setup package level logger level
+		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
+		String result = System.getProperty("nslogger");
+		if (result != null) {
+			log.info("nslogger VM property found, setting logger level to {}", result);
+			logger.setLevel(Level.valueOf(result));
+		}
+		else {
+			logger.setLevel(Level.INFO);
+		}
+	}
+
 	// region: RuneLite Dependencies
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -56,32 +70,21 @@ public class NaturalSpeechPlugin extends Plugin {
 	private PluginSingletonScope pluginSingletonScope;
 	private NaturalSpeech ns;
 	private NavigationButton navButton;
-	private final Set<Object> eventBusSubscribers = new HashSet<>();
+	private final Set<Object> rlEventBusSubscribers = new HashSet<>();
 	// endregion
 
-	static {
-		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
-		String result = System.getProperty("nslogger");
-		if (result != null) {
-			log.info("nslogger VM property found, setting logger level to {}", result);
-			logger.setLevel(Level.valueOf(result));
-		}
-		else {
-			logger.setLevel(Level.INFO);
-		}
-	}
 
 	// region: helpers
 	/**
 	 * registers and remembers, used to safely unregister all objects with {@link #unregisterRLEventBusAll()}.
 	 */
 	private void registerRLEventBus(@NonNull Object object) {
-		if (eventBusSubscribers.contains(object)) {
+		if (rlEventBusSubscribers.contains(object)) {
 			log.error("Attempting to double register {} to eventBus, skipping.", object.getClass().getSimpleName());
 		}
 		else {
 			eventBus.register(object);
-			eventBusSubscribers.add(object);
+			rlEventBusSubscribers.add(object);
 		}
 	}
 
@@ -89,10 +92,10 @@ public class NaturalSpeechPlugin extends Plugin {
 	 * unregisters all eventBus objects registered using {@link #registerRLEventBus(Object)}
 	 */
 	private void unregisterRLEventBusAll() {
-		for (Object object : eventBusSubscribers) {
+		for (Object object : rlEventBusSubscribers) {
 			eventBus.unregister(object);
 		}
-		eventBusSubscribers.clear();
+		rlEventBusSubscribers.clear();
 	}
 
 	private void saveConfigs() {
@@ -162,9 +165,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		pluginSingletonScope.enter();
 
 		// plugin fields are wrapped in a field object
-		// 1. Enables Guice to perform unordered cyclic dependency injection (through proxies)
-		// 2. Allows plugin objects to leave scope and be garbage collected
-		// 3. Allows better hot-reloading because we can re-instantiate plugin objects
 		ns = injector.getInstance(NaturalSpeech.class);
 
 		// Abstracting the massive client event handlers into their own files
@@ -256,12 +256,12 @@ public class NaturalSpeechPlugin extends Plugin {
 			switch (event.getKey()) {
 				case ConfigKeys.MUTE_SELF:
 					log.trace("Detected mute-self toggle, clearing audio queue.");
-					ns.textToSpeech.cancelLine(AudioLineNames.LOCAL_USER);
+					ns.textToSpeech.silence((otherLineName) -> otherLineName.equals(AudioLineNames.LOCAL_USER));
 					break;
 
 				case ConfigKeys.MUTE_OTHERS:
 					log.trace("Detected mute-others toggle, clearing audio queue.");
-					ns.textToSpeech.silenceOtherLines(AudioLineNames.LOCAL_USER);
+					ns.textToSpeech.silence((otherLineName) -> !otherLineName.equals(AudioLineNames.LOCAL_USER));
 					break;
 
 			}

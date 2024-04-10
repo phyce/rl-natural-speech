@@ -48,7 +48,7 @@ package dev.phyce.naturalspeech.tts.wsapi4;
 //	}
 //
 //	@Override
-//	public boolean canSpeak() {
+//	public boolean canSpeakAny() {
 //		return false;
 //	}
 //
@@ -63,7 +63,7 @@ package dev.phyce.naturalspeech.tts.wsapi4;
 //	}
 //
 //	@Override
-//	public void cancelAll() {
+//	public void silenceAll() {
 //
 //	}
 //

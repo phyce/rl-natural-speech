@@ -2,7 +2,10 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
+import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
@@ -21,8 +24,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
@@ -39,6 +44,8 @@ import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
@@ -46,11 +53,8 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 import org.apache.commons.lang3.StringUtils;
 
+@Slf4j
 public class VoiceExplorerPanel extends EditorPanel {
-
-	public static final ImageIcon SECTION_EXPAND_ICON;
-	private static final ImageIcon SECTION_RETRACT_ICON;
-	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
 
 	static {
 		BufferedImage sectionRetractIcon =
@@ -61,27 +65,39 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
 	}
 
-	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
 	private final TextToSpeech textToSpeech;
+	private final PluginEventBus pluginEventBus;
+
+	public static final ImageIcon SECTION_EXPAND_ICON;
+	private static final ImageIcon SECTION_RETRACT_ICON;
+
+	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
+
+	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
+
 	@Getter
 	private final IconTextField speechText;
-	@Getter
 	private final IconTextField searchBar;
-	@Getter
 	private final FixedWidthPanel sectionListPanel;
-	@Getter
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
+	private final Map<String, JPanel> modelSections = new HashMap<>();
 	private final PiperRepository.ModelRepositoryListener modelRepositoryListener;
 
 	@Inject
-	public VoiceExplorerPanel(PiperRepository piperRepository, SAPI4Repository sapi4Repository,
-							  TextToSpeech textToSpeech) {
+	public VoiceExplorerPanel(
+		PiperRepository piperRepository,
+		SAPI4Repository sapi4Repository,
+		TextToSpeech textToSpeech, PluginEventBus pluginEventBus
+	) {
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
 		this.textToSpeech = textToSpeech;
+		this.pluginEventBus = pluginEventBus;
+
+		pluginEventBus.register(this);
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -162,6 +178,36 @@ public class VoiceExplorerPanel extends EditorPanel {
 		buildSpeakerList();
 	}
 
+	@Subscribe
+	private void onPiperModelStarted(PiperModelStarted event) {
+		String modelName = event.getPiper().getModelLocal().getModelName();
+
+		JPanel section = modelSections.get(modelName);
+		if (section != null) {
+			section.setVisible(true);
+			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		} else {
+			// buildSpeakerList builds sections PiperRepository
+			// if this triggers that means a new model was not in PiperRepository.
+			log.error("Started model not found in VoiceExplorer:{}", modelName);
+		}
+	}
+
+	@Subscribe
+	private void onPiperModelStopped(PiperModelStopped event) {
+		String modelName = event.getPiper().getModelLocal().getModelName();
+
+		JPanel section = modelSections.get(modelName);
+		if (section != null) {
+			section.setVisible(false);
+			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		} else {
+			// buildSpeakerList builds sections PiperRepository
+			// if this triggers that means a new model was not in PiperRepository.
+			log.error("Started model not found in VoiceExplorer:{}", modelName);
+		}
+	}
+
 	void buildSpeakerList() {
 		sectionListPanel.removeAll();
 		List<String> sapi4Models = sapi4Repository.getVoices();
@@ -174,7 +220,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 				buildPiperModelSegment(modelURL.getModelName());
 			}
 		}
-
 	}
 
 	private void buildSAPI4ModelSegment() {
@@ -244,6 +289,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			});
 
 		sectionListPanel.add(section);
+		modelSections.put("microsoft", section);
 	}
 
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
@@ -320,27 +366,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		} catch (IOException e) {throw new RuntimeException(e);}
 
-//		textToSpeech.addTextToSpeechListener(
-//			new TextToSpeech.TextToSpeechListener() {
-//				@Override
-//				public void onPiperStart(PiperModel piper) {
-//					if (piper.getModelLocal().getModelName().equals(modelName)) {
-//						section.setVisible(true);
-//						SwingUtilities.invokeLater(sectionListPanel::revalidate);
-//					}
-//				}
-//
-//				@Override
-//				public void onPiperExit(PiperModel piper) {
-//					if (piper.getModelLocal().getModelName().equals(modelName)) {
-//						section.setVisible(false);
-//						SwingUtilities.invokeLater(sectionListPanel::revalidate);
-//					}
-//				}
-//			}
-//		);
-
 		sectionListPanel.add(section);
+		modelSections.put(modelName, section);
 	}
 
 	void searchFilter(String searchInput) {

@@ -91,6 +91,11 @@ public class AudioEngine {
 		});
 	}
 
+	public void closeAll() {
+		lines.forEachValue(Long.MAX_VALUE, DynamicLine::close);
+		lines.clear();
+	}
+
 	public boolean pauseLine(String lineName) {
 		DynamicLine line = lines.get(lineName);
 		if (line != null) {
@@ -109,11 +114,6 @@ public class AudioEngine {
 		for (DynamicLine line : lines.values()) {
 			line.setMasterGain(masterGain);
 		}
-	}
-
-	public void closeAll() {
-		lines.forEachValue(Long.MAX_VALUE, DynamicLine::close);
-		lines.clear();
 	}
 
 	private DynamicLine newLine(String lineName, AudioFormat format) {

@@ -99,7 +99,7 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeak() {
+	public boolean canSpeakAny() {
 		int result = 0;
 		for (String modelName : models.keySet()) {
 			PiperModel model = models.get(modelName);
@@ -107,6 +107,11 @@ public class PiperEngine implements SpeechEngine {
 		}
 
 		return result > 0;
+	}
+
+	@Override
+	public boolean canSpeak(VoiceID voiceID) {
+		return isModelActive(voiceID.modelName);
 	}
 
 	@Override
@@ -131,17 +136,19 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public void cancel(Predicate<String> lineCondition) {
+	public void silence(Predicate<String> lineCondition) {
 		for (PiperModel piper : models.values()) {
 			piper.cancelConditional(lineCondition);
 		}
+		audioEngine.closeLineConditional(lineCondition);
 	}
 
 	@Override
-	public void cancelAll() {
+	public void silenceAll() {
 		for (String modelName : models.keySet()) {
 			models.get(modelName).cancelAll();
 		}
+		audioEngine.closeAll();
 	}
 
 	public boolean isPiperPathValid() {

@@ -73,7 +73,7 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		if (!textToSpeech.canSpeak()) return;
+		if (!textToSpeech.canSpeakAny()) return;
 
 		String username;
 		String lineName;
@@ -147,7 +147,7 @@ public class SpeechEventHandler {
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
-				textToSpeech.cancelLine(AudioLineNames.DIALOG);
+				textToSpeech.silence((lineName) -> lineName.equals(AudioLineNames.DIALOG));
 
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
 				if (textWidget == null || textWidget.getText() == null) {
@@ -168,11 +168,9 @@ public class SpeechEventHandler {
 			});
 		}
 		else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
-
-
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
-				textToSpeech.cancelLine(AudioLineNames.DIALOG);
+				textToSpeech.silence((lineName) -> lineName.equals(AudioLineNames.DIALOG));
 
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
 				Widget headModelWidget = client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL);
@@ -217,7 +215,7 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-1)
 	private void onOverheadTextChanged(OverheadTextChanged event) {
-		if (!textToSpeech.canSpeak()) return;
+		if (!textToSpeech.canSpeakAny()) return;
 
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;

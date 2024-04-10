@@ -13,13 +13,13 @@ import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 
 @Slf4j
-public class PiperListItem extends JPanel {
+public class PiperModelMonitorItem extends JPanel {
 
 	private final PiperModel piper;
 	private final JPanel processListPanel;
 
 
-	public PiperListItem(PiperModel piper) {
+	public PiperModelMonitorItem(PiperModel piper) {
 		this.piper = piper;
 
 		this.setLayout(new BorderLayout());
