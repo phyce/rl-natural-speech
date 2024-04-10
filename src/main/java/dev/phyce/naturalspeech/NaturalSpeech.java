@@ -11,6 +11,7 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.tts.VolumeManager;
 import dev.phyce.naturalspeech.tts.piper.PiperEngine;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 /**
@@ -29,6 +30,7 @@ class NaturalSpeech {
 	final MuteManager muteManager;
 	final TextToSpeech textToSpeech;
 	final PiperEngine piperEngine;
+	final SAPI4Engine sapi4Engine;
 	final SpamFilterPluglet spamFilterPluglet;
 	final ChatFilterPluglet chatFilterPluglet;
 	final SpamDetection spamDetection;
@@ -46,7 +48,7 @@ class NaturalSpeech {
 		VoiceManager voiceManager,
 		MuteManager muteManager,
 		TextToSpeech textToSpeech,
-		PiperEngine piperEngine,
+		PiperEngine piperEngine, SAPI4Engine sapi4Engine,
 		SpamFilterPluglet spamFilterPluglet,
 		ChatFilterPluglet chatFilterPluglet,
 		SpamDetection spamDetection,
@@ -63,6 +65,7 @@ class NaturalSpeech {
 		this.muteManager = muteManager;
 		this.textToSpeech = textToSpeech;
 		this.piperEngine = piperEngine;
+		this.sapi4Engine = sapi4Engine;
 		this.spamFilterPluglet = spamFilterPluglet;
 		this.chatFilterPluglet = chatFilterPluglet;
 		this.spamDetection = spamDetection;

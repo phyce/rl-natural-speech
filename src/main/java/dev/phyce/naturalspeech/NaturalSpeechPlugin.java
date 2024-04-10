@@ -191,6 +191,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Load Abbreviations is a method that can be called later when configs are changed
 		ns.textToSpeech.loadAbbreviations();
 
+		ns.textToSpeech.register(ns.piperEngine);
+		ns.textToSpeech.register(ns.sapi4Engine);
+
 		if (config.autoStart()) {
 			ns.textToSpeech.start();
 		}

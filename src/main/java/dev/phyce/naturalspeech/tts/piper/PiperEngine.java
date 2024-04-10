@@ -15,7 +15,6 @@ import dev.phyce.naturalspeech.events.piper.PiperProcessStarted;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.SpeechEngine;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.utils.OSValidator;
@@ -56,8 +55,7 @@ public class PiperEngine implements SpeechEngine {
 		AudioEngine audioEngine,
 		ConfigManager configManager,
 		VoiceManager voiceManager,
-		PluginEventBus pluginEventBus,
-		TextToSpeech textToSpeech
+		PluginEventBus pluginEventBus
 	) {
 		this.piperRepository = piperRepository;
 		this.runtimeConfig = runtimeConfig;
@@ -68,7 +66,6 @@ public class PiperEngine implements SpeechEngine {
 
 		loadModelConfig();
 
-		textToSpeech.register(this);
 	}
 
 	@Override
