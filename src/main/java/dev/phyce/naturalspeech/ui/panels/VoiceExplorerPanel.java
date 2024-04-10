@@ -4,11 +4,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.events.SpeechEngineStarted;
+import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
 import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4VoiceCache;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
@@ -85,6 +88,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 	private final Map<String, JPanel> modelSections = new HashMap<>();
 	private final PiperRepository.ModelRepositoryListener modelRepositoryListener;
+	private JPanel sapi4Segment;
 
 	@Inject
 	public VoiceExplorerPanel(
@@ -187,7 +191,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			section.setVisible(true);
 			SwingUtilities.invokeLater(sectionListPanel::revalidate);
 		} else {
-			// buildSpeakerList builds sections PiperRepository
+			// buildSpeakerList builds sections using PiperRepository
 			// if this triggers that means a new model was not in PiperRepository.
 			log.error("Started model not found in VoiceExplorer:{}", modelName);
 		}
@@ -202,9 +206,25 @@ public class VoiceExplorerPanel extends EditorPanel {
 			section.setVisible(false);
 			SwingUtilities.invokeLater(sectionListPanel::revalidate);
 		} else {
-			// buildSpeakerList builds sections PiperRepository
+			// buildSpeakerList builds sections using PiperRepository
 			// if this triggers that means a new model was not in PiperRepository.
 			log.error("Started model not found in VoiceExplorer:{}", modelName);
+		}
+	}
+
+	@Subscribe
+	private void onSpeechEngineStarted(SpeechEngineStarted event) {
+		if (event.getSpeechEngine() instanceof SAPI4Engine) {
+			sapi4Segment.setVisible(true);
+			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		}
+	}
+
+	@Subscribe
+	private void onSpeechEngineStopped(SpeechEngineStopped event) {
+		if (event.getSpeechEngine() instanceof SAPI4Engine) {
+			sapi4Segment.setVisible(false);
+			SwingUtilities.invokeLater(sectionListPanel::revalidate);
 		}
 	}
 
@@ -223,10 +243,10 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	private void buildSAPI4ModelSegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setVisible(true);
+		sapi4Segment = new JPanel();
+		sapi4Segment.setLayout(new BoxLayout(sapi4Segment, BoxLayout.Y_AXIS));
+		sapi4Segment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		sapi4Segment.setVisible(false);
 
 		final JPanel sectionHeader = new JPanel();
 		sectionHeader.setLayout(new BorderLayout());
@@ -236,7 +256,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionHeader.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
 			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
+		sapi4Segment.add(sectionHeader);
 
 		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
 		sectionToggle.setPreferredSize(new Dimension(18, 0));
@@ -256,11 +276,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 		final JPanel sectionContent = new JPanel();
 		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
+		sapi4Segment.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
 			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
 		));
-		section.add(sectionContent, BorderLayout.SOUTH);
+		sapi4Segment.add(sectionContent, BorderLayout.SOUTH);
 
 		// Add listeners to each part of the header so that it's easier to toggle them
 		final MouseAdapter adapter = new MouseAdapter() {
@@ -288,8 +308,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 				sectionContent.add(speakerItem);
 			});
 
-		sectionListPanel.add(section);
-		modelSections.put("microsoft", section);
+		sectionListPanel.add(sapi4Segment);
+		modelSections.put("microsoft", sapi4Segment);
 	}
 
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
