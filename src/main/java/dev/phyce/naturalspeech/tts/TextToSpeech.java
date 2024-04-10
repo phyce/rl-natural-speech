@@ -63,9 +63,9 @@ public class TextToSpeech implements SpeechEngine {
 	@Override
 	public StartResult start() {
 		if (started) {
+			log.warn("Starting TextToSpeech when already started. Restarting.");
 			stop();
 		}
-		started = true;
 
 		for (SpeechEngine engine : engines) {
 			StartResult result = engine.start();
@@ -82,6 +82,7 @@ public class TextToSpeech implements SpeechEngine {
 			log.error("No engines started successfully.");
 			return StartResult.FAILED;
 		} else {
+			started = true;
 			pluginEventBus.post(new TextToSpeechStarted());
 			return StartResult.SUCCESS;
 		}
@@ -89,6 +90,11 @@ public class TextToSpeech implements SpeechEngine {
 
 	@Override
 	public void stop() {
+		if (!started) {
+			log.warn("Stopping TextToSpeech when not started. Ignoring.");
+			return;
+		}
+
 		started = false;
 		silenceAll();
 

@@ -102,6 +102,10 @@ public class PiperEngine implements SpeechEngine {
 
 	@Override
 	public void stop() {
+		if (!started) {
+			return;
+		}
+
 		models.values().stream().map(PiperModel::getModelLocal).forEach(this::stopModel);
 		models.clear();
 		started = false;
