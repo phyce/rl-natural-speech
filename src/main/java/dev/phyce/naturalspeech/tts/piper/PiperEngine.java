@@ -46,6 +46,9 @@ public class PiperEngine implements SpeechEngine {
 	private ModelConfig modelConfig;
 	private boolean isPiperUnquarantined = false;
 
+	@Getter
+	private boolean started = false;
+
 	@Inject
 	private PiperEngine(
 		PiperRepository piperRepository,
@@ -74,6 +77,10 @@ public class PiperEngine implements SpeechEngine {
 			return StartResult.FAILED;
 		}
 
+		if (started) {
+			stop();
+		}
+
 		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
 
 		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
@@ -89,6 +96,7 @@ public class PiperEngine implements SpeechEngine {
 			}
 		}
 
+		started = true;
 		return StartResult.SUCCESS;
 	}
 
@@ -96,6 +104,7 @@ public class PiperEngine implements SpeechEngine {
 	public void stop() {
 		models.values().stream().map(PiperModel::getModelLocal).forEach(this::stopModel);
 		models.clear();
+		started = false;
 	}
 
 	@Override

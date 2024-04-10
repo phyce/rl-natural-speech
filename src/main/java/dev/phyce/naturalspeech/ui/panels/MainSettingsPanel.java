@@ -10,6 +10,7 @@ import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
 import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperModel;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
@@ -77,6 +78,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
 	private final TextToSpeech textToSpeech;
+	private final PiperEngine piperEngine;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final List<PiperRepository.ModelRepositoryListener> modelRepositoryListeners;
 	private final PluginEventBus pluginEventBus;
@@ -94,6 +96,7 @@ public class MainSettingsPanel extends PluginPanel {
 		Downloader downloader,
 		SAPI4Repository sapi4Repository,
 		TextToSpeech textToSpeech,
+		PiperEngine piperEngine,
 		NaturalSpeechRuntimeConfig runtimeConfig,
 		PluginEventBus pluginEventBus
 	) {
@@ -101,6 +104,7 @@ public class MainSettingsPanel extends PluginPanel {
 		this.sapi4Repository = sapi4Repository;
 		this.textToSpeech = textToSpeech;
 		this.piperRepository = piperRepository;
+		this.piperEngine = piperEngine;
 		this.runtimeConfig = runtimeConfig;
 		this.pluginEventBus = pluginEventBus;
 		this.modelRepositoryListeners = new ArrayList<>();
@@ -257,7 +261,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		List<PiperRepository.ModelURL> modelURLS = piperRepository.getModelURLS();
 		for (PiperRepository.ModelURL modelUrl : modelURLS) {
-			PiperModelListItem listItem = new PiperModelListItem(textToSpeech, piperRepository, modelUrl);
+			PiperModelListItem listItem = new PiperModelListItem(textToSpeech, piperEngine, piperRepository, modelUrl);
 			sectionContent.add(listItem);
 
 			PiperRepository.ModelRepositoryListener modelRepoListener = new PiperRepository.ModelRepositoryListener() {

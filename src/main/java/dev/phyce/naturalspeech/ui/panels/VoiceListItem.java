@@ -100,13 +100,15 @@ public class VoiceListItem extends JPanel {
 		SwingUtil.removeButtonDecorations(playButton);
 		playButton.setPreferredSize(
 			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
-		playButton.addActionListener(event ->
-			textToSpeech.speak(
-				voiceMetadata.voiceId,
-				textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
-				() -> 0f,
-				AudioLineNames.VOICE_EXPLORER
-			)
+		playButton.addActionListener(event -> {
+				textToSpeech.silence((lineName) -> lineName.equals(AudioLineNames.VOICE_EXPLORER));
+				textToSpeech.speak(
+					voiceMetadata.voiceId,
+					textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
+					() -> 0f,
+					AudioLineNames.VOICE_EXPLORER
+				);
+			}
 		);
 
 

@@ -19,6 +19,8 @@ public interface SpeechEngine {
 
 	void stop();
 
+	boolean isStarted();
+
 	boolean canSpeakAny();
 
 	boolean canSpeak(VoiceID voiceID);
