@@ -189,16 +189,26 @@ public class DynamicLine implements SourceDataLine {
 		sourceLine.flush();
 	}
 
+	/**
+	 * Starts' behaviour is better described as play. Java API
+	 */
 	@Override
 	public void start() {
 		sourceLine.start();
 	}
 
+	/**
+	 * Stops' behaviour is better described as pause. Java API
+	 */
 	@Override
 	public void stop() {
 		sourceLine.stop();
 	}
 
+	/**
+	 * isRunning is better described as isPlaying.
+	 * @return
+	 */
 	@Override
 	public boolean isRunning() {
 		return sourceLine.isRunning();

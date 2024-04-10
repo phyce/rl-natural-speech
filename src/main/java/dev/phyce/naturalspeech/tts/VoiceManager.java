@@ -3,12 +3,12 @@ package dev.phyce.naturalspeech.tts;
 import com.google.common.io.Resources;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
-import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
+import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import java.io.IOException;
@@ -50,34 +50,38 @@ public class VoiceManager {
 	}
 
 	public void registerPiperModel(PiperRepository.ModelLocal modelLocal) {
-
-		genderedVoiceMap.addModelLocal(modelLocal);
-
 		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
-			activeVoiceMap.add(voiceMetadata.toVoiceID());
+			registerVoiceID(voiceMetadata.toVoiceID(), voiceMetadata.getGender());
 		}
-
 	}
 
 	public void unregisterPiperModel(PiperRepository.ModelLocal modelLocal) {
-		genderedVoiceMap.removeModelLocal(modelLocal);
-
 		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
-			activeVoiceMap.remove(voiceMetadata.toVoiceID());
+			unregisterVoiceID(voiceMetadata.toVoiceID());
 		}
 	}
 
 	public void registerVoiceID(VoiceID voiceID, Gender gender) {
+		if (activeVoiceMap.contains(voiceID)) {
+			log.error(
+				"Attempting to register duplicate VoiceID. Likely another SpeechEngine is using the same VoiceID. {}",
+				voiceID);
+			return;
+		}
 		activeVoiceMap.add(voiceID);
 		genderedVoiceMap.addVoiceID(gender, voiceID);
 	}
 
 	public void unregisterVoiceID(VoiceID voiceID) {
+		if (!activeVoiceMap.contains(voiceID)) {
+			log.error("Attempting to unregister VoiceID that was never registered. {}", voiceID);
+			return;
+		}
 		activeVoiceMap.remove(voiceID);
 		genderedVoiceMap.removeVoiceID(voiceID);
 	}
 
-   	@CheckForNull
+	@CheckForNull
 	public List<VoiceID> checkVoiceIDWithUsername(@NonNull String standardized_username) {
 		return voiceConfig.findUsername(standardized_username);
 	}
@@ -144,6 +148,7 @@ public class VoiceManager {
 
 		return voiceIDs.stream().skip(voice).findFirst().orElse(null);
 	}
+
 	// Ultimate fallback
 	@CheckForNull
 	public VoiceID randomVoice() {
@@ -182,12 +187,15 @@ public class VoiceManager {
 			if (results != null) {
 				result = getFirstActiveVoice(results);
 				if (result == null) {
-					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, but model is not active", npcId, npcName);
-				} else {
+					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, but model is not active", npcId,
+						npcName);
+				}
+				else {
 					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, using {}",
 						npcId, npcName, result);
 				}
-			} else {
+			}
+			else {
 				result = null;
 				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId, npcName);
 			}
@@ -201,7 +209,8 @@ public class VoiceManager {
 			if (result == null) {
 				log.debug("No NPC ID voice found, NPC Name is also not available for NPC id:{} npcName:{}",
 					npcId, npcName);
-			} else {
+			}
+			else {
 				log.debug("No NPC ID voice found, falling back to NPC Name for NPC id:{} npcName:{}, using {}",
 					npcId, npcName, result);
 			}
@@ -253,9 +262,11 @@ public class VoiceManager {
 		if (voiceAndFallback != null) {
 			result = getFirstActiveVoice(voiceAndFallback);
 			if (result == null) {
-				log.debug("Existing settings {} found for username {}, but model is not active.", voiceAndFallback, standardized_username);
+				log.debug("Existing settings {} found for username {}, but model is not active.", voiceAndFallback,
+					standardized_username);
 			}
-		} else {
+		}
+		else {
 			result = null;
 			log.debug("No existing settings found for username {}, generate random voice.", standardized_username);
 		}
@@ -268,7 +279,8 @@ public class VoiceManager {
 				VoiceID voiceID = randomGenderedVoice(standardized_username, gender);
 				if (voiceID != null) {
 					return voiceID;
-				} else {
+				}
+				else {
 					throw new VoiceSelectionOutOfOption();
 				}
 			}
@@ -281,7 +293,8 @@ public class VoiceManager {
 				}
 				return voiceID;
 			}
-		} else {
+		}
+		else {
 			log.debug("Existing settings found for {} and model is active. using {}.",
 				standardized_username, result);
 			return result;
@@ -325,6 +338,7 @@ public class VoiceManager {
 	public void resetForUsername(@NonNull String standardized_username) {
 		voiceConfig.resetPlayerVoice(standardized_username);
 	}
+
 	public void resetVoiceIDForNPC(@NonNull NPC actor) {
 		voiceConfig.resetNpcIdVoices(actor.getId());
 		voiceConfig.resetNpcIdVoices(actor.getComposition().getId());
