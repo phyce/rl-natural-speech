@@ -5,10 +5,9 @@ import com.google.inject.Inject;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
-import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
-import dev.phyce.naturalspeech.tts.wsapi4.SAPI4VoiceCache;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4VoiceCache;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
@@ -171,11 +170,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 		}
 
 		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
-			try {
-				if (piperRepository.hasModelLocal(modelURL.getModelName())) {
-					buildPiperModelSegment(modelURL.getModelName());
-				}
-			} catch (IOException ignore) {}
+			if (piperRepository.hasModelLocal(modelURL.getModelName())) {
+				buildPiperModelSegment(modelURL.getModelName());
+			}
 		}
 
 	}
@@ -323,25 +320,25 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		} catch (IOException e) {throw new RuntimeException(e);}
 
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				@Override
-				public void onPiperStart(Piper piper) {
-					if (piper.getModelLocal().getModelName().equals(modelName)) {
-						section.setVisible(true);
-						SwingUtilities.invokeLater(sectionListPanel::revalidate);
-					}
-				}
-
-				@Override
-				public void onPiperExit(Piper piper) {
-					if (piper.getModelLocal().getModelName().equals(modelName)) {
-						section.setVisible(false);
-						SwingUtilities.invokeLater(sectionListPanel::revalidate);
-					}
-				}
-			}
-		);
+//		textToSpeech.addTextToSpeechListener(
+//			new TextToSpeech.TextToSpeechListener() {
+//				@Override
+//				public void onPiperStart(PiperModel piper) {
+//					if (piper.getModelLocal().getModelName().equals(modelName)) {
+//						section.setVisible(true);
+//						SwingUtilities.invokeLater(sectionListPanel::revalidate);
+//					}
+//				}
+//
+//				@Override
+//				public void onPiperExit(PiperModel piper) {
+//					if (piper.getModelLocal().getModelName().equals(modelName)) {
+//						section.setVisible(false);
+//						SwingUtilities.invokeLater(sectionListPanel::revalidate);
+//					}
+//				}
+//			}
+//		);
 
 		sectionListPanel.add(section);
 	}

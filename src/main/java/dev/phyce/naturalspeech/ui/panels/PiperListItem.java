@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
-import dev.phyce.naturalspeech.tts.piper.Piper;
+import dev.phyce.naturalspeech.tts.piper.PiperModel;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -15,11 +15,11 @@ import net.runelite.client.ui.FontManager;
 @Slf4j
 public class PiperListItem extends JPanel {
 
-	private final Piper piper;
+	private final PiperModel piper;
 	private final JPanel processListPanel;
 
 
-	public PiperListItem(Piper piper) {
+	public PiperListItem(PiperModel piper) {
 		this.piper = piper;
 
 		this.setLayout(new BorderLayout());
@@ -42,11 +42,11 @@ public class PiperListItem extends JPanel {
 
 	}
 
-	private class ItemPiperProcessLifeTimeListener implements Piper.PiperProcessLifetimeListener {
+	private class ItemPiperProcessLifeTimeListener implements PiperModel.PiperProcessLifetimeListener {
 
 		public final Map<PiperProcess, JLabel> labelMap = new HashMap<>();
 
-		public ItemPiperProcessLifeTimeListener(Piper piper) {
+		public ItemPiperProcessLifeTimeListener(PiperModel piper) {
 			piper.getProcessMap().forEach((pid, process) -> {
 				AddProcess(process);
 			});

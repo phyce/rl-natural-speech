@@ -1,25 +1,19 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
-import dev.phyce.naturalspeech.tts.AudioLineNames;
-import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.SwingUtil;
 
 @Slf4j
 public class VoiceListItem extends JPanel {
@@ -99,59 +93,59 @@ public class VoiceListItem extends JPanel {
 			.addGap(5));
 
 
-		boolean isModelActive = textToSpeech.isModelActive(voiceMetadata.voiceId);
-		JButton playButton = new JButton(isModelActive ? PLAY_BUTTON : PLAY_BUTTON_DISABLED);
-		playButton.setEnabled(isModelActive);
-		SwingUtil.removeButtonDecorations(playButton);
-		playButton.setPreferredSize(
-			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
-		playButton.addActionListener(
-			event -> {
-				if (textToSpeech != null) {
-					try {
-						if (textToSpeech.isModelActive(voiceMetadata.voiceId)) {
-							textToSpeech.speak(
-								voiceMetadata.voiceId,
-								textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
-								() -> 0f,
-								AudioLineNames.VOICE_EXPLORER);
-						}
-						else {
-							log.error("Model {} is currently not running.", voiceMetadata.voiceId.modelName);
-						}
-					} catch (ModelLocalUnavailableException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			});
+//		boolean isModelActive = textToSpeech.isModelActive(voiceMetadata.voiceId);
+//		JButton playButton = new JButton(isModelActive ? PLAY_BUTTON : PLAY_BUTTON_DISABLED);
+//		playButton.setEnabled(isModelActive);
+//		SwingUtil.removeButtonDecorations(playButton);
+//		playButton.setPreferredSize(
+//			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
+//		playButton.addActionListener(
+//			event -> {
+//				if (textToSpeech != null) {
+//					try {
+//						if (textToSpeech.isModelActive(voiceMetadata.voiceId)) {
+//							textToSpeech.speak(
+//								voiceMetadata.voiceId,
+//								textToSpeech.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
+//								() -> 0f,
+//								AudioLineNames.VOICE_EXPLORER);
+//						}
+//						else {
+//							log.error("Model {} is currently not running.", voiceMetadata.voiceId.modelName);
+//						}
+//					} catch (ModelLocalUnavailableException e) {
+//						throw new RuntimeException(e);
+//					}
+//				}
+//			});
 
 
 		BorderLayout rootLayout = new BorderLayout();
 		this.setLayout(rootLayout);
 		this.add(speakerPanel, BorderLayout.CENTER);
-		this.add(playButton, BorderLayout.EAST);
+//		this.add(playButton, BorderLayout.EAST);
 
 		revalidate();
 
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				@Override
-				public void onPiperStart(Piper piper) {
-					if (piper.getModelLocal().getModelName().equals(voiceMetadata.voiceId.modelName)) {
-						playButton.setIcon(PLAY_BUTTON);
-						playButton.setEnabled(true);
-					}
-				}
-
-				@Override
-				public void onPiperExit(Piper piper) {
-					if (piper.getModelLocal().getModelName().equals(voiceMetadata.voiceId.modelName)) {
-						playButton.setIcon(PLAY_BUTTON_DISABLED);
-						playButton.setEnabled(false);
-					}
-				}
-
-			}
-		);
+//		textToSpeech.addTextToSpeechListener(
+//			new TextToSpeech.TextToSpeechListener() {
+//				@Override
+//				public void onPiperStart(PiperModel piper) {
+//					if (piper.getModelLocal().getModelName().equals(voiceMetadata.voiceId.modelName)) {
+//						playButton.setIcon(PLAY_BUTTON);
+//						playButton.setEnabled(true);
+//					}
+//				}
+//
+//				@Override
+//				public void onPiperExit(PiperModel piper) {
+//					if (piper.getModelLocal().getModelName().equals(voiceMetadata.voiceId.modelName)) {
+//						playButton.setIcon(PLAY_BUTTON_DISABLED);
+//						playButton.setEnabled(false);
+//					}
+//				}
+//
+//			}
+//		);
 	}
 }

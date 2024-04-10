@@ -1,12 +1,11 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.BorderLayout;
@@ -23,9 +22,7 @@ import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -355,35 +352,35 @@ public class MainSettingsPanel extends PluginPanel {
 		panel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
 		panel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				private final Map<Piper, PiperListItem> piperItemList = new HashMap<>();
-
-				@Override
-				public void onPiperStart(Piper piper) {
-					PiperListItem piperItem = new PiperListItem(piper);
-					piperItemList.put(piper, piperItem);
-					panel.add(piperItem);
-					panel.revalidate();
-				}
-
-				@Override
-				public void onPiperExit(Piper piper) {
-					PiperListItem remove = piperItemList.remove(piper);
-					if (remove != null) {
-						panel.remove(remove);
-						panel.revalidate();
-					}
-				}
-
-				@Override
-				public void onStop() {
-					piperItemList.clear();
-					panel.removeAll();
-					panel.revalidate();
-				}
-			}
-		);
+//		textToSpeech.addTextToSpeechListener(
+//			new TextToSpeech.TextToSpeechListener() {
+//				private final Map<PiperModel, PiperListItem> piperItemList = new HashMap<>();
+//
+//				@Override
+//				public void onPiperStart(PiperModel piper) {
+//					PiperListItem piperItem = new PiperListItem(piper);
+//					piperItemList.put(piper, piperItem);
+//					panel.add(piperItem);
+//					panel.revalidate();
+//				}
+//
+//				@Override
+//				public void onPiperExit(PiperModel piper) {
+//					PiperListItem remove = piperItemList.remove(piper);
+//					if (remove != null) {
+//						panel.remove(remove);
+//						panel.revalidate();
+//					}
+//				}
+//
+//				@Override
+//				public void onStop() {
+//					piperItemList.clear();
+//					panel.removeAll();
+//					panel.revalidate();
+//				}
+//			}
+//		);
 		return panel;
 	}
 
@@ -401,63 +398,63 @@ public class MainSettingsPanel extends PluginPanel {
 
 		statusPanel.add(statusLabel, BorderLayout.NORTH);
 
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				@Override
-				public void onStart() {
-					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-					// not just one starting piper
-					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
-						statusLabel.setText("No Models Enabled");
-						statusLabel.setBackground(Color.ORANGE.darker());
-						statusLabel.setForeground(Color.WHITE);
-						statusPanel.setToolTipText("Download and enable a model.");
-					} else {
-						statusLabel.setText("Running");
-						statusLabel.setBackground(Color.GREEN.darker());
-						statusLabel.setForeground(Color.WHITE);
-						statusPanel.setToolTipText("Text to speech is running.");
-					}
-
-				}
-
-				@Override
-				public void onStop() {
-					statusLabel.setText("Not running");
-					statusLabel.setBackground(Color.DARK_GRAY);
-					statusLabel.setForeground(null);
-					statusPanel.setToolTipText("Press start to begin text to speech.");
-				}
-
-				@Override
-				public void onPiperExit(Piper piper) {
-					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-					// not just one starting piper
-					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
-						// Detect if this was an unintended exit, because the model would still be enabled
-						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
-							statusLabel.setText("Crashed (Contact Us)");
-							statusLabel.setBackground(Color.RED.darker());
-							statusLabel.setForeground(Color.WHITE);
-							statusPanel.setToolTipText("Please contact the developers for support.");
-						} else {
-							statusLabel.setText("No Models Enabled");
-							statusLabel.setBackground(Color.ORANGE.darker());
-							statusLabel.setForeground(Color.WHITE);
-							statusPanel.setToolTipText("Download and enable a model.");
-						}
-					}
-				}
-
-				@Override
-				public void onPiperInvalid() {
-					statusLabel.setText("Piper Path Invalid");
-					statusLabel.setBackground(Color.RED.darker().darker().darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Please contact the developers for support.");
-				}
-			}
-		);
+//		textToSpeech.addTextToSpeechListener(
+//			new TextToSpeech.TextToSpeechListener() {
+//				@Override
+//				public void onStart() {
+//					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
+//					// not just one starting piper
+//					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
+//						statusLabel.setText("No Models Enabled");
+//						statusLabel.setBackground(Color.ORANGE.darker());
+//						statusLabel.setForeground(Color.WHITE);
+//						statusPanel.setToolTipText("Download and enable a model.");
+//					} else {
+//						statusLabel.setText("Running");
+//						statusLabel.setBackground(Color.GREEN.darker());
+//						statusLabel.setForeground(Color.WHITE);
+//						statusPanel.setToolTipText("Text to speech is running.");
+//					}
+//
+//				}
+//
+//				@Override
+//				public void onStop() {
+//					statusLabel.setText("Not running");
+//					statusLabel.setBackground(Color.DARK_GRAY);
+//					statusLabel.setForeground(null);
+//					statusPanel.setToolTipText("Press start to begin text to speech.");
+//				}
+//
+//				@Override
+//				public void onPiperExit(PiperModel piper) {
+//					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
+//					// not just one starting piper
+//					if (textToSpeech.isStarted() && !textToSpeech.canSpeak()) {
+//						// Detect if this was an unintended exit, because the model would still be enabled
+//						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
+//							statusLabel.setText("Crashed (Contact Us)");
+//							statusLabel.setBackground(Color.RED.darker());
+//							statusLabel.setForeground(Color.WHITE);
+//							statusPanel.setToolTipText("Please contact the developers for support.");
+//						} else {
+//							statusLabel.setText("No Models Enabled");
+//							statusLabel.setBackground(Color.ORANGE.darker());
+//							statusLabel.setForeground(Color.WHITE);
+//							statusPanel.setToolTipText("Download and enable a model.");
+//						}
+//					}
+//				}
+//
+//				@Override
+//				public void onPiperInvalid() {
+//					statusLabel.setText("Piper Path Invalid");
+//					statusLabel.setBackground(Color.RED.darker().darker().darker());
+//					statusLabel.setForeground(Color.WHITE);
+//					statusPanel.setToolTipText("Please contact the developers for support.");
+//				}
+//			}
+//		);
 
 		// Button Panel
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center

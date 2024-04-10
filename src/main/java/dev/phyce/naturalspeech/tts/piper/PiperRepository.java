@@ -94,7 +94,7 @@ public class PiperRepository {
 		return null;
 	}
 
-	public boolean hasModelLocal(String modelName) throws IOException {
+	public boolean hasModelLocal(String modelName) {
 		// assume true
 		boolean localVoiceValid = true;
 
@@ -113,7 +113,7 @@ public class PiperRepository {
 			if (!voiceFolder.resolve(modelName + METADATA_EXTENSION).toFile().exists()) {
 				localVoiceValid = false;
 			}
-			// TODO(Louis) Check hash for files, right piper-voices doesn't offer hashes for download. Have to offer our own.
+			// TODO(Louis) Check hash for files, piper-voices doesn't offer hashes for download. Have to offer our own.
 		}
 		else { // voices folder don't exist, so no voices can exist
 			localVoiceValid = false;

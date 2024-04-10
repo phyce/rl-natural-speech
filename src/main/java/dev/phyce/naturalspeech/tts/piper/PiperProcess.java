@@ -1,5 +1,7 @@
 package dev.phyce.naturalspeech.tts.piper;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -9,7 +11,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.file.Path;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -32,7 +33,6 @@ public class PiperProcess {
 
 	private PiperProcess(Path piperPath, Path modelPath) throws IOException {
 		piperLocked = new AtomicBoolean(false);
-		piperLocked.set(false);
 		this.modelPath = modelPath;
 
 		ProcessBuilder processBuilder = new ProcessBuilder(
@@ -168,9 +168,9 @@ public class PiperProcess {
 		return process.pid();
 	}
 
-	public CompletableFuture<PiperProcess> onExit() {
-		CompletableFuture<PiperProcess> piperOnExit = new CompletableFuture<>();
-		process.onExit().thenRun(() -> piperOnExit.complete(this));
+	public ListenableFuture<PiperProcess> onExit() {
+		SettableFuture<PiperProcess> piperOnExit = SettableFuture.create();
+		process.onExit().thenAccept(p -> piperOnExit.set(this));
 		return piperOnExit;
 	}
 

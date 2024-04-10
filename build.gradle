@@ -13,7 +13,10 @@ repositories {
 def runeLiteVersion = 'latest.release'
 
 dependencies {
-	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
+    // Overtakes transient guava 23.2 from RuneLite client.
+    implementation("com.google.guava:guava:33.1.0-jre")
+
+    compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
 
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'

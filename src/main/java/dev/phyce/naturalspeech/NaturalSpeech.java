@@ -10,6 +10,7 @@ import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.tts.VolumeManager;
+import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 /**
@@ -24,6 +25,7 @@ class NaturalSpeech {
 	final VoiceManager voiceManager;
 	final MuteManager muteManager;
 	final TextToSpeech textToSpeech;
+	final PiperEngine piperEngine;
 	final SpamFilterPluglet spamFilterPluglet;
 	final ChatFilterPluglet chatFilterPluglet;
 	final SpamDetection spamDetection;
@@ -33,6 +35,7 @@ class NaturalSpeech {
 	final VolumeManager volumeManager;
 	final AudioEngine audioEngine;
 	final TopLevelPanel topLevelPanel;
+	final PluginEventBus pluginEventBus;
 
 	@Inject
 	public NaturalSpeech(
@@ -40,6 +43,7 @@ class NaturalSpeech {
 		VoiceManager voiceManager,
 		MuteManager muteManager,
 		TextToSpeech textToSpeech,
+		PiperEngine piperEngine,
 		SpamFilterPluglet spamFilterPluglet,
 		ChatFilterPluglet chatFilterPluglet,
 		SpamDetection spamDetection,
@@ -48,12 +52,14 @@ class NaturalSpeech {
 		CommandExecutedEventHandler commandExecutedEventHandler,
 		VolumeManager volumeManager,
 		AudioEngine audioEngine,
-		TopLevelPanel topLevelPanel
-	) {
+		TopLevelPanel topLevelPanel,
+		PluginEventBus pluginEventBus
+		) {
 		this.runtimeConfig = runtimeConfig;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
 		this.textToSpeech = textToSpeech;
+		this.piperEngine = piperEngine;
 		this.spamFilterPluglet = spamFilterPluglet;
 		this.chatFilterPluglet = chatFilterPluglet;
 		this.spamDetection = spamDetection;
@@ -63,6 +69,7 @@ class NaturalSpeech {
 		this.volumeManager = volumeManager;
 		this.audioEngine = audioEngine;
 		this.topLevelPanel = topLevelPanel;
+		this.pluginEventBus = pluginEventBus;
 	}
 
 }

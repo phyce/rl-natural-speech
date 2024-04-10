@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.tts.piper;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import static dev.phyce.naturalspeech.utils.CommonUtil.silentInterruptHandler;
@@ -25,8 +26,9 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 // Renamed from TTSModel
+@SuppressWarnings("UnstableApiUsage")
 @Slf4j
-public class Piper {
+public class PiperModel {
 	@Getter
 	private final ConcurrentHashMap<Long, PiperProcess> processMap = new ConcurrentHashMap<>();
 	private final ConcurrentLinkedQueue<PiperTask> piperTaskQueue = new ConcurrentLinkedQueue<>();
@@ -36,9 +38,10 @@ public class Piper {
 	private final PiperRepository.ModelLocal modelLocal;
 	@Getter
 	private final Path piperPath;
-	private final Thread processPiperTaskThread;
 
 	private final List<PiperProcessLifetimeListener> piperProcessLifetimeListeners = new ArrayList<>();
+
+	private Thread processPiperTaskThread;
 
 	@Getter
 	private static final AudioFormat audioFormat =
@@ -51,19 +54,13 @@ public class Piper {
 			false
 		); // Little Endian
 
-	private Piper(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath, int processCount)
+	public PiperModel(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath)
 		throws IOException {
 		this.audioEngine = audioEngine;
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
 
-
-		startProcess(processCount);
-
-		processPiperTaskThread =
-			new Thread(this::processPiperTask, String.format("[%s] Piper::processPiperTask Thread", this));
-		processPiperTaskThread.setUncaughtExceptionHandler(silentInterruptHandler);
-		processPiperTaskThread.start();
+		processPiperTaskThread = null;
 
 	}
 
@@ -72,19 +69,39 @@ public class Piper {
 	 *
 	 * @throws IOException if piper fails to start an IOException will be thrown. (because stdin cannot be opened).
 	 */
-	public static Piper start(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath,
-							  int instanceCount)
+	public void start(int processCount)
 		throws IOException {
-		return new Piper(audioEngine, modelLocal, piperPath, instanceCount);
+
+		startProcess(processCount);
+		processPiperTaskThread =
+			new Thread(this::processPiperTask, String.format("[%s] Piper::processPiperTask Thread", this));
+		processPiperTaskThread.setUncaughtExceptionHandler(silentInterruptHandler);
+		processPiperTaskThread.start();
 	}
 
-	public void speak(String text, VoiceID voiceID, Supplier<Float> gainDB, String lineName) throws IOException {
+	public void stop() {
+		for (PiperProcess instance : processMap.values()) {
+			instance.stop();
+		}
+		processMap.clear();
+		// clear task and audio queue on stop
+		cancelAll();
+		processPiperTaskThread.interrupt();
+		processPiperTaskThread = null;
+	}
+
+	public boolean speak(VoiceID voiceID, String text, Supplier<Float> gainDB, String lineName) {
+		if (processPiperTaskThread == null) {
+			log.error("PiperModel for {} not started, cannot speak. text:{} lineName:{}", voiceID, text, lineName);
+			return false;
+		}
+
 		if (countAlive() == 0) {
-			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
+			log.error("No active processes for {} running. text:{} lineName:{}", voiceID, text, lineName);
+			return false;
 		}
 
 		List<String> segments = TextUtil.splitSentenceV2(text);
-		//		List<String> segments = List.of(text);
 		if (segments.size() > 1) {
 			log.trace("Piper speech segmentation: {}", TextUtil.sentenceSegmentPrettyPrint(segments));
 
@@ -92,18 +109,18 @@ public class Piper {
 			PiperTask parent = null;
 			for (String segment : segments) {
 				PiperTask child = new PiperTask(segment, voiceID, gainDB, lineName, parent);
-				log.trace("{} piperTaskQueue Added lineName:{} parent:{} text:{} ", this.modelLocal.getModelName(),
-					lineName, parent != null, segment);
+				log.trace("{} task added. lineName:{} parent:{} text:{} ", voiceID, lineName, parent != null, segment);
 				piperTaskQueue.add(child);
 				parent = child;
 			}
 		}
 		else {
-			log.trace("{} piperTaskQueue Added lineName:{} parent:null text:{}", this.modelLocal.getModelName(),
-				lineName, text);
+			log.trace("{} task Added lineName:{} parent:null text:{}", voiceID, lineName, text);
 			piperTaskQueue.add(new PiperTask(text, voiceID, gainDB, lineName, null));
 		}
 		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
+
+		return true;
 	}
 
 	public void startProcess(int processCount) throws IOException {
@@ -118,14 +135,14 @@ public class Piper {
 				throw e;
 			}
 
-			process.onExit().thenAccept(this::triggerOnPiperProcessExit);
+			process.onExit().addListener(() -> triggerOnPiperProcessExit(process), MoreExecutors.directExecutor());
 
 			processMap.put(process.getPid(), process);
 			synchronized (processMap) {processMap.notify();}
 		}
 	}
-
 	//Process message queue
+
 	@SneakyThrows(InterruptedException.class)
 	public void processPiperTask() {
 		while (!processPiperTaskThread.isInterrupted()) {
@@ -285,19 +302,6 @@ public class Piper {
 			if (process.isAlive()) result++;
 		}
 		return result;
-	}
-
-	public void stop() {
-
-		for (PiperProcess instance : processMap.values()) {
-			instance.stop();
-		}
-		processMap.clear();
-
-		// clear task and audio queue on stop
-		cancelAll();
-
-		processPiperTaskThread.interrupt();
 	}
 
 	/**

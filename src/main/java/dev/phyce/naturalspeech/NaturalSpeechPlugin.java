@@ -73,9 +73,9 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	// region: helpers
 	/**
-	 * registers and remembers, used to safely unregister all objects with {@link #unregisterEventBusAll()}.
+	 * registers and remembers, used to safely unregister all objects with {@link #unregisterRLEventBusAll()}.
 	 */
-	private void registerEventBus(@NonNull Object object) {
+	private void registerRLEventBus(@NonNull Object object) {
 		if (eventBusSubscribers.contains(object)) {
 			log.error("Attempting to double register {} to eventBus, skipping.", object.getClass().getSimpleName());
 		}
@@ -86,9 +86,9 @@ public class NaturalSpeechPlugin extends Plugin {
 	}
 
 	/**
-	 * unregisters all eventBus objects registered using {@link #registerEventBus(Object)}
+	 * unregisters all eventBus objects registered using {@link #registerRLEventBus(Object)}
 	 */
-	private void unregisterEventBusAll() {
+	private void unregisterRLEventBusAll() {
 		for (Object object : eventBusSubscribers) {
 			eventBus.unregister(object);
 		}
@@ -97,7 +97,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	private void saveConfigs() {
 		ns.voiceManager.saveVoiceConfig();
-		ns.textToSpeech.saveModelConfig();
+		ns.piperEngine.saveModelConfig();
 		ns.runtimeConfig.savePiperPath(ns.runtimeConfig.getPiperPath());
 		ns.muteManager.saveConfig();
 	}
@@ -168,13 +168,13 @@ public class NaturalSpeechPlugin extends Plugin {
 		ns = injector.getInstance(NaturalSpeech.class);
 
 		// Abstracting the massive client event handlers into their own files
-		// registers to eventbus, unregistered automatically using unregisterEventBusAll() in shutdown()
-		registerEventBus(ns.speechEventHandler);
-		registerEventBus(ns.menuEventHandler);
-		registerEventBus(ns.commandExecutedEventHandler);
-		registerEventBus(ns.spamFilterPluglet);
-		registerEventBus(ns.chatFilterPluglet);
-		registerEventBus(ns.volumeManager);
+		// registers to eventbus, unregistered automatically using unregisterRLEventBusAll() in shutdown()
+		registerRLEventBus(ns.speechEventHandler);
+		registerRLEventBus(ns.menuEventHandler);
+		registerRLEventBus(ns.commandExecutedEventHandler);
+		registerRLEventBus(ns.spamFilterPluglet);
+		registerRLEventBus(ns.chatFilterPluglet);
+		registerRLEventBus(ns.volumeManager);
 
 		// Build panel and navButton
 		{
@@ -207,7 +207,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Override
 	public void shutDown() {
 		// unregister eventBus so handlers do not run after shutdown.
-		unregisterEventBusAll();
+		unregisterRLEventBusAll();
 
 		ns.topLevelPanel.shutdown();
 
@@ -261,7 +261,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 				case ConfigKeys.MUTE_OTHERS:
 					log.trace("Detected mute-others toggle, clearing audio queue.");
-					ns.textToSpeech.cancelOtherLines(AudioLineNames.LOCAL_USER);
+					ns.textToSpeech.silenceOtherLines(AudioLineNames.LOCAL_USER);
 					break;
 
 			}
