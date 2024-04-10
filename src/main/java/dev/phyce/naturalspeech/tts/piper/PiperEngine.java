@@ -40,7 +40,6 @@ public class PiperEngine implements SpeechEngine {
 	private final ConfigManager configManager;
 	private final VoiceManager voiceManager;
 	private final PluginEventBus pluginEventBus;
-	private final TextToSpeech textToSpeech;
 
 	private final ConcurrentHashMap<String, PiperModel> models = new ConcurrentHashMap<>();
 	@Getter
@@ -63,7 +62,6 @@ public class PiperEngine implements SpeechEngine {
 		this.configManager = configManager;
 		this.voiceManager = voiceManager;
 		this.pluginEventBus = pluginEventBus;
-		this.textToSpeech = textToSpeech;
 
 		loadModelConfig();
 
@@ -96,9 +94,7 @@ public class PiperEngine implements SpeechEngine {
 
 	@Override
 	public void stop() {
-		for (PiperModel piper : models.values()) {
-			stopModel(piper.getModelLocal());
-		}
+		models.values().stream().map(PiperModel::getModelLocal).forEach(this::stopModel);
 		models.clear();
 	}
 
@@ -189,7 +185,7 @@ public class PiperEngine implements SpeechEngine {
 					pluginEventBus.post(new PiperProcessExited(model, process));
 					// if this is the last model running this model, unregister from voiceMap
 					if (model.countAlive() == 0) {
-						stopModel(model.getModelLocal());
+//						stopModel(model.getModelLocal());
 					}
 				}
 			}
@@ -204,8 +200,8 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	public void stopModel(PiperRepository.ModelLocal modelLocal) {
-		PiperModel piper;
-		if ((piper = models.remove(modelLocal.getModelName())) != null) {
+		PiperModel piper = models.remove(modelLocal.getModelName());
+		if (piper != null) {
 			piper.stop();
 			voiceManager.unregisterPiperModel(piper.getModelLocal());
 			pluginEventBus.post(new PiperModelStopped(piper));

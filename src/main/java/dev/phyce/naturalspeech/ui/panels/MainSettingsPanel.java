@@ -1,10 +1,16 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.events.TextToSpeechStarted;
+import dev.phyce.naturalspeech.events.TextToSpeechStopped;
+import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
+import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.piper.PiperModel;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.utils.OSValidator;
@@ -22,7 +28,9 @@ import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -38,8 +46,8 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
@@ -65,29 +73,36 @@ public class MainSettingsPanel extends PluginPanel {
 //	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 
-	private final ClientThread clientThread;
 	private final FixedWidthPanel mainContentPanel;
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final List<PiperRepository.ModelRepositoryListener> modelRepositoryListeners;
+	private final PluginEventBus pluginEventBus;
+	private JLabel statusLabel;
+	private JPanel statusPanel;
+
+	private JPanel piperModelPanel;
+	private final Map<PiperModel, PiperListItem> piperItemList = new HashMap<>();
 
 	@Inject
 	public MainSettingsPanel(
 		NaturalSpeechConfig config,
 		PiperRepository piperRepository,
 		ConfigManager configManager,
-		Downloader downloader, ClientThread clientThread, SAPI4Repository sapi4Repository,
+		Downloader downloader,
+		SAPI4Repository sapi4Repository,
 		TextToSpeech textToSpeech,
-		NaturalSpeechRuntimeConfig runtimeConfig
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		PluginEventBus pluginEventBus
 	) {
 		super(false);
 		this.sapi4Repository = sapi4Repository;
 		this.textToSpeech = textToSpeech;
 		this.piperRepository = piperRepository;
-		this.clientThread = clientThread;
 		this.runtimeConfig = runtimeConfig;
+		this.pluginEventBus = pluginEventBus;
 		this.modelRepositoryListeners = new ArrayList<>();
 
 		this.setLayout(new BorderLayout());
@@ -115,63 +130,53 @@ public class MainSettingsPanel extends PluginPanel {
 		buildHeaderSegment();
 		buildPiperStatusSection();
 		buildVoiceRepositorySegment();
-//		buildVoiceHistorySegment();
+
+		pluginEventBus.register(this);
 
 		this.revalidate();
 	}
 
-	private void buildVoiceHistorySegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final String name = "History";
-		final String description = "The history of played voices played.";
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
+	@Subscribe
+	private void onTextToSpeechStarted(TextToSpeechStarted event) {
+		if (!textToSpeech.canSpeak()) {
+			statusLabel.setText("No Models Enabled");
+			statusLabel.setBackground(Color.ORANGE.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Download and enable a model.");
+		}
+		else {
+			statusLabel.setText("Running");
+			statusLabel.setBackground(Color.GREEN.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Text to speech is running.");
+		}
 	}
+
+	@Subscribe
+	private void onTextToSpeechStopped(TextToSpeechStopped event) {
+		statusLabel.setText("Not running");
+		statusLabel.setBackground(Color.DARK_GRAY);
+		statusLabel.setForeground(null);
+		statusPanel.setToolTipText("Press start to begin text to speech.");
+	}
+
+	@Subscribe
+	private void onPiperModelStarted(PiperModelStarted event) {
+		PiperListItem piperItem = new PiperListItem(event.getPiper());
+		piperItemList.put(event.getPiper(), piperItem);
+		piperModelPanel.add(piperItem);
+		piperModelPanel.revalidate();
+	}
+
+	@Subscribe
+	private void onPiperModelStopped(PiperModelStopped event) {
+		PiperListItem remove = piperItemList.remove(event.getPiper());
+		if (remove != null) {
+			piperModelPanel.remove(remove);
+			piperModelPanel.revalidate();
+		}
+	}
+
 
 	public void buildHeaderSegment() {
 		JLabel titleLabel = new JLabel("Natural Speech", JLabel.CENTER);
@@ -348,9 +353,9 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	private JPanel buildPiperProcessMonitorPanel() {
-		JPanel panel = new JPanel();
-		panel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
-		panel.setBorder(new EmptyBorder(5, 0, 5, 0));
+		piperModelPanel = new JPanel();
+		piperModelPanel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
+		piperModelPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
 //		textToSpeech.addTextToSpeechListener(
 //			new TextToSpeech.TextToSpeechListener() {
@@ -360,36 +365,36 @@ public class MainSettingsPanel extends PluginPanel {
 //				public void onPiperStart(PiperModel piper) {
 //					PiperListItem piperItem = new PiperListItem(piper);
 //					piperItemList.put(piper, piperItem);
-//					panel.add(piperItem);
-//					panel.revalidate();
+//					piperModelPanel.add(piperItem);
+//					piperModelPanel.revalidate();
 //				}
 //
 //				@Override
 //				public void onPiperExit(PiperModel piper) {
 //					PiperListItem remove = piperItemList.remove(piper);
 //					if (remove != null) {
-//						panel.remove(remove);
-//						panel.revalidate();
+//						piperModelPanel.remove(remove);
+//						piperModelPanel.revalidate();
 //					}
 //				}
 //
 //				@Override
 //				public void onStop() {
 //					piperItemList.clear();
-//					panel.removeAll();
-//					panel.revalidate();
+//					piperModelPanel.removeAll();
+//					piperModelPanel.revalidate();
 //				}
 //			}
 //		);
-		return panel;
+		return piperModelPanel;
 	}
 
 	private JPanel buildPiperStatusPanel() {
-		JPanel statusPanel = new JPanel();
+		statusPanel = new JPanel();
 		statusPanel.setLayout(new BorderLayout());
 		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-		JLabel statusLabel = new JLabel("Not Running", SwingConstants.CENTER);
+		statusLabel = new JLabel("Not Running", SwingConstants.CENTER);
 		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
 		statusLabel.setOpaque(true); // Needed to show background color
 		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50)); // Set preferred height
@@ -532,10 +537,10 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	public void shutdown() {
-		this.removeAll();
-		for (PiperRepository.ModelRepositoryListener listener : this.modelRepositoryListeners) {
-			piperRepository.removeRepositoryChangedListener(listener);
-		}
+//		this.removeAll();
+//		for (PiperRepository.ModelRepositoryListener listener : this.modelRepositoryListeners) {
+//			piperRepository.removeRepositoryChangedListener(listener);
+//		}
 	}
 
 	@Override
