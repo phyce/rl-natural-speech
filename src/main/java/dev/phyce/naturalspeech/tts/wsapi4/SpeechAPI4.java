@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.CheckForNull;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
@@ -56,6 +57,7 @@ public class SpeechAPI4 {
 		}
 	}
 
+	@CheckForNull
 	public static SpeechAPI4 start(AudioEngine audioEngine, String voiceName, Path sapi4Path) {
 		String sapiName = SAPI4VoiceCache.voiceToSapiName.getOrDefault(voiceName, voiceName);
 
@@ -87,10 +89,20 @@ public class SpeechAPI4 {
 				log.trace("Starting {}", processBuilder.command());
 				process = processBuilder.start();
 			} catch (IOException e) {
-				throw new RuntimeException(e);
+				log.error("Failed to start SAPI4 limits", e);
+				return null;
 			}
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				var limits = reader.lines().collect(Collectors.toList());
+				// When the model was not found or installed, limit only prints 2 lines
+				if (limits.size() <= 2) {
+					if (limits.get(1).contains("(null)")) {
+						log.trace("Windows Speech API 4 is not installed, cannot launch {}", sapiName);
+					} else {
+						log.error("Non-existent WSAPI4 model:{}", sapiName);
+					}
+					return null;
+				}
 				speed = Integer.parseInt(limits.get(3).split(" ")[0]);
 				int minSpeed = Integer.parseInt(limits.get(3).split(" ")[1]);
 				int maxSpeed = Integer.parseInt(limits.get(3).split(" ")[2]);
@@ -107,7 +119,8 @@ public class SpeechAPI4 {
 					minPitch,
 					maxPitch);
 			} catch (IOException e) {
-				throw new RuntimeException(e);
+				log.error("Failed to read SAPI4 limits", e);
+				return null;
 			}
 		}
 		Path outputPath = sapi4Path.getParent().resolve("output");

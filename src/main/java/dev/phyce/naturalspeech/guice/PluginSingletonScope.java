@@ -36,6 +36,10 @@ public class PluginSingletonScope implements Scope {
 		values = null;
 	}
 
+	public boolean isScoping() {
+		return values != null;
+	}
+
 	public <T> void seed(Key<T> key, T value) {
 		Map<Key<?>, Object> scopedObjects = getScopedObjectMap(key);
 		checkState(!scopedObjects.containsKey(key), "A value for the key %s was " +

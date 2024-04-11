@@ -94,7 +94,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	public VoiceExplorerPanel(
 		PiperRepository piperRepository,
 		SAPI4Repository sapi4Repository,
-		TextToSpeech textToSpeech, PluginEventBus pluginEventBus
+		TextToSpeech textToSpeech,
+		PluginEventBus pluginEventBus
 	) {
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;

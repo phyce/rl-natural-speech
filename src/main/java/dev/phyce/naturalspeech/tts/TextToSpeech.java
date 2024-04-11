@@ -72,9 +72,10 @@ public class TextToSpeech implements SpeechEngine {
 			if (result == StartResult.SUCCESS) {
 				activeEngines.add(engine);
 				pluginEventBus.post(new SpeechEngineStarted(engine));
+				log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
 			}
 			else {
-				log.error("Failed to start engine:{}", engine.getClass().getSimpleName());
+				log.warn("Failed to start engine:{}", engine.getClass().getSimpleName());
 			}
 		}
 

@@ -160,6 +160,12 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	public void startUp() {
+
+		if (pluginSingletonScope.isScoping()) {
+			// A scoping block may have failed to exit due to uncaught exceptions in startup() or shutdown()
+			pluginSingletonScope.exit();
+		}
+
 		// Objects marked with @PluginScopeSingletons will enter this scope
 		// These objects will be GC-able after pluginSingletonScope.exit()
 		pluginSingletonScope.enter();

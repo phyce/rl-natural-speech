@@ -45,8 +45,10 @@ public class SAPI4Engine implements SpeechEngine {
 			if (voiceNames != null) {
 				for (String voiceName : voiceNames) {
 					SpeechAPI4 sapi = SpeechAPI4.start(audioEngine, voiceName, runtimeConfig.getSAPI4Path());
-					sapi4s.put(voiceName, sapi);
-					voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
+					if (sapi != null) {
+						sapi4s.put(voiceName, sapi);
+						voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
+					}
 				}
 			}
 		}
@@ -56,7 +58,11 @@ public class SAPI4Engine implements SpeechEngine {
 	@Override
 	public StartResult start() {
 		// SAPI4 models don't have lifecycles and does not need to be cleared on stop
-		return StartResult.SUCCESS;
+		if (sapi4s.isEmpty()) {
+			return StartResult.FAILED;
+		} else {
+			return StartResult.SUCCESS;
+		}
 	}
 
 	@Override

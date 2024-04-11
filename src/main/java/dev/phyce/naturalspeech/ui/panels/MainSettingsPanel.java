@@ -316,8 +316,8 @@ public class MainSettingsPanel extends PluginPanel {
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final String name = "Piper Status";
-		final String description = "Manage your piper instances.";
+		final String name = "Status";
+		final String description = "";
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
