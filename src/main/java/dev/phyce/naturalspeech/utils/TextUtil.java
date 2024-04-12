@@ -56,7 +56,10 @@ public final class TextUtil {
 	}
 
 	public static List<String> splitSentenceV2(String text) {
-		String[] segments = text.split("[.,!?:;]");
+		// https://www.baeldung.com/java-split-string-keep-delimiters
+		// This regex splits: "Hello, NaturalSpeech?" Into ["Hello,", "NaturalSpeech?"]
+		// By using a positive-lookbehind delimiter matcher
+		String[] segments = text.split("((?<=[.,!?:;]))");
 		return Arrays.stream(segments)
 			.map(String::trim)
 			.filter(s -> !s.isEmpty())
