@@ -101,7 +101,7 @@ public class PiperModel {
 			return false;
 		}
 
-		List<String> segments = TextUtil.splitSentenceV2(text);
+		List<String> segments = TextUtil.splitSentence(text);
 		if (segments.size() > 1) {
 			log.trace("Piper speech segmentation: {}", TextUtil.sentenceSegmentPrettyPrint(segments));
 

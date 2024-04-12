@@ -10,52 +10,7 @@ import java.util.stream.Collectors;
 
 public final class TextUtil {
 
-	public static List<String> splitSentence(String sentence) {
-		final int softLimit = 40;
-		final int hardLimit = 80;
-		List<String> fragments = new ArrayList<>();
-		StringBuilder currentFragment = new StringBuilder();
-
-		List<String> tokens = tokenize(sentence);
-
-		for (String token : tokens) {
-			if (currentFragment.length() + token.length() <= hardLimit) {
-				currentFragment.append(token);
-
-				if (token.matches(".*[.!?]$")) {
-					fragments.add(currentFragment.toString().trim());
-					currentFragment.setLength(0);
-					continue;
-				}
-
-				if (token.matches(".*[,-;/]$") && currentFragment.length() > softLimit) {
-					fragments.add(currentFragment.toString().trim());
-					currentFragment.setLength(0);
-					continue;
-				}
-			}
-			else {
-				int lastBreakPoint = findLastBreakPoint(currentFragment.toString(), softLimit, hardLimit);
-				if (lastBreakPoint > 0) {
-					fragments.add(currentFragment.substring(0, lastBreakPoint).trim());
-					currentFragment = new StringBuilder(currentFragment.substring(lastBreakPoint).trim());
-				}
-				else {
-					fragments.add(currentFragment.toString().trim());
-					currentFragment.setLength(0);
-				}
-				currentFragment.append(token);
-			}
-
-			if (!token.matches("\\p{Punct}")) currentFragment.append(" ");
-		}
-
-		if (currentFragment.length() > 0) fragments.add(currentFragment.toString().trim());
-
-		return fragments;
-	}
-
-	public static List<String> splitSentenceV2(String text) {
+	public static List<String> splitSentence(String text) {
 		// https://www.baeldung.com/java-split-string-keep-delimiters
 		// This regex splits: "Hello, NaturalSpeech?" Into ["Hello,", "NaturalSpeech?"]
 		// By using a positive-lookbehind delimiter matcher
@@ -68,16 +23,6 @@ public final class TextUtil {
 
 	public static String sentenceSegmentPrettyPrint(List<String> segments) {
 		return segments.stream().map(s -> "[" + s + "]").reduce("", (a, b) ->  a + b);
-	}
-
-	private static int findLastBreakPoint(String fragment, int softLimit, int hardLimit) {
-		int lastSpace = -1;
-
-		for (int i = 0; i < fragment.length(); i++) {
-			if (fragment.charAt(i) == ' ' || fragment.charAt(i) == ',') {lastSpace = i + 1;}
-			else if (fragment.charAt(i) == '.' || fragment.charAt(i) == '!' || fragment.charAt(i) == '?') return i + 1;
-		}
-		return lastSpace;
 	}
 
 	public static String expandAbbreviations(String text, Map<String, String> phrases) {

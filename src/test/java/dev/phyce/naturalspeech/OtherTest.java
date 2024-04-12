@@ -30,16 +30,6 @@ public class OtherTest {
 	};
 
 //	@Test
-//	public void testSplitSentence() {
-//		for (String exampleSentence : exampleSentences) {
-//			List<String> segments = TextUtil.splitSentence(exampleSentence);
-//			String str = segments.stream().map(s -> "[" + s + "]").reduce("", (a, b) ->  a + b);
-//			System.out.print(segments.size());
-//			System.out.println(str);
-//		}
-//	}
-//
-//	@Test
 //	public void testSplitSentenceNew() {
 //		for (String exampleSentence : exampleSentences) {
 //			List<String> segments = TextUtil.splitSentenceV2(exampleSentence);
