@@ -6,6 +6,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.tts.SpeechEngine;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.utils.OSValidator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,8 @@ public class SAPI4Engine implements SpeechEngine {
 		this.audioEngine = audioEngine;
 		this.voiceManager = voiceManager;
 
-		{
+
+		if (OSValidator.IS_WINDOWS) {
 			List<String> voiceNames = sapi4Repository.getVoices();
 			if (voiceNames != null) {
 				for (String voiceName : voiceNames) {
@@ -52,7 +54,6 @@ public class SAPI4Engine implements SpeechEngine {
 				}
 			}
 		}
-
 	}
 
 	@Override

@@ -40,6 +40,7 @@ class NaturalSpeech {
 	final VolumeManager volumeManager;
 	final AudioEngine audioEngine;
 	final TopLevelPanel topLevelPanel;
+	// This private eventbus is entirely separate from RuneLites' EventBus
 	final PluginEventBus pluginEventBus;
 
 	@Inject

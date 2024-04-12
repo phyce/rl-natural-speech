@@ -71,7 +71,11 @@ public class PiperEngine implements SpeechEngine {
 	@Override
 	public StartResult start() {
 		if (!isPiperPathValid()) {
+			log.trace("No valid piper found at {}", runtimeConfig.getPiperPath());
 			return StartResult.FAILED;
+		}
+		else {
+			log.trace("Found Valid Piper at {}", runtimeConfig.getPiperPath());
 		}
 
 		if (started) {

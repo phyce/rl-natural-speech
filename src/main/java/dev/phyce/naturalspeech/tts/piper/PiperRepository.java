@@ -242,14 +242,6 @@ public class PiperRepository {
 		}
 	}
 
-//	public void addRepositoryChangedListener(ModelRepositoryListener listener) {
-//		changeListeners.add(listener);
-//	}
-
-//	public void removeRepositoryChangedListener(ModelRepositoryListener listener) {
-//		changeListeners.remove(listener);
-//	}
-
 	// Partially Serialized JSON Object
 	@Data
 	public static class ModelURL {
@@ -329,9 +321,4 @@ public class PiperRepository {
 		PiperVoiceMetadata[] piperVoiceMetadata;
 	}
 
-//	public interface ModelRepositoryListener {
-//		default void onRefresh() {}
-//
-//		default void onRepositoryChanged(String modelName) {}
-//	}
 }

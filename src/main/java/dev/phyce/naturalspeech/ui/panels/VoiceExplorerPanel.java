@@ -292,6 +292,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
 
+		toggleSpeakerSection(sectionToggle, sectionContent);
+
 		List<String> models = sapi4Repository.getVoices();
 
 		models.stream()
@@ -370,6 +372,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionToggle.addActionListener(actionEvent -> toggleSpeakerSection(sectionToggle, sectionContent));
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
+
+		toggleSpeakerSection(sectionToggle, sectionContent);
 
 		try {
 			PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelName);

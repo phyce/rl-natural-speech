@@ -2,11 +2,11 @@ package dev.phyce.naturalspeech.configs;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.PluginEventBus;
-import dev.phyce.naturalspeech.events.piper.PiperPathChanged;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.nio.file.Path;
+import net.runelite.client.RuneLite;
 import net.runelite.client.config.ConfigManager;
 
 /**
@@ -14,52 +14,66 @@ import net.runelite.client.config.ConfigManager;
  */
 @PluginSingleton
 public class NaturalSpeechRuntimeConfig {
-	public static final String KEY_TTS_ENGINE_PATH = "ttsEngine";
+	public static final String KEY_DEPRECATED_PIPER_PATH = "ttsEngine";
 	private final ConfigManager configManager;
 	private final PluginEventBus pluginEventBus;
 
 	@Inject
 	private NaturalSpeechRuntimeConfig(
-		ConfigManager configManager, PluginEventBus pluginEventBus
-
+		ConfigManager configManager,
+		PluginEventBus pluginEventBus
 	) {
 		this.configManager = configManager;
 		this.pluginEventBus = pluginEventBus;
 	}
 
 	public Path getPiperPath() {
-		String pathString = configManager.getConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH);
+
+		String deprecatedPiperPath = configManager.getConfiguration(CONFIG_GROUP, KEY_DEPRECATED_PIPER_PATH);
 
 		Path path;
-		if (pathString != null) {path = Path.of(pathString);}
+		if (OSValidator.IS_MAC || OSValidator.IS_UNIX) {
+			path = getNaturalSpeechPath()
+				.resolve("piper")
+				.resolve("piper");
+		}
 		else {
-			if (OSValidator.IS_MAC || OSValidator.IS_UNIX) {
-				path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper");
-			}
-			else {path = Path.of(System.getProperty("user.home")).resolve("piper").resolve("piper.exe");}
-			savePiperPath(path);
+			path = getNaturalSpeechPath()
+				.resolve("piper")
+				.resolve("piper.exe");
 		}
 
-		return path;
+		// Favor piper in the installed location
+		if (path.toFile().exists()) {
+			return path;
+		}
+		// If user has not installed using installer, try deprecated custom piper path
+		else if (deprecatedPiperPath != null) {
+			return Path.of(deprecatedPiperPath);
+		}
+		// Not installed and did not have custom piper path
+		else {
+			return path;
+		}
+	}
+
+	public Path getNaturalSpeechPath() {
+		return RuneLite.RUNELITE_DIR.toPath().resolve("NaturalSpeech");
 	}
 
 	public Path getSAPI4Path() {
-		//FIXME(Louis): Use piper path for now
-		if (OSValidator.IS_WINDOWS) {
-			return getPiperPath().resolveSibling("SAPI4").resolve("sapi4out.exe");
-		} else {
-			throw new RuntimeException("Windows Speech API4.0 not supported on this operating system");
-		}
+		return getNaturalSpeechPath()
+			.resolve("sapi4out")
+			.resolve("sapi4out.exe");
 	}
 
-	public void savePiperPath(Path path) {
-		configManager.setConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH, path.toString());
-		pluginEventBus.post(new PiperPathChanged(path));
-	}
+//	public void savePiperPath(Path path) {
+//		configManager.setConfiguration(CONFIG_GROUP, KEY_PIPER_PATH, path.toString());
+//		pluginEventBus.post(new PiperPathChanged(path));
+//	}
 
 	public void reset() {
-		configManager.unsetConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH);
-		savePiperPath(getPiperPath());
+		configManager.unsetConfiguration(CONFIG_GROUP, KEY_DEPRECATED_PIPER_PATH);
 	}
 
 

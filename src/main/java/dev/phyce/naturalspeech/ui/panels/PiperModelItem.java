@@ -107,7 +107,7 @@ public class PiperModelItem extends JPanel {
 				piperEngine.getModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
 				try {
 					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
-					if (textToSpeech.isStarted()) {
+					if (piperEngine.isStarted()) {
 						if (toggleButton.isSelected()) {
 							piperEngine.startModel(modelLocal);
 						}
@@ -126,8 +126,10 @@ public class PiperModelItem extends JPanel {
 			download.setEnabled(false);
 			download.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
 			download.setBorder(new LineBorder(download.getBackground().darker()));
+			this.setVisible(false);
 		}
 		else {
+			this.setVisible(true);
 			download.setBackground(new Color(0x28BE28));
 			download.setBorder(new LineBorder(download.getBackground().darker()));
 			download.addActionListener(l -> {

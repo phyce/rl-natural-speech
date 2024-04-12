@@ -5,6 +5,8 @@ import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.events.SpeechEngineStarted;
+import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
@@ -16,7 +18,7 @@ import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperModel;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
-import dev.phyce.naturalspeech.utils.OSValidator;
+import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -29,18 +31,15 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.net.URI;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -81,11 +80,10 @@ public class MainSettingsPanel extends PluginPanel {
 	private final TextToSpeech textToSpeech;
 	private final PiperEngine piperEngine;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
-	private final PluginEventBus pluginEventBus;
 	private JLabel statusLabel;
 	private JPanel statusPanel;
 
-	private JPanel piperModelPanel;
+	private JPanel piperMonitorPanel;
 	private final Map<PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Map<String, PiperModelItem> piperModelMap = new HashMap<>();
 
@@ -107,7 +105,6 @@ public class MainSettingsPanel extends PluginPanel {
 		this.piperRepository = piperRepository;
 		this.piperEngine = piperEngine;
 		this.runtimeConfig = runtimeConfig;
-		this.pluginEventBus = pluginEventBus;
 
 		pluginEventBus.register(this);
 
@@ -134,11 +131,73 @@ public class MainSettingsPanel extends PluginPanel {
 		this.add(scrollPane);
 
 		buildHeaderSegment();
-		buildPiperStatusSection();
+		buildPiperStatusSegment();
 		buildVoiceRepositorySegment();
+		buildAdvancedSegment();
 
 
 		this.revalidate();
+	}
+
+	private void buildAdvancedSegment() {
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "Advanced";
+		final String description = "";
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		mainContentPanel.add(section);
+
+		// Toggle section action listeners
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
+		toggleSection(sectionToggle, sectionContent);
+
+//		JPanel piperFileChoosePanel = buildPiperFileChoose();
+//		sectionContent.add(piperFileChoosePanel);
+
+		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
+		sectionContent.add(piperProcessMonitorPanel);
 	}
 
 	@Subscribe
@@ -166,19 +225,33 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	@Subscribe
+	private void onSpeechEngineStarted(SpeechEngineStarted event) {
+		if (event.getSpeechEngine() instanceof PiperEngine) {
+			piperMonitorPanel.setVisible(true);
+		}
+	}
+
+	@Subscribe
+	private void onSpeechEngineStopped(SpeechEngineStopped event) {
+		if (event.getSpeechEngine() instanceof PiperEngine) {
+			piperMonitorPanel.setVisible(false);
+		}
+	}
+
+	@Subscribe
 	private void onPiperModelStarted(PiperModelStarted event) {
 		PiperModelMonitorItem piperItem = new PiperModelMonitorItem(event.getPiper());
 		piperModelMonitorMap.put(event.getPiper(), piperItem);
-		piperModelPanel.add(piperItem);
-		piperModelPanel.revalidate();
+		piperMonitorPanel.add(piperItem);
+		piperMonitorPanel.revalidate();
 	}
 
 	@Subscribe
 	private void onPiperModelStopped(PiperModelStopped event) {
 		PiperModelMonitorItem remove = piperModelMonitorMap.remove(event.getPiper());
 		if (remove != null) {
-			piperModelPanel.remove(remove);
-			piperModelPanel.revalidate();
+			piperMonitorPanel.remove(remove);
+			piperMonitorPanel.revalidate();
 		}
 	}
 
@@ -261,7 +334,7 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionHeader.add(sectionName, BorderLayout.CENTER);
 
 		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
 		section.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
@@ -296,7 +369,7 @@ public class MainSettingsPanel extends PluginPanel {
 		}
 	}
 
-	public void buildPiperStatusSection() {
+	public void buildPiperStatusSegment() {
 		final JPanel section = new JPanel();
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
@@ -348,25 +421,26 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionHeader.addMouseListener(adapter);
 
 		// Status Label with dynamic background color
-		JPanel statusPanel = buildPiperStatusPanel();
+		JPanel statusPanel = buildStatusPanel();
 		sectionContent.add(statusPanel);
 
-		JPanel piperFileChoosePanel = buildPiperFileChoose();
-		sectionContent.add(piperFileChoosePanel);
-
-		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
-		sectionContent.add(piperProcessMonitorPanel);
 	}
 
 	private JPanel buildPiperProcessMonitorPanel() {
-		piperModelPanel = new JPanel();
-		piperModelPanel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
-		piperModelPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
+		piperMonitorPanel = new JPanel();
+		piperMonitorPanel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
+		piperMonitorPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
+		piperMonitorPanel.setVisible(false);
 
-		return piperModelPanel;
+		JLabel header = new JLabel("Piper Process Monitor");
+		header.setForeground(Color.WHITE);
+
+		piperMonitorPanel.add(header);
+
+		return piperMonitorPanel;
 	}
 
-	private JPanel buildPiperStatusPanel() {
+	private JPanel buildStatusPanel() {
 		statusPanel = new JPanel();
 		statusPanel.setLayout(new BorderLayout());
 		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
@@ -454,49 +528,53 @@ public class MainSettingsPanel extends PluginPanel {
 		return statusPanel;
 	}
 
-	private JPanel buildPiperFileChoose() {
-		JTextField filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
-		filePathField.setToolTipText("Piper binary file path");
-		filePathField.setEditable(false);
-
-		JButton browseButton = new JButton("Browse");
-		browseButton.setToolTipText("Requires manual download, please read instructions.");
-		browseButton.addActionListener(e -> {
-			// open in drive top path
-			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
-			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-			int returnValue = fileChooser.showOpenDialog(MainSettingsPanel.this);
-			if (returnValue == JFileChooser.APPROVE_OPTION) {
-				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
-
-				// if the user accidentally set the piper folder and not the executable, automatically correct
-				if (newPath.toFile().isDirectory()) {
-					if (OSValidator.IS_WINDOWS) {
-						newPath = newPath.resolve("piper.exe");
-					}
-					else { // assume unix based
-						newPath = newPath.resolve("piper");
-					}
-				}
-
-				filePathField.setText(newPath.toString());
-				runtimeConfig.savePiperPath(newPath);
-
-				// if text to speech is running, restart
-				if (textToSpeech.isStarted()) {
-					textToSpeech.stop();
-				}
-
-			}
-
-		});
-
-		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
-		fileBrowsePanel.setBorder(new EmptyBorder(0, 0, 5, 0));
-		fileBrowsePanel.add(filePathField, BorderLayout.CENTER);
-		fileBrowsePanel.add(browseButton, BorderLayout.SOUTH);
-		return fileBrowsePanel;
-	}
+//	private JPanel buildPiperFileChoose() {
+//		JLabel header = new JLabel("Natural Speech Location");
+//		header.setForeground(Color.WHITE);
+//
+//		JTextField filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
+//		filePathField.setToolTipText("Piper binary file path");
+//		filePathField.setEditable(false);
+//
+//		JButton browseButton = new JButton("Browse");
+//		browseButton.setToolTipText("Requires manual download, please read instructions.");
+//		browseButton.addActionListener(e -> {
+//			// open in drive top path
+//			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
+//			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+//			int returnValue = fileChooser.showOpenDialog(MainSettingsPanel.this);
+//			if (returnValue == JFileChooser.APPROVE_OPTION) {
+//				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
+//
+//				// if the user accidentally set the piper folder and not the executable, automatically correct
+//				if (newPath.toFile().isDirectory()) {
+//					if (OSValidator.IS_WINDOWS) {
+//						newPath = newPath.resolve("piper.exe");
+//					}
+//					else { // assume unix based
+//						newPath = newPath.resolve("piper");
+//					}
+//				}
+//
+//				filePathField.setText(newPath.toString());
+//				runtimeConfig.savePiperPath(newPath);
+//
+//				// if text to speech is running, restart
+//				if (textToSpeech.isStarted()) {
+//					textToSpeech.stop();
+//				}
+//
+//			}
+//
+//		});
+//
+//		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
+//		fileBrowsePanel.setBorder(new EmptyBorder(5, 0, 0, 0));
+//		fileBrowsePanel.add(header, BorderLayout.NORTH);
+//		fileBrowsePanel.add(filePathField, BorderLayout.CENTER);
+//		fileBrowsePanel.add(browseButton, BorderLayout.SOUTH);
+//		return fileBrowsePanel;
+//	}
 
 	private void toggleSection(JButton toggleButton, JPanel sectionContent) {
 		boolean newState = !sectionContent.isVisible();

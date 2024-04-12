@@ -75,7 +75,7 @@ public class TextToSpeech implements SpeechEngine {
 				log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
 			}
 			else {
-				log.warn("Failed to start engine:{}", engine.getClass().getSimpleName());
+				log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
 			}
 		}
 

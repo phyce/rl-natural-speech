@@ -62,7 +62,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	@Inject
 	private NaturalSpeechConfig config;
 	@Inject
-	private EventBus eventBus;
+	private EventBus runeliteEventBus;
 	// endregion
 
 	// region: Fields
@@ -83,7 +83,7 @@ public class NaturalSpeechPlugin extends Plugin {
 			log.error("Attempting to double register {} to eventBus, skipping.", object.getClass().getSimpleName());
 		}
 		else {
-			eventBus.register(object);
+			runeliteEventBus.register(object);
 			rlEventBusSubscribers.add(object);
 		}
 	}
@@ -93,7 +93,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	 */
 	private void unregisterRLEventBusAll() {
 		for (Object object : rlEventBusSubscribers) {
-			eventBus.unregister(object);
+			runeliteEventBus.unregister(object);
 		}
 		rlEventBusSubscribers.clear();
 	}
@@ -101,7 +101,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void saveConfigs() {
 		ns.voiceManager.saveVoiceConfig();
 		ns.piperEngine.saveModelConfig();
-		ns.runtimeConfig.savePiperPath(ns.runtimeConfig.getPiperPath());
+//		ns.runtimeConfig.savePiperPath(ns.runtimeConfig.getPiperPath());
 		ns.muteManager.saveConfig();
 	}
 

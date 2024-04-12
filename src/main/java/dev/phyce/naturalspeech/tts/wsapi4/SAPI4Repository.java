@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.tts.wsapi4;
 
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
+import dev.phyce.naturalspeech.utils.OSValidator;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,13 +26,17 @@ public class SAPI4Repository {
 	public SAPI4Repository(NaturalSpeechRuntimeConfig runtimeConfig) {
 		this.runtimeConfig = runtimeConfig;
 
-		reload();
+		if (OSValidator.IS_WINDOWS)
+		{
+			reload();
+		}
 	}
 
-	public void reload() {
+	private void reload() {
 		voices.clear();
 
-		Path sapi4limits = runtimeConfig.getSAPI4Path().resolveSibling("sapi4limits.exe");
+		Path sapi4Path = runtimeConfig.getSAPI4Path();
+		Path sapi4limits = sapi4Path.resolveSibling("sapi4limits.exe");
 
 		if (!sapi4limits.toFile().exists()) {
 			log.debug("SAPI4 not installed. {} does not exist.", sapi4limits);
