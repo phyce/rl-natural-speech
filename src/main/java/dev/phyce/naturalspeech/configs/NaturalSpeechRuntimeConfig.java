@@ -1,6 +1,8 @@
 package dev.phyce.naturalspeech.configs;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.PluginEventBus;
+import dev.phyce.naturalspeech.events.piper.PiperPathChanged;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.utils.OSValidator;
@@ -14,10 +16,15 @@ import net.runelite.client.config.ConfigManager;
 public class NaturalSpeechRuntimeConfig {
 	public static final String KEY_TTS_ENGINE_PATH = "ttsEngine";
 	private final ConfigManager configManager;
+	private final PluginEventBus pluginEventBus;
 
 	@Inject
-	private NaturalSpeechRuntimeConfig(ConfigManager configManager) {
+	private NaturalSpeechRuntimeConfig(
+		ConfigManager configManager, PluginEventBus pluginEventBus
+
+	) {
 		this.configManager = configManager;
+		this.pluginEventBus = pluginEventBus;
 	}
 
 	public Path getPiperPath() {
@@ -47,6 +54,7 @@ public class NaturalSpeechRuntimeConfig {
 
 	public void savePiperPath(Path path) {
 		configManager.setConfiguration(CONFIG_GROUP, KEY_TTS_ENGINE_PATH, path.toString());
+		pluginEventBus.post(new PiperPathChanged(path));
 	}
 
 	public void reset() {

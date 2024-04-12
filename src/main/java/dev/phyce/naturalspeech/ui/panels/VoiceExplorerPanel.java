@@ -8,6 +8,8 @@ import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
 import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
+import dev.phyce.naturalspeech.events.piper.PiperPathChanged;
+import dev.phyce.naturalspeech.events.piper.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
@@ -87,7 +89,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 	private final Map<String, JPanel> modelSections = new HashMap<>();
-	private final PiperRepository.ModelRepositoryListener modelRepositoryListener;
 	private JPanel sapi4Segment;
 
 	@Inject
@@ -167,19 +168,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		this.add(speakerScrollPane);
 
-		modelRepositoryListener = new PiperRepository.ModelRepositoryListener() {
-			@Override
-			public void onRepositoryChanged(String modelName) {
-				SwingUtilities.invokeLater(() -> buildSpeakerList());
-			}
-
-			@Override
-			public void onRefresh() {
-				SwingUtilities.invokeLater(() -> buildSpeakerList());
-			}
-		};
-		this.piperRepository.addRepositoryChangedListener(modelRepositoryListener);
-
 		buildSpeakerList();
 	}
 
@@ -229,7 +217,17 @@ public class VoiceExplorerPanel extends EditorPanel {
 		}
 	}
 
-	void buildSpeakerList() {
+	@Subscribe
+	private void onPiperPathChanged(PiperPathChanged event) {
+		SwingUtilities.invokeLater(this::buildSpeakerList);
+	}
+
+	@Subscribe
+	private void onPiperRepositoryChanged(PiperRepositoryChanged event) {
+		SwingUtilities.invokeLater(this::buildSpeakerList);
+	}
+
+	private void buildSpeakerList() {
 		sectionListPanel.removeAll();
 		List<String> sapi4Models = sapi4Repository.getVoices();
 		if (sapi4Models != null && !sapi4Models.isEmpty()) {
@@ -441,7 +439,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	public void shutdown() {
-		piperRepository.removeRepositoryChangedListener(modelRepositoryListener);
 		this.removeAll();
 	}
 

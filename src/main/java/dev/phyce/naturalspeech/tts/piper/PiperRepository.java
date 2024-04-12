@@ -12,11 +12,13 @@ import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.DownloadTask;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.events.piper.PiperRepositoryChanged;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,7 +27,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,27 +52,33 @@ public class PiperRepository {
 
 	@Getter
 	private final List<ModelURL> modelURLS;
+	//private final List<ModelRepositoryListener> changeListeners = new ArrayList<>();
 
 	@Getter
 	private final ScheduledExecutorService executor;
-
-	private final List<ModelRepositoryListener> changeListeners = new ArrayList<>();
-
 	private final Gson gson;
+	private final PluginEventBus pluginEventBus;
 
 	@Inject
-	public PiperRepository(Downloader downloader,
-						   NaturalSpeechRuntimeConfig runtimeConfig,
-						   ScheduledExecutorService executor,
-						   Gson gson) throws IOException {
+	public PiperRepository(
+		Downloader downloader,
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		ScheduledExecutorService executor,
+		Gson gson,
+		PluginEventBus pluginEventBus
+	) throws IOException {
 		this.executor = executor;
 		this.gson = gson;
 
 		this.downloader = downloader;
 		this.runtimeConfig = runtimeConfig;
+		this.pluginEventBus = pluginEventBus;
+
+		pluginEventBus.register(this);
 
 		try {
-			InputStream is = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(MODEL_REPO_FILENAME)).openStream();
+			InputStream is =
+				Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(MODEL_REPO_FILENAME)).openStream();
 			// read dictionary index as name
 			modelURLS = gson.fromJson(new InputStreamReader(is), new TypeToken<List<ModelURL>>() {
 			}.getType());
@@ -145,7 +152,7 @@ public class PiperRepository {
 			if (!voiceFolder.toFile().delete()) {
 				log.error("Failed to delete voice folder: {}", voiceFolder);
 			}
-			triggerOnRepositoryChanged(modelLocal.getModelName());
+			pluginEventBus.post(new PiperRepositoryChanged(modelLocal.getModelName()));
 		}
 		log.info("ModalLocal Deleted {}", modelLocal.getModelName());
 	}
@@ -209,7 +216,7 @@ public class PiperRepository {
 			}
 
 			log.info("done... {}", modelName);
-			triggerOnRepositoryChanged(modelName);
+			pluginEventBus.post(new PiperRepositoryChanged(modelName));
 		}
 
 		// Read Speaker File into an HashSet of Array of Speaker
@@ -235,26 +242,13 @@ public class PiperRepository {
 		}
 	}
 
-	public void addRepositoryChangedListener(ModelRepositoryListener listener) {
-		changeListeners.add(listener);
-	}
+//	public void addRepositoryChangedListener(ModelRepositoryListener listener) {
+//		changeListeners.add(listener);
+//	}
 
-	public void removeRepositoryChangedListener(ModelRepositoryListener listener) {
-		changeListeners.remove(listener);
-	}
-
-	private void triggerOnRepositoryChanged(String modelName) {
-		for (ModelRepositoryListener changeListener : changeListeners) {
-			changeListener.onRepositoryChanged(modelName);
-		}
-
-	}
-
-	public void refresh() {
-		for (ModelRepositoryListener changeListener : this.changeListeners) {
-			changeListener.onRefresh();
-		}
-	}
+//	public void removeRepositoryChangedListener(ModelRepositoryListener listener) {
+//		changeListeners.remove(listener);
+//	}
 
 	// Partially Serialized JSON Object
 	@Data
@@ -301,9 +295,11 @@ public class PiperRepository {
 		public JsonElement serialize(Gender gender, Type type, JsonSerializationContext jsonSerializationContext) {
 			if (gender == Gender.MALE) {
 				return jsonSerializationContext.serialize("M");
-			} else if (gender == Gender.FEMALE) {
+			}
+			else if (gender == Gender.FEMALE) {
 				return jsonSerializationContext.serialize("F");
-			} else {
+			}
+			else {
 				return jsonSerializationContext.serialize("OTHER");
 			}
 		}
@@ -313,9 +309,11 @@ public class PiperRepository {
 								  JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
 			if (jsonElement.getAsString().equals("M")) {
 				return Gender.MALE;
-			} else if (jsonElement.getAsString().equals("F")) {
+			}
+			else if (jsonElement.getAsString().equals("F")) {
 				return Gender.FEMALE;
-			} else {
+			}
+			else {
 				return Gender.OTHER;
 			}
 		}
@@ -331,8 +329,9 @@ public class PiperRepository {
 		PiperVoiceMetadata[] piperVoiceMetadata;
 	}
 
-	public interface ModelRepositoryListener {
-		default void onRefresh() {};
-		default void onRepositoryChanged(String modelName) {}
-	}
+//	public interface ModelRepositoryListener {
+//		default void onRefresh() {}
+//
+//		default void onRepositoryChanged(String modelName) {}
+//	}
 }
