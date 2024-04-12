@@ -24,8 +24,27 @@ public class OnlyVisibleGridLayout extends GridLayout {
 	// Pretends invisible components don't exist during layout
 	private int getVisibleComponentCount(Container parent) {
 		int count = 0;
-		for (Component component : parent.getComponents()) {if (component.isVisible()) count++;}
+		for (Component component : parent.getComponents()) {
+			if (component.isVisible()) {
+				count++;
+			}
+		}
 		return count;
+	}
+
+	private Component[] getVisibleComponents(Container parent) {
+		Component[] components = parent.getComponents();
+
+		int count = getVisibleComponentCount(parent);
+		Component[] visibleComponents = new Component[count];
+		int index = 0;
+		for (Component component : components) {
+			if (component.isVisible()) {
+				visibleComponents[index] = component;
+				index++;
+			}
+		}
+		return visibleComponents;
 	}
 
 	@Override
@@ -46,8 +65,17 @@ public class OnlyVisibleGridLayout extends GridLayout {
 	public void layoutContainer(Container parent) {
 		synchronized (parent.getTreeLock())
 		{
+			// default all children bounds to 0,0
+			// only update the visible children
+			for (Component comp : parent.getComponents())
+			{
+				comp.setBounds(0, 0, 0, 0);
+			}
+
 			final Insets insets = parent.getInsets();
-			final int ncomponents = parent.getComponentCount();
+			final int ncomponents = getVisibleComponentCount(parent);
+			final Component[] components = getVisibleComponents(parent);
+
 			int nrows = getRows();
 			int ncols = getColumns();
 
@@ -84,8 +112,8 @@ public class OnlyVisibleGridLayout extends GridLayout {
 			{
 				final int r = i / ncols;
 				final int c = i % ncols;
-				final Component comp = parent.getComponent(i);
-				final Dimension d = comp.isVisible() ? comp.getPreferredSize() : new Dimension(0, 0);
+				final Component comp = components[i];
+				final Dimension d = comp.getPreferredSize();
 				d.width = (int) (sw * d.width);
 				d.height = (int) (sh * d.height);
 
@@ -101,6 +129,7 @@ public class OnlyVisibleGridLayout extends GridLayout {
 			}
 
 			// Apply new bounds to all child components
+			Component comp = null;
 			for (int c = 0, x = insets.left; c < ncols; c++)
 			{
 				for (int r = 0, y = insets.top; r < nrows; r++)
@@ -109,12 +138,8 @@ public class OnlyVisibleGridLayout extends GridLayout {
 
 					if (i < ncomponents)
 					{
-						Component comp = parent.getComponent(i);
-						if (comp.isVisible()) {
+						comp = components[i];
 							comp.setBounds(x, y, w[c], h[r]);
-						} else {
-							comp.setBounds(0, 0, 0, 0);
-						}
 					}
 
 					y += h[r] + vgap;
@@ -134,7 +159,9 @@ public class OnlyVisibleGridLayout extends GridLayout {
 	 * @return outer size
 	 */
 	private Dimension calculateSize(final Container parent, final Function<Component, Dimension> sizer) {
-		final int ncomponents = parent.getComponentCount();
+		final int ncomponents = getVisibleComponentCount(parent);
+		final Component[] components = getVisibleComponents(parent);
+
 		int nrows = getRows();
 		int ncols = getColumns();
 
@@ -155,8 +182,8 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		{
 			final int r = i / ncols;
 			final int c = i % ncols;
-			final Component comp = parent.getComponent(i);
-			final Dimension d = comp.isVisible() ? sizer.apply(comp) : new Dimension(0, 0);
+			final Component comp = components[i];
+			final Dimension d = sizer.apply(comp);
 
 			if (w[c] < d.width)
 			{
