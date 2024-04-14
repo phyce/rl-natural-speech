@@ -94,7 +94,4 @@ public final class TextUtil {
 		return menuTarget;
 	}
 
-	public static String removeTags(String input) {
-		return input.replaceAll("<[^>]+>", "");
-	}
 }

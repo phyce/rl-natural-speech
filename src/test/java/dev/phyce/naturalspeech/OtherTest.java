@@ -1,5 +1,8 @@
 package dev.phyce.naturalspeech;
 
+import dev.phyce.naturalspeech.tts.wsapi5.WSAPI5Process;
+import org.junit.Test;
+
 public class OtherTest {
 
 	private static String[] exampleSentences = new String[] {
@@ -28,6 +31,11 @@ public class OtherTest {
 		// Woodcutting Guide
 		"This is a Skillcape of Woodcutting, wearing one increases your chance of finding bird's nests. Only a person who has achieved the highest possible level in a skill can wear one.",
 	};
+	
+	@Test
+	public void testWSAPI5() {
+		WSAPI5Process runtime = WSAPI5Process.start();
+	}
 
 //	@Test
 //	public void testSplitSentenceNew() {
