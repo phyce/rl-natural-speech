@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import javax.sound.sampled.AudioFormat;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.Synchronized;
@@ -32,29 +34,32 @@ import lombok.extern.slf4j.Slf4j;
 
  RuneLite Plugins are not allowed to distribute binaries.
 
+ Our goal is to allow NaturalSpeech to have minimal TTS capabilities without external dependencies (minimal mode).
+ Therefore, we need operating system TTS.
+
  Windows Speech API 5 can be accessed with two methods:
- 1. Dynamically Linking to Windows Speech API 5 SDK for C/C++ https://www.microsoft.com/en-us/download/details.aspx?id=10121
- 2. Use OS built-in dotnet assembly System.Speech
+	 1. Dynamically Linking to Windows Speech API 5 SDK for C/C++ https://www.microsoft.com/en-us/download/details.aspx?id=10121
+	 2. Use OS built-in dotnet assembly System.Speech
 
  Problem:
- 1. We can't use Java-native-interface because then we'd need to distribute SAPI5 dll to users with the plugin.
-    Aka, Speech 5.1 SDK Redistributable files (SpeechSDK51MSM.exe)
+	 1. We can't use Java-native-interface because then we'd need to distribute SAPI5 dll to users with the plugin.
+		Aka, Speech 5.1 SDK Redistributable files (SpeechSDK51MSM.exe)
 
- 2. Java cannot interface with dotnet managed assemblies, aka System.Speech.dll
+	 2. Java cannot interface with dotnet managed assemblies, aka System.Speech.dll
+		Also, we cannot write a C# runtime and bundle it as an executable.
 
-    The purpose of supporting Operating System TTS is to allow NaturalSpeech to have minimal TTS capabilities
-    without external dependencies.
 
- PowerShell is bundled with Windows and has a built-in .NET 4.0
- So we JIT compile C# into a runtime similar to Piper through PowerShell to access System.Speech
+ Solution:
+	 PowerShell is bundled with Windows and has a built-in .NET 4.0
+	 So we JIT compile C# into a runtime similar to Piper through PowerShell to access System.Speech
 
- The CS File is in Resources, named WSAPI5.cs
+	 The CS File is in Resources, named WSAPI5.cs
 
 - Louis Hong 2024
 */
 
 @Slf4j
-public class WSAPI5Process {
+public class SAPI5Process {
 
 	private static final String CONTROL_END_OUT = "END_OUT";
 	private static final String CONTROL_ERROR = "EXCEPTION:";
@@ -78,6 +83,7 @@ public class WSAPI5Process {
 
 	@Value
 	@AllArgsConstructor
+	@EqualsAndHashCode
 	public static class SAPI5Voice {
 		String name;
 		Gender gender;
@@ -85,23 +91,37 @@ public class WSAPI5Process {
 
 	private final List<SAPI5Voice> availableVoices = new ArrayList<>();
 
-	public static WSAPI5Process start() {
+	public static SAPI5Process start() {
 		if (!OSValidator.IS_WINDOWS) {
 			log.error("Attempting to starting CSharp Runtime on non-Windows.");
 			return null;
 		}
 
 		try {
-			return new WSAPI5Process();
-		} catch (IOException e) {
+			return new SAPI5Process();
+		} catch (IOException | RuntimeException e) {
 			log.error("CSharp Runtime failed to launch.", e);
 			return null;
 		}
 	}
 
-	private WSAPI5Process() throws IOException {
+	public void destroy() {
+		processStdInThread.interrupt();
+		processStdErrThread.interrupt();
 
-		File wsapi5CSharp = extractWSAPI5CSharpFile();
+		if (process != null && process.isAlive()) {
+			try {
+				if (processStdIn != null) processStdIn.close();
+			} catch (IOException exception) {
+				log.error("{} failed closing processStdIn on destroy.", this, exception);
+			}
+			process.destroy();
+		}
+	}
+
+	private SAPI5Process() throws IOException {
+
+		final File wsapi5CSharp = extractWSAPI5CSharpFile();
 
 		// Disable formatting for this region, so it's as concise as possible
 		// @formatter:off
@@ -114,7 +134,7 @@ public class WSAPI5Process {
 			// When WSAPI5::Main ends, the powershell process ends.
 			// ex: powershell -command echo "hi"
 
-			// Unlike the recent 2024 Rust CVE-2024-24576, (example https://github.com/lpn/CVE-2024-24576.jl)
+			// Unlike the Rust CVE-2024-24576, (example https://github.com/lpn/CVE-2024-24576.jl)
 			// which demonstrated exploiting when user input is passed into the commands field.
 			// ex: powershell -command echo <user_input>
 
@@ -130,6 +150,19 @@ public class WSAPI5Process {
 		// PowerShell has started with all commands defined
 		process = builder.start();
 
+
+		if (!process.isAlive()) {
+
+			String err = String.format("WSAPI5.cs path:%s, failed to start with error:%s",
+				wsapi5CSharp.getAbsolutePath(),
+				new String(process.getErrorStream().readAllBytes())
+			);
+
+			log.error(err);
+			throw new RuntimeException(err);
+		}
+
+		// Begin IO with WSAPI5.cs
 		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 
 		fetchAvailableVoices();
@@ -142,9 +175,6 @@ public class WSAPI5Process {
 			new Thread(this::processStdErr, String.format("[%s] WSAPI5::processStdErr Thread", this));
 		processStdErrThread.start();
 
-
-		// clean up the csharp file
-		assert wsapi5CSharp.delete();
 	}
 
 	/**
@@ -152,6 +182,7 @@ public class WSAPI5Process {
 	 */
 	private static File extractWSAPI5CSharpFile() throws IOException {
 
+		// Files in operating system temp are automatically deleted on process exit
 		File tempFolder = Path.of(System.getProperty("java.io.tmpdir"), "NaturalSpeech").toFile();
 		boolean ignore = tempFolder.mkdir();
 
@@ -160,8 +191,8 @@ public class WSAPI5Process {
 		assert tempFile.createNewFile();
 
 		try (FileWriter file = new FileWriter(tempFile)) {
-			file.write(
-				Resources.toString(Resources.getResource(WSAPI5Process.class, "WSAPI5.cs"), StandardCharsets.UTF_8));
+			URL resource = Resources.getResource(SAPI5Process.class, "WSAPI5.cs");
+			file.write(Resources.toString(resource, StandardCharsets.UTF_8));
 		} catch (IOException e) {
 			log.error("Failed to copy WSAPI5.cs to {}", tempFile);
 		}
@@ -189,15 +220,18 @@ public class WSAPI5Process {
 			try {
 				audioStreamCapture.reset();
 
+				// <name>\n
 				processStdIn.write(voiceName);
 				processStdIn.newLine();
 
+				// <text>\n
 				processStdIn.write(text);
 				processStdIn.newLine();
 
 				processStdIn.flush();
 
-				audioStreamCapture.wait(); // wait for stderr to receive END_OUT
+				// wait for stderr control message END_OUT
+				audioStreamCapture.wait();
 
 				return audioStreamCapture.toByteArray();
 			} finally {
@@ -211,6 +245,10 @@ public class WSAPI5Process {
 		return Collections.unmodifiableList(availableVoices);
 	}
 
+	/**
+	 * This function must only be called before audio streaming has begun.
+	 * It is blocking and synchronized.
+	 */
 	private void fetchAvailableVoices() throws IOException {
 		synchronized (processStdIn) {
 			processStdIn.write("!LIST");
@@ -257,15 +295,19 @@ public class WSAPI5Process {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 			String line;
 			while (!processStdErrThread.isInterrupted() && (line = reader.readLine()) != null) {
+				if (line.startsWith(CONTROL_ERROR)) {
+					log.error("[pid:{}-StdErr]:CSharp Exception: {}", process.pid(), line);
+					synchronized (audioStreamCapture) {
+						audioStreamCapture.notify(); // notify capture is complete
+					}
+				}
+
 				if (line.equals(CONTROL_END_OUT)) {
 					synchronized (audioStreamCapture) {
 						audioStreamCapture.notify(); // notify capture is complete
 					}
 				}
 
-				if (line.startsWith(CONTROL_ERROR)) {
-					log.error("[pid:{}-StdErr]:CSharp Exception: {}", process.pid(), line);
-				}
 				log.trace("[pid:{}-StdErr]: Audio Capture Complete, {} detected", process.pid(), CONTROL_END_OUT);
 			}
 		} catch (IOException e) {

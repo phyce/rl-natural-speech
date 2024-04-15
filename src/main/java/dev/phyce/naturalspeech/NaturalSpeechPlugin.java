@@ -199,6 +199,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		ns.textToSpeech.register(ns.piperEngine);
 		ns.textToSpeech.register(ns.sapi4Engine);
+		ns.textToSpeech.register(ns.sapi5Engine);
 
 		if (config.autoStart()) {
 			ns.textToSpeech.start();

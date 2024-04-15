@@ -13,8 +13,6 @@ import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
-import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
-import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.IOException;
@@ -138,8 +136,7 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
-	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName)
-		throws ModelLocalUnavailableException, PiperNotActiveException {
+	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 
 		text = expandAbbreviations(text);
 

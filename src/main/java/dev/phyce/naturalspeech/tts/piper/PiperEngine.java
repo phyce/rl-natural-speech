@@ -69,6 +69,27 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
+	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+
+		if (!isModelActive(voiceID.getModelName())) {
+			return SpeakResult.REJECT;
+		}
+
+		if (!piperRepository.hasModelLocal(voiceID.modelName)) {
+			return SpeakResult.REJECT;
+		}
+
+		PiperModel piper = models.get(voiceID.modelName);
+
+		if (piper.speak(voiceID, text, gainSupplier, lineName)) {
+			return SpeakResult.ACCEPT;
+		}
+		else {
+			return SpeakResult.REJECT;
+		}
+	}
+
+	@Override
 	public StartResult start() {
 		if (!isPiperPathValid()) {
 			log.trace("No valid piper found at {}", runtimeConfig.getPiperPath());
@@ -126,27 +147,6 @@ public class PiperEngine implements SpeechEngine {
 	@Override
 	public boolean canSpeak(VoiceID voiceID) {
 		return isModelActive(voiceID.modelName);
-	}
-
-	@Override
-	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
-
-		if (!isModelActive(voiceID.getModelName())) {
-			return SpeakResult.REJECT;
-		}
-
-		if (!piperRepository.hasModelLocal(voiceID.modelName)) {
-			return SpeakResult.REJECT;
-		}
-
-		PiperModel piper = models.get(voiceID.modelName);
-
-		if (piper.speak(voiceID, text, gainSupplier, lineName)) {
-			return SpeakResult.ACCEPT;
-		}
-		else {
-			return SpeakResult.REJECT;
-		}
 	}
 
 	@Override

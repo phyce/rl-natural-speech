@@ -80,8 +80,8 @@ public class PiperModel {
 	}
 
 	public void stop() {
-		for (PiperProcess instance : processMap.values()) {
-			instance.stop();
+		for (PiperProcess process : processMap.values()) {
+			process.destroy();
 		}
 		processMap.clear();
 		// clear task and audio queue on stop

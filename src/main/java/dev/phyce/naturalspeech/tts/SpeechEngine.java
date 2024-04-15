@@ -15,16 +15,6 @@ public interface SpeechEngine {
 		FAILED
 	}
 
-	StartResult start();
-
-	void stop();
-
-	boolean isStarted();
-
-	boolean canSpeakAny();
-
-	boolean canSpeak(VoiceID voiceID);
-
 	/**
 	 * {@link TextToSpeech} will call speak for in-coming VoiceID,
 	 * if the engine can speak the voiceID, speak and return true.
@@ -37,6 +27,16 @@ public interface SpeechEngine {
 	 * @return true if speak was successful, false if the engine cannot speak this VoiceID.
 	 */
 	SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName);
+
+	StartResult start();
+
+	void stop();
+
+	boolean isStarted();
+
+	boolean canSpeakAny();
+
+	boolean canSpeak(VoiceID voiceID);
 
 	/**
 	 * Cancels queued and processing speak tasks. Cancel should not try to silence ongoing AudioEngine lines.

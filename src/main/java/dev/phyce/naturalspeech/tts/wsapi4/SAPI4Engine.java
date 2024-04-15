@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.tts.wsapi4;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.tts.SpeechEngine;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
@@ -14,6 +15,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+@PluginSingleton
 public class SAPI4Engine implements SpeechEngine {
 
 	private final SAPI4Repository sapi4Repository;
@@ -57,6 +59,21 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
+	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+		if (!Objects.equals(voiceID.modelName, SAPI4_MODEL_NAME)) {
+			return SpeakResult.REJECT;
+		}
+
+		SpeechAPI4 sapi = sapi4s.get(voiceID.id);
+		if (sapi == null) {
+			return SpeakResult.REJECT;
+		}
+
+		sapi.speak(text, gainSupplier, lineName);
+		return SpeakResult.ACCEPT;
+	}
+
+	@Override
 	public StartResult start() {
 		// SAPI4 models don't have lifecycles and does not need to be cleared on stop
 		if (sapi4s.isEmpty()) {
@@ -84,21 +101,6 @@ public class SAPI4Engine implements SpeechEngine {
 	@Override
 	public boolean canSpeak(VoiceID voiceID) {
 		return sapi4s.containsKey(voiceID.id);
-	}
-
-	@Override
-	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
-		if (!Objects.equals(voiceID.modelName, SAPI4_MODEL_NAME)) {
-			return SpeakResult.REJECT;
-		}
-
-		SpeechAPI4 sapi = sapi4s.get(voiceID.id);
-		if (sapi == null) {
-			return SpeakResult.REJECT;
-		}
-
-		sapi.speak(text, gainSupplier, lineName);
-		return SpeakResult.ACCEPT;
 	}
 
 	@Override

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -20,6 +21,7 @@ public class SAPI4Repository {
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 
 	@Getter
+	@NonNull
 	private final List<String> voices = new ArrayList<>();
 
 	@Inject
@@ -32,6 +34,10 @@ public class SAPI4Repository {
 		}
 	}
 
+	/**
+	 * Starts the sapi4limits.exe which interfaces with native Windows Speech API 4 (if installed) to get
+	 * available voices.
+	 */
 	private void reload() {
 		voices.clear();
 
@@ -55,7 +61,7 @@ public class SAPI4Repository {
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 			reader.lines()
-				.skip(2)
+				.skip(2) // output header
 				.map((String key) -> SAPI4VoiceCache.sapiToVoiceName.getOrDefault(key, key))
 				.forEach(voices::add);
 			log.debug("{}", voices);

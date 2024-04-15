@@ -12,6 +12,7 @@ import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.tts.VolumeManager;
 import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Engine;
+import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 
 /**
@@ -31,6 +32,7 @@ class NaturalSpeech {
 	final TextToSpeech textToSpeech;
 	final PiperEngine piperEngine;
 	final SAPI4Engine sapi4Engine;
+	final SAPI5Engine sapi5Engine;
 	final SpamFilterPluglet spamFilterPluglet;
 	final ChatFilterPluglet chatFilterPluglet;
 	final SpamDetection spamDetection;
@@ -48,18 +50,24 @@ class NaturalSpeech {
 		NaturalSpeechRuntimeConfig runtimeConfig,
 		VoiceManager voiceManager,
 		MuteManager muteManager,
-		TextToSpeech textToSpeech,
-		PiperEngine piperEngine, SAPI4Engine sapi4Engine,
-		SpamFilterPluglet spamFilterPluglet,
-		ChatFilterPluglet chatFilterPluglet,
-		SpamDetection spamDetection,
-		SpeechEventHandler speechEventHandler,
-		MenuEventHandler menuEventHandler,
-		CommandExecutedEventHandler commandExecutedEventHandler,
 		VolumeManager volumeManager,
 		AudioEngine audioEngine,
 		TopLevelPanel topLevelPanel,
-		PluginEventBus pluginEventBus
+		PluginEventBus pluginEventBus,
+
+		TextToSpeech textToSpeech,
+		PiperEngine piperEngine,
+		SAPI4Engine sapi4Engine,
+		SAPI5Engine sapi5Engine,
+
+		SpamFilterPluglet spamFilterPluglet,
+		ChatFilterPluglet chatFilterPluglet,
+		SpamDetection spamDetection,
+
+		SpeechEventHandler speechEventHandler,
+		MenuEventHandler menuEventHandler,
+		CommandExecutedEventHandler commandExecutedEventHandler
+
 	) {
 		this.runtimeConfig = runtimeConfig;
 		this.voiceManager = voiceManager;
@@ -67,6 +75,7 @@ class NaturalSpeech {
 		this.textToSpeech = textToSpeech;
 		this.piperEngine = piperEngine;
 		this.sapi4Engine = sapi4Engine;
+		this.sapi5Engine = sapi5Engine;
 		this.spamFilterPluglet = spamFilterPluglet;
 		this.chatFilterPluglet = chatFilterPluglet;
 		this.spamDetection = spamDetection;

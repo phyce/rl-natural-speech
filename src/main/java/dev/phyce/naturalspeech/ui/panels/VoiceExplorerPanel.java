@@ -15,7 +15,9 @@ import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
-import dev.phyce.naturalspeech.tts.wsapi4.SAPI4VoiceCache;
+import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Alias;
+import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Engine;
+import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Process;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
@@ -72,6 +74,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
+	private final SAPI5Engine sapi5Engine;
+
 	private final TextToSpeech textToSpeech;
 	private final PluginEventBus pluginEventBus;
 
@@ -89,17 +93,19 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 	private final Map<String, JPanel> modelSections = new HashMap<>();
-	private JPanel sapi4Segment;
+	private JPanel microsoftSegment;
 
 	@Inject
 	public VoiceExplorerPanel(
 		PiperRepository piperRepository,
 		SAPI4Repository sapi4Repository,
+		SAPI5Engine sapi5Engine,
 		TextToSpeech textToSpeech,
 		PluginEventBus pluginEventBus
 	) {
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
+		this.sapi5Engine = sapi5Engine;
 		this.textToSpeech = textToSpeech;
 		this.pluginEventBus = pluginEventBus;
 
@@ -179,7 +185,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		if (section != null) {
 			section.setVisible(true);
 			SwingUtilities.invokeLater(sectionListPanel::revalidate);
-		} else {
+		}
+		else {
 			// buildSpeakerList builds sections using PiperRepository
 			// if this triggers that means a new model was not in PiperRepository.
 			log.error("Started model not found in VoiceExplorer:{}", modelName);
@@ -194,7 +201,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		if (section != null) {
 			section.setVisible(false);
 			SwingUtilities.invokeLater(sectionListPanel::revalidate);
-		} else {
+		}
+		else {
 			// buildSpeakerList builds sections using PiperRepository
 			// if this triggers that means a new model was not in PiperRepository.
 			log.error("Started model not found in VoiceExplorer:{}", modelName);
@@ -204,16 +212,20 @@ public class VoiceExplorerPanel extends EditorPanel {
 	@Subscribe
 	private void onSpeechEngineStarted(SpeechEngineStarted event) {
 		if (event.getSpeechEngine() instanceof SAPI4Engine) {
-			sapi4Segment.setVisible(true);
+			microsoftSegment.setVisible(true);
 			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		}
+		else if (event.getSpeechEngine() instanceof SAPI5Engine) {
 		}
 	}
 
 	@Subscribe
 	private void onSpeechEngineStopped(SpeechEngineStopped event) {
 		if (event.getSpeechEngine() instanceof SAPI4Engine) {
-			sapi4Segment.setVisible(false);
+			microsoftSegment.setVisible(false);
 			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		}
+		else if (event.getSpeechEngine() instanceof SAPI5Engine) {
 		}
 	}
 
@@ -229,9 +241,12 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	private void buildSpeakerList() {
 		sectionListPanel.removeAll();
+
 		List<String> sapi4Models = sapi4Repository.getVoices();
-		if (sapi4Models != null && !sapi4Models.isEmpty()) {
-			buildSAPI4ModelSegment();
+		List<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getAvailableModels();
+
+		if (!sapi4Models.isEmpty() || !sapi5Models.isEmpty()) {
+			buildMicrosoftModelSegment(sapi4Models, sapi5Models);
 		}
 
 		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
@@ -241,11 +256,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 		}
 	}
 
-	private void buildSAPI4ModelSegment() {
-		sapi4Segment = new JPanel();
-		sapi4Segment.setLayout(new BoxLayout(sapi4Segment, BoxLayout.Y_AXIS));
-		sapi4Segment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		sapi4Segment.setVisible(false);
+	private void buildMicrosoftModelSegment(List<String> sapi4Models, List<SAPI5Process.SAPI5Voice> sapi5Models) {
+		microsoftSegment = new JPanel();
+		microsoftSegment.setLayout(new BoxLayout(microsoftSegment, BoxLayout.Y_AXIS));
+		microsoftSegment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		microsoftSegment.setVisible(false);
 
 		final JPanel sectionHeader = new JPanel();
 		sectionHeader.setLayout(new BorderLayout());
@@ -255,7 +270,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionHeader.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
 			new EmptyBorder(0, 0, 3, 1)));
-		sapi4Segment.add(sectionHeader);
+		microsoftSegment.add(sectionHeader);
 
 		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
 		sectionToggle.setPreferredSize(new Dimension(18, 0));
@@ -275,11 +290,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 		final JPanel sectionContent = new JPanel();
 		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		sapi4Segment.setBorder(new CompoundBorder(
+		microsoftSegment.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
 			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
 		));
-		sapi4Segment.add(sectionContent, BorderLayout.SOUTH);
+		microsoftSegment.add(sectionContent, BorderLayout.SOUTH);
 
 		// Add listeners to each part of the header so that it's easier to toggle them
 		final MouseAdapter adapter = new MouseAdapter() {
@@ -294,23 +309,33 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		toggleSpeakerSection(sectionToggle, sectionContent);
 
-		List<String> models = sapi4Repository.getVoices();
-
-		models.stream()
+		sapi4Models.stream()
 			.sorted()
 			.forEach((modelName) -> {
-				SAPI4VoiceCache cache = SAPI4VoiceCache.findVoiceName(modelName);
-				String sapi4Name = cache != null ? cache.sapiName : modelName;
-
 				VoiceMetadata metadata =
-					new VoiceMetadata("", Gender.MALE, new VoiceID("microsoft", modelName));
+					new VoiceMetadata("", Gender.MALE, new VoiceID(SAPI4Engine.SAPI4_MODEL_NAME, modelName));
 				VoiceListItem speakerItem = new VoiceListItem(this, textToSpeech, metadata);
 				voiceListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
 			});
 
-		sectionListPanel.add(sapi4Segment);
-		modelSections.put("microsoft", sapi4Segment);
+		sapi5Models.stream()
+			.sorted(Comparator.comparing(SAPI5Process.SAPI5Voice::getName))
+			.forEach((voice) -> {
+				String modelName = SAPI5Alias.sapiToVoiceName.getOrDefault(voice.getName(), voice.getName());
+
+				VoiceMetadata metadata = new VoiceMetadata(
+					modelName, voice.getGender(),
+					new VoiceID(SAPI5Engine.SAPI5_MODEL_NAME, modelName)
+				);
+
+				VoiceListItem speakerItem = new VoiceListItem(this, textToSpeech, metadata);
+				voiceListItems.add(speakerItem);
+				sectionContent.add(speakerItem);
+			});
+
+		sectionListPanel.add(microsoftSegment);
+		modelSections.put("microsoft", microsoftSegment);
 	}
 
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {

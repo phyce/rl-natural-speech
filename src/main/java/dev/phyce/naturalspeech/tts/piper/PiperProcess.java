@@ -66,7 +66,7 @@ public class PiperProcess {
 		return new PiperProcess(piperPath, modelPath);
 	}
 
-	public void stop() {
+	public void destroy() {
 		piperLocked.set(true);
 		processStdErrThread.interrupt();
 		processStdInThread.interrupt();
@@ -75,7 +75,7 @@ public class PiperProcess {
 			try {
 				if (processStdIn != null) processStdIn.close();
 			} catch (IOException exception) {
-				log.error("{} failed closing processStdIn on stop.", this, exception);
+				log.error("{} failed closing processStdIn on destroy.", this, exception);
 			}
 			process.destroy();
 		}
