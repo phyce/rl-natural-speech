@@ -248,7 +248,7 @@ public class PiperModel {
 		}); // onComplete lambda block
 
 		log.trace("generating audio {} -> {}", process, text);
-		process.generateAudio(text, id, onComplete);
+		process.generateAudio(id, text, onComplete);
 	}
 
 	/**

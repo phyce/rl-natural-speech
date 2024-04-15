@@ -18,7 +18,7 @@ public class WSAPI5
 		String voiceName = null;
 		while ((voiceName = Console.ReadLine()) != null ) {
 
-			if (voiceName.Equals("$LIST")) {
+			if (voiceName.Equals("!LIST")) {
 				GetInstalledVoices();
 				continue;
 			}
@@ -40,7 +40,7 @@ public class WSAPI5
 			stdout.Write(bytearray, 0, bytearray.Length);
 			
 			// We use the error stream to signal end of buffer
-			Console.Error.WriteLine("END_BUFFER");
+			Console.Error.WriteLine("END_OUT");
 		}
 
 		stdout.Close();
@@ -50,9 +50,16 @@ public class WSAPI5
     {
 		SpeechSynthesizer speak = new SpeechSynthesizer();
 		foreach (InstalledVoice voice in speak.GetInstalledVoices()) {
-			Console.WriteLine(voice.VoiceInfo.Name);
-			Console.WriteLine(voice.VoiceInfo.Gender);
+			try {
+				// Some voices are listed but not speakable
+				speak.SelectVoice(voice.VoiceInfo.Name);
+			} catch (ArgumentException) {
+				continue;
+			}
+
+			Console.Error.WriteLine(voice.VoiceInfo.Name);
+			Console.Error.WriteLine(voice.VoiceInfo.Gender);
 		}
-		Console.Error.WriteLine("END_LIST");
+		Console.Error.WriteLine("END_OUT");
     }
 }

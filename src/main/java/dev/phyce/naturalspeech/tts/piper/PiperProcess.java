@@ -83,7 +83,7 @@ public class PiperProcess {
 	}
 
 	//Capture audio stream
-	public void processStdIn() {
+	private void processStdIn() {
 		try (InputStream inputStream = process.getInputStream()) {
 			byte[] data = new byte[1024];
 			int nRead;
@@ -97,7 +97,7 @@ public class PiperProcess {
 		}
 	}
 
-	public void processStdErr() {
+	private void processStdErr() {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
 			String line;
 			while (!processStdErrThread.isInterrupted() && (line = reader.readLine()) != null) {
@@ -114,16 +114,15 @@ public class PiperProcess {
 	}
 
 	// refactor: inlined the speak(TTSItem) method into one generateAudio function
-	public void generateAudio(String text, int piperVoiceID, Consumer<byte[]> onComplete) {
+	public void generateAudio(int piperVoiceID, String text, Consumer<byte[]> onComplete) {
 		if (piperLocked.get()) {
 			log.error("attempting to generateAudio with locked PiperProcess({}):{}", this, text);
 			return;
 		}
-		piperLocked.set(true);
 
 		new Thread(() -> {
 			try {
-				onComplete.accept(_blockedGenerateAudio(text, piperVoiceID));
+				onComplete.accept(_blockedGenerateAudio(piperVoiceID, text));
 			} catch (IOException e) {
 				log.error("PiperProcess {} failed to generate:{}", this, text);
 				onComplete.accept(null);
@@ -132,10 +131,10 @@ public class PiperProcess {
 	}
 
 	@SneakyThrows(InterruptedException.class)
-	private byte[] _blockedGenerateAudio(String text, int piperVoiceID) throws IOException {
+	private byte[] _blockedGenerateAudio(int piperVoiceID, String text) throws IOException {
+		piperLocked.set(true);
 		try {
 			byte[] result = null;
-			boolean valid = false;
 
 			synchronized (streamCapture) { streamCapture.reset(); }
 
@@ -146,7 +145,7 @@ public class PiperProcess {
 			synchronized (streamCapture) {
 				streamCapture.wait();
 
-				if (!valid) result = streamCapture.toByteArray();
+				result = streamCapture.toByteArray();
 			}
 
 			return result;
