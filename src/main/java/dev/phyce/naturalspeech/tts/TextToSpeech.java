@@ -9,6 +9,7 @@ import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
+import dev.phyce.naturalspeech.events.TextToSpeechNoEngineError;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
@@ -60,6 +61,7 @@ public class TextToSpeech implements SpeechEngine {
 
 	@Override
 	public StartResult start() {
+
 		if (started) {
 			log.warn("Starting TextToSpeech when already started. Restarting.");
 			stop();
@@ -79,6 +81,7 @@ public class TextToSpeech implements SpeechEngine {
 
 		if (activeEngines.isEmpty()){
 			log.error("No engines started successfully.");
+			pluginEventBus.post(new TextToSpeechNoEngineError());
 			return StartResult.FAILED;
 		} else {
 			started = true;

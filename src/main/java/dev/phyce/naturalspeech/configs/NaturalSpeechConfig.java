@@ -46,6 +46,8 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String CUSTOM_ABBREVIATIONS = "customAbbreviations";
 		public static final String CUSTOM_ABBREVIATIONS_NPC = "customAbbreviationsNpc";
 		public static final String OVERRIDE_CUSTOM_NPC_VOICES = "overrideCustomNpcVoices";
+
+		public static final String DEVELOPER_SIMULATE_NO_TTS = "simulateNoTTS";
 	}
 
 	@ConfigSection(
@@ -416,5 +418,24 @@ public interface NaturalSpeechConfig extends Config {
 	default String customAbbreviations() {
 		return "\n";
 	}
+
+	@ConfigSection(
+		closedByDefault = true,
+		name = "Developer Tools",
+		description = "Used for development, ignore.",
+		position = 999
+	)
+	String developerSection = "developerSection";
+
+	@ConfigItem(
+		section = developerSection,
+		name = "Simulate No TTS Engine",
+		warning = "Text To Speech start will intentionally fail.",
+		keyName=ConfigKeys.DEVELOPER_SIMULATE_NO_TTS,
+		description="")
+	default boolean simulateNoEngine() {
+		return false;
+	}
+
 	//</editor-fold>
 }

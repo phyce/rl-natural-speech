@@ -8,11 +8,11 @@ import javax.swing.border.EmptyBorder;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 
-public class SAPI4ListItem extends JPanel {
+public class SAPI5ListItem extends JPanel {
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
 
-	public SAPI4ListItem() {
+	public SAPI5ListItem() {
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
 		this.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -32,13 +32,13 @@ public class SAPI4ListItem extends JPanel {
 		GroupLayout layout = new GroupLayout(this);
 		this.setLayout(layout);
 
-		JLabel name = new JLabel("Microsoft Speech 4");
+		JLabel name = new JLabel("Microsoft Speech 5");
 		name.setFont(FontManager.getRunescapeBoldFont());
 
-		JLabel description = new JLabel(String.format("<html><p>%s</p></html>", "Microsoft Speech 4 from 1999. <span style=\"color:white\">microsoft:sam</span> is Gary Gilbert."));
+		JLabel description = new JLabel(String.format("<html><p>%s</p></html>", "Microsoft Speech 5, built-in"));
 		description.setVerticalAlignment(JLabel.TOP);
 
-		JLabel memorySize = new JLabel("installed");
+		JLabel memorySize = new JLabel("Windows built-In");
 		memorySize.setFont(FontManager.getRunescapeSmallFont());
 
 		layout.setHorizontalGroup(layout

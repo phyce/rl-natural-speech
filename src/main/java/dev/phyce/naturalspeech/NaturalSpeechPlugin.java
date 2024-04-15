@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
 
+	public static boolean _SIMULATE_NO_TTS;
+
 	static {
 		// Setup package level logger level
 		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
@@ -170,6 +172,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		// These objects will be GC-able after pluginSingletonScope.exit()
 		pluginSingletonScope.enter();
 
+		// Used to simulate when users don't have any TTS available
+		_SIMULATE_NO_TTS = config.simulateNoEngine();
+
 		// plugin fields are wrapped in a field object
 		ns = injector.getInstance(NaturalSpeech.class);
 
@@ -295,6 +300,10 @@ public class NaturalSpeechPlugin extends Plugin {
 		if (event.getKey().equals(ConfigKeys.MASTER_VOLUME)) {
 			log.trace("Detected master volume change to {}, updating audio engine", config.masterVolume());
 			ns.audioEngine.setMasterGain(VolumeManager.volumeToGain(config.masterVolume()));
+		}
+
+		if (event.getKey().equals(ConfigKeys.DEVELOPER_SIMULATE_NO_TTS)) {
+			NaturalSpeechPlugin._SIMULATE_NO_TTS = Boolean.parseBoolean(event.getNewValue());
 		}
 	}
 	// endregion

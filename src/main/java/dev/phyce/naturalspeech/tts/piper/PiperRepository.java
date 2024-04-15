@@ -102,6 +102,11 @@ public class PiperRepository {
 	}
 
 	public boolean hasModelLocal(String modelName) {
+
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+			return false;
+		}
+
 		// assume true
 		boolean localVoiceValid = true;
 

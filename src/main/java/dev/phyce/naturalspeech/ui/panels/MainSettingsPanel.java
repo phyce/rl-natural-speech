@@ -18,6 +18,7 @@ import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperModel;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
+import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -77,6 +78,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final FixedWidthPanel mainContentPanel;
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
+	private final SAPI5Engine sapi5Engine;
 	private final TextToSpeech textToSpeech;
 	private final PiperEngine piperEngine;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
@@ -97,7 +99,8 @@ public class MainSettingsPanel extends PluginPanel {
 		TextToSpeech textToSpeech,
 		PiperEngine piperEngine,
 		NaturalSpeechRuntimeConfig runtimeConfig,
-		PluginEventBus pluginEventBus
+		PluginEventBus pluginEventBus,
+		SAPI5Engine sapi5Engine
 	) {
 		super(false);
 		this.sapi4Repository = sapi4Repository;
@@ -105,6 +108,7 @@ public class MainSettingsPanel extends PluginPanel {
 		this.piperRepository = piperRepository;
 		this.piperEngine = piperEngine;
 		this.runtimeConfig = runtimeConfig;
+		this.sapi5Engine = sapi5Engine;
 
 		pluginEventBus.register(this);
 
@@ -362,11 +366,16 @@ public class MainSettingsPanel extends PluginPanel {
 			sectionContent.add(modelItem);
 		}
 
-		// Sapi Model
+		// Sapi4 Model
 		List<String> sapi4Models = sapi4Repository.getVoices();
-		if (sapi4Models != null && !sapi4Models.isEmpty()) {
+		if (!sapi4Models.isEmpty()) {
 			sectionContent.add(new SAPI4ListItem(), 0);
 		}
+
+		if (!sapi5Engine.getAvailableSAPI5s().isEmpty()) {
+			sectionContent.add(new SAPI5ListItem(), 0);
+		}
+
 	}
 
 	public void buildPiperStatusSegment() {

@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.tts.wsapi4;
 
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.utils.OSValidator;
@@ -27,6 +28,10 @@ public class SAPI4Repository {
 	@Inject
 	public SAPI4Repository(NaturalSpeechRuntimeConfig runtimeConfig) {
 		this.runtimeConfig = runtimeConfig;
+
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+			return;
+		}
 
 		if (OSValidator.IS_WINDOWS)
 		{
@@ -62,7 +67,7 @@ public class SAPI4Repository {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 			reader.lines()
 				.skip(2) // output header
-				.map((String key) -> SAPI4VoiceCache.sapiToVoiceName.getOrDefault(key, key))
+				.map((String key) -> SAPI4Cache.sapiToVoiceName.getOrDefault(key, key))
 				.forEach(voices::add);
 			log.debug("{}", voices);
 		} catch (IOException e) {

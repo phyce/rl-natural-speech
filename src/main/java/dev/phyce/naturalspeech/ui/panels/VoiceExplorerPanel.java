@@ -4,8 +4,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.events.TextToSpeechNoEngineError;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
+import dev.phyce.naturalspeech.events.TextToSpeechStarted;
+import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
 import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
 import dev.phyce.naturalspeech.events.piper.PiperPathChanged;
@@ -21,7 +24,7 @@ import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Process;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
-import java.awt.Component;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
@@ -43,7 +46,9 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.OverlayLayout;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -74,6 +79,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
+	private final SAPI4Engine sapi4Engine;
 	private final SAPI5Engine sapi5Engine;
 
 	private final TextToSpeech textToSpeech;
@@ -94,17 +100,21 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 	private final Map<String, JPanel> modelSections = new HashMap<>();
 	private JPanel microsoftSegment;
+	private JPanel centerStoppedWarning;
+	private JPanel centerNoEngineWarning;
 
 	@Inject
 	public VoiceExplorerPanel(
 		PiperRepository piperRepository,
 		SAPI4Repository sapi4Repository,
+		SAPI4Engine sapi4Engine,
 		SAPI5Engine sapi5Engine,
 		TextToSpeech textToSpeech,
 		PluginEventBus pluginEventBus
 	) {
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
+		this.sapi4Engine = sapi4Engine;
 		this.sapi5Engine = sapi5Engine;
 		this.textToSpeech = textToSpeech;
 		this.pluginEventBus = pluginEventBus;
@@ -161,18 +171,20 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionListPanel = new FixedWidthPanel();
 		sectionListPanel.setBorder(new EmptyBorder(0, 5, 0, 5));
 		sectionListPanel.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
-		sectionListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
 
 		// North panel wraps and fixes the speakerList north
 		JPanel speakerListNorthWrapper = new FixedWidthPanel();
 		speakerListNorthWrapper.setLayout(new BorderLayout());
 		speakerListNorthWrapper.add(sectionListPanel, BorderLayout.NORTH);
 
+
 		// A parent scroll view pane for speakerListPanel
 		speakerScrollPane = new JScrollPane(speakerListNorthWrapper);
 		speakerScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
 		this.add(speakerScrollPane);
+
 
 		buildSpeakerList();
 	}
@@ -191,6 +203,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			// if this triggers that means a new model was not in PiperRepository.
 			log.error("Started model not found in VoiceExplorer:{}", modelName);
 		}
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -207,26 +220,45 @@ public class VoiceExplorerPanel extends EditorPanel {
 			// if this triggers that means a new model was not in PiperRepository.
 			log.error("Started model not found in VoiceExplorer:{}", modelName);
 		}
+		updateWarnings();
 	}
 
 	@Subscribe
 	private void onSpeechEngineStarted(SpeechEngineStarted event) {
-		if (event.getSpeechEngine() instanceof SAPI4Engine) {
-			microsoftSegment.setVisible(true);
-			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		if (event.getSpeechEngine() == sapi4Engine || event.getSpeechEngine() == sapi5Engine) {
+			if (sapi4Engine.isStarted() || sapi5Engine.isStarted()) {
+				microsoftSegment.setVisible(true);
+				SwingUtilities.invokeLater(sectionListPanel::revalidate);
+			}
 		}
-		else if (event.getSpeechEngine() instanceof SAPI5Engine) {
-		}
+		updateWarnings();
 	}
 
 	@Subscribe
 	private void onSpeechEngineStopped(SpeechEngineStopped event) {
-		if (event.getSpeechEngine() instanceof SAPI4Engine) {
-			microsoftSegment.setVisible(false);
-			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		if (event.getSpeechEngine() == sapi4Engine || event.getSpeechEngine() == sapi5Engine) {
+			if (!sapi4Engine.isStarted() && !sapi5Engine.isStarted()) {
+				microsoftSegment.setVisible(false);
+				SwingUtilities.invokeLater(sectionListPanel::revalidate);
+			}
 		}
-		else if (event.getSpeechEngine() instanceof SAPI5Engine) {
-		}
+		updateWarnings();
+	}
+
+	@Subscribe
+	private void onTextToSpeechNoEngineError(TextToSpeechNoEngineError event) {
+		centerNoEngineWarning.setVisible(true);
+		centerStoppedWarning.setVisible(false);
+	}
+
+	@Subscribe
+	private void onTextToSpeechStarted(TextToSpeechStarted event) {
+		updateWarnings();
+	}
+
+	@Subscribe
+	private void onTextToSpeechStopped(TextToSpeechStopped event) {
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -239,21 +271,67 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SwingUtilities.invokeLater(this::buildSpeakerList);
 	}
 
+	private void updateWarnings() {
+		centerStoppedWarning.setVisible(!textToSpeech.isStarted());
+		revalidate();
+	}
+
 	private void buildSpeakerList() {
 		sectionListPanel.removeAll();
 
+		JLabel stoppedWarning =
+			new JLabel("<html>Natural Speech is not running<br>Start the engine to see voices</html>",
+				SwingConstants.CENTER);
+		stoppedWarning.setBorder(new EmptyBorder(5,5,5,5));
+		stoppedWarning.setFont(FontManager.getRunescapeFont());
+		stoppedWarning.setForeground(Color.BLACK);
+		stoppedWarning.setBackground(new Color(0xFFBB33));
+		stoppedWarning.setOpaque(true);
+		centerStoppedWarning = new JPanel();
+		centerStoppedWarning.setVisible(false);
+		centerStoppedWarning.setLayout(new BorderLayout());
+		centerStoppedWarning.add(stoppedWarning, BorderLayout.CENTER);
+
+		JLabel noEngineWarning =
+			new JLabel("<html>There are no available voices installed</html>", SwingConstants.CENTER);
+		noEngineWarning.setBorder(new EmptyBorder(5,5,5,5));
+		noEngineWarning.setFont(FontManager.getRunescapeFont());
+		noEngineWarning.setForeground(Color.BLACK);
+		noEngineWarning.setBackground(new Color(0xFFBB33));
+		noEngineWarning.setOpaque(true);
+		centerNoEngineWarning = new JPanel();
+		centerNoEngineWarning.setVisible(false);
+		centerNoEngineWarning.setLayout(new BorderLayout());
+		centerNoEngineWarning.add(noEngineWarning, BorderLayout.CENTER);
+
+		JLabel copyHint = new JLabel("click to copy, paste to voice setting", SwingConstants.CENTER);
+		copyHint.setFont(FontManager.getRunescapeFont());
+		copyHint.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		JPanel centerCopyHint = new JPanel();
+		centerCopyHint.setOpaque(false);
+		centerCopyHint.setLayout(new BorderLayout());
+		centerCopyHint.add(copyHint, BorderLayout.CENTER);
+
+		JPanel helpPanel = new JPanel();
+		helpPanel.setLayout(new OverlayLayout(helpPanel));
+		helpPanel.add(centerNoEngineWarning);
+		helpPanel.add(centerStoppedWarning);
+		helpPanel.add(centerCopyHint);
+		sectionListPanel.add(helpPanel);
+
 		List<String> sapi4Models = sapi4Repository.getVoices();
-		List<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getAvailableModels();
+		List<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getAvailableSAPI5s();
+		List<PiperRepository.ModelURL> piperModelURLS = piperRepository.getModelURLS();
 
-		if (!sapi4Models.isEmpty() || !sapi5Models.isEmpty()) {
-			buildMicrosoftModelSegment(sapi4Models, sapi5Models);
-		}
+		buildMicrosoftModelSegment(sapi4Models, sapi5Models);
 
-		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
+		for (PiperRepository.ModelURL modelURL : piperModelURLS) {
 			if (piperRepository.hasModelLocal(modelURL.getModelName())) {
 				buildPiperModelSegment(modelURL.getModelName());
 			}
 		}
+
+		updateWarnings();
 	}
 
 	private void buildMicrosoftModelSegment(List<String> sapi4Models, List<SAPI5Process.SAPI5Voice> sapi5Models) {
@@ -322,10 +400,10 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sapi5Models.stream()
 			.sorted(Comparator.comparing(SAPI5Process.SAPI5Voice::getName))
 			.forEach((voice) -> {
-				String modelName = SAPI5Alias.sapiToVoiceName.getOrDefault(voice.getName(), voice.getName());
+				String modelName = SAPI5Alias.sapiToModelName.getOrDefault(voice.getName(), voice.getName());
 
-				VoiceMetadata metadata = new VoiceMetadata(
-					modelName, voice.getGender(),
+				// The ID is the model name, no need to display the full name
+				VoiceMetadata metadata = new VoiceMetadata("", voice.getGender(),
 					new VoiceID(SAPI5Engine.SAPI5_MODEL_NAME, modelName)
 				);
 

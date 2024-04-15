@@ -7,15 +7,22 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Image;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.OverlayLayout;
+import javax.swing.Timer;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
@@ -39,6 +46,10 @@ public class VoiceListItem extends JPanel {
 
 	}
 
+	private final JPanel hintPanel;
+	private final JPanel contentPanel;
+
+
 	public VoiceListItem(
 		VoiceExplorerPanel voiceExplorerPanel,
 		TextToSpeech textToSpeech,
@@ -47,10 +58,7 @@ public class VoiceListItem extends JPanel {
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.voiceMetadata = voiceMetadata;
 
-		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
-		this.setOpaque(true);
-		this.setToolTipText(String.format("%s %s (%s)", voiceMetadata.voiceId.id, voiceMetadata.getName(),
-			voiceMetadata.getGender()));
+
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
@@ -81,7 +89,7 @@ public class VoiceListItem extends JPanel {
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
 			.addGap(5)
-			.addComponent(piperIdLabel, 25, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+			.addComponent(piperIdLabel, 20, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
 			.addGap(5)
 			.addComponent(nameLabel)
 			.addGap(5).addComponent(genderLabel));
@@ -111,11 +119,77 @@ public class VoiceListItem extends JPanel {
 			}
 		);
 
+		JPanel overlayWrapper = new JPanel();
+		overlayWrapper.setLayout(new OverlayLayout(overlayWrapper));
 
-		BorderLayout rootLayout = new BorderLayout();
-		this.setLayout(rootLayout);
-		this.add(speakerPanel, BorderLayout.CENTER);
-		this.add(playButton, BorderLayout.EAST);
+
+		contentPanel = new JPanel();
+		contentPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		contentPanel.setOpaque(true);
+		contentPanel.setToolTipText(voiceMetadata.voiceId.toVoiceIDString());
+		contentPanel.setLayout(new BorderLayout());
+		contentPanel.add(speakerPanel, BorderLayout.CENTER);
+		contentPanel.add(playButton, BorderLayout.EAST);
+
+		contentPanel.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				hintPanel.setVisible(true);
+
+				// copy voiceid to clipboard
+				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+					new StringSelection(voiceMetadata.voiceId.toVoiceIDString()), null
+				);
+
+				Timer timer = new Timer(1500, event -> {
+					hintPanel.setVisible(false);
+					revalidate();
+				});
+				timer.setRepeats(false);
+				timer.start();
+
+				revalidate();
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+				contentPanel.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
+				revalidate();
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				contentPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+				revalidate();
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				contentPanel.setBackground(ColorScheme.DARKER_GRAY_HOVER_COLOR);
+				revalidate();
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+				contentPanel.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+				revalidate();
+			}
+		});
+
+		hintPanel = new JPanel();
+		hintPanel.setBackground(ColorScheme.BRAND_ORANGE_TRANSPARENT);
+		JLabel copiedHint = new JLabel("copied!");
+		copiedHint.setForeground(Color.WHITE);
+		copiedHint.setFont(FontManager.getRunescapeFont());
+		hintPanel.add(copiedHint);
+		hintPanel.setEnabled(false);
+		hintPanel.setVisible(false);
+
+		overlayWrapper.add(hintPanel);
+		overlayWrapper.add(contentPanel);
+
+		this.setLayout(new BorderLayout());
+		this.add(overlayWrapper);
 
 		revalidate();
 	}

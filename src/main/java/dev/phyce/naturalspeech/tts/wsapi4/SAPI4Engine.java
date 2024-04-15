@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.tts.wsapi4;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
@@ -14,7 +15,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @PluginSingleton
 public class SAPI4Engine implements SpeechEngine {
 
@@ -31,6 +35,9 @@ public class SAPI4Engine implements SpeechEngine {
 	// A more generalized approach can be done at a later time.
 	public static final String SAPI4_MODEL_NAME = "microsoft";
 
+	@Getter
+	private boolean started = false;
+
 	@Inject
 	public SAPI4Engine(
 		SAPI4Repository sapi4Repository,
@@ -43,17 +50,20 @@ public class SAPI4Engine implements SpeechEngine {
 		this.audioEngine = audioEngine;
 		this.voiceManager = voiceManager;
 
+		if (!OSValidator.IS_WINDOWS) {
+			return;
+		}
 
-		if (OSValidator.IS_WINDOWS) {
-			List<String> voiceNames = sapi4Repository.getVoices();
-			if (voiceNames != null) {
-				for (String voiceName : voiceNames) {
-					SpeechAPI4 sapi = SpeechAPI4.start(audioEngine, voiceName, runtimeConfig.getSAPI4Path());
-					if (sapi != null) {
-						sapi4s.put(voiceName, sapi);
-						voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
-					}
-				}
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+			return;
+		}
+
+		List<String> voiceNames = sapi4Repository.getVoices();
+		for (String voiceName : voiceNames) {
+			SpeechAPI4 sapi = SpeechAPI4.start(audioEngine, voiceName, runtimeConfig.getSAPI4Path());
+			if (sapi != null) {
+				sapi4s.put(voiceName, sapi);
+				voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
 			}
 		}
 	}
@@ -77,24 +87,24 @@ public class SAPI4Engine implements SpeechEngine {
 	public StartResult start() {
 		// SAPI4 models don't have lifecycles and does not need to be cleared on stop
 		if (sapi4s.isEmpty()) {
+			started = false;
 			return StartResult.FAILED;
 		} else {
+			started = true;
 			return StartResult.SUCCESS;
 		}
+
 	}
 
 	@Override
 	public void stop() {
-		// ignore
-	}
-
-	@Override
-	public boolean isStarted() {
-		return true;
+		started = false;
 	}
 
 	@Override
 	public boolean canSpeakAny() {
+		if (!started) return false;
+
 		return !sapi4s.isEmpty();
 	}
 

@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 
 @AllArgsConstructor
-public enum SAPI4VoiceCache {
+public enum SAPI4Cache {
 	SAM("Sam", "sam", Gender.MALE,100, 50, 200, 150, 30, 450),
 
 	MARY("Mary", "mary", Gender.FEMALE, 169, 84, 338, 170, 30, 510),
@@ -30,7 +30,19 @@ public enum SAPI4VoiceCache {
 	ROBO6("RoboSoft Six", "robo6", Gender.OTHER, 100, 50, 200, 130, 30, 390),
 
 	WHISPER_FEMALE("Female Whisper", "whisperfemale", Gender.FEMALE, 169, 84, 338, 170, 30, 510),
-	WHISPER_MALE("Male Whisper", "whispermale", Gender.MALE, 113, 56, 226, 170, 30, 510)
+	WHISPER_MALE("Male Whisper", "whispermale", Gender.MALE, 113, 56, 226, 170, 30, 510),
+
+	TRUEVOICE_MALE1("Adult Male #1, American English (TruVoice)", "trueman1", Gender.MALE, 85, 50, 400, 150, 50, 250),
+	TRUEVOICE_MALE2("Adult Male #2, American English (TruVoice)", "trueman2", Gender.MALE, 50, 50, 400, 150, 50, 250),
+	TRUEVOICE_MALE3("Adult Male #3, American English (TruVoice)", "trueman3", Gender.MALE, 125, 50, 400, 150, 50, 250),
+	TRUEVOICE_MALE4("Adult Male #4, American English (TruVoice)", "trueman4", Gender.MALE, 73, 50, 400, 150, 50, 250),
+	TRUEVOICE_MALE5("Adult Male #5, American English (TruVoice)", "trueman5", Gender.MALE, 129, 50, 400, 150, 50, 250),
+	TRUEVOICE_MALE6("Adult Male #6, American English (TruVoice)", "trueman6", Gender.MALE, 89, 50, 400, 120, 50, 250),
+	TRUEVOICE_MALE7("Adult Male #7, American English (TruVoice)", "trueman7", Gender.MALE, 117, 50, 400, 150, 50, 250),
+	TRUEVOICE_MALE8("Adult Male #8, American English (TruVoice)", "trueman8", Gender.MALE, 203, 50, 400, 150, 50, 250),
+
+	TRUEVOICE_FEMALE1("Adult Female #1, American English (TruVoice)", "truefemale1", Gender.FEMALE, 208, 50, 400, 150, 50, 250),
+	TRUEVOICE_FEMALE2("Adult Female #2, American English (TruVoice)", "truefemale2", Gender.FEMALE, 152, 50, 400, 150, 50, 250),
 	;
 
 	public final String sapiName;
@@ -48,7 +60,7 @@ public enum SAPI4VoiceCache {
 
 	static {
 		ImmutableBiMap.Builder<String, String> sapiToModelNameBuilder = ImmutableBiMap.builder();
-		for (SAPI4VoiceCache model : SAPI4VoiceCache.values()) {
+		for (SAPI4Cache model : SAPI4Cache.values()) {
 			sapiToModelNameBuilder.put(model.sapiName, model.modelName);
 		}
 		sapiToVoiceName = sapiToModelNameBuilder.build();
@@ -57,8 +69,8 @@ public enum SAPI4VoiceCache {
 
 
 	@CheckForNull
-	public static SAPI4VoiceCache findSapiName(@NonNull String sapiName) {
-		for (SAPI4VoiceCache cached : SAPI4VoiceCache.values()) {
+	public static SAPI4Cache findSapiName(@NonNull String sapiName) {
+		for (SAPI4Cache cached : SAPI4Cache.values()) {
 			if (cached.sapiName.equals(sapiName)) {
 				return cached;
 			}
@@ -67,8 +79,8 @@ public enum SAPI4VoiceCache {
 	}
 
 	@CheckForNull
-	public static SAPI4VoiceCache findVoiceName(@NonNull String voiceName) {
-		for (SAPI4VoiceCache cached : SAPI4VoiceCache.values()) {
+	public static SAPI4Cache findVoiceName(@NonNull String voiceName) {
+		for (SAPI4Cache cached : SAPI4Cache.values()) {
 			if (cached.modelName.equals(voiceName)) {
 				return cached;
 			}

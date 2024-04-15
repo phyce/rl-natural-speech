@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
@@ -59,14 +58,18 @@ public class SpeechAPI4 {
 
 	@CheckForNull
 	public static SpeechAPI4 start(AudioEngine audioEngine, String voiceName, Path sapi4Path) {
-		String sapiName = SAPI4VoiceCache.voiceToSapiName.getOrDefault(voiceName, voiceName);
+
+		String sapiName = SAPI4Cache.voiceToSapiName.getOrDefault(voiceName, voiceName);
+		checkState(sapiName != null);
 
 		int speed;
 		int pitch;
 		Gender gender;
 
-		if (SAPI4VoiceCache.isCached(sapiName)) {
-			SAPI4VoiceCache cached = Objects.requireNonNull(SAPI4VoiceCache.findSapiName(sapiName), sapiName);
+		if (SAPI4Cache.isCached(sapiName)) {
+			SAPI4Cache cached = SAPI4Cache.findSapiName(sapiName);
+			checkState(cached != null);
+
 			log.trace("Found SAPI4 Model cache for {}", cached);
 			speed = cached.defaultSpeed;
 			pitch = cached.defaultPitch;

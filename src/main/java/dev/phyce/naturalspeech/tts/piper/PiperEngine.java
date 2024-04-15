@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.tts.piper;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.ModelConfig;
@@ -63,6 +64,7 @@ public class PiperEngine implements SpeechEngine {
 		this.configManager = configManager;
 		this.voiceManager = voiceManager;
 		this.pluginEventBus = pluginEventBus;
+
 
 		loadModelConfig();
 
@@ -166,6 +168,11 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	public boolean isPiperPathValid() {
+
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+			return false;
+		}
+
 		File piper_file = runtimeConfig.getPiperPath().toFile();
 
 		if (OSValidator.IS_WINDOWS) {

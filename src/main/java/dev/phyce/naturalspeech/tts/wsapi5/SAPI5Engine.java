@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.tts.wsapi5;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.tts.SpeechEngine;
@@ -31,7 +32,7 @@ public class SAPI5Engine implements SpeechEngine {
 	public static final String SAPI5_MODEL_NAME = "microsoft";
 
 	@Getter
-	private final List<SAPI5Process.SAPI5Voice> availableModels;
+	private final List<SAPI5Process.SAPI5Voice> availableSAPI5s;
 
 	@Getter
 	private boolean started = false;
@@ -43,12 +44,24 @@ public class SAPI5Engine implements SpeechEngine {
 		this.audioEngine = audioEngine;
 		this.voiceManager = voiceManager;
 
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+			availableSAPI5s = Collections.unmodifiableList(new ArrayList<>());
+			return;
+		}
+
+		if (!OSValidator.IS_WINDOWS) {
+			log.trace("Not windows, SAPI5 skipping");
+			availableSAPI5s = Collections.unmodifiableList(new ArrayList<>());
+			return;
+		}
+
+
 		SAPI5Process sapi5 = SAPI5Process.start();
 		if (sapi5 != null) {
-			availableModels = Collections.unmodifiableList(sapi5.getAvailableVoices());
+			availableSAPI5s = Collections.unmodifiableList(sapi5.getAvailableVoices());
 			sapi5.destroy();
 		} else {
-			availableModels = Collections.unmodifiableList(new ArrayList<>());
+			availableSAPI5s = Collections.unmodifiableList(new ArrayList<>());
 		}
 	}
 
@@ -77,6 +90,11 @@ public class SAPI5Engine implements SpeechEngine {
 
 	@Override
 	public StartResult start() {
+
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+			return StartResult.FAILED;
+		}
+
 		if (!OSValidator.IS_WINDOWS) {
 			log.trace("Not windows, WSAPI5 fail.");
 			return StartResult.FAILED;
@@ -93,9 +111,9 @@ public class SAPI5Engine implements SpeechEngine {
 			return StartResult.FAILED;
 		}
 
-		for (SAPI5Process.SAPI5Voice model : availableModels) {
+		for (SAPI5Process.SAPI5Voice model : availableSAPI5s) {
 			String sapiName = model.getName();
-			String modelName = SAPI5Alias.sapiToVoiceName.getOrDefault(sapiName, sapiName);
+			String modelName = SAPI5Alias.sapiToModelName.getOrDefault(sapiName, sapiName);
 			// SAPI5 have a virtual "microsoft" model, the actual model fits in the id.
 			voiceManager.registerVoiceID(new VoiceID(SAPI5_MODEL_NAME, modelName), model.getGender());
 		}
@@ -106,16 +124,18 @@ public class SAPI5Engine implements SpeechEngine {
 
 	@Override
 	public void stop() {
+
 		process.destroy();
 		process = null;
 
-		for (SAPI5Process.SAPI5Voice model : availableModels) {
+		for (SAPI5Process.SAPI5Voice model : availableSAPI5s) {
 			String sapiName = model.getName();
-			String modelName = SAPI5Alias.sapiToVoiceName.getOrDefault(sapiName, sapiName);
+			String modelName = SAPI5Alias.sapiToModelName.getOrDefault(sapiName, sapiName);
 			// SAPI5 have a virtual "microsoft" model, the actual model fits in the id.
 			voiceManager.unregisterVoiceID(new VoiceID(SAPI5_MODEL_NAME, modelName));
 		}
 
+		started = false;
 	}
 
 	@Override
@@ -125,7 +145,7 @@ public class SAPI5Engine implements SpeechEngine {
 
 	@Override
 	public boolean canSpeak(VoiceID voiceID) {
-		if (availableModels == null) return false;
+		if (availableSAPI5s == null) return false;
 
 		if (!voiceID.modelName.equals(SAPI5_MODEL_NAME)) {
 			return false;
@@ -133,7 +153,7 @@ public class SAPI5Engine implements SpeechEngine {
 
 		String sapiName = SAPI5Alias.modelToSapiName.getOrDefault(voiceID.id, voiceID.id);
 
-		return availableModels.stream().anyMatch(voice -> voice.getName().equals(sapiName));
+		return availableSAPI5s.stream().anyMatch(voice -> voice.getName().equals(sapiName));
 	}
 
 	@Override

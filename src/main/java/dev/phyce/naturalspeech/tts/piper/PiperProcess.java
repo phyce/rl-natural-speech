@@ -119,6 +119,7 @@ public class PiperProcess {
 			log.error("attempting to generateAudio with locked PiperProcess({}):{}", this, text);
 			return;
 		}
+		piperLocked.set(true);
 
 		new Thread(() -> {
 			try {
@@ -126,13 +127,14 @@ public class PiperProcess {
 			} catch (IOException e) {
 				log.error("PiperProcess {} failed to generate:{}", this, text);
 				onComplete.accept(null);
+			} finally {
+				piperLocked.set(false);
 			}
 		}).start();
 	}
 
 	@SneakyThrows(InterruptedException.class)
 	private byte[] _blockedGenerateAudio(int piperVoiceID, String text) throws IOException {
-		piperLocked.set(true);
 		try {
 			byte[] result = null;
 
@@ -151,7 +153,6 @@ public class PiperProcess {
 			return result;
 		} finally {
 			streamCapture.reset();
-			piperLocked.set(false);
 		}
 	}
 
