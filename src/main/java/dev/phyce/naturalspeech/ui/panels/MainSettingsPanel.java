@@ -7,6 +7,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
+import dev.phyce.naturalspeech.events.TextToSpeechNoEngineError;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
@@ -20,6 +21,7 @@ import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
+import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -32,15 +34,18 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -88,6 +93,8 @@ public class MainSettingsPanel extends PluginPanel {
 	private JPanel piperMonitorPanel;
 	private final Map<PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Map<String, PiperModelItem> piperModelMap = new HashMap<>();
+	private JPanel centerStoppedWarning;
+	private JPanel centerNoEngineWarning;
 
 	@Inject
 	public MainSettingsPanel(
@@ -118,7 +125,7 @@ public class MainSettingsPanel extends PluginPanel {
 		// This panel is where the actual content lives.
 		mainContentPanel = new FixedWidthPanel();
 		mainContentPanel.setBorder(BORDER_PADDING);
-		mainContentPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		mainContentPanel.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		mainContentPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 		// wrap for scrolling, fixed to NORTH in-order to grow southward
@@ -197,8 +204,8 @@ public class MainSettingsPanel extends PluginPanel {
 
 		toggleSection(sectionToggle, sectionContent);
 
-//		JPanel piperFileChoosePanel = buildPiperFileChoose();
-//		sectionContent.add(piperFileChoosePanel);
+		JPanel piperFileChoosePanel = buildPiperFileChoose();
+		sectionContent.add(piperFileChoosePanel);
 
 		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
 		sectionContent.add(piperProcessMonitorPanel);
@@ -218,6 +225,7 @@ public class MainSettingsPanel extends PluginPanel {
 			statusLabel.setForeground(Color.WHITE);
 			statusPanel.setToolTipText("Text to speech is running.");
 		}
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -226,6 +234,13 @@ public class MainSettingsPanel extends PluginPanel {
 		statusLabel.setBackground(Color.DARK_GRAY);
 		statusLabel.setForeground(null);
 		statusPanel.setToolTipText("Press start to begin text to speech.");
+		updateWarnings();
+	}
+
+	@Subscribe
+	private void onTextToSpeechNoEngineError(TextToSpeechNoEngineError event) {
+		centerNoEngineWarning.setVisible(true);
+		centerStoppedWarning.setVisible(false);
 	}
 
 	@Subscribe
@@ -233,6 +248,7 @@ public class MainSettingsPanel extends PluginPanel {
 		if (event.getSpeechEngine() instanceof PiperEngine) {
 			piperMonitorPanel.setVisible(true);
 		}
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -240,6 +256,7 @@ public class MainSettingsPanel extends PluginPanel {
 		if (event.getSpeechEngine() instanceof PiperEngine) {
 			piperMonitorPanel.setVisible(false);
 		}
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -248,6 +265,7 @@ public class MainSettingsPanel extends PluginPanel {
 		piperModelMonitorMap.put(event.getPiper(), piperItem);
 		piperMonitorPanel.add(piperItem);
 		piperMonitorPanel.revalidate();
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -257,6 +275,7 @@ public class MainSettingsPanel extends PluginPanel {
 			piperMonitorPanel.remove(remove);
 			piperMonitorPanel.revalidate();
 		}
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -266,6 +285,7 @@ public class MainSettingsPanel extends PluginPanel {
 			listItem.rebuild();
 		}
 		SwingUtilities.invokeLater(this::revalidate);
+		updateWarnings();
 	}
 
 	@Subscribe
@@ -279,8 +299,13 @@ public class MainSettingsPanel extends PluginPanel {
 				"No UI item for {}, MainSettingsPanel currently assumes PiperRepository retain same ModelURLs during runtime.",
 				event.getModelName());
 		}
+		updateWarnings();
 	}
 
+	private void updateWarnings() {
+		centerStoppedWarning.setVisible(!textToSpeech.isStarted());
+		revalidate();
+	}
 
 	public void buildHeaderSegment() {
 		JLabel titleLabel = new JLabel("Natural Speech", JLabel.CENTER);
@@ -305,6 +330,63 @@ public class MainSettingsPanel extends PluginPanel {
 		instructionsLink.setBorder(new EmptyBorder(0, 0, 5, 0));
 		mainContentPanel.add(instructionsLink);
 
+		JLabel stoppedWarning =
+			new JLabel("<html>Natural Speech is not running</html>",
+				SwingConstants.CENTER);
+		stoppedWarning.setBorder(new EmptyBorder(5, 5, 5, 5));
+		stoppedWarning.setFont(FontManager.getRunescapeFont());
+		stoppedWarning.setForeground(Color.BLACK);
+		stoppedWarning.setBackground(new Color(0xFFBB33));
+		stoppedWarning.setOpaque(true);
+		centerStoppedWarning = new JPanel();
+		centerStoppedWarning.setVisible(false);
+		centerStoppedWarning.setLayout(new BorderLayout());
+		centerStoppedWarning.add(stoppedWarning, BorderLayout.CENTER);
+
+		JLabel noEngineWarning =
+			new JLabel("<html>There are no available voices installed</html>", SwingConstants.CENTER);
+		noEngineWarning.setBorder(new EmptyBorder(5, 5, 5, 5));
+		noEngineWarning.setFont(FontManager.getRunescapeFont());
+		noEngineWarning.setForeground(Color.BLACK);
+		noEngineWarning.setBackground(new Color(0xFFBB33));
+		noEngineWarning.setOpaque(true);
+
+		JLabel noEngineExplain =
+			new JLabel(
+				"<html>We try to support text-to-speech out of the box; " +
+					"however, we could not find a native option on your computer.<br><br>" +
+					"We have more text-to-speech options available for download on our website.<br><br>" +
+					"- Phyce, Louis Hong</html>",
+				SwingConstants.CENTER);
+		noEngineExplain.setBorder(new EmptyBorder(20, 0, 20, 0));
+		noEngineExplain.setFont(FontManager.getRunescapeFont());
+		noEngineExplain.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		noEngineExplain.setOpaque(false);
+
+		JLabel websiteLink = new JLabel("<html><a href='#'>https://naturalspeech.dev</a></html>", SwingConstants.CENTER);
+		websiteLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		websiteLink.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				try {
+					Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
+				} catch (Exception ex) {
+					log.error("Error opening website link.", ex);
+				}
+			}
+		});
+
+		centerNoEngineWarning = new JPanel();
+		centerNoEngineWarning.setVisible(false);
+		centerNoEngineWarning.setLayout(new BorderLayout());
+		centerNoEngineWarning.add(noEngineWarning, BorderLayout.NORTH);
+		centerNoEngineWarning.add(noEngineExplain, BorderLayout.CENTER);
+		centerNoEngineWarning.add(websiteLink, BorderLayout.SOUTH);
+
+		mainContentPanel.add(centerNoEngineWarning);
+		mainContentPanel.add(centerStoppedWarning);
+
+		updateWarnings();
 	}
 
 	public void buildVoiceRepositorySegment() {
@@ -463,64 +545,6 @@ public class MainSettingsPanel extends PluginPanel {
 
 		statusPanel.add(statusLabel, BorderLayout.NORTH);
 
-		//		textToSpeech.addTextToSpeechListener(
-		//			new TextToSpeech.TextToSpeechListener() {
-		//				@Override
-		//				public void onStart() {
-		//					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-		//					// not just one starting piper
-		//					if (textToSpeech.isStarted() && !textToSpeech.canSpeakAny()) {
-		//						statusLabel.setText("No Models Enabled");
-		//						statusLabel.setBackground(Color.ORANGE.darker());
-		//						statusLabel.setForeground(Color.WHITE);
-		//						statusPanel.setToolTipText("Download and enable a model.");
-		//					} else {
-		//						statusLabel.setText("Running");
-		//						statusLabel.setBackground(Color.GREEN.darker());
-		//						statusLabel.setForeground(Color.WHITE);
-		//						statusPanel.setToolTipText("Text to speech is running.");
-		//					}
-		//
-		//				}
-		//
-		//				@Override
-		//				public void onStop() {
-		//					statusLabel.setText("Not running");
-		//					statusLabel.setBackground(Color.DARK_GRAY);
-		//					statusLabel.setForeground(null);
-		//					statusPanel.setToolTipText("Press start to begin text to speech.");
-		//				}
-		//
-		//				@Override
-		//				public void onPiperExit(PiperModel piper) {
-		//					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-		//					// not just one starting piper
-		//					if (textToSpeech.isStarted() && !textToSpeech.canSpeakAny()) {
-		//						// Detect if this was an unintended exit, because the model would still be enabled
-		//						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
-		//							statusLabel.setText("Crashed (Contact Us)");
-		//							statusLabel.setBackground(Color.RED.darker());
-		//							statusLabel.setForeground(Color.WHITE);
-		//							statusPanel.setToolTipText("Please contact the developers for support.");
-		//						} else {
-		//							statusLabel.setText("No Models Enabled");
-		//							statusLabel.setBackground(Color.ORANGE.darker());
-		//							statusLabel.setForeground(Color.WHITE);
-		//							statusPanel.setToolTipText("Download and enable a model.");
-		//						}
-		//					}
-		//				}
-		//
-		//				@Override
-		//				public void onPiperInvalid() {
-		//					statusLabel.setText("Piper Path Invalid");
-		//					statusLabel.setBackground(Color.RED.darker().darker().darker());
-		//					statusLabel.setForeground(Color.WHITE);
-		//					statusPanel.setToolTipText("Please contact the developers for support.");
-		//				}
-		//			}
-		//		);
-
 		// Button Panel
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
 
@@ -537,53 +561,52 @@ public class MainSettingsPanel extends PluginPanel {
 		return statusPanel;
 	}
 
-//	private JPanel buildPiperFileChoose() {
-//		JLabel header = new JLabel("Natural Speech Location");
-//		header.setForeground(Color.WHITE);
-//
-//		JTextField filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
-//		filePathField.setToolTipText("Piper binary file path");
-//		filePathField.setEditable(false);
-//
-//		JButton browseButton = new JButton("Browse");
-//		browseButton.setToolTipText("Requires manual download, please read instructions.");
-//		browseButton.addActionListener(e -> {
-//			// open in drive top path
-//			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
-//			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-//			int returnValue = fileChooser.showOpenDialog(MainSettingsPanel.this);
-//			if (returnValue == JFileChooser.APPROVE_OPTION) {
-//				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
-//
-//				// if the user accidentally set the piper folder and not the executable, automatically correct
-//				if (newPath.toFile().isDirectory()) {
-//					if (OSValidator.IS_WINDOWS) {
-//						newPath = newPath.resolve("piper.exe");
-//					}
-//					else { // assume unix based
-//						newPath = newPath.resolve("piper");
-//					}
-//				}
-//
-//				filePathField.setText(newPath.toString());
-//				runtimeConfig.savePiperPath(newPath);
-//
-//				// if text to speech is running, restart
-//				if (textToSpeech.isStarted()) {
-//					textToSpeech.stop();
-//				}
-//
-//			}
-//
-//		});
-//
-//		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
-//		fileBrowsePanel.setBorder(new EmptyBorder(5, 0, 0, 0));
-//		fileBrowsePanel.add(header, BorderLayout.NORTH);
-//		fileBrowsePanel.add(filePathField, BorderLayout.CENTER);
-//		fileBrowsePanel.add(browseButton, BorderLayout.SOUTH);
-//		return fileBrowsePanel;
-//	}
+	private JPanel buildPiperFileChoose() {
+		JLabel header = new JLabel("Piper Location");
+		header.setForeground(Color.WHITE);
+
+		JTextField filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
+		filePathField.setToolTipText(
+			"If you manually downloaded piper, you can set it's location here. Otherwise, use our installer!");
+		filePathField.setEditable(false);
+
+		JButton browseButton = new JButton("Browse");
+		browseButton.setToolTipText("Requires manual download, please read instructions.");
+		browseButton.addActionListener(e -> {
+			// open in drive top path
+			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
+			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			int returnValue = fileChooser.showOpenDialog(MainSettingsPanel.this);
+			if (returnValue == JFileChooser.APPROVE_OPTION) {
+				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
+
+				// if the user accidentally set the piper folder and not the executable, automatically correct
+				if (newPath.toFile().isDirectory()) {
+					if (OSValidator.IS_WINDOWS) {
+						newPath = newPath.resolve("piper.exe");
+					}
+					else { // assume unix based
+						newPath = newPath.resolve("piper");
+					}
+				}
+
+				filePathField.setText(newPath.toString());
+				runtimeConfig.savePiperPath(newPath);
+
+				// if text to speech is running, restart
+				if (textToSpeech.isStarted()) {
+					textToSpeech.stop();
+				}
+			}
+		});
+
+		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
+		fileBrowsePanel.setBorder(new EmptyBorder(5, 0, 0, 0));
+		fileBrowsePanel.add(header, BorderLayout.NORTH);
+		fileBrowsePanel.add(filePathField, BorderLayout.CENTER);
+		fileBrowsePanel.add(browseButton, BorderLayout.SOUTH);
+		return fileBrowsePanel;
+	}
 
 	private void toggleSection(JButton toggleButton, JPanel sectionContent) {
 		boolean newState = !sectionContent.isVisible();

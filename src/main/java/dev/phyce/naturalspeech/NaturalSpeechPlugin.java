@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
 
+	// Used to simulate when users don't have any TTS available
 	public static boolean _SIMULATE_NO_TTS;
 
 	static {

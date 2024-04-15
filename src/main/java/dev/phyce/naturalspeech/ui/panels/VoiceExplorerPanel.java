@@ -4,9 +4,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.events.TextToSpeechNoEngineError;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
+import dev.phyce.naturalspeech.events.TextToSpeechNoEngineError;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
@@ -46,7 +46,6 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.OverlayLayout;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -102,6 +101,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private JPanel microsoftSegment;
 	private JPanel centerStoppedWarning;
 	private JPanel centerNoEngineWarning;
+	private JPanel centerCopyHint;
 
 	@Inject
 	public VoiceExplorerPanel(
@@ -249,6 +249,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private void onTextToSpeechNoEngineError(TextToSpeechNoEngineError event) {
 		centerNoEngineWarning.setVisible(true);
 		centerStoppedWarning.setVisible(false);
+		centerCopyHint.setVisible(false);
 	}
 
 	@Subscribe
@@ -272,7 +273,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	private void updateWarnings() {
-		centerStoppedWarning.setVisible(!textToSpeech.isStarted());
+		boolean showWarning = !textToSpeech.isStarted();
+		centerStoppedWarning.setVisible(showWarning);
+		centerCopyHint.setVisible(!showWarning);
 		revalidate();
 	}
 
@@ -307,17 +310,14 @@ public class VoiceExplorerPanel extends EditorPanel {
 		JLabel copyHint = new JLabel("click to copy, paste to voice setting", SwingConstants.CENTER);
 		copyHint.setFont(FontManager.getRunescapeFont());
 		copyHint.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-		JPanel centerCopyHint = new JPanel();
+		centerCopyHint = new JPanel();
 		centerCopyHint.setOpaque(false);
 		centerCopyHint.setLayout(new BorderLayout());
 		centerCopyHint.add(copyHint, BorderLayout.CENTER);
 
-		JPanel helpPanel = new JPanel();
-		helpPanel.setLayout(new OverlayLayout(helpPanel));
-		helpPanel.add(centerNoEngineWarning);
-		helpPanel.add(centerStoppedWarning);
-		helpPanel.add(centerCopyHint);
-		sectionListPanel.add(helpPanel);
+		sectionListPanel.add(centerNoEngineWarning);
+		sectionListPanel.add(centerStoppedWarning);
+		sectionListPanel.add(centerCopyHint);
 
 		List<String> sapi4Models = sapi4Repository.getVoices();
 		List<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getAvailableSAPI5s();

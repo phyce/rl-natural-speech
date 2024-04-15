@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.configs;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.PluginEventBus;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
+import dev.phyce.naturalspeech.events.piper.PiperPathChanged;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.nio.file.Path;
@@ -67,10 +68,10 @@ public class NaturalSpeechRuntimeConfig {
 			.resolve("sapi4out.exe");
 	}
 
-//	public void savePiperPath(Path path) {
-//		configManager.setConfiguration(CONFIG_GROUP, KEY_PIPER_PATH, path.toString());
-//		pluginEventBus.post(new PiperPathChanged(path));
-//	}
+	public void savePiperPath(Path path) {
+		configManager.setConfiguration(CONFIG_GROUP, KEY_DEPRECATED_PIPER_PATH, path.toString());
+		pluginEventBus.post(new PiperPathChanged(path));
+	}
 
 	public void reset() {
 		configManager.unsetConfiguration(CONFIG_GROUP, KEY_DEPRECATED_PIPER_PATH);
