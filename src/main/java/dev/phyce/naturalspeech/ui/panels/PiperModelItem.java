@@ -100,11 +100,11 @@ public class PiperModelItem extends JPanel {
 		toggleButton.setIcon(OFF_SWITCHER);
 		toggleButton.setSelectedIcon(ON_SWITCHER);
 		toggleButton.setPreferredSize(new Dimension(25, 0));
-		toggleButton.setSelected(piperEngine.getModelConfig().isModelEnabled(modelUrl.getModelName()));
+		toggleButton.setSelected(piperEngine.getPiperModelConfig().isModelEnabled(modelUrl.getModelName()));
 		toggleButton.addActionListener(
 			l -> {
 				log.debug("Toggling {} into {}", modelUrl.getModelName(), toggleButton.isSelected());
-				piperEngine.getModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
+				piperEngine.getPiperModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
 				try {
 					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
 					if (piperEngine.isStarted()) {
@@ -141,7 +141,7 @@ public class PiperModelItem extends JPanel {
 				piperRepository.getExecutor().execute(() -> {
 					try {
 						// reset model configs, in case there are previous settings
-						piperEngine.getModelConfig().resetPiperConfig(modelUrl.getModelName());
+						piperEngine.getPiperModelConfig().resetPiperConfig(modelUrl.getModelName());
 
 						piperRepository.loadModelLocal(modelUrl.getModelName());
 
@@ -208,7 +208,7 @@ public class PiperModelItem extends JPanel {
 					}
 
 					// reset the model configs
-					piperEngine.getModelConfig().resetPiperConfig(modelUrl.getModelName());
+					piperEngine.getPiperModelConfig().resetPiperConfig(modelUrl.getModelName());
 
 					// delete the files
 					piperRepository.deleteModelLocal(modelLocal);
@@ -229,11 +229,11 @@ public class PiperModelItem extends JPanel {
 					JOptionPane.WARNING_MESSAGE,
 					null,
 					new Integer[] {1, 2, 3},
-					piperEngine.getModelConfig().getModelProcessCount(modelUrl.getModelName()));
+					piperEngine.getPiperModelConfig().getModelProcessCount(modelUrl.getModelName()));
 
 				if (result != null) {
 					log.debug("Option chose: " + result);
-					piperEngine.getModelConfig().setModelProcessCount(modelUrl.getModelName(), result);
+					piperEngine.getPiperModelConfig().setModelProcessCount(modelUrl.getModelName(), result);
 
 					// TODO(Louis) lazy hack, just reboot all processes with new configuration
 					if (textToSpeech.isStarted()) {

@@ -10,12 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
-public class ModelConfig {
+public class PiperModelConfig {
 
 	private final List<PiperConfig> piperConfigs;
 
-	public static ModelConfig fromDatum(ModelConfigDatum datum) {
-		return new ModelConfig(datum);
+	public static PiperModelConfig fromDatum(ModelConfigDatum datum) {
+		return new PiperModelConfig(datum);
 	}
 
 	public ModelConfigDatum toDatum() {
@@ -25,16 +25,16 @@ public class ModelConfig {
 		return configDatum;
 	}
 
-	public static ModelConfig fromJson(String json) throws JsonSyntaxException {
+	public static PiperModelConfig fromJson(String json) throws JsonSyntaxException {
 		ModelConfigDatum datum = RuneLiteAPI.GSON.fromJson(json, ModelConfigDatum.class);
-		return new ModelConfig(datum);
+		return new PiperModelConfig(datum);
 	}
 
 	public String toJson() {
 		return RuneLiteAPI.GSON.toJson(toDatum());
 	}
 
-	private ModelConfig(ModelConfigDatum datum) {
+	private PiperModelConfig(ModelConfigDatum datum) {
 		piperConfigs = datum.getPiperConfigData().stream().map(PiperConfig::fromDatum).collect(Collectors.toList());
 	}
 

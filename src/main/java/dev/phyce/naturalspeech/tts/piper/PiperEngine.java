@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.configs.ModelConfig;
+import dev.phyce.naturalspeech.configs.PiperModelConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
@@ -46,7 +46,7 @@ public class PiperEngine implements SpeechEngine {
 
 	private final ConcurrentHashMap<String, PiperModel> models = new ConcurrentHashMap<>();
 	@Getter
-	private ModelConfig modelConfig;
+	private PiperModelConfig piperModelConfig;
 	private boolean isPiperUnquarantined = false;
 
 	@Getter
@@ -114,7 +114,7 @@ public class PiperEngine implements SpeechEngine {
 		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
 			try {
 				if (piperRepository.hasModelLocal(modelURL.getModelName())
-					&& modelConfig.isModelEnabled(modelURL.getModelName())) {
+					&& piperModelConfig.isModelEnabled(modelURL.getModelName())) {
 					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
 					startModel(modelLocal);
 					started = true;
@@ -242,7 +242,7 @@ public class PiperEngine implements SpeechEngine {
 			}
 		);
 
-		model.start(modelConfig.getModelProcessCount(modelLocal.getModelName()));
+		model.start(piperModelConfig.getModelProcessCount(modelLocal.getModelName()));
 
 		// if this is going to be the first model running this model register
 		models.put(modelLocal.getModelName(), model);
@@ -269,7 +269,7 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	public void saveModelConfig() {
-		configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_MODEL_CONFIG, modelConfig.toJson());
+		configManager.setConfiguration(CONFIG_GROUP, CONFIG_KEY_MODEL_CONFIG, piperModelConfig.toJson());
 	}
 
 	public void loadModelConfig() {
@@ -280,10 +280,10 @@ public class PiperEngine implements SpeechEngine {
 			// default text to speech config with libritts
 			ModelConfigDatum datum = new ModelConfigDatum();
 			datum.getPiperConfigData().add(new PiperConfigDatum("libritts", true, 1));
-			this.modelConfig = ModelConfig.fromDatum(datum);
+			this.piperModelConfig = PiperModelConfig.fromDatum(datum);
 		}
 		else { // has existing config, just load the json
-			this.modelConfig = ModelConfig.fromJson(json);
+			this.piperModelConfig = PiperModelConfig.fromJson(json);
 		}
 	}
 }
