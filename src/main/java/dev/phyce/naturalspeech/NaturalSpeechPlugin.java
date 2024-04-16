@@ -19,6 +19,7 @@ import java.awt.image.BufferedImage;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
+import javax.swing.SwingUtilities;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -71,13 +72,14 @@ public class NaturalSpeechPlugin extends Plugin {
 	// region: Fields
 	// Scope holds references to all the singletons, provides them to guice injections
 	private PluginSingletonScope pluginSingletonScope;
-	private NaturalSpeech ns;
+	private NaturalSpeechModule ns;
 	private NavigationButton navButton;
 	private final Set<Object> rlEventBusSubscribers = new HashSet<>();
 	// endregion
 
 
 	// region: helpers
+
 	/**
 	 * registers and remembers, used to safely unregister all objects with {@link #unregisterRLEventBusAll()}.
 	 */
@@ -104,7 +106,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void saveConfigs() {
 		ns.voiceManager.saveVoiceConfig();
 		ns.piperEngine.saveModelConfig();
-//		ns.runtimeConfig.savePiperPath(ns.runtimeConfig.getPiperPath());
+		//		ns.runtimeConfig.savePiperPath(ns.runtimeConfig.getPiperPath());
 		ns.muteManager.saveConfig();
 	}
 
@@ -177,7 +179,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		_SIMULATE_NO_TTS = config.simulateNoEngine();
 
 		// plugin fields are wrapped in a field object
-		ns = injector.getInstance(NaturalSpeech.class);
+		ns = injector.getInstance(NaturalSpeechModule.class);
 
 		// Abstracting the massive client event handlers into their own files
 		// registers to eventbus, unregistered automatically using unregisterRLEventBusAll() in shutdown()
@@ -189,7 +191,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		registerRLEventBus(ns.volumeManager);
 
 		// Build panel and navButton
-		{
+		SwingUtilities.invokeLater(() -> {
 			final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "icon.png");
 			navButton = NavigationButton.builder()
 				.tooltip("Natural Speech")
@@ -198,9 +200,10 @@ public class NaturalSpeechPlugin extends Plugin {
 				.panel(ns.topLevelPanel)
 				.build();
 			clientToolbar.addNavigation(navButton);
-		}
+		});
 
 		// Load Abbreviations is a method that can be called later when configs are changed
+
 		ns.textToSpeech.loadAbbreviations();
 
 		ns.textToSpeech.register(ns.piperEngine);
@@ -208,7 +211,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		ns.textToSpeech.register(ns.sapi5Engine);
 
 		if (config.autoStart()) {
-			ns.textToSpeech.start();
+			ns.textToSpeech.asyncStart(ns.pluginExecutorService);
+//				.addListener(() -> log.info("async start finished"), ns.pluginExecutorService);
 		}
 
 		applyConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
@@ -233,6 +237,8 @@ public class NaturalSpeechPlugin extends Plugin {
 		ns.textToSpeech.stop();
 
 		saveConfigs();
+
+		ns.pluginExecutorService.shutdown();
 
 		pluginSingletonScope.exit(); // objects in this scope will be garbage collected after scope exit
 		ns = null;
@@ -304,7 +310,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		if (event.getKey().equals(ConfigKeys.DEVELOPER_SIMULATE_NO_TTS)) {
-			NaturalSpeechPlugin._SIMULATE_NO_TTS = Boolean.parseBoolean(event.getNewValue());
+			NaturalSpeechPlugin._SIMULATE_NO_TTS = config.simulateNoEngine();
 		}
 	}
 	// endregion

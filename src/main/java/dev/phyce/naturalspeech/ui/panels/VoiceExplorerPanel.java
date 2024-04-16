@@ -6,7 +6,7 @@ import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
-import dev.phyce.naturalspeech.events.TextToSpeechNoEngineError;
+import dev.phyce.naturalspeech.events.TextToSpeechFailedStart;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
@@ -246,10 +246,16 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	@Subscribe
-	private void onTextToSpeechNoEngineError(TextToSpeechNoEngineError event) {
-		centerNoEngineWarning.setVisible(true);
-		centerStoppedWarning.setVisible(false);
-		centerCopyHint.setVisible(false);
+	private void onTextToSpeechFailedStart(TextToSpeechFailedStart event) {
+		if (event.getReason() == TextToSpeechFailedStart.Reason.NO_ENGINE) {
+			centerNoEngineWarning.setVisible(true);
+			centerStoppedWarning.setVisible(false);
+			centerCopyHint.setVisible(false);
+		} else {
+			centerNoEngineWarning.setVisible(false);
+			centerStoppedWarning.setVisible(true);
+			centerCopyHint.setVisible(false);
+		}
 	}
 
 	@Subscribe

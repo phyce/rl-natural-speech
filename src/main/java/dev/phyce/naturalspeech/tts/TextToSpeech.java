@@ -9,10 +9,11 @@ import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
-import dev.phyce.naturalspeech.events.TextToSpeechNoEngineError;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
+import dev.phyce.naturalspeech.events.TextToSpeechFailedStart;
 import dev.phyce.naturalspeech.events.TextToSpeechStarted;
+import dev.phyce.naturalspeech.events.TextToSpeechStarting;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.utils.TextUtil;
@@ -27,6 +28,8 @@ import java.util.Vector;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.http.api.RuneLiteAPI;
@@ -60,12 +63,15 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
-	public StartResult start() {
+	@Synchronized
+	public @NonNull StartResult start() {
 
 		if (started) {
 			log.warn("Starting TextToSpeech when already started. Restarting.");
 			stop();
 		}
+
+		pluginEventBus.post(new TextToSpeechStarting());
 
 		for (SpeechEngine engine : engines) {
 			StartResult result = engine.start();
@@ -79,11 +85,12 @@ public class TextToSpeech implements SpeechEngine {
 			}
 		}
 
-		if (activeEngines.isEmpty()){
+		if (activeEngines.isEmpty()) {
 			log.error("No engines started successfully.");
-			pluginEventBus.post(new TextToSpeechNoEngineError());
+			pluginEventBus.post(new TextToSpeechFailedStart(TextToSpeechFailedStart.Reason.NO_ENGINE));
 			return StartResult.FAILED;
-		} else {
+		}
+		else {
 			started = true;
 			pluginEventBus.post(new TextToSpeechStarted());
 			return StartResult.SUCCESS;
@@ -91,6 +98,7 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
+	@Synchronized
 	public void stop() {
 		if (!started) {
 			log.warn("Stopping TextToSpeech when not started. Ignoring.");
@@ -128,7 +136,7 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
-	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 
 		text = expandAbbreviations(text);
 
@@ -157,13 +165,18 @@ public class TextToSpeech implements SpeechEngine {
 		}
 	}
 
+	@Override
+	public @NonNull EngineType getEngineType() {
+		return EngineType.BUILTIN_PLUGIN;
+	}
+
 	public String expandAbbreviations(String text) {
 		return TextUtil.expandAbbreviations(text, abbreviations);
 	}
 
 	/**
 	 * In method so we can load again when user changes config
- 	 */
+	 */
 	public void loadAbbreviations() {
 		URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(ABBREVIATION_FILE));
 		String jsonString;

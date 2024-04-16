@@ -30,6 +30,8 @@ public class PiperProcess {
 	private final BufferedWriter processStdIn;
 	private final Thread processStdInThread;
 	private final Thread processStdErrThread;
+	
+	private volatile boolean destroying = false;
 
 	private PiperProcess(Path piperPath, Path modelPath) throws IOException {
 		piperLocked = new AtomicBoolean(false);
@@ -68,6 +70,7 @@ public class PiperProcess {
 
 	public void destroy() {
 		piperLocked.set(true);
+		destroying = true;
 		processStdErrThread.interrupt();
 		processStdInThread.interrupt();
 
@@ -168,10 +171,34 @@ public class PiperProcess {
 		return process.pid();
 	}
 
+	public ListenableFuture<PiperProcess> onCrash() {
+		SettableFuture<PiperProcess> crash = SettableFuture.create();
+		PiperProcess ref = this;
+		process.onExit().thenAccept((p) -> {
+			// if we're exiting, but not in the process of destroying PiperProcess
+			// then this is a crash
+			if (!ref.destroying) {
+				crash.set(this);
+			} else {
+				crash.cancel(false);
+			}
+		});
+		return crash;
+	}
+
 	public ListenableFuture<PiperProcess> onExit() {
-		SettableFuture<PiperProcess> piperOnExit = SettableFuture.create();
-		process.onExit().thenAccept(p -> piperOnExit.set(this));
-		return piperOnExit;
+		SettableFuture<PiperProcess> exit = SettableFuture.create();
+		PiperProcess ref = this;
+		process.onExit().thenAccept((p) -> {
+			// if we're exiting, but in the process of destroying PiperProcess
+			// then this is a normal exit
+			if (ref.destroying) {
+				exit.set(this);
+			} else {
+				exit.cancel(false);
+			}
+		});
+		return exit;
 	}
 
 	private static String stripPiperLogPrefix(String piperLog) {

@@ -16,6 +16,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -69,7 +71,7 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
-	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 		if (!Objects.equals(voiceID.modelName, SAPI4_MODEL_NAME)) {
 			return SpeakResult.REJECT;
 		}
@@ -84,7 +86,8 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
-	public StartResult start() {
+	@Synchronized
+	public @NonNull StartResult start() {
 		// SAPI4 models don't have lifecycles and does not need to be cleared on stop
 		if (sapi4s.isEmpty()) {
 			started = false;
@@ -97,6 +100,7 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
+	@Synchronized
 	public void stop() {
 		started = false;
 	}
@@ -114,5 +118,10 @@ public class SAPI4Engine implements SpeechEngine {
 	@Override
 	public void silenceAll() {
 		audioEngine.closeAll();
+	}
+
+	@Override
+	public @NonNull EngineType getEngineType() {
+		return EngineType.EXTERNAL_DEPENDENCY;
 	}
 }

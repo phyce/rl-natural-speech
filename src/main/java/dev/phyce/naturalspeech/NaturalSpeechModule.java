@@ -22,10 +22,10 @@ import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
  * <li>Allows plugin objects to leave scope and be garbage collected. Otherwise, RuneLite Plugin objects never leave scope.</li>
  * <li>Allows better hot-reloading because we can re-instantiate plugin objects</li>
  * </ul>
- * Could be a module, but we're lazy-injecting any ways.
+ * Could be an abstract module, but we're lazy-injecting any ways.
  */
 @PluginSingleton
-class NaturalSpeech {
+class NaturalSpeechModule {
 	final NaturalSpeechRuntimeConfig runtimeConfig;
 	final VoiceManager voiceManager;
 	final MuteManager muteManager;
@@ -42,18 +42,17 @@ class NaturalSpeech {
 	final VolumeManager volumeManager;
 	final AudioEngine audioEngine;
 	final TopLevelPanel topLevelPanel;
-	// This private eventbus is entirely separate from RuneLites' EventBus
 	final PluginEventBus pluginEventBus;
+	final PluginExecutorService pluginExecutorService;
 
 	@Inject
-	public NaturalSpeech(
+	public NaturalSpeechModule(
 		NaturalSpeechRuntimeConfig runtimeConfig,
 		VoiceManager voiceManager,
 		MuteManager muteManager,
 		VolumeManager volumeManager,
 		AudioEngine audioEngine,
 		TopLevelPanel topLevelPanel,
-		PluginEventBus pluginEventBus,
 
 		TextToSpeech textToSpeech,
 		PiperEngine piperEngine,
@@ -66,7 +65,13 @@ class NaturalSpeech {
 
 		SpeechEventHandler speechEventHandler,
 		MenuEventHandler menuEventHandler,
-		CommandExecutedEventHandler commandExecutedEventHandler
+		CommandExecutedEventHandler commandExecutedEventHandler,
+
+		// This Executor is entirely separate from RuneLites executor service.
+		// See Plugin configure function for binding
+		PluginExecutorService pluginExecutorService,
+		// This private eventbus is entirely separate from RuneLites' EventBus
+		PluginEventBus pluginEventBus
 
 	) {
 		this.runtimeConfig = runtimeConfig;
@@ -86,6 +91,7 @@ class NaturalSpeech {
 		this.audioEngine = audioEngine;
 		this.topLevelPanel = topLevelPanel;
 		this.pluginEventBus = pluginEventBus;
+		this.pluginExecutorService = pluginExecutorService;
 	}
 
 }

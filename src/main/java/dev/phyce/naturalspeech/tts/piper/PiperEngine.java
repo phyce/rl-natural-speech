@@ -9,6 +9,7 @@ import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
+import dev.phyce.naturalspeech.events.PiperProcessCrashed;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
 import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
 import dev.phyce.naturalspeech.events.piper.PiperProcessExited;
@@ -25,6 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
 
@@ -71,7 +74,7 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 
 		if (!isModelActive(voiceID.getModelName())) {
 			return SpeakResult.REJECT;
@@ -92,7 +95,8 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public StartResult start() {
+	@Synchronized
+	public @NonNull StartResult start() {
 		if (!isPiperPathValid()) {
 			log.trace("No valid piper found at {}", runtimeConfig.getPiperPath());
 			return StartResult.FAILED;
@@ -113,22 +117,29 @@ public class PiperEngine implements SpeechEngine {
 					&& modelConfig.isModelEnabled(modelURL.getModelName())) {
 					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
 					startModel(modelLocal);
+					started = true;
 				}
 			} catch (IOException e) {
-				log.error("Failed to start {}", modelURL.getModelName(), e);
-				return StartResult.FAILED;
+				log.error("Failed to start model {}", modelURL.getModelName(), e);
 			}
 		}
 
-		started = true;
-		return StartResult.SUCCESS;
+
+		if (started) {
+			return StartResult.SUCCESS;
+		} else {
+			return StartResult.FAILED;
+		}
 	}
 
 	@Override
+	@Synchronized
 	public void stop() {
 		if (!started) {
 			return;
 		}
+
+		// prevents self-cleaning behaviour from colliding. (this is not synchronized with piper processes events)
 
 		models.values().stream().map(PiperModel::getModelLocal).forEach(this::stopModel);
 		models.clear();
@@ -154,6 +165,11 @@ public class PiperEngine implements SpeechEngine {
 			models.get(modelName).cancelAll();
 		}
 		audioEngine.closeAll();
+	}
+
+	@Override
+	public @NonNull EngineType getEngineType() {
+		return EngineType.EXTERNAL_DEPENDENCY;
 	}
 
 	public boolean isAlive() {
@@ -210,13 +226,16 @@ public class PiperEngine implements SpeechEngine {
 				@Override
 				public void onPiperProcessExit(PiperProcess process) {
 					pluginEventBus.post(new PiperProcessExited(model, process));
-					// if this is the last model running this model, unregister from voiceMap
+				}
+
+				@Override
+				public void onPiperProcessCrash(PiperProcess process) {
+					pluginEventBus.post(new PiperProcessCrashed(model, process));
 					if (model.countAlive() == 0) {
-						stopModel(model.getModelLocal());
+						stopModel(modelLocal);
 					}
 
-					// If that is the last model in piper, stop
-					if (!isAlive()) {
+					if (models.isEmpty()) {
 						stop();
 					}
 				}
@@ -240,6 +259,7 @@ public class PiperEngine implements SpeechEngine {
 		}
 		else {
 			log.error("Attempting to stop in-active model:{}", modelLocal.getModelName());
+			Thread.dumpStack();
 		}
 	}
 

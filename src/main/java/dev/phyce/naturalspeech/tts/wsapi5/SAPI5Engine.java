@@ -18,6 +18,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.sound.sampled.AudioInputStream;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -66,7 +68,7 @@ public class SAPI5Engine implements SpeechEngine {
 	}
 
 	@Override
-	public SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 		if (!canSpeak(voiceID)) return SpeakResult.REJECT;
 
 		String sapiName = SAPI5Alias.modelToSapiName.getOrDefault(voiceID.id, voiceID.id);
@@ -89,7 +91,8 @@ public class SAPI5Engine implements SpeechEngine {
 	}
 
 	@Override
-	public StartResult start() {
+	@Synchronized
+	public @NonNull StartResult start() {
 
 		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
 			return StartResult.FAILED;
@@ -123,6 +126,7 @@ public class SAPI5Engine implements SpeechEngine {
 	}
 
 	@Override
+	@Synchronized
 	public void stop() {
 
 		process.destroy();
@@ -159,5 +163,10 @@ public class SAPI5Engine implements SpeechEngine {
 	@Override
 	public void silenceAll() {
 		audioEngine.closeAll();
+	}
+
+	@Override
+	public @NonNull EngineType getEngineType() {
+		return EngineType.BUILTIN_OS;
 	}
 }

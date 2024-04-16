@@ -1,7 +1,9 @@
 package dev.phyce.naturalspeech.tts.piper;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import dev.phyce.naturalspeech.audio.AudioEngine;
+import dev.phyce.naturalspeech.guava.SuccessCallback;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import static dev.phyce.naturalspeech.utils.CommonUtil.silentInterruptHandler;
 import dev.phyce.naturalspeech.utils.TextUtil;
@@ -26,7 +28,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 // Renamed from TTSModel
-@SuppressWarnings("UnstableApiUsage")
 @Slf4j
 public class PiperModel {
 	@Getter
@@ -54,8 +55,7 @@ public class PiperModel {
 			false
 		); // Little Endian
 
-	public PiperModel(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath)
-		throws IOException {
+	public PiperModel(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath) {
 		this.audioEngine = audioEngine;
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
@@ -135,7 +135,14 @@ public class PiperModel {
 				throw e;
 			}
 
-			process.onExit().addListener(() -> triggerOnPiperProcessExit(process), MoreExecutors.directExecutor());
+			Futures.addCallback(process.onExit(),
+				(SuccessCallback<PiperProcess>) result -> triggerOnPiperProcessExit(process),
+				MoreExecutors.directExecutor()
+			);
+			Futures.addCallback(process.onCrash(),
+				(SuccessCallback<PiperProcess>) result -> triggerOnPiperProcessCrash(process),
+				MoreExecutors.directExecutor()
+			);
 
 			processMap.put(process.getPid(), process);
 			synchronized (processMap) {processMap.notify();}
