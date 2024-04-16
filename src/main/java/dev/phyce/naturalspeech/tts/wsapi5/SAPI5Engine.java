@@ -139,11 +139,6 @@ public class SAPI5Engine implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeakAny() {
-		return !process.getAvailableVoices().isEmpty();
-	}
-
-	@Override
 	public boolean canSpeak(VoiceID voiceID) {
 		if (availableSAPI5s == null) return false;
 

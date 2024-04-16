@@ -109,17 +109,6 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeakAny() {
-		for (SpeechEngine activeEngine : activeEngines) {
-			if (activeEngine.canSpeakAny())
-			{
-				return true;
-			}
-		}
-		return false;
-	}
-
-	@Override
 	public boolean canSpeak(VoiceID voiceID) {
 		for (SpeechEngine activeEngine : activeEngines) {
 			if (activeEngine.canSpeak(voiceID)) {

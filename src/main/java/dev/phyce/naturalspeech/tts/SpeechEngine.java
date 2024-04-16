@@ -34,8 +34,6 @@ public interface SpeechEngine {
 
 	boolean isStarted();
 
-	boolean canSpeakAny();
-
 	boolean canSpeak(VoiceID voiceID);
 
 	/**

@@ -73,7 +73,7 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		if (!textToSpeech.canSpeakAny()) return;
+		if (!textToSpeech.isStarted()) return;
 
 		String username;
 		String lineName;
@@ -215,7 +215,7 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-1)
 	private void onOverheadTextChanged(OverheadTextChanged event) {
-		if (!textToSpeech.canSpeakAny()) return;
+		if (!textToSpeech.isStarted()) return;
 
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;

@@ -102,13 +102,6 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeakAny() {
-		if (!started) return false;
-
-		return !sapi4s.isEmpty();
-	}
-
-	@Override
 	public boolean canSpeak(VoiceID voiceID) {
 		return sapi4s.containsKey(voiceID.id);
 	}

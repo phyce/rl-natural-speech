@@ -136,17 +136,6 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeakAny() {
-		int result = 0;
-		for (String modelName : models.keySet()) {
-			PiperModel model = models.get(modelName);
-			result += model.countAlive();
-		}
-
-		return result > 0;
-	}
-
-	@Override
 	public boolean canSpeak(VoiceID voiceID) {
 		return isModelActive(voiceID.modelName);
 	}
@@ -165,6 +154,16 @@ public class PiperEngine implements SpeechEngine {
 			models.get(modelName).cancelAll();
 		}
 		audioEngine.closeAll();
+	}
+
+	public boolean isAlive() {
+		int result = 0;
+		for (String modelName : models.keySet()) {
+			PiperModel model = models.get(modelName);
+			result += model.countAlive();
+		}
+
+		return result > 0;
 	}
 
 	public boolean isPiperPathValid() {
@@ -213,7 +212,12 @@ public class PiperEngine implements SpeechEngine {
 					pluginEventBus.post(new PiperProcessExited(model, process));
 					// if this is the last model running this model, unregister from voiceMap
 					if (model.countAlive() == 0) {
-//						stopModel(model.getModelLocal());
+						stopModel(model.getModelLocal());
+					}
+
+					// If that is the last model in piper, stop
+					if (!isAlive()) {
+						stop();
 					}
 				}
 			}

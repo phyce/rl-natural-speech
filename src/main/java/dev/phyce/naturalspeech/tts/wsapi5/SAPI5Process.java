@@ -39,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 
  Windows Speech API 5 can be accessed with two methods:
 	 1. Dynamically Linking to Windows Speech API 5 SDK for C/C++ https://www.microsoft.com/en-us/download/details.aspx?id=10121
-	 2. Use OS built-in dotnet assembly System.Speech
+	 2. Use OS built-in dotnet assembly System.Speech.dll
 
  Problem:
 	 1. We can't use Java-native-interface because then we'd need to distribute SAPI5 dll to users with the plugin.
@@ -53,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 	 PowerShell is bundled with Windows and has a built-in .NET 4.0
 	 So we JIT compile C# into a runtime similar to Piper through PowerShell to access System.Speech
 
-	 The CS File is in Resources, named WSAPI5.cs
+	 The CS File is in Resources under the same package path, named WSAPI5.cs
 
 - Louis Hong 2024
 */
@@ -166,6 +166,11 @@ public class SAPI5Process {
 			throw new RuntimeException(err);
 		}
 
+		// Stdin is used receive output audio bytes
+		// Stderr is used to synchronize
+		// Stdout is used to send audio commands in the format <name>\n<text>\n
+		// Stdout also accepts !LIST, lists available voices in the format <name>\n<gender>\n
+
 		// Begin IO with WSAPI5.cs
 		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 
@@ -200,6 +205,10 @@ public class SAPI5Process {
 		} catch (IOException e) {
 			log.error("Failed to copy WSAPI5.cs to {}", tempFile);
 		}
+
+		// Delete temp files on exit
+		tempFile.deleteOnExit();
+		tempFolder.deleteOnExit();
 
 		return tempFile;
 	}

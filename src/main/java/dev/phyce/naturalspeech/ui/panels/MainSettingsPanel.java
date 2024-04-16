@@ -213,18 +213,10 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Subscribe
 	private void onTextToSpeechStarted(TextToSpeechStarted event) {
-		if (!textToSpeech.canSpeakAny()) {
-			statusLabel.setText("No Models Enabled");
-			statusLabel.setBackground(Color.ORANGE.darker());
-			statusLabel.setForeground(Color.WHITE);
-			statusPanel.setToolTipText("Download and enable a model.");
-		}
-		else {
-			statusLabel.setText("Running");
-			statusLabel.setBackground(Color.GREEN.darker());
-			statusLabel.setForeground(Color.WHITE);
-			statusPanel.setToolTipText("Text to speech is running.");
-		}
+		statusLabel.setText("Running");
+		statusLabel.setBackground(Color.GREEN.darker());
+		statusLabel.setForeground(Color.WHITE);
+		statusPanel.setToolTipText("Text to speech is running.");
 		updateWarnings();
 	}
 
