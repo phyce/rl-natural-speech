@@ -107,7 +107,6 @@ public class VoiceManager {
 		// if configManager fails, load default from resources
 		try {
 			URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(VOICE_CONFIG_FILE));
-			//noinspection UnstableApiUsage
 			json = Resources.toString(resourceUrl, StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			throw new RuntimeException("Default voice config file failed to load. " +
@@ -143,6 +142,7 @@ public class VoiceManager {
 		if (voiceIDs == null || voiceIDs.isEmpty()) {
 			return null;
 		}
+
 		int hashCode = standardized_username.hashCode();
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
@@ -150,6 +150,7 @@ public class VoiceManager {
 	}
 
 	// Ultimate fallback
+	@SuppressWarnings("unused")
 	@CheckForNull
 	public VoiceID randomVoice() {
 		long count = activeVoiceMap.size();
@@ -230,11 +231,6 @@ public class VoiceManager {
 		}
 
 		return result;
-	}
-
-	@NonNull
-	public VoiceID getVoiceIdForLocalPlayer() throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername(AudioLineNames.LOCAL_USER);
 	}
 
 	public boolean containsUsername(@NonNull String standardized_username) {
@@ -349,10 +345,6 @@ public class VoiceManager {
 			String standardNpcName = Text.standardize(Text.removeTags(actor.getName()));
 			voiceConfig.resetNpcNameVoices(standardNpcName);
 		}
-	}
-
-	public void resetVoiceIDForNPCName(@NonNull String npcName) {
-		voiceConfig.resetNpcNameVoices(npcName);
 	}
 
 	//</editor-fold>

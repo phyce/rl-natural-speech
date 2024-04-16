@@ -57,6 +57,73 @@ public class OtherTest {
 		Thread.sleep(3000L );
 	}
 
+//	@Test
+//	public void testHashDistribution() {
+//		Random random = new Random();
+//		// get 10 length long byte array
+//		byte[] bytes = new byte[20];
+//
+//		final int iterations = 50_000;
+//
+//		int[] buckets = new int[iterations];
+//
+//		for (int i = 0; i < iterations; ++i) {
+//			random.nextBytes(bytes);
+//			String username = new String(bytes, StandardCharsets.US_ASCII);
+//			++buckets[Math.abs(username.hashCode()) % iterations];
+//		}
+//
+//
+//		// remap into buckets of 1000
+//		int[] buckets_1000 = new int[iterations / 1000];
+//		for (int i = 0; i < buckets.length; i++) {
+//			buckets_1000[i / 1000] += buckets[i];
+//		}
+//
+//		StringBuilder builder = new StringBuilder();
+//		for (int i = 0; i < buckets_1000.length; i++) {
+//			int bucket = buckets_1000[i];
+//			if (bucket == 0) continue;
+//			builder.append(i);
+//			builder.append(',');
+//			builder.append(bucket);
+//			builder.append(',');
+//			builder.append('\n');
+//		}
+//
+//		System.out.println(builder);
+//	}
+//
+//	@Test
+//	public void testHashOddEvenDistribution() {
+//		Random random = new Random();
+//		// get 10 length long byte array
+//		byte[] bytes = new byte[20];
+//
+//		final int iterations = 50_000;
+//
+//		int[] buckets = new int[iterations];
+//
+//		for (int i = 0; i < iterations; ++i) {
+//			random.nextBytes(bytes);
+//			String username = new String(bytes, StandardCharsets.US_ASCII);
+//			++buckets[Math.abs(username.hashCode()) % iterations];
+//		}
+//
+//		int odd = 0;
+//		int even = 0;
+//		for (int i = 0; i < buckets.length; i++) {
+//			if (i % 2 == 0) {
+//				even += buckets[i];
+//			} else {
+//				odd += buckets[i];
+//			}
+//		}
+//
+//		System.out.println("Even: " + even);
+//		System.out.println("Odd: " + odd);
+//	}
+
 	//	@Test
 	//	public void testSplitSentenceNew() {
 	//		for (String exampleSentence : exampleSentences) {
