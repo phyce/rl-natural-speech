@@ -44,7 +44,6 @@ public interface SpeechEngine {
 	@NonNull
 	StartResult start();
 
-	@SuppressWarnings("UnusedReturnValue")
 	default ListenableFuture<StartResult> asyncStart(ExecutorService executorService) {
 		return Futures.submit(this::start, executorService);
 	}
@@ -65,4 +64,8 @@ public interface SpeechEngine {
 
 	@NonNull
 	EngineType getEngineType();
+
+	@NonNull
+	String getEngineName();
+
 }

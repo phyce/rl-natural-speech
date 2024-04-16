@@ -172,6 +172,11 @@ public class PiperEngine implements SpeechEngine {
 		return EngineType.EXTERNAL_DEPENDENCY;
 	}
 
+	@Override
+	public @NonNull String getEngineName() {
+		return "PiperEngine";
+	}
+
 	public boolean isAlive() {
 		int result = 0;
 		for (String modelName : models.keySet()) {

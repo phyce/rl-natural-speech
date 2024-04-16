@@ -10,6 +10,7 @@ import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.configs.TextToSpeechConfig;
 import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
@@ -48,6 +49,7 @@ public class TextToSpeech implements SpeechEngine {
 	private final NaturalSpeechConfig config;
 	private final PluginEventBus pluginEventBus;
 	private final PluginExecutorService pluginExecutorService;
+	private final TextToSpeechConfig textToSpeechConfig;
 
 	private final Vector<SpeechEngine> engines = new Vector<>();
 	private final Vector<SpeechEngine> activeEngines = new Vector<>();
@@ -61,11 +63,13 @@ public class TextToSpeech implements SpeechEngine {
 	private TextToSpeech(
 		NaturalSpeechConfig config,
 		PluginEventBus pluginEventBus,
-		PluginExecutorService pluginExecutorService
+		PluginExecutorService pluginExecutorService,
+		TextToSpeechConfig textToSpeechConfig
 	) {
 		this.config = config;
 		this.pluginEventBus = pluginEventBus;
 		this.pluginExecutorService = pluginExecutorService;
+		this.textToSpeechConfig = textToSpeechConfig;
 	}
 
 	@Override
@@ -80,7 +84,9 @@ public class TextToSpeech implements SpeechEngine {
 
 		List<ListenableFuture<StartResult>> futures = new ArrayList<>();
 		for (SpeechEngine engine : engines) {
-			 futures.add(Futures.submit(engine::start, executorService));
+			if (textToSpeechConfig.isEnabled(engine)) {
+				futures.add(engine.asyncStart(pluginExecutorService));
+			}
 		}
 		return Futures.whenAllComplete(futures).call(
 			() -> {
@@ -191,6 +197,11 @@ public class TextToSpeech implements SpeechEngine {
 	@Override
 	public @NonNull EngineType getEngineType() {
 		return EngineType.BUILTIN_PLUGIN;
+	}
+
+	@Override
+	public @NonNull String getEngineName() {
+		return "TextToSpeech"; // multi-engine
 	}
 
 	public String expandAbbreviations(String text) {

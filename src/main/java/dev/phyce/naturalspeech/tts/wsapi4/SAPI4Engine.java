@@ -124,4 +124,9 @@ public class SAPI4Engine implements SpeechEngine {
 	public @NonNull EngineType getEngineType() {
 		return EngineType.EXTERNAL_DEPENDENCY;
 	}
+
+	@Override
+	public @NonNull String getEngineName() {
+		return "SAPI4Engine";
+	}
 }

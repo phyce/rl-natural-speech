@@ -169,4 +169,9 @@ public class SAPI5Engine implements SpeechEngine {
 	public @NonNull EngineType getEngineType() {
 		return EngineType.BUILTIN_OS;
 	}
+
+	@Override
+	public @NonNull String getEngineName() {
+		return "SAPI5Engine";
+	}
 }
