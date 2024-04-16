@@ -353,7 +353,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		JLabel noEngineExplain =
 			new JLabel(
-				"<html>We try support text-to-speech out of the box; " +
+				"<html>We try to support text-to-speech out of the box; " +
 					"however, a native option was not detected on your system.<br><br>" +
 					"Additional text-to-speech options are available for download on our website.<br><br>" +
 					"- Phyce, Louis Hong</html>",
