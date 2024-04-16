@@ -179,7 +179,9 @@ public class VoiceManager {
 		VoiceID result = null;
 
 		List<VoiceID> results = voiceConfig.findUsername(AudioLineNames.GLOBAL_NPC);
-		if (results != null) return getFirstActiveVoice(results);
+		if (results != null) {
+			result = getFirstActiveVoice(results);
+		}
 
 		if (results == null) {
 			// Check NPC ID, takes priority over everything.
