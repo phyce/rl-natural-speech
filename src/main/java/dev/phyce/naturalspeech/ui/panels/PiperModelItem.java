@@ -3,6 +3,8 @@ package dev.phyce.naturalspeech.ui.panels;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
+import static dev.phyce.naturalspeech.ui.panels.StaticImages.OFF_SWITCHER;
+import static dev.phyce.naturalspeech.ui.panels.StaticImages.ON_SWITCHER;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -10,10 +12,8 @@ import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import javax.swing.GroupLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -29,7 +29,6 @@ import javax.swing.border.LineBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
-import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
 
 @Slf4j
@@ -41,21 +40,7 @@ public class PiperModelItem extends JPanel {
 	private final PiperRepository.ModelURL modelUrl;
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
-	private static final ImageIcon ON_SWITCHER;
-	private static final ImageIcon OFF_SWITCHER;
 
-	static {
-		BufferedImage onSwitcher = ImageUtil.loadImageResource(MainSettingsPanel.class, "switcher_on.png");
-		ON_SWITCHER = new ImageIcon(onSwitcher);
-		OFF_SWITCHER = new ImageIcon(ImageUtil.flipImage(
-			ImageUtil.luminanceScale(
-				ImageUtil.grayscaleImage(onSwitcher),
-				0.61f
-			),
-			true,
-			false
-		));
-	}
 
 	private MouseAdapter contextMenuMouseListener;
 

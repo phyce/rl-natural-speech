@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.tts;
 import com.google.common.io.Resources;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
@@ -74,7 +75,7 @@ public class TextToSpeech implements SpeechEngine {
 
 	@Override
 	@Synchronized
-	public ListenableFuture<StartResult> asyncStart(ExecutorService executorService) {
+	public ListenableFuture<StartResult> startAsync(ExecutorService executorService) {
 		if (started) {
 			log.warn("Starting TextToSpeech when already started. Restarting.");
 			stop();
@@ -85,7 +86,7 @@ public class TextToSpeech implements SpeechEngine {
 		List<ListenableFuture<StartResult>> futures = new ArrayList<>();
 		for (SpeechEngine engine : engines) {
 			if (textToSpeechConfig.isEnabled(engine)) {
-				futures.add(engine.asyncStart(pluginExecutorService));
+				futures.add(engine.startAsync(pluginExecutorService));
 			}
 		}
 		return Futures.whenAllComplete(futures).call(
@@ -120,7 +121,7 @@ public class TextToSpeech implements SpeechEngine {
 	@Synchronized
 	public @NonNull StartResult start() {
 		try {
-			return asyncStart(pluginExecutorService).get();
+			return startAsync(pluginExecutorService).get();
 		} catch (InterruptedException | ExecutionException e) {
 			return StartResult.FAILED;
 		}
@@ -202,6 +203,60 @@ public class TextToSpeech implements SpeechEngine {
 	@Override
 	public @NonNull String getEngineName() {
 		return "TextToSpeech"; // multi-engine
+	}
+
+	public ListenableFuture<StartResult> startEngine(SpeechEngine engine) {
+
+		SettableFuture<StartResult> resultFuture = SettableFuture.create();
+
+		pluginExecutorService.submit(() -> {
+			// if it's already active stop and remove active status
+			if (activeEngines.remove(engine)) {
+				engine.stop();
+			}
+
+			// if it's a new engine, add the engine
+			if (!engines.contains(engine)) {
+				engines.add(engine);
+			}
+
+			engine.start();
+
+			if (engine.isStarted()) {
+				activeEngines.add(engine);
+				pluginEventBus.post(new SpeechEngineStarted(engine));
+				log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
+				resultFuture.set(StartResult.SUCCESS);
+			}
+			else {
+				log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
+				resultFuture.set(StartResult.FAILED);
+			}
+		});
+
+		return resultFuture;
+	}
+
+	@SuppressWarnings("unused")
+	public void stopEngine(SpeechEngine engine) {
+		if (!engine.isStarted()) {
+			log.warn("Attempting to stop engine that has not started:{}", engine.getClass().getSimpleName());
+		}
+		else if (!engines.contains(engine)) {
+			log.warn("Attempting to stop engine not registered:{}", engine.getClass().getSimpleName());
+		}
+		else if (!activeEngines.contains(engine)) {
+			log.error("SEVERE: " +
+					"found engine that has started without using TextToSpeech::startEngine or TextToSpeech::start. " +
+					"TextToSpeech was unaware the engine has already started. Stopping engine regardless...:{}",
+				engine.getClass().getSimpleName());
+			engine.stop();
+		}
+		else {
+			activeEngines.remove(engine);
+			engine.stop();
+			pluginEventBus.post(new SpeechEngineStopped(engine));
+		}
 	}
 
 	public String expandAbbreviations(String text) {

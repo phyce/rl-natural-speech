@@ -1,10 +1,12 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
+import dev.phyce.naturalspeech.configs.TextToSpeechConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.events.PiperProcessCrashed;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
@@ -22,6 +24,7 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperModel;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
+import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.tts.wsapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
@@ -74,11 +77,13 @@ public class MainSettingsPanel extends PluginPanel {
 	private final FixedWidthPanel mainContentPanel;
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
+	private final SAPI4Engine sapi4Engine;
 	private final SAPI5Engine sapi5Engine;
 	private final TextToSpeech textToSpeech;
 	private final PiperEngine piperEngine;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final PluginExecutorService pluginExecutorService;
+	private final TextToSpeechConfig textToSpeechConfig;
 
 	static {
 		BufferedImage sectionRetractIcon =
@@ -98,6 +103,8 @@ public class MainSettingsPanel extends PluginPanel {
 	private final Map<PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Map<String, PiperModelItem> piperModelMap = new HashMap<>();
 	private final Set<Warning> warnings = new HashSet<>();
+	private final Provider<SAPI4ListItem> sapi4ListItemProvider;
+	private final Provider<SAPI5ListItem> sapi5ListItemProvider;
 
 	private JLabel statusLabel;
 	private JPanel statusPanel;
@@ -118,20 +125,29 @@ public class MainSettingsPanel extends PluginPanel {
 		ConfigManager configManager,
 		Downloader downloader,
 		SAPI4Repository sapi4Repository,
+		SAPI4Engine sapi4Engine,
 		TextToSpeech textToSpeech,
 		PiperEngine piperEngine,
 		NaturalSpeechRuntimeConfig runtimeConfig,
 		PluginEventBus pluginEventBus,
-		SAPI5Engine sapi5Engine, PluginExecutorService pluginExecutorService
+		SAPI5Engine sapi5Engine,
+		PluginExecutorService pluginExecutorService,
+		TextToSpeechConfig textToSpeechConfig,
+		Provider<SAPI4ListItem> sapi4ListItemProvider,
+		Provider<SAPI5ListItem> sapi5ListItemProvider
 	) {
 		super(false);
 		this.sapi4Repository = sapi4Repository;
+		this.sapi4Engine = sapi4Engine;
 		this.textToSpeech = textToSpeech;
 		this.piperRepository = piperRepository;
 		this.piperEngine = piperEngine;
 		this.runtimeConfig = runtimeConfig;
 		this.sapi5Engine = sapi5Engine;
 		this.pluginExecutorService = pluginExecutorService;
+		this.textToSpeechConfig = textToSpeechConfig;
+		this.sapi4ListItemProvider = sapi4ListItemProvider;
+		this.sapi5ListItemProvider = sapi5ListItemProvider;
 
 		pluginEventBus.register(this);
 
@@ -573,16 +589,17 @@ public class MainSettingsPanel extends PluginPanel {
 			sectionContent.add(modelItem);
 		}
 
+		// Sapi5 Model
+		if (!sapi5Engine.getAvailableSAPI5s().isEmpty()) {
+			sectionContent.add(sapi5ListItemProvider.get(), 0);
+		}
+
 		// Sapi4 Model
 		List<String> sapi4Models = sapi4Repository.getVoices();
 		if (!sapi4Models.isEmpty()) {
-			sectionContent.add(new SAPI4ListItem(), 0);
+			sectionContent.add(sapi4ListItemProvider.get(), 0);
 		}
 
-		// Sapi5 Model
-		if (!sapi5Engine.getAvailableSAPI5s().isEmpty()) {
-			sectionContent.add(new SAPI5ListItem(), 0);
-		}
 
 	}
 
@@ -678,7 +695,7 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton playButton = createButton("start.png", "Start");
 		JButton stopButton = createButton("stop.png", "Stop");
 
-		playButton.addActionListener(e -> textToSpeech.asyncStart(pluginExecutorService));
+		playButton.addActionListener(e -> textToSpeech.startAsync(pluginExecutorService));
 		stopButton.addActionListener(e -> textToSpeech.stop());
 
 		buttonPanel.add(playButton);

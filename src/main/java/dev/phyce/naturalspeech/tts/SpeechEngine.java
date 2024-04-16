@@ -44,7 +44,7 @@ public interface SpeechEngine {
 	@NonNull
 	StartResult start();
 
-	default ListenableFuture<StartResult> asyncStart(ExecutorService executorService) {
+	default ListenableFuture<StartResult> startAsync(ExecutorService executorService) {
 		return Futures.submit(this::start, executorService);
 	}
 

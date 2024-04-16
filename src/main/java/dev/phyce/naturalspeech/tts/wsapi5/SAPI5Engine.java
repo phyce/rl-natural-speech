@@ -90,6 +90,7 @@ public class SAPI5Engine implements SpeechEngine {
 		return SpeakResult.ACCEPT;
 	}
 
+	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
 	@Synchronized
 	public @NonNull StartResult start() {
@@ -125,6 +126,8 @@ public class SAPI5Engine implements SpeechEngine {
 		return StartResult.SUCCESS;
 	}
 
+
+	@Deprecated(since = "Do not stop engines directly, use TextToSpeech::stopEngine")
 	@Override
 	@Synchronized
 	public void stop() {
