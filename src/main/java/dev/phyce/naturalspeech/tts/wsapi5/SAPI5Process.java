@@ -130,13 +130,18 @@ public class SAPI5Process {
 		ProcessBuilder builder = new ProcessBuilder(
 			"PowerShell",
 			// Security Note (Louis Hong):
-			// We are not passing any user input as PowerShell commands
-			// When WSAPI5::Main ends, the powershell process ends.
+			// We are not passing any user input as PowerShell commands or as arguments
+			// When WSAPI5::Main ends, the powershell process end; as it is the last command to powershell.
 			// ex: powershell -command echo "hi"
 
-			// Unlike the Rust CVE-2024-24576, (example https://github.com/lpn/CVE-2024-24576.jl)
+			// Unlike the Rust CVE-2024-24576, (example https://github.com/frostb1ten/CVE-2024-24576-PoC)
 			// which demonstrated exploiting when user input is passed into the commands field.
-			// ex: powershell -command echo <user_input>
+			// ex 1: powershell -command echo <user_input>
+			// ex 2: (rust)
+			// let output = Command::new("./test.bat")
+			//                         .arg(<userinput>) <-- vulnerable
+			//                         .output()
+			//                         .expect("Failed to execute command");
 
 			// https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe?view=powershell-5.1#-command
 			"-command",
@@ -147,15 +152,14 @@ public class SAPI5Process {
 		);
 		// @formatter:on
 
-		// PowerShell has started with all commands defined
+		// PowerShell, with all commands defined, will start and no longer be taking any more commands.
 		process = builder.start();
 
 
 		if (!process.isAlive()) {
 
 			String err = String.format("WSAPI5.cs path:%s, failed to start with error:%s",
-				wsapi5CSharp.getAbsolutePath(),
-				new String(process.getErrorStream().readAllBytes())
+				wsapi5CSharp.getAbsolutePath(), new String(process.getErrorStream().readAllBytes())
 			);
 
 			log.error(err);
