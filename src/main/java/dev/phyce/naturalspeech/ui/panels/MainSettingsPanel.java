@@ -9,6 +9,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.TextToSpeechConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.events.PiperProcessCrashed;
+import dev.phyce.naturalspeech.events.SpeechEngineStartSkippedEngine;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.TextToSpeechFailedStart;
@@ -181,65 +182,11 @@ public class MainSettingsPanel extends PluginPanel {
 		this.revalidate();
 	}
 
-	private void buildAdvancedSegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final String name = "Advanced";
-		final String description = "";
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
-
-		toggleSection(sectionToggle, sectionContent);
-
-		JPanel piperFileChoosePanel = buildPiperFileChoose();
-		sectionContent.add(piperFileChoosePanel);
-
-		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
-		sectionContent.add(piperProcessMonitorPanel);
+	@Subscribe
+	private void onSpeechEngineStartSkippedEngine(SpeechEngineStartSkippedEngine event) {
+		if (event.getEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
+			isMinimumMode = false;
+		}
 	}
 
 	@Subscribe
@@ -281,13 +228,21 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Subscribe
 	private void onTextToSpeechFailedStart(TextToSpeechFailedStart event) {
-		statusLabel.setText("No Engine");
-		statusLabel.setBackground(Color.DARK_GRAY);
-		statusLabel.setForeground(null);
-		statusPanel.setToolTipText("No available text-to-speech engines detected.");
 
-		if (event.getReason() == TextToSpeechFailedStart.Reason.NO_ENGINE) {
+		if (event.getReason() == TextToSpeechFailedStart.Reason.ALL_FAILED) {
+			statusLabel.setText("No Engine");
+			statusLabel.setBackground(Color.DARK_GRAY);
+			statusLabel.setForeground(null);
+			statusPanel.setToolTipText("No available text-to-speech engines detected.");
 			addWarning(Warning.NO_ENGINE);
+			updateWarningsUI();
+		} else if (event.getReason() == TextToSpeechFailedStart.Reason.ALL_DISABLED){
+			statusLabel.setText("All Voices Disabled");
+			statusLabel.setBackground(Color.DARK_GRAY);
+			statusLabel.setForeground(null);
+			statusPanel.setToolTipText("Enable some of the voices to start Text-To-Speech!");
+			addWarning(Warning.CRASHED);
+			crashLabel.setText("<html>Please enable a voice in the Voice Pack settings as all voices are currently disabled.</html>");
 			updateWarningsUI();
 		}
 	}
@@ -370,7 +325,7 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	private void updateWarningsUI() {
-		warningStopped.setVisible(!textToSpeech.isStarted());
+		warningStopped.setVisible(!warnings.contains(Warning.NO_ENGINE) && !textToSpeech.isStarted());
 		warningNoEngine.setVisible(warnings.contains(Warning.NO_ENGINE));
 		warningCrash.setVisible(warnings.contains(Warning.CRASHED));
 		warningMinimumMode.setVisible(warnings.contains(Warning.MINIMUM_MODE));
@@ -584,7 +539,7 @@ public class MainSettingsPanel extends PluginPanel {
 		// Piper Model
 		for (PiperRepository.ModelURL modelUrl : piperRepository.getModelURLS()) {
 
-			PiperModelItem modelItem = new PiperModelItem(textToSpeech, piperEngine, piperRepository, modelUrl);
+			PiperModelItem modelItem = new PiperModelItem(textToSpeech, piperEngine, piperRepository, modelUrl, pluginExecutorService);
 			piperModelMap.put(modelUrl.getModelName(), modelItem);
 			sectionContent.add(modelItem);
 		}
@@ -695,13 +650,74 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton playButton = createButton("start.png", "Start");
 		JButton stopButton = createButton("stop.png", "Stop");
 
-		playButton.addActionListener(e -> textToSpeech.startAsync(pluginExecutorService));
+		playButton.addActionListener(e -> textToSpeech.start(pluginExecutorService));
 		stopButton.addActionListener(e -> textToSpeech.stop());
 
 		buttonPanel.add(playButton);
 		buttonPanel.add(stopButton);
 		statusPanel.add(buttonPanel, BorderLayout.CENTER);
 		return statusPanel;
+	}
+
+	private void buildAdvancedSegment() {
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "Advanced";
+		final String description = "";
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		mainContentPanel.add(section);
+
+		// Toggle section action listeners
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
+		toggleSection(sectionToggle, sectionContent);
+
+		JPanel piperFileChoosePanel = buildPiperFileChoose();
+		sectionContent.add(piperFileChoosePanel);
+
+		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
+		sectionContent.add(piperProcessMonitorPanel);
 	}
 
 	private JPanel buildPiperFileChoose() {
@@ -787,12 +803,13 @@ public class MainSettingsPanel extends PluginPanel {
 		this.setVisible(false);
 	}
 
+
 	private enum Warning {
 		// Warnings is a 64 slot set implemented with bitmask
 		NO_WARNINGS,
 		NO_ENGINE,
 		STOPPED,
 		MINIMUM_MODE,
-		CRASHED
+		CRASHED;
 	}
 }

@@ -247,7 +247,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	@Subscribe
 	private void onTextToSpeechFailedStart(TextToSpeechFailedStart event) {
-		if (event.getReason() == TextToSpeechFailedStart.Reason.NO_ENGINE) {
+		if (event.getReason() == TextToSpeechFailedStart.Reason.ALL_FAILED) {
 			centerNoEngineWarning.setVisible(true);
 			centerStoppedWarning.setVisible(false);
 			centerCopyHint.setVisible(false);

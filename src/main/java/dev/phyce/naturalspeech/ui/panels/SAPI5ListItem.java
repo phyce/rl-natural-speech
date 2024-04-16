@@ -69,7 +69,8 @@ public class SAPI5ListItem extends JPanel {
 				if (textToSpeech.isStarted()) {
 					if (toggleButton.isSelected()) {
 						textToSpeech.startEngine(engine);
-					} else {
+					}
+					else {
 						textToSpeech.stopEngine(engine);
 					}
 				}
@@ -85,7 +86,7 @@ public class SAPI5ListItem extends JPanel {
 			.addGroup(layout.createSequentialGroup()
 					.addComponent(memorySize)
 					.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 0x7000)
-								.addComponent(toggleButton, 25, 25, 25)
+					.addComponent(toggleButton, 25, 25, 25)
 				//				.addComponent(download, 0, 77, GroupLayout.PREFERRED_SIZE)
 			)
 		);
@@ -102,7 +103,7 @@ public class SAPI5ListItem extends JPanel {
 			.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 100)
 			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
 					.addComponent(memorySize, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
-								.addComponent(toggleButton, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
+					.addComponent(toggleButton, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
 				//				.addComponent(download, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
 			)
 			.addGap(2)

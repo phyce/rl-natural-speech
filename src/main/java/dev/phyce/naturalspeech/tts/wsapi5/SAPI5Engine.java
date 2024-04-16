@@ -1,5 +1,7 @@
 package dev.phyce.naturalspeech.tts.wsapi5;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
@@ -14,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.sound.sampled.AudioInputStream;
@@ -25,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @PluginSingleton
 public class SAPI5Engine implements SpeechEngine {
+	private final Object lock = new Object[0];
 
 	private final AudioEngine audioEngine;
 	private final VoiceManager voiceManager;
@@ -62,7 +66,8 @@ public class SAPI5Engine implements SpeechEngine {
 		if (sapi5 != null) {
 			availableSAPI5s = Collections.unmodifiableList(sapi5.getAvailableVoices());
 			sapi5.destroy();
-		} else {
+		}
+		else {
 			availableSAPI5s = Collections.unmodifiableList(new ArrayList<>());
 		}
 	}
@@ -90,46 +95,50 @@ public class SAPI5Engine implements SpeechEngine {
 		return SpeakResult.ACCEPT;
 	}
 
-	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
-	@Synchronized
-	public @NonNull StartResult start() {
+	@Synchronized("lock")
+	public ListenableFuture<StartResult> start(ExecutorService executorService) {
 
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
-			return StartResult.FAILED;
-		}
+		return Futures.submit(() -> {
+			synchronized (lock) {
+				if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+					return StartResult.FAILED;
+				}
 
-		if (!OSValidator.IS_WINDOWS) {
-			log.trace("Not windows, WSAPI5 fail.");
-			return StartResult.FAILED;
-		}
+				if (!OSValidator.IS_WINDOWS) {
+					log.trace("Not windows, WSAPI5 fail.");
+					return StartResult.FAILED;
+				}
 
-		if (started) {
-			stop();
-		}
+				if (started) {
+					stop();
+				}
 
-		process = SAPI5Process.start();
+				process = SAPI5Process.start();
 
-		if (process == null) {
-			log.error("WSAPI5 process failed to start for WSAPI5 Engine");
-			return StartResult.FAILED;
-		}
+				if (process == null) {
+					log.error("WSAPI5 process failed to start for WSAPI5 Engine");
+					return StartResult.FAILED;
+				}
 
-		for (SAPI5Process.SAPI5Voice model : availableSAPI5s) {
-			String sapiName = model.getName();
-			String modelName = SAPI5Alias.sapiToModelName.getOrDefault(sapiName, sapiName);
-			// SAPI5 have a virtual "microsoft" model, the actual model fits in the id.
-			voiceManager.registerVoiceID(new VoiceID(SAPI5_MODEL_NAME, modelName), model.getGender());
-		}
+				for (SAPI5Process.SAPI5Voice model : availableSAPI5s) {
+					String sapiName = model.getName();
+					String modelName = SAPI5Alias.sapiToModelName.getOrDefault(sapiName, sapiName);
+					// SAPI5 have a virtual "microsoft" model, the actual model fits in the id.
+					voiceManager.registerVoiceID(new VoiceID(SAPI5_MODEL_NAME, modelName), model.getGender());
+				}
 
-		started = true;
-		return StartResult.SUCCESS;
+				started = true;
+
+				return StartResult.SUCCESS;
+			}
+		}, executorService);
 	}
 
 
-	@Deprecated(since = "Do not stop engines directly, use TextToSpeech::stopEngine")
+	@Deprecated(since="Do not stop engines directly, use TextToSpeech::stopEngine")
 	@Override
-	@Synchronized
+	@Synchronized("lock")
 	public void stop() {
 
 		process.destroy();

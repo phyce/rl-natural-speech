@@ -18,6 +18,7 @@ public class TextToSpeechConfig {
 	}
 
 	public boolean isEnabled(SpeechEngine engine) {
+
 		// Interesting that passing primitive boolean.class does not trigger compiler/linter warnings,
 		// but getConfiguration can return null. Likely will be a runtime exception (didn't test). - Louis
 		Boolean enabled = configManager.getConfiguration(CONFIG_GROUP, getKey(engine), Boolean.class);

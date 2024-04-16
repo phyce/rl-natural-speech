@@ -215,7 +215,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		ns.textToSpeech.register(ns.sapi5Engine);
 
 		if (config.autoStart()) {
-			ns.textToSpeech.startAsync(ns.pluginExecutorService);
+			ns.textToSpeech.start(ns.pluginExecutorService);
 //				.addListener(() -> log.info("async start finished"), ns.pluginExecutorService);
 		}
 

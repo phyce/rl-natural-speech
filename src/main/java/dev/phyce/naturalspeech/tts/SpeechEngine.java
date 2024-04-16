@@ -1,6 +1,5 @@
 package dev.phyce.naturalspeech.tts;
 
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
@@ -41,12 +40,7 @@ public interface SpeechEngine {
 	@NonNull
 	SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName);
 
-	@NonNull
-	StartResult start();
-
-	default ListenableFuture<StartResult> startAsync(ExecutorService executorService) {
-		return Futures.submit(this::start, executorService);
-	}
+	ListenableFuture<StartResult> start(ExecutorService executorService);
 
 	void stop();
 

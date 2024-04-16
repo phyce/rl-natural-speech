@@ -13,6 +13,7 @@ import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.TextToSpeechConfig;
 import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
+import dev.phyce.naturalspeech.events.SpeechEngineStartSkippedEngine;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.TextToSpeechFailedStart;
@@ -20,6 +21,7 @@ import dev.phyce.naturalspeech.events.TextToSpeechStarted;
 import dev.phyce.naturalspeech.events.TextToSpeechStarting;
 import dev.phyce.naturalspeech.events.TextToSpeechStopped;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -44,6 +46,7 @@ import net.runelite.http.api.RuneLiteAPI;
 @Slf4j
 @PluginSingleton
 public class TextToSpeech implements SpeechEngine {
+	private final Object lock = new Object[0];
 
 	public final static String ABBREVIATION_FILE = "abbreviations.json";
 
@@ -74,8 +77,9 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
-	@Synchronized
-	public ListenableFuture<StartResult> startAsync(ExecutorService executorService) {
+	@Synchronized("lock")
+	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+
 		if (started) {
 			log.warn("Starting TextToSpeech when already started. Restarting.");
 			stop();
@@ -86,31 +90,52 @@ public class TextToSpeech implements SpeechEngine {
 		List<ListenableFuture<StartResult>> futures = new ArrayList<>();
 		for (SpeechEngine engine : engines) {
 			if (textToSpeechConfig.isEnabled(engine)) {
-				futures.add(engine.startAsync(pluginExecutorService));
+				futures.add(engine.start(pluginExecutorService));
+			} else {
+				pluginEventBus.post(new SpeechEngineStartSkippedEngine(engine));
 			}
 		}
+
 		return Futures.whenAllComplete(futures).call(
 			() -> {
-				for (SpeechEngine engine : engines) {
-					if (engine.isStarted()) {
-						activeEngines.add(engine);
-						pluginEventBus.post(new SpeechEngineStarted(engine));
-						log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
+				synchronized (lock) {
+					for (SpeechEngine engine : engines) {
+						if (engine.isStarted()) {
+							activeEngines.add(engine);
+							pluginEventBus.post(new SpeechEngineStarted(engine));
+							log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
+						}
+						else {
+							log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
+						}
+					}
+
+					if (activeEngines.isEmpty()) {
+						// if all engines were disabled
+						if (engines.stream().noneMatch(
+							engine -> {
+								// PiperEngine handles its own enable status, per model.
+								// PiperEngine itself is never disabled.
+								if (engine instanceof PiperEngine) {
+									return false;
+								}
+								return textToSpeechConfig.isEnabled(engine);
+							}
+						)) {
+							log.error("No engines started successfully because all them were disabled.");
+							pluginEventBus.post(new TextToSpeechFailedStart(TextToSpeechFailedStart.Reason.ALL_DISABLED));
+							return StartResult.FAILED;
+						}
+						// if there are no engines available/installed
+						log.error("No engines started successfully.");
+						pluginEventBus.post(new TextToSpeechFailedStart(TextToSpeechFailedStart.Reason.ALL_FAILED));
+						return StartResult.FAILED;
 					}
 					else {
-						log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
+						started = true;
+						pluginEventBus.post(new TextToSpeechStarted());
+						return StartResult.SUCCESS;
 					}
-				}
-
-				if (activeEngines.isEmpty()) {
-					log.error("No engines started successfully.");
-					pluginEventBus.post(new TextToSpeechFailedStart(TextToSpeechFailedStart.Reason.NO_ENGINE));
-					return StartResult.FAILED;
-				}
-				else {
-					started = true;
-					pluginEventBus.post(new TextToSpeechStarted());
-					return StartResult.SUCCESS;
 				}
 			},
 			executorService
@@ -118,17 +143,7 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@Override
-	@Synchronized
-	public @NonNull StartResult start() {
-		try {
-			return startAsync(pluginExecutorService).get();
-		} catch (InterruptedException | ExecutionException e) {
-			return StartResult.FAILED;
-		}
-	}
-
-	@Override
-	@Synchronized
+	@Synchronized("lock")
 	public void stop() {
 		if (!started) {
 			log.warn("Stopping TextToSpeech when not started. Ignoring.");
@@ -205,39 +220,44 @@ public class TextToSpeech implements SpeechEngine {
 		return "TextToSpeech"; // multi-engine
 	}
 
+	@Synchronized
 	public ListenableFuture<StartResult> startEngine(SpeechEngine engine) {
 
 		SettableFuture<StartResult> resultFuture = SettableFuture.create();
 
 		pluginExecutorService.submit(() -> {
-			// if it's already active stop and remove active status
-			if (activeEngines.remove(engine)) {
-				engine.stop();
-			}
+			synchronized (lock) {
+				// if it's already active stop and remove active status
+				if (activeEngines.remove(engine)) {
+					engine.stop();
+				}
 
-			// if it's a new engine, add the engine
-			if (!engines.contains(engine)) {
-				engines.add(engine);
-			}
+				// if it's a new engine, add the engine
+				if (!engines.contains(engine)) {
+					engines.add(engine);
+				}
 
-			engine.start();
+				try {
+					engine.start(pluginExecutorService).get();
+				} catch (InterruptedException | ExecutionException ignore) {}
 
-			if (engine.isStarted()) {
-				activeEngines.add(engine);
-				pluginEventBus.post(new SpeechEngineStarted(engine));
-				log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
-				resultFuture.set(StartResult.SUCCESS);
-			}
-			else {
-				log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
-				resultFuture.set(StartResult.FAILED);
+				if (engine.isStarted()) {
+					activeEngines.add(engine);
+					pluginEventBus.post(new SpeechEngineStarted(engine));
+					log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
+					resultFuture.set(StartResult.SUCCESS);
+				}
+				else {
+					log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
+					resultFuture.set(StartResult.FAILED);
+				}
 			}
 		});
 
 		return resultFuture;
 	}
 
-	@SuppressWarnings("unused")
+	@Synchronized("lock")
 	public void stopEngine(SpeechEngine engine) {
 		if (!engine.isStarted()) {
 			log.warn("Attempting to stop engine that has not started:{}", engine.getClass().getSimpleName());
@@ -256,6 +276,11 @@ public class TextToSpeech implements SpeechEngine {
 			activeEngines.remove(engine);
 			engine.stop();
 			pluginEventBus.post(new SpeechEngineStopped(engine));
+		}
+
+		// If all engines are stopped, stop TextToSpeech
+		if (activeEngines.isEmpty()) {
+			stop();
 		}
 	}
 

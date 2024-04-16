@@ -1,14 +1,16 @@
 package dev.phyce.naturalspeech.tts.piper;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.PluginEventBus;
 import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.configs.piper.PiperModelConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.json.piper.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.piper.PiperConfigDatum;
+import dev.phyce.naturalspeech.configs.piper.PiperModelConfig;
 import dev.phyce.naturalspeech.events.PiperProcessCrashed;
 import dev.phyce.naturalspeech.events.piper.PiperModelStarted;
 import dev.phyce.naturalspeech.events.piper.PiperModelStopped;
@@ -23,6 +25,7 @@ import dev.phyce.naturalspeech.utils.OSValidator;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
@@ -34,6 +37,7 @@ import net.runelite.client.config.ConfigManager;
 @Slf4j
 @PluginSingleton
 public class PiperEngine implements SpeechEngine {
+	private final Object lock = new Object[0];
 
 	private static final String CONFIG_KEY_MODEL_CONFIG = "ttsConfig";
 
@@ -94,48 +98,51 @@ public class PiperEngine implements SpeechEngine {
 		}
 	}
 
-	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
+	@Synchronized("lock")
 	@Override
-	@Synchronized
-	public @NonNull StartResult start() {
-		if (!isPiperPathValid()) {
-			log.trace("No valid piper found at {}", runtimeConfig.getPiperPath());
-			return StartResult.FAILED;
-		}
-		else {
-			log.trace("Found Valid Piper at {}", runtimeConfig.getPiperPath());
-		}
-
-		if (started) {
-			stop();
-		}
-
-		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
-
-		for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
-			try {
-				if (piperRepository.hasModelLocal(modelURL.getModelName())
-					&& piperModelConfig.isModelEnabled(modelURL.getModelName())) {
-					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
-					startModel(modelLocal);
-					started = true;
+	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+		return Futures.submit(() -> {
+			synchronized (lock) {
+				if (!isPiperPathValid()) {
+					log.trace("No valid piper found at {}", runtimeConfig.getPiperPath());
+					return StartResult.FAILED;
 				}
-			} catch (IOException e) {
-				log.error("Failed to start model {}", modelURL.getModelName(), e);
+				else {
+					log.trace("Found Valid Piper at {}", runtimeConfig.getPiperPath());
+				}
+
+				if (started) {
+					stop();
+				}
+
+				isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
+
+				for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
+					try {
+						if (piperRepository.hasModelLocal(modelURL.getModelName())
+							&& piperModelConfig.isModelEnabled(modelURL.getModelName())) {
+							PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
+							startModel(modelLocal);
+							started = true;
+						}
+					} catch (IOException e) {
+						log.error("Failed to start model {}", modelURL.getModelName(), e);
+					}
+				}
+
+
+				if (started) {
+					return StartResult.SUCCESS;
+				} else {
+					return StartResult.FAILED;
+				}
 			}
-		}
-
-
-		if (started) {
-			return StartResult.SUCCESS;
-		} else {
-			return StartResult.FAILED;
-		}
+		}, executorService);
 	}
 
 	@Deprecated(since = "Do not stop engines directly, use TextToSpeech::stopEngine")
 	@Override
-	@Synchronized
+	@Synchronized("lock")
 	public void stop() {
 		if (!started) {
 			return;
@@ -208,6 +215,7 @@ public class PiperEngine implements SpeechEngine {
 		}
 	}
 
+	@Synchronized
 	public void startModel(PiperRepository.ModelLocal modelLocal) throws IOException {
 		if (models.get(modelLocal.getModelName()) != null) {
 			log.warn("Starting model for {} when there are already pipers running for the model.",
@@ -257,6 +265,7 @@ public class PiperEngine implements SpeechEngine {
 		pluginEventBus.post(new PiperModelStarted(model));
 	}
 
+	@Synchronized("lock")
 	public void stopModel(PiperRepository.ModelLocal modelLocal) {
 		PiperModel piper = models.remove(modelLocal.getModelName());
 		if (piper != null) {

@@ -1,5 +1,7 @@
 package dev.phyce.naturalspeech.tts.wsapi4;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
@@ -13,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
@@ -23,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @PluginSingleton
 public class SAPI4Engine implements SpeechEngine {
+	private final Object lock = new Object[0];
 
 	private final SAPI4Repository sapi4Repository;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
@@ -85,24 +89,28 @@ public class SAPI4Engine implements SpeechEngine {
 		return SpeakResult.ACCEPT;
 	}
 
-	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
-	@Synchronized
-	public @NonNull StartResult start() {
-		// SAPI4 models don't have lifecycles and does not need to be cleared on stop
-		if (sapi4s.isEmpty()) {
-			started = false;
-			return StartResult.FAILED;
-		} else {
-			started = true;
-			return StartResult.SUCCESS;
-		}
-
+	@Synchronized("lock")
+	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+		return Futures.submit(() -> {
+			synchronized (lock) {
+				StartResult result;
+				// SAPI4 models don't have lifecycles and does not need to be cleared on stop
+				if (sapi4s.isEmpty()) {
+					started = false;
+					result = StartResult.FAILED;
+				} else {
+					started = true;
+					result = StartResult.SUCCESS;
+				}
+				return result;
+			}
+		}, executorService);
 	}
 
 	@Deprecated(since = "Do not stop engines directly, use TextToSpeech::stopEngine")
 	@Override
-	@Synchronized
+	@Synchronized("lock")
 	public void stop() {
 		started = false;
 	}

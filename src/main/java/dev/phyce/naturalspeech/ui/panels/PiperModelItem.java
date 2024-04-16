@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
+import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
@@ -38,6 +39,7 @@ public class PiperModelItem extends JPanel {
 	private final PiperEngine piperEngine;
 	private final PiperRepository piperRepository;
 	private final PiperRepository.ModelURL modelUrl;
+	private final PluginExecutorService pluginExecutorService;
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
 
@@ -48,12 +50,14 @@ public class PiperModelItem extends JPanel {
 		TextToSpeech textToSpeech,
 		PiperEngine piperEngine,
 		PiperRepository piperRepository,
-		PiperRepository.ModelURL modelUrl
+		PiperRepository.ModelURL modelUrl,
+		PluginExecutorService pluginExecutorService
 	) {
 		this.textToSpeech = textToSpeech;
 		this.piperEngine = piperEngine;
 		this.piperRepository = piperRepository;
 		this.modelUrl = modelUrl;
+		this.pluginExecutorService = pluginExecutorService;
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
@@ -223,7 +227,7 @@ public class PiperModelItem extends JPanel {
 					// TODO(Louis) lazy hack, just reboot all processes with new configuration
 					if (textToSpeech.isStarted()) {
 						textToSpeech.stop();
-						textToSpeech.start();
+						textToSpeech.start(pluginExecutorService);
 					}
 				}
 				else {
