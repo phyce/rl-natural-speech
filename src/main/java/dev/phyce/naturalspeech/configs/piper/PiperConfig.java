@@ -1,6 +1,6 @@
-package dev.phyce.naturalspeech.configs;
+package dev.phyce.naturalspeech.configs.piper;
 
-import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
+import dev.phyce.naturalspeech.configs.json.piper.PiperConfigDatum;
 import lombok.Getter;
 import lombok.Setter;
 

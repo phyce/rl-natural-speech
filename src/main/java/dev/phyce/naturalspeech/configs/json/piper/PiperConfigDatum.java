@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.configs.json.ttsconfigs;
+package dev.phyce.naturalspeech.configs.json.piper;
 
 import lombok.Value;
 

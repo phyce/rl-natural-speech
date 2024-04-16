@@ -565,6 +565,7 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
 
+		// Piper Model
 		for (PiperRepository.ModelURL modelUrl : piperRepository.getModelURLS()) {
 
 			PiperModelItem modelItem = new PiperModelItem(textToSpeech, piperEngine, piperRepository, modelUrl);
@@ -578,6 +579,7 @@ public class MainSettingsPanel extends PluginPanel {
 			sectionContent.add(new SAPI4ListItem(), 0);
 		}
 
+		// Sapi5 Model
 		if (!sapi5Engine.getAvailableSAPI5s().isEmpty()) {
 			sectionContent.add(new SAPI5ListItem(), 0);
 		}

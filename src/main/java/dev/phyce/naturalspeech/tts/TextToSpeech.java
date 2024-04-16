@@ -1,12 +1,14 @@
 package dev.phyce.naturalspeech.tts;
 
 import com.google.common.io.Resources;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.PluginEventBus;
-import dev.phyce.naturalspeech.audio.AudioEngine;
+import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.json.abbreviations.AbbreviationEntryDatum;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
@@ -21,17 +23,20 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.callback.ClientThread;
 import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
@@ -42,6 +47,7 @@ public class TextToSpeech implements SpeechEngine {
 
 	private final NaturalSpeechConfig config;
 	private final PluginEventBus pluginEventBus;
+	private final PluginExecutorService pluginExecutorService;
 
 	private final Vector<SpeechEngine> engines = new Vector<>();
 	private final Vector<SpeechEngine> activeEngines = new Vector<>();
@@ -53,19 +59,18 @@ public class TextToSpeech implements SpeechEngine {
 
 	@Inject
 	private TextToSpeech(
-		ClientThread clientThread,
 		NaturalSpeechConfig config,
-		AudioEngine audioEngine,
-		PluginEventBus pluginEventBus
+		PluginEventBus pluginEventBus,
+		PluginExecutorService pluginExecutorService
 	) {
 		this.config = config;
 		this.pluginEventBus = pluginEventBus;
+		this.pluginExecutorService = pluginExecutorService;
 	}
 
 	@Override
 	@Synchronized
-	public @NonNull StartResult start() {
-
+	public ListenableFuture<StartResult> asyncStart(ExecutorService executorService) {
 		if (started) {
 			log.warn("Starting TextToSpeech when already started. Restarting.");
 			stop();
@@ -73,27 +78,45 @@ public class TextToSpeech implements SpeechEngine {
 
 		pluginEventBus.post(new TextToSpeechStarting());
 
+		List<ListenableFuture<StartResult>> futures = new ArrayList<>();
 		for (SpeechEngine engine : engines) {
-			StartResult result = engine.start();
-			if (result == StartResult.SUCCESS) {
-				activeEngines.add(engine);
-				pluginEventBus.post(new SpeechEngineStarted(engine));
-				log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
-			}
-			else {
-				log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
-			}
+			 futures.add(Futures.submit(engine::start, executorService));
 		}
+		return Futures.whenAllComplete(futures).call(
+			() -> {
+				for (SpeechEngine engine : engines) {
+					if (engine.isStarted()) {
+						activeEngines.add(engine);
+						pluginEventBus.post(new SpeechEngineStarted(engine));
+						log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
+					}
+					else {
+						log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
+					}
+				}
 
-		if (activeEngines.isEmpty()) {
-			log.error("No engines started successfully.");
-			pluginEventBus.post(new TextToSpeechFailedStart(TextToSpeechFailedStart.Reason.NO_ENGINE));
+				if (activeEngines.isEmpty()) {
+					log.error("No engines started successfully.");
+					pluginEventBus.post(new TextToSpeechFailedStart(TextToSpeechFailedStart.Reason.NO_ENGINE));
+					return StartResult.FAILED;
+				}
+				else {
+					started = true;
+					pluginEventBus.post(new TextToSpeechStarted());
+					return StartResult.SUCCESS;
+				}
+			},
+			executorService
+		);
+	}
+
+	@Override
+	@Synchronized
+	public @NonNull StartResult start() {
+		try {
+			return asyncStart(pluginExecutorService).get();
+		} catch (InterruptedException | ExecutionException e) {
 			return StartResult.FAILED;
-		}
-		else {
-			started = true;
-			pluginEventBus.post(new TextToSpeechStarted());
-			return StartResult.SUCCESS;
 		}
 	}
 

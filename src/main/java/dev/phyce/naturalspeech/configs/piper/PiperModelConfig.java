@@ -1,8 +1,8 @@
-package dev.phyce.naturalspeech.configs;
+package dev.phyce.naturalspeech.configs.piper;
 
 import com.google.gson.JsonSyntaxException;
-import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
-import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
+import dev.phyce.naturalspeech.configs.json.piper.ModelConfigDatum;
+import dev.phyce.naturalspeech.configs.json.piper.PiperConfigDatum;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
