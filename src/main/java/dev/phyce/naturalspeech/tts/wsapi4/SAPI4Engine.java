@@ -56,7 +56,7 @@ public class SAPI4Engine implements SpeechEngine {
 			return;
 		}
 
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS || NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE) {
 			return;
 		}
 

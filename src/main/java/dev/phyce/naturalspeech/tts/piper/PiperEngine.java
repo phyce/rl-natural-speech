@@ -184,7 +184,7 @@ public class PiperEngine implements SpeechEngine {
 
 	public boolean isPiperPathValid() {
 
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS || NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE) {
 			return false;
 		}
 

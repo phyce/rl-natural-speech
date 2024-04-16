@@ -107,6 +107,8 @@ public class MainSettingsPanel extends PluginPanel {
 	private JPanel warningCrash;
 
 	private boolean isMinimumMode;
+	private JPanel warningMinimumMode;
+
 	private JLabel crashLabel;
 
 	@Inject
@@ -226,13 +228,14 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Subscribe
 	private void onTextToSpeechStarting(TextToSpeechStarting event) {
-		isMinimumMode = false;
+		isMinimumMode = true;
 
 		statusLabel.setText("Starting...");
 		statusLabel.setBackground(Color.GREEN.darker().darker().darker());
 		statusLabel.setForeground(Color.WHITE.darker());
 		statusPanel.setToolTipText("Text to speech is running.");
 
+		clearWarning();
 		revalidate();
 	}
 
@@ -243,7 +246,6 @@ public class MainSettingsPanel extends PluginPanel {
 		statusLabel.setForeground(Color.WHITE);
 		statusPanel.setToolTipText("Text to speech is running.");
 
-		clearWarning();
 		if (isMinimumMode) {
 			addWarning(Warning.MINIMUM_MODE);
 		}
@@ -257,7 +259,6 @@ public class MainSettingsPanel extends PluginPanel {
 		statusLabel.setForeground(null);
 		statusPanel.setToolTipText("Press start to begin text to speech.");
 
-		clearWarning();
 		addWarning(Warning.STOPPED);
 		updateWarningsUI();
 	}
@@ -270,7 +271,6 @@ public class MainSettingsPanel extends PluginPanel {
 		statusPanel.setToolTipText("No available text-to-speech engines detected.");
 
 		if (event.getReason() == TextToSpeechFailedStart.Reason.NO_ENGINE) {
-			clearWarning();
 			addWarning(Warning.NO_ENGINE);
 			updateWarningsUI();
 		}
@@ -354,18 +354,11 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	private void updateWarningsUI() {
-		warningStopped.setVisible(false);
-		warningNoEngine.setVisible(false);
-		warningCrash.setVisible(false);
+		warningStopped.setVisible(!textToSpeech.isStarted());
+		warningNoEngine.setVisible(warnings.contains(Warning.NO_ENGINE));
+		warningCrash.setVisible(warnings.contains(Warning.CRASHED));
+		warningMinimumMode.setVisible(warnings.contains(Warning.MINIMUM_MODE));
 
-		if (warnings.contains(Warning.NO_ENGINE)) {
-			warningNoEngine.setVisible(true);
-		} else if (warnings.contains(Warning.CRASHED)) {
-			warningCrash.setVisible(true);
-		}
-		else {
-			warningStopped.setVisible(!textToSpeech.isStarted());
-		}
 		mainContentPanel.revalidate();
 	}
 
@@ -468,9 +461,54 @@ public class MainSettingsPanel extends PluginPanel {
 			warningCrash.add(crashLabel, BorderLayout.CENTER);
 		}
 
+		{
+			warningMinimumMode = new JPanel();
+			warningMinimumMode.setVisible(false);
+			warningMinimumMode.setLayout(new BorderLayout());
+
+			JLabel warningLabel =
+				new JLabel("<html>Minimum Mode</html>", SwingConstants.CENTER);
+			warningLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
+			warningLabel.setFont(FontManager.getRunescapeFont());
+			warningLabel.setForeground(Color.BLACK);
+			warningLabel.setBackground(new Color(0xFFBB33));
+			warningLabel.setOpaque(true);
+
+			JLabel explainLabel =
+				new JLabel(
+					"<html>We support text-to-speech out of the box; " +
+						"however, there are additional high-quality voice " +
+						"options available for download on our website.<br><br>" +
+						"- Phyce, Louis Hong</html>",
+					SwingConstants.CENTER);
+			explainLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
+			explainLabel.setFont(FontManager.getRunescapeFont());
+			explainLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+			explainLabel.setOpaque(false);
+
+			JLabel websiteLinkLabel =
+				new JLabel("<html><a href='#'>https://naturalspeech.dev</a></html>", SwingConstants.CENTER);
+			websiteLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+			websiteLinkLabel.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					try {
+						Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
+					} catch (Exception ex) {
+						log.error("Error opening website link.", ex);
+					}
+				}
+			});
+
+			warningMinimumMode.add(warningLabel, BorderLayout.NORTH);
+			warningMinimumMode.add(explainLabel, BorderLayout.CENTER);
+			warningMinimumMode.add(websiteLinkLabel, BorderLayout.SOUTH);
+		}
+
 		mainContentPanel.add(warningCrash);
 		mainContentPanel.add(warningNoEngine);
 		mainContentPanel.add(warningStopped);
+		mainContentPanel.add(warningMinimumMode);
 
 		updateWarningsUI();
 	}

@@ -103,7 +103,7 @@ public class PiperRepository {
 
 	public boolean hasModelLocal(String modelName) {
 
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS || NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE) {
 			return false;
 		}
 

@@ -29,7 +29,7 @@ public class SAPI4Repository {
 	public SAPI4Repository(NaturalSpeechRuntimeConfig runtimeConfig) {
 		this.runtimeConfig = runtimeConfig;
 
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS || NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE) {
 			return;
 		}
 

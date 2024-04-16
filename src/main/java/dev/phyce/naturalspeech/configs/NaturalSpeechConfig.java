@@ -48,6 +48,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String OVERRIDE_CUSTOM_NPC_VOICES = "overrideCustomNpcVoices";
 
 		public static final String DEVELOPER_SIMULATE_NO_TTS = "simulateNoTTS";
+		public static final String DEVELOPER_MINIMUM_MODE = "simulateMinimumMode";
 	}
 
 	@ConfigSection(
@@ -434,6 +435,16 @@ public interface NaturalSpeechConfig extends Config {
 		keyName=ConfigKeys.DEVELOPER_SIMULATE_NO_TTS,
 		description="")
 	default boolean simulateNoEngine() {
+		return false;
+	}
+
+	@ConfigItem(
+		section = developerSection,
+		name = "Simulate Minimum Mode",
+		warning = "External Text To Speech start will intentionally fail.",
+		keyName=ConfigKeys.DEVELOPER_MINIMUM_MODE,
+		description="")
+	default boolean simulateMinimumMode() {
 		return false;
 	}
 

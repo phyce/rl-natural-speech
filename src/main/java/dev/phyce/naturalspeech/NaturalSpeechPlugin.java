@@ -40,8 +40,6 @@ import org.slf4j.LoggerFactory;
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
 
-	// Used to simulate when users don't have any TTS available
-	public static boolean _SIMULATE_NO_TTS;
 
 	static {
 		// Setup package level logger level
@@ -77,6 +75,11 @@ public class NaturalSpeechPlugin extends Plugin {
 	private final Set<Object> rlEventBusSubscribers = new HashSet<>();
 	// endregion
 
+	// region: Simulations
+	// Used to simulate when users don't have any TTS available
+	public static boolean _SIMULATE_NO_TTS;
+	public static boolean _SIMULATE_MINIMUM_MODE;
+	// endregion
 
 	// region: helpers
 
@@ -177,6 +180,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		// Used to simulate when users don't have any TTS available
 		_SIMULATE_NO_TTS = config.simulateNoEngine();
+		_SIMULATE_MINIMUM_MODE = config.simulateMinimumMode();
 
 		// plugin fields are wrapped in a field object
 		ns = injector.getInstance(NaturalSpeechModule.class);
@@ -311,6 +315,8 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		if (event.getKey().equals(ConfigKeys.DEVELOPER_SIMULATE_NO_TTS)) {
 			NaturalSpeechPlugin._SIMULATE_NO_TTS = config.simulateNoEngine();
+		} else if (event.getKey().equals(ConfigKeys.DEVELOPER_MINIMUM_MODE)) {
+			NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE = config.simulateMinimumMode();
 		}
 	}
 	// endregion
