@@ -539,7 +539,8 @@ public class MainSettingsPanel extends PluginPanel {
 		// Piper Model
 		for (PiperRepository.ModelURL modelUrl : piperRepository.getModelURLS()) {
 
-			PiperModelItem modelItem = new PiperModelItem(textToSpeech, piperEngine, piperRepository, modelUrl, pluginExecutorService);
+			PiperModelItem modelItem = new PiperModelItem(textToSpeech, piperEngine, piperRepository,
+				pluginExecutorService, modelUrl);
 			piperModelMap.put(modelUrl.getModelName(), modelItem);
 			sectionContent.add(modelItem);
 		}

@@ -50,8 +50,8 @@ public class PiperModelItem extends JPanel {
 		TextToSpeech textToSpeech,
 		PiperEngine piperEngine,
 		PiperRepository piperRepository,
-		PiperRepository.ModelURL modelUrl,
-		PluginExecutorService pluginExecutorService
+		PluginExecutorService pluginExecutorService,
+		PiperRepository.ModelURL modelUrl
 	) {
 		this.textToSpeech = textToSpeech;
 		this.piperEngine = piperEngine;

@@ -216,7 +216,6 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		if (config.autoStart()) {
 			ns.textToSpeech.start(ns.pluginExecutorService);
-//				.addListener(() -> log.info("async start finished"), ns.pluginExecutorService);
 		}
 
 		applyConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
