@@ -1,6 +1,9 @@
 package dev.phyce.naturalspeech.ui.panels;
 
+import com.google.common.util.concurrent.Futures;
 import dev.phyce.naturalspeech.PluginExecutorService;
+import dev.phyce.naturalspeech.guava.SuccessCallback;
+import dev.phyce.naturalspeech.tts.SpeechEngine;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
@@ -96,12 +99,30 @@ public class PiperModelItem extends JPanel {
 				piperEngine.getPiperModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
 				try {
 					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
-					if (piperEngine.isStarted()) {
+
+					Runnable startFunc = () -> {
 						if (toggleButton.isSelected()) {
-							piperEngine.startModel(modelLocal);
+							try {
+								piperEngine.startModel(modelLocal);
+							} catch (IOException e) {
+								log.error("Failed to start model {}", modelLocal.getModelName(), e);
+							}
 						}
 						else {
 							piperEngine.stopModel(modelLocal);
+						}
+					};
+
+					// TTS is started, we want to start the piper engine immediately
+					if (textToSpeech.isStarted()) {
+						if (!piperEngine.isStarted()) {
+							Futures.addCallback(
+								textToSpeech.startEngine(piperEngine),
+								(SuccessCallback<SpeechEngine.StartResult>) (result) -> startFunc.run(),
+								pluginExecutorService);
+						}
+						else {
+							startFunc.run();
 						}
 					}
 				} catch (IOException e) {

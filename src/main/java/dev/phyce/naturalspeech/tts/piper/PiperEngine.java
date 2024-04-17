@@ -98,6 +98,7 @@ public class PiperEngine implements SpeechEngine {
 		}
 	}
 
+	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
 	@Synchronized("lock")
 	@Override
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
@@ -147,8 +148,6 @@ public class PiperEngine implements SpeechEngine {
 		if (!started) {
 			return;
 		}
-
-		// prevents self-cleaning behaviour from colliding. (this is not synchronized with piper processes events)
 
 		models.values().stream().map(PiperModel::getModelLocal).forEach(this::stopModel);
 		models.clear();
@@ -277,6 +276,7 @@ public class PiperEngine implements SpeechEngine {
 			log.error("Attempting to stop in-active model:{}", modelLocal.getModelName());
 			Thread.dumpStack();
 		}
+
 	}
 
 	public boolean isModelActive(String modelName) {

@@ -95,6 +95,7 @@ public class SAPI5Engine implements SpeechEngine {
 		return SpeakResult.ACCEPT;
 	}
 
+	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
 	@Synchronized("lock")
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
