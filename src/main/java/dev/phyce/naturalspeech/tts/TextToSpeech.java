@@ -49,7 +49,7 @@ import net.runelite.http.api.RuneLiteAPI;
 @PluginSingleton
 public class TextToSpeech implements SpeechEngine {
 
-	// We use an additional startLock because
+	// We need monitor&lock because start needs to sync with future thread
 	private final Monitor monitor = new Monitor();
 	private final AtomicBoolean startLock = new AtomicBoolean(false);
 	private final Monitor.Guard whenStartUnlocked = new Monitor.Guard(monitor) {
@@ -129,7 +129,7 @@ public class TextToSpeech implements SpeechEngine {
 					if (engines.stream().noneMatch(
 						engine -> {
 							// PiperEngine handles its own enable status, per model.
-							// PiperEngine itself is never disabled.
+							// PiperEngine itself is never disabled in configs.
 							if (engine instanceof PiperEngine) {
 								return false;
 							}

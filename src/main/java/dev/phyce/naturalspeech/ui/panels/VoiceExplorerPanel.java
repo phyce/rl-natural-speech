@@ -231,6 +231,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 				SwingUtilities.invokeLater(sectionListPanel::revalidate);
 			}
 		}
+		updateVoiceListItems();
 		updateWarnings();
 	}
 
@@ -242,6 +243,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 				SwingUtilities.invokeLater(sectionListPanel::revalidate);
 			}
 		}
+		updateVoiceListItems();
 		updateWarnings();
 	}
 
@@ -283,6 +285,16 @@ public class VoiceExplorerPanel extends EditorPanel {
 		centerStoppedWarning.setVisible(showWarning);
 		centerCopyHint.setVisible(!showWarning);
 		revalidate();
+	}
+
+	private void updateVoiceListItems() {
+		for (VoiceListItem voiceListItem : voiceListItems) {
+			if (textToSpeech.canSpeak(voiceListItem.getVoiceMetadata().getVoiceId())) {
+				voiceListItem.setVisible(true);
+			} else {
+				voiceListItem.setVisible(false);
+			}
+		}
 	}
 
 	private void buildSpeakerList() {
