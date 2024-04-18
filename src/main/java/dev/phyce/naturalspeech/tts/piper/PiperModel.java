@@ -155,11 +155,11 @@ public class PiperModel {
 		while (!processPiperTaskThread.isInterrupted()) {
 
 			while (piperTaskQueue.isEmpty()) {
-				synchronized (piperTaskQueue) {piperTaskQueue.wait();}
+				synchronized (piperTaskQueue) {piperTaskQueue.wait(1000);}
 			}
 
 			while (processMap.isEmpty()) {
-				synchronized (processMap) {processMap.wait();}
+				synchronized (processMap) {processMap.wait(1000);}
 			}
 
 			boolean polled = false;
@@ -198,7 +198,7 @@ public class PiperModel {
 			// processMap is not empty, but all processes are busy,
 			// wait for any processes to finish task and become available
 			if (!polled) {
-				synchronized (processMap) {processMap.wait();}
+				synchronized (processMap) {processMap.wait(1000);}
 			}
 
 		}
