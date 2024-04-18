@@ -82,7 +82,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final SAPI5Engine sapi5Engine;
 
 	private final TextToSpeech textToSpeech;
-	private final PluginEventBus pluginEventBus;
 
 	public static final ImageIcon SECTION_EXPAND_ICON;
 	private static final ImageIcon SECTION_RETRACT_ICON;
@@ -117,7 +116,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 		this.sapi4Engine = sapi4Engine;
 		this.sapi5Engine = sapi5Engine;
 		this.textToSpeech = textToSpeech;
-		this.pluginEventBus = pluginEventBus;
 
 		pluginEventBus.register(this);
 
@@ -281,6 +279,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 				voiceListItem.setVisible(false);
 			}
 		}
+		revalidate();
 	}
 
 	private void buildSpeakerList() {
