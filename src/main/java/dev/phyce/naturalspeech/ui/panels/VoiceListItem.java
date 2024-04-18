@@ -53,11 +53,11 @@ public class VoiceListItem extends JPanel {
 	public VoiceListItem(
 		VoiceExplorerPanel voiceExplorerPanel,
 		TextToSpeech textToSpeech,
-		VoiceMetadata voiceMetadata) {
+		VoiceMetadata voiceMetadata
+	) {
 		this.textToSpeech = textToSpeech;
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.voiceMetadata = voiceMetadata;
-
 
 
 		JPanel speakerPanel = new JPanel();
@@ -67,7 +67,7 @@ public class VoiceListItem extends JPanel {
 		speakerPanel.setLayout(speakerLayout);
 
 
-		JLabel nameLabel = new JLabel(voiceMetadata.getName());
+		JLabel nameLabel = new JLabel("<html>" + voiceMetadata.getName() + "</html>");
 		nameLabel.setForeground(Color.white);
 
 		String genderString;
@@ -89,17 +89,18 @@ public class VoiceListItem extends JPanel {
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
 			.addGap(5)
-			.addComponent(piperIdLabel, 20, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+			.addComponent(piperIdLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
 			.addGap(5)
-			.addComponent(nameLabel)
-			.addGap(5).addComponent(genderLabel));
+			.addComponent(nameLabel, 0, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+			.addGap(0,5,5)
+			.addComponent(genderLabel));
 
 		int lineHeight = (int) (nameLabel.getFontMetrics(nameLabel.getFont()).getHeight() * 1.5);
 
 		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup()
 			.addGap(5)
 			.addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
-			.addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
+			.addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight * 2)
 			.addComponent(genderLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addGap(5));
 
