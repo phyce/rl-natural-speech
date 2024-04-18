@@ -125,13 +125,14 @@ public class PiperProcess {
 		piperLocked.set(true);
 
 		new Thread(() -> {
+			byte[] result = null;
 			try {
-				onComplete.accept(_blockedGenerateAudio(piperVoiceID, text));
+				result = _blockedGenerateAudio(piperVoiceID, text);
 			} catch (IOException e) {
 				log.error("PiperProcess {} failed to generate:{}", this, text);
-				onComplete.accept(null);
 			} finally {
 				piperLocked.set(false);
+				onComplete.accept(result);
 			}
 		}).start();
 	}

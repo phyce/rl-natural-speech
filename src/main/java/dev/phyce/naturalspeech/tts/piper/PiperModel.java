@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.tts.piper;
 
+import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import dev.phyce.naturalspeech.audio.AudioEngine;
@@ -10,13 +11,11 @@ import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Vector;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -32,8 +31,11 @@ import lombok.extern.slf4j.Slf4j;
 public class PiperModel {
 	@Getter
 	private final ConcurrentHashMap<Long, PiperProcess> processMap = new ConcurrentHashMap<>();
-	private final ConcurrentLinkedQueue<PiperTask> piperTaskQueue = new ConcurrentLinkedQueue<>();
-	private final ConcurrentLinkedQueue<PiperTask> dispatchedQueue = new ConcurrentLinkedQueue<>();
+
+	private final Vector<PiperTask> dispatchedTasks = new Vector<>();
+
+	private final BlockingQueue<PiperProcess> idleProcessQueue = Queues.newLinkedBlockingQueue();
+	private final BlockingQueue<PiperTask> piperTasksQueue = Queues.newLinkedBlockingQueue();
 	private final AudioEngine audioEngine;
 	@Getter
 	private final PiperRepository.ModelLocal modelLocal;
@@ -101,7 +103,12 @@ public class PiperModel {
 			return false;
 		}
 
-		List<String> segments = TextUtil.splitSentence(text);
+		List<String> segments;
+		if (text.length() > 50) {
+			segments = TextUtil.splitSentence(text);
+		} else {
+			segments = List.of(text);
+		}
 		if (segments.size() > 1) {
 			log.trace("Piper speech segmentation: {}", TextUtil.sentenceSegmentPrettyPrint(segments));
 
@@ -110,15 +117,15 @@ public class PiperModel {
 			for (String segment : segments) {
 				PiperTask child = new PiperTask(segment, voiceID, gainDB, lineName, parent);
 				log.trace("{} task added. lineName:{} parent:{} text:{} ", voiceID, lineName, parent != null, segment);
-				piperTaskQueue.add(child);
+				piperTasksQueue.add(child);
 				parent = child;
 			}
 		}
 		else {
 			log.trace("{} task Added lineName:{} parent:null text:{}", voiceID, lineName, text);
-			piperTaskQueue.add(new PiperTask(text, voiceID, gainDB, lineName, null));
+			piperTasksQueue.add(new PiperTask(text, voiceID, gainDB, lineName, null));
 		}
-		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
+//		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 
 		return true;
 	}
@@ -145,7 +152,7 @@ public class PiperModel {
 			);
 
 			processMap.put(process.getPid(), process);
-			synchronized (processMap) {processMap.notify();}
+			idleProcessQueue.add(process);
 		}
 	}
 	//Process message queue
@@ -154,64 +161,51 @@ public class PiperModel {
 	public void processPiperTask() {
 		while (!processPiperTaskThread.isInterrupted()) {
 
-			while (piperTaskQueue.isEmpty()) {
-				synchronized (piperTaskQueue) {piperTaskQueue.wait(1000);}
-			}
+			// blocks until taken
+			PiperTask task = piperTasksQueue.take();
 
-			while (processMap.isEmpty()) {
-				synchronized (processMap) {processMap.wait(1000);}
-			}
+			PiperProcess process;
+			do {
+				// inspect the process taken for invalids
+				process = idleProcessQueue.take();
 
-			boolean polled = false;
-
-			// using iterator to loop, so if an invalid PiperProcess is found we can remove.
-			// find alive and non-locked process to dispatch piperTask to
-			Iterator<Map.Entry<Long, PiperProcess>> iter = processMap.entrySet().iterator();
-			while (iter.hasNext()) {
-				var keyValue = iter.next();
-				PiperProcess process = keyValue.getValue();
-
-				if (!process.isAlive()) {
-					// found crashed piper, remove
-					iter.remove();
-					triggerOnPiperProcessCrash(process);
-					continue;
-				}
-
-				if (!process.isLocked()) {
-					// found available piperProcess, dispatch
-					PiperTask task = Objects.requireNonNull(piperTaskQueue.poll());
-
-					if (!task.skip) {
-						dispatchedQueue.add(task);
-						dispatchTask(process, task);
-					}
-					else {
-						log.trace("Skipped task before dispatching:{}", task.text);
-					}
-
-					polled = true;
+				// is it locked? severe: should never have locked a process in idleQueue
+				if (process.isLocked()) {
+					log.error("Found locked PiperProcess in idleProcessDeque");
+				} else {
 					break;
 				}
-			}
 
-			// processMap is not empty, but all processes are busy,
-			// wait for any processes to finish task and become available
-			if (!polled) {
-				synchronized (processMap) {processMap.wait(1000);}
-			}
+				// is it dead?
+				if (!process.isAlive()) {
+					processMap.remove(process.getPid());
+					triggerOnPiperProcessCrash(process);
+				}
+			} while (process.isLocked() || !process.isAlive());
 
+			// found available piperProcess, dispatch
+			if (task.skip) {
+				log.trace("Skipped task before dispatching:{}", task.text);
+			}
+			else {
+				dispatchTask(process, task);
+			}
 		}
 	}
 
 	private void dispatchTask(PiperProcess process, PiperTask task) {
 		log.trace("dispatching task:{}", task.text);
+		dispatchedTasks.add(task);
 		triggerOnPiperProcessBusy(process);
 		String text = Objects.requireNonNull(task).getText();
 		Integer id = Objects.requireNonNull(task.getVoiceID().getIntId());
 
 		Consumer<byte[]> onComplete = ((byte[] audioClip) -> {
+			// add the process back to idleProcessQueue, it's now idle again
+			idleProcessQueue.add(process);
+			triggerOnPiperProcessDone(process);
 
+			// synchronize with parent task audio playback
 			if (audioClip != null && audioClip.length > 0) {
 				// if there are parent tasks, wait for them to complete
 				if (task.parent != null) {
@@ -233,6 +227,7 @@ public class PiperModel {
 					audioEngine.play(task.lineName, inStream, task.gainDB);
 
 					task.completed = true;
+
 				}
 				else {
 					log.trace("Skipped task after completion, discarded result:{}", task.text);
@@ -245,12 +240,9 @@ public class PiperModel {
 			// task either skipped or completed from here on
 			// even in the case audioClip failed to generate, we must notify that the generation is finished
 
-			triggerOnPiperProcessDone(process);
 			// alerts any child tasks waiting on parent
 			synchronized (task) {task.notify();}
-			// notify that this process has become available
-			synchronized (processMap) {processMap.notify();}
-			dispatchedQueue.remove(task);
+			dispatchedTasks.remove(task);
 
 		}); // onComplete lambda block
 
@@ -265,14 +257,14 @@ public class PiperModel {
 	 */
 	public void cancelLine(String lineName) {
 
-		for (PiperTask task : piperTaskQueue) {
+		for (PiperTask task : piperTasksQueue) {
 			if (task.getLineName().equals(lineName)) {
 				log.trace("CancelLine - Setting skipped to true for:{}", task.text);
 				task.skip = true;
 			}
 		}
 
-		for (PiperTask task : dispatchedQueue) {
+		for (PiperTask task : dispatchedTasks) {
 			if (task.getLineName().equals(lineName)) {
 				log.trace("CancelLine - Setting skipped to true for:{}", task.text);
 				task.skip = true;
@@ -282,14 +274,14 @@ public class PiperModel {
 	}
 
 	public void cancelConditional(Predicate<String> condition) {
-		piperTaskQueue.forEach(task -> {
+		piperTasksQueue.forEach(task -> {
 			if (condition.test(task.getLineName())) {
 				log.trace("CancelConditional - Setting skipped to true for:{}", task.text);
 				task.skip = true;
 			}
 		});
 
-		dispatchedQueue.forEach(task -> {
+		dispatchedTasks.forEach(task -> {
 			if (condition.test(task.getLineName())) {
 				log.trace("CancelConditional - Setting skipped to true for:{}", task.text);
 				task.skip = true;
@@ -299,8 +291,8 @@ public class PiperModel {
 
 	public void cancelAll() {
 		log.trace("CancelAll - Setting skipped true for all tasks.");
-		piperTaskQueue.forEach(task -> task.skip = true);
-		dispatchedQueue.forEach(task -> task.skip = true);
+		piperTasksQueue.forEach(task -> task.skip = true);
+		dispatchedTasks.forEach(task -> task.skip = true);
 	}
 
 	public int countAlive() {
@@ -309,6 +301,10 @@ public class PiperModel {
 			if (process.isAlive()) result++;
 		}
 		return result;
+	}
+
+	public int getTaskQueueSize() {
+		return piperTasksQueue.size();
 	}
 
 	/**

@@ -260,11 +260,17 @@ public class NaturalSpeechPlugin extends Plugin {
 	// region: Event Subscribers
 
 	/**
-	 * update AudioEngine 8 times per tick on the client thread.
+	 * update AudioEngine 8 times per tick on the client thread. (calculates dynamic volumes)
 	 */
 	@Schedule(period=600 / 8, unit=ChronoUnit.MILLIS)
 	public void updateAudioEngine() {
 		ns.audioEngine.update();
+	}
+
+	@Schedule(period=1, unit=ChronoUnit.SECONDS)
+	public void debugQueueSize() {
+		log.debug("PiperEngine TaskQueueSize: {}",
+			ns.piperEngine.getTaskQueueSize());
 	}
 
 	@Subscribe
