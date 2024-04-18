@@ -348,27 +348,36 @@ public class VoiceExplorerPanel extends EditorPanel {
 			String name = voiceListItem.getVoiceMetadata().getName().toLowerCase();
 			List<String> nameTokens = List.of(name.split(" "));
 
-			// can use trees, but let's use hashes for now, even faster, and our voice list is tiny
-			// Assuming 64-bit pointer = 8byte
-			// 1000~ voices * 10~ averageNameLength * (4byte int-hash-key + 8byte value pointer) = 120KB of memory
-			List<String> partialNames = new ArrayList<>();
-			StringBuilder partialNameBuilder = new StringBuilder();
-			for (String nameToken : nameTokens) {
-				partialNameBuilder.setLength(0);
-				for (char c : nameToken.toCharArray()) {
-					partialNameBuilder.append(c);
-					partialNames.add(partialNameBuilder.toString());
-				}
-			}
-
-			partialNames.forEach(partialName -> searchToItemBiMap.put(partialName, voiceListItem));
-
 			String modelName = voiceListItem.getVoiceMetadata().getVoiceId().modelName.toLowerCase();
 			String id = voiceListItem.getVoiceMetadata().getVoiceId().getId().toLowerCase();
 			String gender = voiceListItem.getVoiceMetadata().getGender().string;
 
+			// can use trees, but let's use hashes for now, even faster, and our voice list is tiny
+			// Assuming 64-bit pointer = 8byte
+			// 1000~ voices * 10~ averageNameLength * (4byte int-hash-key + 8byte value pointer) = 120KB of memory
+			// keys are also unique, so any overlapping keys are ignored,
+			// ex. "abc" -> "a", "ab", "abc"
+			//     "abb" -> "abb" (keys already exists for "a" and "ab")
+			List<String> partials = new ArrayList<>();
+			StringBuilder partialBuilder = new StringBuilder();
+			for (String nameToken : nameTokens) {
+				partialBuilder.setLength(0);
+				for (char c : nameToken.toCharArray()) {
+					partialBuilder.append(c);
+					partials.add(partialBuilder.toString());
+				}
+			}
+
+			// so tiny it's not worth calculating; numbered keys are highly overlapping
+			partialBuilder.setLength(0);
+			for (char c : id.toCharArray()) {
+				partialBuilder.append(c);
+				partials.add(partialBuilder.toString());
+			}
+
+			partials.forEach(partialTerm -> searchToItemBiMap.put(partialTerm, voiceListItem));
 			nameTokens.forEach(nameToken -> searchToItemBiMap.put(nameToken, voiceListItem));
-			searchToItemBiMap.put(name, voiceListItem);
+//			searchToItemBiMap.put(name, voiceListItem); // partial already contains complete
 			searchToItemBiMap.put(modelName, voiceListItem);
 			searchToItemBiMap.put(id, voiceListItem);
 			searchToItemBiMap.put(gender, voiceListItem);

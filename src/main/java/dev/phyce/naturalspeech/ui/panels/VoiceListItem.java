@@ -84,7 +84,7 @@ public class VoiceListItem extends JPanel {
 		JLabel genderLabel = new JLabel(genderString);
 		genderLabel.setForeground(Color.white);
 
-		JLabel piperIdLabel = new JLabel(voiceMetadata.voiceId.id);
+		JLabel piperIdLabel = new JLabel("<html>" + voiceMetadata.voiceId.id + "</html>");
 
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
