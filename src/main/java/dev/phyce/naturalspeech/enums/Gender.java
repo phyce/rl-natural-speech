@@ -1,11 +1,20 @@
 package dev.phyce.naturalspeech.enums;
 
+import lombok.AllArgsConstructor;
 import lombok.NonNull;
 
+@AllArgsConstructor
 public enum Gender {
-	OTHER,
-	MALE,
-	FEMALE;
+	OTHER("other"),
+	MALE("male"),
+	FEMALE("female");
+
+	public final String string;
+
+	@Override
+	public String toString() {
+		return string;
+	}
 
 	public static Gender parseInt(int id) {
 		switch (id) {

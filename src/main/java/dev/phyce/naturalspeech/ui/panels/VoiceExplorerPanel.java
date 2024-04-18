@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.PluginEventBus;
@@ -35,7 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,7 +63,6 @@ import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.SwingUtil;
-import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class VoiceExplorerPanel extends EditorPanel {
@@ -95,8 +95,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final IconTextField speechText;
 	private final IconTextField searchBar;
 	private final FixedWidthPanel sectionListPanel;
-	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
+	private final HashMultimap<String, VoiceListItem> searchToItemBiMap = HashMultimap.create();
 	private final Map<String, JPanel> modelSections = new HashMap<>();
 	private JPanel microsoftSegment;
 	private JPanel centerStoppedWarning;
@@ -132,22 +132,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		searchBar.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		searchBar.setHoverBackgroundColor(ColorScheme.DARK_GRAY_HOVER_COLOR);
 		SEARCH_HINTS.forEach(searchBar.getSuggestionListModel()::addElement);
-		searchBar.getDocument().addDocumentListener(new DocumentListener() {
-			@Override
-			public void insertUpdate(DocumentEvent e) {
-				searchFilter(searchBar.getText());
-			}
-
-			@Override
-			public void removeUpdate(DocumentEvent e) {
-				searchFilter(searchBar.getText());
-			}
-
-			@Override
-			public void changedUpdate(DocumentEvent e) {
-				searchFilter(searchBar.getText());
-			}
-		});
+		searchBar.getDocument().addDocumentListener(new SearchBarListener());
 
 		// Speech Text Bar
 		speechText = new IconTextField();
@@ -180,7 +165,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 
 		// A parent scroll view pane for speakerListPanel
-		speakerScrollPane = new JScrollPane(speakerListNorthWrapper);
+		JScrollPane speakerScrollPane = new JScrollPane(speakerListNorthWrapper);
 		speakerScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
 		this.add(speakerScrollPane);
@@ -252,7 +237,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 			centerNoEngineWarning.setVisible(true);
 			centerStoppedWarning.setVisible(false);
 			centerCopyHint.setVisible(false);
-		} else {
+		}
+		else {
 			centerNoEngineWarning.setVisible(false);
 			centerStoppedWarning.setVisible(true);
 			centerCopyHint.setVisible(false);
@@ -290,7 +276,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		for (VoiceListItem voiceListItem : voiceListItems) {
 			if (textToSpeech.canSpeak(voiceListItem.getVoiceMetadata().getVoiceId())) {
 				voiceListItem.setVisible(true);
-			} else {
+			}
+			else {
 				voiceListItem.setVisible(false);
 			}
 		}
@@ -302,7 +289,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		JLabel stoppedWarning =
 			new JLabel("<html>Natural Speech is not running<br>Start the engine to see voices</html>",
 				SwingConstants.CENTER);
-		stoppedWarning.setBorder(new EmptyBorder(5,5,5,5));
+		stoppedWarning.setBorder(new EmptyBorder(5, 5, 5, 5));
 		stoppedWarning.setFont(FontManager.getRunescapeFont());
 		stoppedWarning.setForeground(Color.BLACK);
 		stoppedWarning.setBackground(new Color(0xFFBB33));
@@ -314,7 +301,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		JLabel noEngineWarning =
 			new JLabel("<html>There are no available voices installed</html>", SwingConstants.CENTER);
-		noEngineWarning.setBorder(new EmptyBorder(5,5,5,5));
+		noEngineWarning.setBorder(new EmptyBorder(5, 5, 5, 5));
 		noEngineWarning.setFont(FontManager.getRunescapeFont());
 		noEngineWarning.setForeground(Color.BLACK);
 		noEngineWarning.setBackground(new Color(0xFFBB33));
@@ -348,7 +335,44 @@ public class VoiceExplorerPanel extends EditorPanel {
 			}
 		}
 
+		builderSearchTermMultiMap();
+
 		updateWarnings();
+	}
+
+	private void builderSearchTermMultiMap() {
+		searchToItemBiMap.clear();
+		for (VoiceListItem voiceListItem : voiceListItems) {
+
+
+			String name = voiceListItem.getVoiceMetadata().getName().toLowerCase();
+			List<String> nameTokens = List.of(name.split(" "));
+
+			// can use trees, but let's use hashes for now, even faster, and our voice list is tiny
+			// Assuming 64-bit pointer = 8byte
+			// 1000~ voices * 10~ averageNameLength * (4byte int-hash-key + 8byte value pointer) = 120KB of memory
+			List<String> partialNames = new ArrayList<>();
+			StringBuilder partialNameBuilder = new StringBuilder();
+			for (String nameToken : nameTokens) {
+				partialNameBuilder.setLength(0);
+				for (char c : nameToken.toCharArray()) {
+					partialNameBuilder.append(c);
+					partialNames.add(partialNameBuilder.toString());
+				}
+			}
+
+			partialNames.forEach(partialName -> searchToItemBiMap.put(partialName, voiceListItem));
+
+			String modelName = voiceListItem.getVoiceMetadata().getVoiceId().modelName.toLowerCase();
+			String id = voiceListItem.getVoiceMetadata().getVoiceId().getId().toLowerCase();
+			String gender = voiceListItem.getVoiceMetadata().getGender().string;
+
+			nameTokens.forEach(nameToken -> searchToItemBiMap.put(nameToken, voiceListItem));
+			searchToItemBiMap.put(name, voiceListItem);
+			searchToItemBiMap.put(modelName, voiceListItem);
+			searchToItemBiMap.put(id, voiceListItem);
+			searchToItemBiMap.put(gender, voiceListItem);
+		}
 	}
 
 	private void buildMicrosoftModelSegment(List<String> sapi4Models, List<SAPI5Process.SAPI5Voice> sapi5Models) {
@@ -514,52 +538,34 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	void searchFilter(String searchInput) {
-		if (searchInput.isEmpty()) {
-			for (VoiceListItem speakerItems : voiceListItems) {speakerItems.setVisible(true);}
-			return;
+		try {
+			if (searchInput.isEmpty()) {
+				for (VoiceListItem speakerItems : voiceListItems) {speakerItems.setVisible(true);}
+				return;
+			}
+
+			// split search by space and comma
+			List<String> searchTerms = Arrays.stream(searchInput.toLowerCase().split("[,\\s]+"))
+				.filter(s -> !s.isEmpty())
+				.map(String::trim)
+				.map(String::toLowerCase).collect(Collectors.toList());
+
+			if (searchTerms.isEmpty()) {
+				for (VoiceListItem speakerItems : voiceListItems) {speakerItems.setVisible(true);}
+				return;
+			}
+
+			Set<VoiceListItem> results = new HashSet<>(searchToItemBiMap.get(searchTerms.get(0)));
+			for (int i = 1, n = searchTerms.size(); i < n; i++) {
+				String term = searchTerms.get(i);
+				results.removeIf(item -> !searchToItemBiMap.containsEntry(term, item));
+			}
+
+			voiceListItems.forEach((item) -> {item.setVisible(results.contains(item));});
+		} finally {
+			sectionListPanel.revalidate();
 		}
 
-		// split search by space and comma
-		Set<String> searchTerms = Arrays.stream(searchInput.toLowerCase().split("[,\\s]+"))
-			.filter(s -> !s.isEmpty())
-			.map(String::trim)
-			.map(String::toLowerCase).collect(Collectors.toSet());
-
-		Gender genderSearch = null;
-		Iterator<String> iterator = searchTerms.iterator();
-		while (iterator.hasNext()) {
-			String searchTerm = iterator.next();
-
-			if (List.of("m", "male", "guy").contains(searchTerm)) {
-				genderSearch = Gender.MALE;
-				iterator.remove();
-			}
-			else if (List.of("f", "female", "girl").contains(searchTerm)) {
-				genderSearch = Gender.FEMALE;
-				iterator.remove();
-			}
-		}
-
-		searchInput = StringUtils.join(searchTerms, " ");
-
-		for (VoiceListItem speakerItem : voiceListItems) {
-			VoiceMetadata piperVoiceMetadata = speakerItem.getVoiceMetadata();
-
-			boolean visible = genderSearch == null || genderSearch.equals(piperVoiceMetadata.getGender());
-
-			// name search
-			if (!searchInput.isEmpty()) {
-				boolean term_matched = false;
-				if (!searchTerms.isEmpty() && piperVoiceMetadata.getName().toLowerCase().contains(searchInput)) {
-					term_matched = true;
-				}
-
-				if (!term_matched) visible = false;
-			}
-			speakerItem.setVisible(visible);
-		}
-
-		sectionListPanel.revalidate();
 	}
 
 	public void shutdown() {
@@ -578,5 +584,27 @@ public class VoiceExplorerPanel extends EditorPanel {
 		super.onDeactivate();
 
 		SwingUtilities.invokeLater(() -> setVisible(false));
+	}
+
+	private class SearchBarListener implements DocumentListener {
+
+		public void search() {
+			searchFilter(searchBar.getText());
+		}
+
+		@Override
+		public void insertUpdate(DocumentEvent e) {
+			search();
+		}
+
+		@Override
+		public void removeUpdate(DocumentEvent e) {
+			search();
+		}
+
+		@Override
+		public void changedUpdate(DocumentEvent e) {
+			search();
+		}
 	}
 }
