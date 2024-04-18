@@ -42,6 +42,7 @@ import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.http.api.RuneLiteAPI;
 
@@ -49,7 +50,7 @@ import net.runelite.http.api.RuneLiteAPI;
 @PluginSingleton
 public class TextToSpeech implements SpeechEngine {
 
-	// We need monitor&lock because start needs to sync with future thread
+	// We need monitor&lock because start needs to sync with its own future thread
 	private final Monitor monitor = new Monitor();
 	private final AtomicBoolean startLock = new AtomicBoolean(false);
 	private final Monitor.Guard whenStartUnlocked = new Monitor.Guard(monitor) {
@@ -87,6 +88,7 @@ public class TextToSpeech implements SpeechEngine {
 
 	@SneakyThrows(InterruptedException.class)
 	@Override
+	@Synchronized
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
 		monitor.enterWhen(whenStartUnlocked);
 
@@ -164,6 +166,7 @@ public class TextToSpeech implements SpeechEngine {
 
 	@SneakyThrows(InterruptedException.class)
 	@Override
+	@Synchronized
 	public void stop() {
 		monitor.enterWhen(whenStartUnlocked);
 
@@ -245,6 +248,7 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@SneakyThrows(InterruptedException.class)
+	@Synchronized
 	public ListenableFuture<StartResult> startEngine(SpeechEngine engine) {
 		monitor.enterWhen(whenStartUnlocked);
 
@@ -259,7 +263,9 @@ public class TextToSpeech implements SpeechEngine {
 
 				// if it's a new engine, add the engine
 				if (!engines.contains(engine)) {
+					log.warn("startEngine call on engine that was not registered. Registering now.");
 					engines.add(engine);
+					Thread.dumpStack();
 				}
 
 				try {
@@ -284,6 +290,7 @@ public class TextToSpeech implements SpeechEngine {
 	}
 
 	@SneakyThrows(InterruptedException.class)
+	@Synchronized
 	public void stopEngine(SpeechEngine engine) {
 		monitor.enterWhen(whenStartUnlocked);
 		try {
@@ -352,6 +359,5 @@ public class TextToSpeech implements SpeechEngine {
 			if (parts.length == 2) abbreviations.put(parts[0].trim(), parts[1].trim());
 		}
 	}
-
 
 }

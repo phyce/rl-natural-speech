@@ -22,7 +22,7 @@ import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
  * <li>Allows plugin objects to leave scope and be garbage collected. Otherwise, RuneLite Plugin objects never leave scope.</li>
  * <li>Allows better hot-reloading because we can re-instantiate plugin objects</li>
  * </ul>
- * Could be an abstract module, but we're lazy-injecting any ways.
+ * Could be an abstract module, but we're just-in-time-injecting any ways.
  */
 @PluginSingleton
 class NaturalSpeechModule {

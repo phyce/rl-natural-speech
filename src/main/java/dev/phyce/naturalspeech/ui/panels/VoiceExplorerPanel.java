@@ -185,7 +185,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		this.add(speakerScrollPane);
 
-
 		buildSpeakerList();
 	}
 

@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @PluginSingleton
 public class SAPI5Engine implements SpeechEngine {
+	// need lombok to expose secret lock because future thread needs to synchronize on the lock
 	private final Object lock = new Object[0];
 
 	private final AudioEngine audioEngine;

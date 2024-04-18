@@ -1,9 +1,6 @@
 package dev.phyce.naturalspeech.ui.panels;
 
-import com.google.common.util.concurrent.Futures;
 import dev.phyce.naturalspeech.PluginExecutorService;
-import dev.phyce.naturalspeech.guava.SuccessCallback;
-import dev.phyce.naturalspeech.tts.SpeechEngine;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.piper.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
@@ -97,36 +94,36 @@ public class PiperModelItem extends JPanel {
 			l -> {
 				log.debug("Toggling {} into {}", modelUrl.getModelName(), toggleButton.isSelected());
 				piperEngine.getPiperModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
+
+				if (!textToSpeech.isStarted()) return;
+
+				PiperRepository.ModelLocal modelLocal;
 				try {
-					PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
+					modelLocal = piperRepository.loadModelLocal(modelUrl.getModelName());
+				} catch (IOException e) {
+					log.error("Error loading model while toggling piper model.", e);
+					return;
+				}
 
-					Runnable startFunc = () -> {
-						if (toggleButton.isSelected()) {
-							try {
-								piperEngine.startModel(modelLocal);
-							} catch (IOException e) {
-								log.error("Failed to start model {}", modelLocal.getModelName(), e);
-							}
-						}
-						else {
-							piperEngine.stopModel(modelLocal);
-						}
-					};
-
-					// TTS is started, we want to start the piper engine immediately
-					if (textToSpeech.isStarted()) {
-						if (!piperEngine.isStarted()) {
-							Futures.addCallback(
-								textToSpeech.startEngine(piperEngine),
-								(SuccessCallback<SpeechEngine.StartResult>) (result) -> startFunc.run(),
-								pluginExecutorService);
-						}
-						else {
-							startFunc.run();
+				if (piperEngine.isStarted()) {
+					if (toggleButton.isSelected()) {
+						try {
+							piperEngine.startModel(modelLocal);
+						} catch (IOException e) {
+							log.error("Failed to start model {}", modelLocal.getModelName(), e);
 						}
 					}
-				} catch (IOException e) {
-					throw new RuntimeException(e);
+					else {
+						piperEngine.stopModel(modelLocal);
+
+						if (!piperEngine.isAlive()) {
+							textToSpeech.stopEngine(piperEngine);
+						}
+					}
+				}
+				else {
+					// otherwise, we start the engine first, then start the model
+					textToSpeech.startEngine(piperEngine);
 				}
 			});
 

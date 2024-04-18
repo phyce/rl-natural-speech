@@ -26,20 +26,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @PluginSingleton
 public class SAPI4Engine implements SpeechEngine {
+	// need lombok to expose secret lock because future thread needs to synchronize on the lock
 	private final Object lock = new Object[0];
-
-	private final SAPI4Repository sapi4Repository;
-	private final NaturalSpeechRuntimeConfig runtimeConfig;
-	private final AudioEngine audioEngine;
-	private final VoiceManager voiceManager;
-
-	private final Map<String, SpeechAPI4> sapi4s = new HashMap<>();
 
 	// "microsoft" does not denote any specific models and has no lifetime
 	// The VoiceID::ids are the actual models and can be available or not.
 	// We want "microsoft:sam", not "sam:0"
 	// A more generalized approach can be done at a later time.
 	public static final String SAPI4_MODEL_NAME = "microsoft";
+
+	private final AudioEngine audioEngine;
+
+	private final Map<String, SpeechAPI4> sapi4s = new HashMap<>();
+
 
 	@Getter
 	private boolean started = false;
@@ -51,10 +50,7 @@ public class SAPI4Engine implements SpeechEngine {
 		AudioEngine audioEngine,
 		VoiceManager voiceManager
 	) {
-		this.sapi4Repository = sapi4Repository;
-		this.runtimeConfig = runtimeConfig;
 		this.audioEngine = audioEngine;
-		this.voiceManager = voiceManager;
 
 		if (!OSValidator.IS_WINDOWS) {
 			return;

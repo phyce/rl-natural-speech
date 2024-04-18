@@ -37,6 +37,7 @@ import net.runelite.client.config.ConfigManager;
 @Slf4j
 @PluginSingleton
 public class PiperEngine implements SpeechEngine {
+	// need lombok to expose secret lock because future thread needs to synchronize on the lock
 	private final Object lock = new Object[0];
 
 	private static final String CONFIG_KEY_MODEL_CONFIG = "ttsConfig";
@@ -214,7 +215,7 @@ public class PiperEngine implements SpeechEngine {
 		}
 	}
 
-	@Synchronized
+	@Synchronized("lock")
 	public void startModel(PiperRepository.ModelLocal modelLocal) throws IOException {
 		if (models.get(modelLocal.getModelName()) != null) {
 			log.warn("Starting model for {} when there are already pipers running for the model.",

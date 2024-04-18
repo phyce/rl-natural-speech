@@ -135,7 +135,7 @@ public class SAPI5Process {
 			// ex: powershell -command echo "hi"
 
 			// Unlike the Rust CVE-2024-24576, (example https://github.com/frostb1ten/CVE-2024-24576-PoC)
-			// which demonstrated exploiting when user input is passed into the commands field.
+			// which demonstrated exploiting when user input is passed into the command field.
 			// ex 1: powershell -command echo <user_input>
 			// ex 2: (rust)
 			// let output = Command::new("./test.bat")
@@ -174,6 +174,7 @@ public class SAPI5Process {
 		// Begin IO with WSAPI5.cs
 		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 
+		// blocking IO for !LIST to iterate available voices
 		fetchAvailableVoices();
 
 		processStdInThread =
