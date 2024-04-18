@@ -26,6 +26,10 @@ public class TextToSpeechConfig {
 		return enabled == null || enabled;
 	}
 
+	public boolean isUnconfigured(SpeechEngine engine) {
+		return configManager.getConfiguration(CONFIG_GROUP, getKey(engine), Boolean.class) == null;
+	}
+
 
 	public void setEnable(SpeechEngine engine, boolean enabled) {
 		configManager.setConfiguration(CONFIG_GROUP, getKey(engine), enabled);

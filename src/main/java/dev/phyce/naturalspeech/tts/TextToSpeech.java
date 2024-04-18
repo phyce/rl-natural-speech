@@ -128,16 +128,24 @@ public class TextToSpeech implements SpeechEngine {
 
 					if (activeEngines.isEmpty()) {
 						// if all engines were disabled
-						if (engines.stream().noneMatch(
+						boolean allDisabled = engines.stream().noneMatch(
 							engine -> {
 								// PiperEngine handles its own enable status, per model.
 								// PiperEngine itself is never disabled in configs.
 								if (engine instanceof PiperEngine) {
 									return false;
 								}
+
+								// unconfigured engines are considered disabled
+								// since they didn't start successfully
+								if (textToSpeechConfig.isUnconfigured(engine)) {
+									return false;
+								}
+
 								return textToSpeechConfig.isEnabled(engine);
 							}
-						)) {
+						);
+						if (allDisabled) {
 							log.error("No engines started successfully because all them were disabled.");
 							pluginEventBus.post(
 								new TextToSpeechFailedStart(TextToSpeechFailedStart.Reason.ALL_DISABLED));
