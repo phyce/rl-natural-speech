@@ -374,7 +374,7 @@ public class SpeechEventHandler {
 			.count();
 
 		if (PluginHelper.getConfig().muteCrowds() > 0 && PluginHelper.getConfig().muteCrowds() < count) return true;
-		log.debug("Number of players around: " + count);
+		log.trace("Number of players around: " + count);
 		return false;
 	}
 
