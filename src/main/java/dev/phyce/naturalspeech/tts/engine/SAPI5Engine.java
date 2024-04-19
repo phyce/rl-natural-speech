@@ -103,16 +103,17 @@ public class SAPI5Engine implements SpeechEngine {
 	@Synchronized("lock")
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
 
+		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
+			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
+		}
+
+		if (!OSValidator.IS_WINDOWS) {
+			log.trace("Not windows, WSAPI5 fail.");
+			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
+		}
+
 		return Futures.submit(() -> {
 			synchronized (lock) {
-				if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
-					return StartResult.FAILED;
-				}
-
-				if (!OSValidator.IS_WINDOWS) {
-					log.trace("Not windows, WSAPI5 fail.");
-					return StartResult.FAILED;
-				}
 
 				if (started) {
 					stop();

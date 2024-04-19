@@ -8,6 +8,7 @@ import lombok.Value;
 public class TextToSpeechFailedStart {
 	public enum Reason {
 		ALL_DISABLED,
+		NOT_INSTALLED,
 		ALL_FAILED
 	}
 

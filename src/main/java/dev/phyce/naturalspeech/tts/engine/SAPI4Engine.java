@@ -91,6 +91,12 @@ public class SAPI4Engine implements SpeechEngine {
 	@Override
 	@Synchronized("lock")
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+
+		if (!OSValidator.IS_WINDOWS) {
+			log.trace("Not windows, SAPI4 skipping");
+			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
+		}
+
 		return Futures.submit(() -> {
 			synchronized (lock) {
 				StartResult result;

@@ -229,7 +229,7 @@ public class MainSettingsPanel extends PluginPanel {
 	@Subscribe
 	private void onTextToSpeechFailedStart(TextToSpeechFailedStart event) {
 
-		if (event.getReason() == TextToSpeechFailedStart.Reason.ALL_FAILED) {
+		if (event.getReason() == TextToSpeechFailedStart.Reason.NOT_INSTALLED) {
 			statusLabel.setText("No Engine");
 			statusLabel.setBackground(Color.DARK_GRAY);
 			statusLabel.setForeground(null);
@@ -243,6 +243,14 @@ public class MainSettingsPanel extends PluginPanel {
 			statusPanel.setToolTipText("Enable some of the voices to start Text-To-Speech!");
 			addWarning(Warning.CRASHED);
 			crashLabel.setText("<html>Please enable a voice in the Voice Pack settings as all voices are currently disabled.</html>");
+			updateWarningsUI();
+		} else if (event.getReason() == TextToSpeechFailedStart.Reason.ALL_FAILED) {
+			statusLabel.setText("Engine Failed");
+			statusLabel.setBackground(Color.DARK_GRAY);
+			statusLabel.setForeground(null);
+			statusPanel.setToolTipText("There might be an issue with the engine. Please check the logs.");
+			addWarning(Warning.CRASHED);
+			crashLabel.setText("<html>There was an issue starting the engine. Please check the logs.</html>");
 			updateWarningsUI();
 		}
 	}

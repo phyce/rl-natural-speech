@@ -16,7 +16,9 @@ public interface SpeechEngine {
 
 	enum StartResult {
 		SUCCESS,
-		FAILED
+		FAILED,
+		NOT_INSTALLED,
+		DISABLED
 	}
 
 	enum EngineType {

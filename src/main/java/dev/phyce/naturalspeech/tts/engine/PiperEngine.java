@@ -107,15 +107,17 @@ public class PiperEngine implements SpeechEngine {
 	@Synchronized("lock")
 	@Override
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+
+		if (!isPiperPathValid()) {
+			log.trace("No valid piper found at {}", runtimeConfig.getPiperPath());
+			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
+		}
+		else {
+			log.trace("Found Valid Piper at {}", runtimeConfig.getPiperPath());
+		}
+
 		return Futures.submit(() -> {
 			synchronized (lock) {
-				if (!isPiperPathValid()) {
-					log.trace("No valid piper found at {}", runtimeConfig.getPiperPath());
-					return StartResult.FAILED;
-				}
-				else {
-					log.trace("Found Valid Piper at {}", runtimeConfig.getPiperPath());
-				}
 
 				if (started) {
 					stop();
@@ -123,13 +125,18 @@ public class PiperEngine implements SpeechEngine {
 
 				isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
 
+				boolean isDisabled = false;
 				for (PiperRepository.ModelURL modelURL : piperRepository.getModelURLS()) {
 					try {
-						if (piperRepository.hasModelLocal(modelURL.getModelName())
-							&& piperModelConfig.isModelEnabled(modelURL.getModelName())) {
-							PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelURL.getModelName());
-							startModel(modelLocal);
-							started = true;
+						if (piperRepository.hasModelLocal(modelURL.getModelName())) {
+							if (piperModelConfig.isModelEnabled(modelURL.getModelName())) {
+								PiperRepository.ModelLocal modelLocal =
+									piperRepository.loadModelLocal(modelURL.getModelName());
+								startModel(modelLocal);
+								started = true;
+							} else {
+								isDisabled = true;
+							}
 						}
 					} catch (IOException e) {
 						log.error("Failed to start model {}", modelURL.getModelName(), e);
@@ -139,6 +146,8 @@ public class PiperEngine implements SpeechEngine {
 
 				if (started) {
 					return StartResult.SUCCESS;
+				} else if (isDisabled) {
+					return StartResult.DISABLED;
 				} else {
 					return StartResult.FAILED;
 				}
@@ -302,7 +311,7 @@ public class PiperEngine implements SpeechEngine {
 
 		// no existing configs
 		if (json == null) {
-			// default text to speech config with libritts
+			// default piper configuration with libritts turned on
 			ModelConfigDatum datum = new ModelConfigDatum();
 			datum.getPiperConfigData().add(new PiperConfigDatum("libritts", true, 1));
 			this.piperModelConfig = PiperModelConfig.fromDatum(datum);

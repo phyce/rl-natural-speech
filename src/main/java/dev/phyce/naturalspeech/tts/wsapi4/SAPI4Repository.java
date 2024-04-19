@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.tts.wsapi4;
 
+import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
@@ -10,7 +11,6 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import javax.inject.Inject;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +33,7 @@ public class SAPI4Repository {
 			return;
 		}
 
-		if (OSValidator.IS_WINDOWS)
-		{
+		if (OSValidator.IS_WINDOWS) {
 			reload();
 		}
 	}
