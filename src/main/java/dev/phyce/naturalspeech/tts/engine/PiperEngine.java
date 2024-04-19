@@ -287,7 +287,7 @@ public class PiperEngine implements SpeechEngine {
 		return piper != null && piper.countAlive() > 0;
 	}
 
-	public int getTaskQueueSize() {
+	public Integer getTaskQueueSize() {
 		return models.reduceEntries(Long.MAX_VALUE, (entry) -> entry.getValue().getTaskQueueSize(), Integer::sum);
 	}
 

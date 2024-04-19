@@ -29,6 +29,12 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.util.Text;
 
 
+/**
+ * VoiceManager interfaces between user configs and voices registered by the running speech engines.
+ * <br><br>
+ * <h5>Speech Engines must remember to unregister their voices on stop; otherwise VoiceManager will assume the voices
+ * are still speakable.</h5>
+ */
 @Slf4j
 @PluginSingleton
 public class VoiceManager {
@@ -49,18 +55,37 @@ public class VoiceManager {
 		loadVoiceConfig();
 	}
 
+	/**
+	 * helper function for Piper, registers each voice inside the model with {@link #registerVoiceID(VoiceID, Gender)}.
+	 * <b>Unregister the voice when no longer speakable by the engine.</b>
+	 *
+	 * @param modelLocal
+	 */
 	public void registerPiperModel(PiperRepository.ModelLocal modelLocal) {
 		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 			registerVoiceID(voiceMetadata.toVoiceID(), voiceMetadata.getGender());
 		}
 	}
 
+	/**
+	 * helper function for Piper, unregisters each voice inside the model with {@link #unregisterVoiceID(VoiceID)}
+	 *
+	 * @param modelLocal
+	 */
 	public void unregisterPiperModel(PiperRepository.ModelLocal modelLocal) {
 		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
 			unregisterVoiceID(voiceMetadata.toVoiceID());
 		}
 	}
 
+	/**
+	 * Registered voices must be ready to speak.
+	 * <b>Unregister the voice when no longer speakable by the engine.</b>
+	 *
+	 * @param voiceID Voice
+	 * @param gender Gender
+	 * @see #unregisterVoiceID(VoiceID)
+	 */
 	public void registerVoiceID(VoiceID voiceID, Gender gender) {
 		if (activeVoiceMap.contains(voiceID)) {
 			log.error(
@@ -72,6 +97,11 @@ public class VoiceManager {
 		genderedVoiceMap.addVoiceID(gender, voiceID);
 	}
 
+	/**
+	 * When the voice is no longer speakable, unregister the voice.
+	 * @param voiceID Voice
+	 * @see #registerVoiceID(VoiceID, Gender)
+	 */
 	public void unregisterVoiceID(VoiceID voiceID) {
 		if (!activeVoiceMap.contains(voiceID)) {
 			log.error("Attempting to unregister VoiceID that was never registered. {}", voiceID);
@@ -161,7 +191,7 @@ public class VoiceManager {
 
 	//<editor-fold desc="> Get">
 	@CheckForNull
-	private VoiceID getFirstActiveVoice(@NonNull List<VoiceID> voiceIdAndFallbacks) {
+	private VoiceID contains(@NonNull List<VoiceID> voiceIdAndFallbacks) {
 		for (VoiceID voiceID : voiceIdAndFallbacks) {
 			// if the config is invalid, a null might be present
 			if (voiceID == null) continue;
@@ -181,14 +211,14 @@ public class VoiceManager {
 
 		List<VoiceID> results = voiceConfig.findUsername(AudioLineNames.GLOBAL_NPC);
 		if (results != null) {
-			result = getFirstActiveVoice(results);
+			result = contains(results);
 		}
 
 		if (results == null) {
 			// Check NPC ID, takes priority over everything.
 			results = voiceConfig.findNpcId(npcId);
 			if (results != null) {
-				result = getFirstActiveVoice(results);
+				result = contains(results);
 				if (result == null) {
 					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, but model is not active", npcId,
 						npcName);
@@ -199,7 +229,6 @@ public class VoiceManager {
 				}
 			}
 			else {
-				result = null;
 				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId, npcName);
 			}
 		}
@@ -207,7 +236,7 @@ public class VoiceManager {
 		if (result == null) {
 			// Check NPC Name
 			results = voiceConfig.findNpcName(npcName);
-			if (results != null) result = getFirstActiveVoice(results);
+			if (results != null) result = contains(results);
 
 			if (result == null) {
 				log.debug("No NPC ID voice found, NPC Name is also not available for NPC id:{} npcName:{}",
@@ -258,7 +287,7 @@ public class VoiceManager {
 
 		VoiceID result;
 		if (voiceAndFallback != null) {
-			result = getFirstActiveVoice(voiceAndFallback);
+			result = contains(voiceAndFallback);
 			if (result == null) {
 				log.debug("Existing settings {} found for username {}, but model is not active.", voiceAndFallback,
 					standardized_username);

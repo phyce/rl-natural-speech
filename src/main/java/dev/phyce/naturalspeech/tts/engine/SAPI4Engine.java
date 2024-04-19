@@ -39,6 +39,7 @@ public class SAPI4Engine implements SpeechEngine {
 	private final AudioEngine audioEngine;
 
 	private final Map<String, SpeechAPI4> sapi4s = new HashMap<>();
+	private final VoiceManager voiceManager;
 
 
 	@Getter
@@ -52,6 +53,7 @@ public class SAPI4Engine implements SpeechEngine {
 		VoiceManager voiceManager
 	) {
 		this.audioEngine = audioEngine;
+		this.voiceManager = voiceManager;
 
 		if (!OSValidator.IS_WINDOWS) {
 			return;
@@ -66,7 +68,6 @@ public class SAPI4Engine implements SpeechEngine {
 			SpeechAPI4 sapi = SpeechAPI4.start(audioEngine, voiceName, runtimeConfig.getSAPI4Path());
 			if (sapi != null) {
 				sapi4s.put(voiceName, sapi);
-				voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
 			}
 		}
 	}
@@ -98,8 +99,15 @@ public class SAPI4Engine implements SpeechEngine {
 					started = false;
 					result = StartResult.FAILED;
 				} else {
+
+					sapi4s.forEach((voiceName, sapi) -> {
+						voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
+					});
+
 					started = true;
 					result = StartResult.SUCCESS;
+
+
 				}
 				return result;
 			}
@@ -110,6 +118,9 @@ public class SAPI4Engine implements SpeechEngine {
 	@Override
 	@Synchronized("lock")
 	public void stop() {
+		sapi4s.forEach((voiceName, sapi) -> {
+			voiceManager.unregisterVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName));
+		});
 		started = false;
 	}
 
