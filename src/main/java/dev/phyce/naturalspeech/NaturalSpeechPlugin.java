@@ -268,8 +268,10 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Schedule(period=1, unit=ChronoUnit.SECONDS)
 	public void debugQueueSize() {
-		log.debug("PiperEngine TaskQueueSize: {}",
-			ns.piperEngine.getTaskQueueSize());
+		Integer taskQueueSize = ns.piperEngine.getTaskQueueSize();
+		if (taskQueueSize != null) {
+			log.debug("PiperEngine TaskQueueSize: {}", taskQueueSize);
+		}
 	}
 
 	@Subscribe

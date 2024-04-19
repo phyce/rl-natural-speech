@@ -242,7 +242,7 @@ public class MainSettingsPanel extends PluginPanel {
 			statusLabel.setForeground(null);
 			statusPanel.setToolTipText("Enable some of the voices to start Text-To-Speech!");
 			addWarning(Warning.CRASHED);
-			crashLabel.setText("<html>Please enable a voice in the Voice Pack settings as all voices are currently disabled.</html>");
+			crashLabel.setText("<html>Please enable a voice in the Voice Pack settings.</html>");
 			updateWarningsUI();
 		} else if (event.getReason() == TextToSpeechFailedStart.Reason.ALL_FAILED) {
 			statusLabel.setText("Engine Failed");
