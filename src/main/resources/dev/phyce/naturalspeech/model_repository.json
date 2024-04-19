@@ -78,5 +78,13 @@
     "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/frmls.metadata.json",
     "description": "French. 125 Voices. Experimental",
     "memorySize": "size:76MB"
+  },
+  {
+    "modelName": "nlmls",
+    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/nl/nl_NL/mls/medium/nl_NL-mls-medium.onnx?download=true",
+    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/nl/nl_NL/mls/medium/nl_NL-mls-medium.onnx.json",
+    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/nlmls.metadata.json",
+    "description": "Dutch. 52 Voices.",
+    "memorySize": "size:76MB"
   }
 ]
