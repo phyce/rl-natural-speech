@@ -144,6 +144,7 @@ public class SpeechEventHandler {
 
 	@Subscribe
 	private void onWidgetLoaded(WidgetLoaded event) {
+		if(!config.dialogEnabled())return;
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
