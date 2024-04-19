@@ -38,10 +38,15 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 
 ---
 # Changelog
+
+## 1.2.1
+ - Re-added dutch.
+ - Fixed issue where option to disable dialogs didn't work
+
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)
  - Muting a player/npc will persist between sessions
- - Right click menu entry UI improvements, including new icons.
+ - Right click menu entry UI improvements, including new icons
  - Added ability to enable right-click menu only when holding the shift key
  - Configuring a voice now pre-populates field with current voice
  - `Mute-others` has been renamed to `Listen`
