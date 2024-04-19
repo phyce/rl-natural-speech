@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.PluginEventBus;
+import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
@@ -50,6 +51,7 @@ public class PiperEngine implements SpeechEngine {
 	private final ConfigManager configManager;
 	private final VoiceManager voiceManager;
 	private final PluginEventBus pluginEventBus;
+	private final PluginExecutorService pluginExecutorService;
 
 	private final ConcurrentHashMap<String, PiperModel> models = new ConcurrentHashMap<>();
 	@Getter
@@ -66,7 +68,8 @@ public class PiperEngine implements SpeechEngine {
 		AudioEngine audioEngine,
 		ConfigManager configManager,
 		VoiceManager voiceManager,
-		PluginEventBus pluginEventBus
+		PluginEventBus pluginEventBus,
+		PluginExecutorService pluginExecutorService
 	) {
 		this.piperRepository = piperRepository;
 		this.runtimeConfig = runtimeConfig;
@@ -74,10 +77,9 @@ public class PiperEngine implements SpeechEngine {
 		this.configManager = configManager;
 		this.voiceManager = voiceManager;
 		this.pluginEventBus = pluginEventBus;
-
+		this.pluginExecutorService = pluginExecutorService;
 
 		loadModelConfig();
-
 	}
 
 	@Override
@@ -230,7 +232,7 @@ public class PiperEngine implements SpeechEngine {
 			isPiperUnquarantined = MacUnquarantine.Unquarantine(runtimeConfig.getPiperPath());
 		}
 
-		PiperModel model = new PiperModel(audioEngine, modelLocal, runtimeConfig.getPiperPath());
+		PiperModel model = new PiperModel(pluginExecutorService, audioEngine, modelLocal, runtimeConfig.getPiperPath());
 
 		// Careful, PiperProcess listeners are not called on the client thread
 		model.addPiperListener(

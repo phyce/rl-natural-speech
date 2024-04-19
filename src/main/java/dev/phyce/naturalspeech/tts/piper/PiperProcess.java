@@ -1,7 +1,9 @@
 package dev.phyce.naturalspeech.tts.piper;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -12,10 +14,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -29,10 +29,13 @@ public class PiperProcess {
 	private final BufferedWriter processStdIn;
 	private final Thread processStdInThread;
 	private final Thread processStdErrThread;
-	
+	private final PluginExecutorService pluginExecutorService;
+
 	private volatile boolean destroying = false;
 
-	private PiperProcess(Path piperPath, Path modelPath) throws IOException {
+	private PiperProcess(PluginExecutorService pluginExecutorService, Path piperPath, Path modelPath)
+		throws IOException {
+		this.pluginExecutorService = pluginExecutorService;
 		piperLocked = new AtomicBoolean(false);
 		this.modelPath = modelPath;
 
@@ -63,8 +66,9 @@ public class PiperProcess {
 		else {return String.format("pid:dead model:%s", modelPath.getFileName());}
 	}
 
-	public static PiperProcess start(Path piperPath, Path modelPath) throws IOException {
-		return new PiperProcess(piperPath, modelPath);
+	public static PiperProcess start(PluginExecutorService pluginExecutorService, Path piperPath, Path modelPath)
+		throws IOException {
+		return new PiperProcess(pluginExecutorService, piperPath, modelPath);
 	}
 
 	public void destroy() {
@@ -116,32 +120,32 @@ public class PiperProcess {
 	}
 
 	// refactor: inlined the speak(TTSItem) method into one generateAudio function
-	public void generateAudio(int piperVoiceID, String text, Consumer<byte[]> onComplete) {
+	public ListenableFuture<byte[]> generateAudio(int piperVoiceID, String text) {
 		if (piperLocked.get()) {
 			log.error("attempting to generateAudio with locked PiperProcess({}):{}", this, text);
-			return;
+			return Futures.immediateCancelledFuture();
 		}
+
 		piperLocked.set(true);
 
-		new Thread(() -> {
+		return Futures.submit(() -> {
 			byte[] result = null;
 			try {
 				result = _blockedGenerateAudio(piperVoiceID, text);
-			} catch (IOException e) {
+			} catch (InterruptedException | IOException e) {
 				log.error("PiperProcess {} failed to generate:{}", this, text);
 			} finally {
 				piperLocked.set(false);
-				onComplete.accept(result);
 			}
-		}).start();
+			return result;
+		}, pluginExecutorService);
 	}
 
-	@SneakyThrows(InterruptedException.class)
-	private byte[] _blockedGenerateAudio(int piperVoiceID, String text) throws IOException {
+	private byte[] _blockedGenerateAudio(int piperVoiceID, String text) throws IOException, InterruptedException {
 		try {
 			byte[] result = null;
 
-			synchronized (streamCapture) { streamCapture.reset(); }
+			synchronized (streamCapture) {streamCapture.reset();}
 
 			processStdIn.write(TextUtil.generateJson(text, piperVoiceID));
 			processStdIn.newLine();
@@ -179,7 +183,8 @@ public class PiperProcess {
 			// then this is a crash
 			if (!ref.destroying) {
 				crash.set(this);
-			} else {
+			}
+			else {
 				crash.cancel(false);
 			}
 		});
@@ -194,7 +199,8 @@ public class PiperProcess {
 			// then this is a normal exit
 			if (ref.destroying) {
 				exit.set(this);
-			} else {
+			}
+			else {
 				exit.cancel(false);
 			}
 		});

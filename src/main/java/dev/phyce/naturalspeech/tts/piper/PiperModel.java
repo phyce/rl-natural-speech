@@ -1,8 +1,11 @@
 package dev.phyce.naturalspeech.tts.piper;
 
 import com.google.common.collect.Queues;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import dev.phyce.naturalspeech.PluginExecutorService;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.guava.SuccessCallback;
 import dev.phyce.naturalspeech.tts.VoiceID;
@@ -16,27 +19,30 @@ import java.util.Objects;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import lombok.Data;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 // Renamed from TTSModel
 @Slf4j
 public class PiperModel {
+
+	private final PluginExecutorService pluginExecutorService;
+	private final AudioEngine audioEngine;
+
 	@Getter
 	private final ConcurrentHashMap<Long, PiperProcess> processMap = new ConcurrentHashMap<>();
-
 	private final Vector<PiperTask> dispatchedTasks = new Vector<>();
-
 	private final BlockingQueue<PiperProcess> idleProcessQueue = Queues.newLinkedBlockingQueue();
 	private final BlockingQueue<PiperTask> piperTasksQueue = Queues.newLinkedBlockingQueue();
-	private final AudioEngine audioEngine;
+
+
 	@Getter
 	private final PiperRepository.ModelLocal modelLocal;
 	@Getter
@@ -57,7 +63,11 @@ public class PiperModel {
 			false
 		); // Little Endian
 
-	public PiperModel(AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath) {
+	public PiperModel(
+		PluginExecutorService pluginExecutorService,
+		AudioEngine audioEngine, PiperRepository.ModelLocal modelLocal, Path piperPath
+	) {
+		this.pluginExecutorService = pluginExecutorService;
 		this.audioEngine = audioEngine;
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
@@ -106,7 +116,8 @@ public class PiperModel {
 		List<String> segments;
 		if (text.length() > 50) {
 			segments = TextUtil.splitSentence(text);
-		} else {
+		}
+		else {
 			segments = List.of(text);
 		}
 		if (segments.size() > 1) {
@@ -134,7 +145,7 @@ public class PiperModel {
 		for (int index = 0; index < processCount; index++) {
 			PiperProcess process;
 			try {
-				process = PiperProcess.start(piperPath, modelLocal.getOnnx().toPath());
+				process = PiperProcess.start(pluginExecutorService, piperPath, modelLocal.getOnnx().toPath());
 				triggerOnPiperProcessStart(process);
 			} catch (IOException e) {
 				log.error("Failed to start PiperProcess");
@@ -171,7 +182,8 @@ public class PiperModel {
 				// is it locked? severe: should never have locked a process in idleQueue
 				if (process.isLocked()) {
 					log.error("Found locked PiperProcess in idleProcessDeque");
-				} else {
+				}
+				else {
 					break;
 				}
 
@@ -199,54 +211,10 @@ public class PiperModel {
 		String text = Objects.requireNonNull(task).getText();
 		Integer id = Objects.requireNonNull(task.getVoiceID().getIntId());
 
-		Consumer<byte[]> onComplete = ((byte[] audioClip) -> {
-			// add the process back to idleProcessQueue, it's now idle again
-			idleProcessQueue.add(process);
-			triggerOnPiperProcessDone(process);
-
-			// synchronize with parent task audio playback
-			if (audioClip != null && audioClip.length > 0) {
-				// if there are parent tasks, wait for them to complete
-				if (task.parent != null) {
-					synchronized (task.parent) {
-						// wait until parent is completed or skipped
-						while (!(task.parent.completed || task.parent.skip)) {
-							try {task.parent.wait();} catch (InterruptedException ignored) {}
-						}
-					}
-				}
-
-				if (!task.skip) {
-					AudioInputStream inStream = new AudioInputStream(
-						new ByteArrayInputStream(audioClip),
-						audioFormat,
-						audioClip.length);
-
-					log.trace("Pumping into AudioEngine:{}", task.text);
-					audioEngine.play(task.lineName, inStream, task.gainDB);
-
-					task.completed = true;
-
-				}
-				else {
-					log.trace("Skipped task after completion, discarded result:{}", task.text);
-				}
-			}
-			else {
-				log.warn("PiperProcess returned null and did not generate, likely due to crash.");
-			}
-
-			// task either skipped or completed from here on
-			// even in the case audioClip failed to generate, we must notify that the generation is finished
-
-			// alerts any child tasks waiting on parent
-			synchronized (task) {task.notify();}
-			dispatchedTasks.remove(task);
-
-		}); // onComplete lambda block
-
 		log.trace("generating audio {} -> {}", process, text);
-		process.generateAudio(id, text, onComplete);
+
+		ListenableFuture<byte[]> onDone = process.generateAudio(id, text);
+		Futures.addCallback(onDone, new TaskDoneCallback(process, task), pluginExecutorService);
 	}
 
 	/**
@@ -385,5 +353,75 @@ public class PiperModel {
 		default void onPiperProcessDone(PiperProcess process) {}
 
 		default void onPiperProcessCrash(PiperProcess process) {}
+	}
+
+	private class TaskDoneCallback implements FutureCallback<byte[]> {
+
+		private final PiperProcess process;
+		private final PiperTask task;
+
+		private TaskDoneCallback(PiperProcess process, PiperTask task) {
+			this.process = process;
+			this.task = task;
+		}
+
+		@Override
+		public void onSuccess(byte[] audioClip) {
+			// add the process back to idleProcessQueue, it's now idle again
+			idleProcessQueue.add(process);
+			triggerOnPiperProcessDone(process);
+
+			// synchronize with parent task audio playback
+			if (audioClip != null && audioClip.length > 0) {
+				// if there are parent tasks, wait for them to complete
+				if (task.parent != null) {
+					synchronized (task.parent) {
+						// wait until parent is completed or skipped
+						while (!(task.parent.completed || task.parent.skip)) {
+							try {task.parent.wait();} catch (InterruptedException ignored) {}
+						}
+					}
+				}
+
+				if (!task.skip) {
+					AudioInputStream inStream = new AudioInputStream(
+						new ByteArrayInputStream(audioClip),
+						audioFormat,
+						audioClip.length);
+
+					log.trace("Pumping into AudioEngine:{}", task.text);
+					audioEngine.play(task.lineName, inStream, task.gainDB);
+
+					task.completed = true;
+
+				}
+				else {
+					log.trace("Skipped task after completion, discarded result:{}", task.text);
+				}
+			}
+			else {
+				task.completed = true;
+				log.warn("PiperProcess returned null and did not generate, likely due to crash.");
+			}
+
+			// task either skipped or completed from here on
+			// even in the case audioClip failed to generate, we must notify that the generation is finished
+
+			// alerts any child tasks waiting on parent
+			synchronized (task) {task.notify();}
+			dispatchedTasks.remove(task);
+		}
+
+		@Override
+		public void onFailure(@NonNull Throwable t) {
+			log.error("PiperProcess exception while generating audio for:{}", task.text, t);
+			idleProcessQueue.add(process);
+			triggerOnPiperProcessDone(process);
+			// alerts any child tasks waiting on parent
+			task.completed = true;
+			synchronized (task) {task.notify();}
+			dispatchedTasks.remove(task);
+		}
+
 	}
 }
