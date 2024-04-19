@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.tts.piper;
+package dev.phyce.naturalspeech.tts.engine;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -18,9 +18,11 @@ import dev.phyce.naturalspeech.events.piper.PiperProcessExited;
 import dev.phyce.naturalspeech.events.piper.PiperProcessStarted;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
-import dev.phyce.naturalspeech.tts.SpeechEngine;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.piper.PiperModel;
+import dev.phyce.naturalspeech.tts.piper.PiperProcess;
+import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.io.File;
 import java.io.IOException;

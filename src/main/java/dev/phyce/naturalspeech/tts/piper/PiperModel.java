@@ -125,7 +125,6 @@ public class PiperModel {
 			log.trace("{} task Added lineName:{} parent:null text:{}", voiceID, lineName, text);
 			piperTasksQueue.add(new PiperTask(text, voiceID, gainDB, lineName, null));
 		}
-//		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 
 		return true;
 	}
@@ -155,8 +154,8 @@ public class PiperModel {
 			idleProcessQueue.add(process);
 		}
 	}
-	//Process message queue
 
+	//Process message queue
 	@SneakyThrows(InterruptedException.class)
 	public void processPiperTask() {
 		while (!processPiperTaskThread.isInterrupted()) {

@@ -2,7 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.tts.AudioLineNames;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.engine.TextToSpeech;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;

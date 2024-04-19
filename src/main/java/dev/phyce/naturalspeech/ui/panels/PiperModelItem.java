@@ -1,8 +1,8 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.PluginExecutorService;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
-import dev.phyce.naturalspeech.tts.piper.PiperEngine;
+import dev.phyce.naturalspeech.tts.engine.TextToSpeech;
+import dev.phyce.naturalspeech.tts.engine.PiperEngine;
 import dev.phyce.naturalspeech.tts.piper.PiperRepository;
 import static dev.phyce.naturalspeech.ui.panels.StaticImages.OFF_SWITCHER;
 import static dev.phyce.naturalspeech.ui.panels.StaticImages.ON_SWITCHER;

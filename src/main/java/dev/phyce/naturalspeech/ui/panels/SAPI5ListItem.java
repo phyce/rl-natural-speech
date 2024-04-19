@@ -2,8 +2,8 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.TextToSpeechConfig;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
-import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Engine;
+import dev.phyce.naturalspeech.tts.engine.TextToSpeech;
+import dev.phyce.naturalspeech.tts.engine.SAPI5Engine;
 import static dev.phyce.naturalspeech.ui.panels.StaticImages.OFF_SWITCHER;
 import static dev.phyce.naturalspeech.ui.panels.StaticImages.ON_SWITCHER;
 import java.awt.Dimension;

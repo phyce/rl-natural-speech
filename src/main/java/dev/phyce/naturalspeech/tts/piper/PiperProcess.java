@@ -19,7 +19,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 
-// Renamed from TTSEngine
 @Slf4j
 public class PiperProcess {
 	public static final Pattern piperLogMatcher = Pattern.compile("\\[.+] \\[piper] \\[info] (.+)");

@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.configs;
 import com.google.inject.Inject;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.guice.PluginSingleton;
-import dev.phyce.naturalspeech.tts.SpeechEngine;
+import dev.phyce.naturalspeech.tts.engine.SpeechEngine;
 import net.runelite.client.config.ConfigManager;
 
 @PluginSingleton
