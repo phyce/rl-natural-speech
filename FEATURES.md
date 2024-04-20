@@ -42,6 +42,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ## 1.2.1
  - Re-added dutch.
  - Fixed issue where option to disable dialogs didn't work
+ - Fixed issue where option to disable examine text didn't work for all examine messages
 
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)

@@ -345,6 +345,8 @@ public class SpeechEventHandler {
 				if (!config.clanGuestChatEnabled()) return true;
 				break;
 			case OBJECT_EXAMINE:
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
 				if (!config.examineChatEnabled()) return true;
 				break;
 			case WELCOME:
