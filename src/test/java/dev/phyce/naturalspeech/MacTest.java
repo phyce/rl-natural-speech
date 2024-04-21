@@ -1,5 +1,9 @@
 package dev.phyce.naturalspeech;
 
+import dev.phyce.naturalspeech.jna.macos.foundation.Foundation;
+import static dev.phyce.naturalspeech.jna.macos.foundation.Foundation.FOUNDATION;
+import dev.phyce.naturalspeech.jna.macos.foundation.objects.SEL;
+import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechSynthesisVoice;
 import dev.phyce.naturalspeech.jna.macos.foundation.util.AutoRelease;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.ID;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.NSObject;
@@ -33,6 +37,14 @@ public class MacTest {
 		NSObject.release(hello);
 		NSObject.release(world);
 		NSObject.release(helloworld);
+	}
+
+	@Test
+	public void testAVSpeechSynthesisVoice() {
+		String[] voices = AVSpeechSynthesisVoice.getSpeechVoices();
+		for (String voice : voices) {
+			System.out.println(voice);
+		}
 	}
 
 

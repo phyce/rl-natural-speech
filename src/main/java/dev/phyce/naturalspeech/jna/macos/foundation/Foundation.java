@@ -1,47 +1,37 @@
 package dev.phyce.naturalspeech.jna.macos.foundation;
 
-import com.sun.jna.Callback;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.ID;
+import dev.phyce.naturalspeech.jna.macos.foundation.objects.SEL;
+import dev.phyce.naturalspeech.jna.macos.foundation.util.Foundations;
 
 @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "UnusedReturnValue"})
 public interface Foundation extends Library {
 
-    Foundation FOUNDATION = Native.load("Foundation", Foundation.class);
+	Foundation FOUNDATION = Native.load("Foundation", Foundation.class);
 
-    ID class_getInstanceVariable(NativeLong classPointer, String name);
+	ID objc_getClass(String className);
 
-    ID object_getIvar(NativeLong target, NativeLong ivar);
+	ID objc_msgSend(Object[] args);
 
-    ID objc_getClass(String className);
+	ID objc_msgSend(ID self, SEL selector);
 
-    ID objc_allocateClassPair(NativeLong superClass, String name, long extraBytes);
+	ID objc_msgSend(ID self, SEL selector, Object arg);
 
-    void objc_registerClassPair(NativeLong clazz);
+//	ID objc_msgSend(ID self, SEL selector, ID idArg);
+//
+//	ID objc_msgSend(ID self, SEL selector, Pointer pointerArg);
+//
+//	ID objc_msgSend(ID self, SEL selector, Number numberArg);
+//
+//	ID objc_msgSend(ID self, SEL selector, boolean boolArg);
 
-    ID class_createInstance(NativeLong clazz, int extraBytes);
+	// Dangerous because Java char implies 16-bit Unicode, but Objective-C char is 8-bit ASCII
+	// ID objc_msgSend(ID receiver, SEL selector, char charArg); <- intentionally omitted!
+	// ID objc_msgSend(ID receiver, SEL selector, String javaString); <- intentionally omitted!
 
-    boolean class_addMethod(NativeLong clazz, Pointer selector, Callback callback, String types);
-
-	ID objc_msgSend(NativeLong receiver, Pointer selector);
-
-    ID objc_msgSend(NativeLong receiver, Pointer selector, Pointer obj);
-
-    ID objc_msgSend(NativeLong receiver, Pointer selector, NativeLong objAddress);
-
-    ID objc_msgSend(NativeLong receiver, Pointer selector, boolean boolArg);
-
-    ID objc_msgSend(NativeLong receiver, Pointer selector, double doubleArg);
-
-    // Used by NSObject.performSelectorOnMainThread
-    ID objc_msgSend(NativeLong receiver, Pointer selector, Pointer selectorDst, NativeLong objAddress, boolean wait);
-
-    // Used by NSString.fromJavaString
-    ID objc_msgSend(NativeLong receiver, Pointer selector, byte[] bytes, int len, long encoding);
-
-    Pointer sel_registerName(String selectorName);
+	SEL sel_registerName(String selectorName);
 
 }

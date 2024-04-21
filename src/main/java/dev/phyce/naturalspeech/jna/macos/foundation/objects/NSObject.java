@@ -8,12 +8,12 @@ public interface NSObject {
 
     ID idClass = Foundation.FOUNDATION.objc_getClass("NSObject");
 
-    Pointer selAlloc = Foundation.FOUNDATION.sel_registerName("alloc");
-    Pointer selInit = Foundation.FOUNDATION.sel_registerName("init");
-	Pointer selRetain = Foundation.FOUNDATION.sel_registerName("retain");
-    Pointer selRelease = Foundation.FOUNDATION.sel_registerName("release");
-	Pointer selRetainCount = Foundation.FOUNDATION.sel_registerName("retainCount");
-    Pointer selPerformSelectorOnMainThread$withObject$waitUntilDone
+    SEL selAlloc = Foundation.FOUNDATION.sel_registerName("alloc");
+    SEL selInit = Foundation.FOUNDATION.sel_registerName("init");
+	SEL selRetain = Foundation.FOUNDATION.sel_registerName("retain");
+    SEL selRelease = Foundation.FOUNDATION.sel_registerName("release");
+	SEL selRetainCount = Foundation.FOUNDATION.sel_registerName("retainCount");
+    SEL selPerformSelectorOnMainThread$withObject$waitUntilDone
             = Foundation.FOUNDATION.sel_registerName("performSelectorOnMainThread:withObject:waitUntilDone:");
 
 	static long getRetainCount(ID self) {

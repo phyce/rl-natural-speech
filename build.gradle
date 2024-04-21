@@ -32,4 +32,5 @@ version = '1.2.0'
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 	options.release.set(11)
+    options.compilerArgs += ["-Xlint:deprecation"]
 }
