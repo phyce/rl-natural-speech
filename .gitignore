@@ -11,3 +11,6 @@ nbproject/
 
 # for Intellij run configuration
 .run/
+
+# ignore JVM log files
+hs_err_pid*.log

@@ -226,6 +226,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		log.info("NaturalSpeech plugin has started");
 	}
 
+
 	@Override
 	public void shutDown() {
 		// unregister eventBus so handlers do not run after shutdown.
@@ -321,7 +322,8 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		if (event.getKey().equals(ConfigKeys.DEVELOPER_SIMULATE_NO_TTS)) {
 			NaturalSpeechPlugin._SIMULATE_NO_TTS = config.simulateNoEngine();
-		} else if (event.getKey().equals(ConfigKeys.DEVELOPER_MINIMUM_MODE)) {
+		}
+		else if (event.getKey().equals(ConfigKeys.DEVELOPER_MINIMUM_MODE)) {
 			NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE = config.simulateMinimumMode();
 		}
 	}

@@ -12,6 +12,7 @@ public class NaturalSpeechPluginTest {
 		VoiceRepository.PiperVoice piperVoice = repo.loadPiperVoice("en_US-libritts-high");
 */
 
+		//noinspection unchecked
 		ExternalPluginManager.loadBuiltin(NaturalSpeechPlugin.class);
 		RuneLite.main(args);
 	}
