@@ -157,8 +157,6 @@ public class SpeechEventHandler {
 				}
 
 				VoiceID voiceID;
-				System.out.println("NPC Name Widget Get Model ID");
-				System.out.println(npcNameWidget.getModelId());
 				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName); }
 				catch (VoiceSelectionOutOfOption e) { throw new RuntimeException(e); }
 
