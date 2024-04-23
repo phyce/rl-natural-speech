@@ -105,7 +105,7 @@ public class SpeechEventHandler {
 		textToSpeech.speak(voiceId, text, distance, username);
 	}
 
-	@Subscribe
+	@Subscribe(priority=-100)
 	private void onWidgetLoaded(WidgetLoaded event) {
 		if(!config.dialogEnabled())return;
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
@@ -157,7 +157,9 @@ public class SpeechEventHandler {
 				}
 
 				VoiceID voiceID;
-				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcNameWidget.getModelId(), npcName); }
+				System.out.println("NPC Name Widget Get Model ID");
+				System.out.println(npcNameWidget.getModelId());
+				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName); }
 				catch (VoiceSelectionOutOfOption e) { throw new RuntimeException(e); }
 
 				textToSpeech.speak(voiceID, text, 0, npcName);

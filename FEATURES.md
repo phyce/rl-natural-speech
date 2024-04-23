@@ -39,8 +39,11 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.2.2
+ - Fixed issue with setting NPC voices
+
 ## 1.2.1
- - Re-added dutch.
+ - Re-added Dutch
  - Fixed issue where option to disable dialogs didn't work
  - Fixed issue where option to disable examine text didn't work for all examine messages
 
@@ -74,7 +77,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
  - Fixed Engine status now shows the right information when piper is not found
  - Fixed Voice Repository now disables download when engine path is invalid
  - Fixed Text to speech engine now stops after user changes engine path 
- - Fixed MacOS now un-quarantines piper after initial attempt failed due to incorrect piper path.
+ - Fixed MacOS now un-quarantines piper after initial attempt failed due to incorrect piper path
  - Fixed Voice Explorer search by gender
  - Fixed TTS issues with dialog text decoration
  - Fixed Piper clears task and audio queue when stopped
