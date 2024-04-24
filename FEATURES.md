@@ -1,35 +1,23 @@
 # Features
 
-## TODO add distance fade explanation
-
 ### Right click option menu
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
 ![](https://mechanic.ink/img/osrs/features/right-click.png)
-
-### Spam Prevention
-
-Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
-![](https://mechanic.ink/img/osrs/features/spam-prevention.png)
 
 ### Voice Explorer
 Choose from over 1000 different voices for your character. 
 You can use the Included voice explorer to preview a voice:<br/>
 ![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
 
-### Multiple processes per voice pack
-You can choose to run multiple instances of the TTS engine to offload the sound generation to allow
-Natural Speech to process more messages at once. this is useful for crowded areas. Simply right click on a voice pack and click on `Set process count`
-
-![](https://mechanic.ink/img/osrs/features/change-process-count.png)
-
-**Warning! Each process that you add will add will consume as much additional memory as the size of the voice pack and can be detrimental to the gameplay on lower end PCs - change this setting with caution.**
-
-### Vast amount of customization
+### Vast Customization
 
 Explore the many customization options to fine-tune your TTS experience:<br/>
 ![](https://mechanic.ink/img/osrs/features/config.png)
 
+### Spam Prevention
 
+Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
+![](https://mechanic.ink/img/osrs/features/spam-prevention.png)
 
 ### Commands
 
@@ -50,21 +38,14 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 
 ---
 # Changelog
-## 1.3.0
- - Added `Friends only` mode
- - Added `Friend volume boost` option
- - Added numerical abbreviations (k, m, b, t)
- - `Shortened phrases` are now `Abbreviations`
- - `Abbreviations` field is now `Custom abbreviations`
- - Added `Use common abbreviations` option
- - Added `Use for NPC dialogs` option to enable abbreviations for NPCs
- - `Global default NPC voice` is now `Global NPC voice` and will override any NPC voice regardless of pre-set voices.
- - Reworked the way master volume is adjusted internally
- - Fixed issue where master volume was not being applied to all audio sources
- - Fixed having multiple instances never using more than one
- - Duplicate system messages won't be played every time anymore
- - Fixed issue where certain dialogs were not working (eg Spirit Tree)
- - NPC Dialogs now have an individual queue for NPC + Player dialog messages
+
+## 1.2.2
+ - Fixed issue with setting NPC voices
+
+## 1.2.1
+ - Re-added Dutch
+ - Fixed issue where option to disable dialogs didn't work
+ - Fixed issue where option to disable examine text didn't work for all examine messages
 
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)

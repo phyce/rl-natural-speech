@@ -142,7 +142,7 @@ public class SpeechEventHandler {
 		textToSpeech.speak(voiceId, text, volume, lineName);
 	}
 
-	@Subscribe
+	@Subscribe(priority=-100)
 	private void onWidgetLoaded(WidgetLoaded event) {
 		if(!config.dialogEnabled())return;
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
@@ -205,7 +205,8 @@ public class SpeechEventHandler {
 				try {
 					voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName);
 				} catch (VoiceSelectionOutOfOption e) {
-					throw new RuntimeException(e);
+					log.error("Voice Selection out of options", e);
+					return;
 				}
 
 				if (PluginHelper.getConfig().useNpcCustomAbbreviations()) text = textToSpeech.expandAbbreviations(text);
