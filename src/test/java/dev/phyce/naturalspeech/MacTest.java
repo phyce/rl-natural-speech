@@ -1,8 +1,5 @@
 package dev.phyce.naturalspeech;
 
-import dev.phyce.naturalspeech.jna.macos.foundation.Foundation;
-import static dev.phyce.naturalspeech.jna.macos.foundation.Foundation.FOUNDATION;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.SEL;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechSynthesisVoice;
 import dev.phyce.naturalspeech.jna.macos.foundation.util.AutoRelease;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.ID;
