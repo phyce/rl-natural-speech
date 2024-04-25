@@ -1,11 +1,18 @@
 package dev.phyce.naturalspeech;
 
+import com.sun.jna.Native;
+import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechSynthesisVoice;
+import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechSynthesizer;
+import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechUtterance;
 import dev.phyce.naturalspeech.jna.macos.foundation.util.AutoRelease;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.ID;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.NSObject;
 import dev.phyce.naturalspeech.jna.macos.foundation.objects.NSString;
+import dev.phyce.naturalspeech.jna.macos.foundation.util.Foundation;
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
+import java.util.Comparator;
 import org.junit.Test;
 
 public class MacTest {
@@ -38,12 +45,38 @@ public class MacTest {
 
 	@Test
 	public void testAVSpeechSynthesisVoice() {
-		String[] voices = AVSpeechSynthesisVoice.getSpeechVoices();
-		for (String voice : voices) {
-			System.out.println(voice);
+		ID[] voices = AVSpeechSynthesisVoice.getSpeechVoices();
+		Arrays.sort(voices, Comparator.comparing(AVSpeechSynthesisVoice::getName));
+		for (ID voice : voices) {
+			String name = AVSpeechSynthesisVoice.getName(voice);
+			Gender gender = AVSpeechSynthesisVoice.getGender(voice);
+			String identifier = AVSpeechSynthesisVoice.getIdentifier(voice);
+			String language = AVSpeechSynthesisVoice.getLanguage(voice);
+			System.out.printf("%-10s %-10s %-10s %50s\n", name, language, gender, identifier);
 		}
 	}
 
+	@Test
+	public void testAVSpeechUtterance() {
+		ID utterance = AVSpeechUtterance.allocSpeechUtteranceWithString("Hello, Natural Speech!");
+		AutoRelease.register(utterance);
+		ID voice = AVSpeechUtterance.getVoice(utterance);
+		ID speechString = AVSpeechUtterance.getSpeechString(utterance);
+		String voiceName = AVSpeechSynthesisVoice.getName(voice);
+
+		System.out.println("Voice: " + voiceName);
+		System.out.println("Speech: " + NSString.getJavaString(speechString));
+
+		ID synthesizer = AVSpeechSynthesizer.alloc();
+		AutoRelease.register(synthesizer);
+
+		AVSpeechSynthesizer.speakUtterance(synthesizer, utterance);
+		try {
+			Thread.sleep(2000L);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Test
 	public void testAutoReleaseSEGFAULT() {
