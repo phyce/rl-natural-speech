@@ -39,6 +39,9 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.2.3
+- Fixed issue with `mute others` also muted local player, and `mute self` not doing anything
+
 ## 1.2.2
  - Fixed issue with setting NPC voices
 
