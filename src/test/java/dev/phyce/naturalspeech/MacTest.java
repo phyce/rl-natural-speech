@@ -1,15 +1,14 @@
 package dev.phyce.naturalspeech;
 
-import com.sun.jna.Native;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechSynthesisVoice;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechSynthesizer;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation.AVSpeechUtterance;
-import dev.phyce.naturalspeech.jna.macos.foundation.util.AutoRelease;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.ID;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.NSObject;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.NSString;
-import dev.phyce.naturalspeech.jna.macos.foundation.util.Foundation;
+import dev.phyce.naturalspeech.jna.macos.objc.avfoundation.AVSpeechSynthesisVoice;
+import dev.phyce.naturalspeech.jna.macos.objc.avfoundation.AVSpeechSynthesizer;
+import dev.phyce.naturalspeech.jna.macos.objc.avfoundation.AVSpeechSynthesizerBufferCallback;
+import dev.phyce.naturalspeech.jna.macos.objc.avfoundation.AVSpeechUtterance;
+import dev.phyce.naturalspeech.jna.macos.objc.javautil.AutoRelease;
+import dev.phyce.naturalspeech.jna.macos.objc.ID;
+import dev.phyce.naturalspeech.jna.macos.objc.foundation.NSObject;
+import dev.phyce.naturalspeech.jna.macos.objc.foundation.NSString;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -72,10 +71,39 @@ public class MacTest {
 
 		AVSpeechSynthesizer.speakUtterance(synthesizer, utterance);
 		try {
-			Thread.sleep(2000L);
+			Thread.sleep(2500L);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Test
+	public void testAVSpeechUtteranceCallback() {
+		ID utterance = AVSpeechUtterance.allocSpeechUtteranceWithString("Hello, Natural Speech!");
+		AutoRelease.register(utterance);
+		ID voice = AVSpeechUtterance.getVoice(utterance);
+		ID speechString = AVSpeechUtterance.getSpeechString(utterance);
+		String voiceName = AVSpeechSynthesisVoice.getName(voice);
+
+		System.out.println("Voice: " + voiceName);
+		System.out.println("Speech: " + NSString.getJavaString(speechString));
+
+		ID synthesizer = AVSpeechSynthesizer.alloc();
+		AutoRelease.register(synthesizer);
+
+		AVSpeechSynthesizerBufferCallback avSpeechSynthesizerBufferCallback = new AVSpeechSynthesizerBufferCallback() {
+			@Override
+			public void invoke(ID avAudioBuffer) {
+				System.out.println("Buffer: " + avAudioBuffer);
+			}
+		};
+		AVSpeechSynthesizer.writeUtteranceToBufferCallback(synthesizer, utterance, avSpeechSynthesizerBufferCallback);
+		try {
+			Thread.sleep(2500L);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 
 	@Test

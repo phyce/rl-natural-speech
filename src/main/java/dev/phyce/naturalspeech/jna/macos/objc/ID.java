@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.jna.macos.foundation.objects;
+package dev.phyce.naturalspeech.jna.macos.objc;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;

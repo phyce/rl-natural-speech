@@ -5,14 +5,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import lombok.extern.slf4j.Slf4j;
 
-/**
+/*
  * On macOS, browsers, like Chrome/Safari flag themselves with LSFileQuarantineEnabled in the .plist file
  * https://developer.apple.com/documentation/bundleresources/information_property_list/lsfilequarantineenabled
  *
  * For example, here is the flag in the Chromium plist:
  * https://chromium.googlesource.com/chromium/reference_builds/chrome_mac/+/refs/heads/main/Google%20Chrome.app/Contents/Info.plist#320
  *
- * This flag causes all files download by the App to have an extended-file-attribute named com.apple.quarantine
+ * This flag causes all files downloaded by the App to have an extended-file-attribute named com.apple.quarantine
  *
  * Executables and dynamic libraries with this attribute will not be able to link or execute.
  * This is to protect users from opening an executable downloaded by the browser.
@@ -20,8 +20,18 @@ import lombok.extern.slf4j.Slf4j;
  * For Natural Speech, users download the Piper executable through GitHub with the browser, so the executables are
  * flagged with com.apple.quarantine.
  *
- * Using xattr, Natural Speech removes the flags from piper and it's libraries in order to execute.
- * https://opensource.apple.com/source/xnu/xnu-1504.15.3/bsd/sys/xattr.h.auto.html
+ * Using xattr, Natural Speech removes the flags from piper and its libraries to execute.
+ *
+ * xattr main function:
+ * https://github.com/apple-oss-distributions/file_cmds/blob/main/xattr/xattr.c#L493
+ *
+ * -d option invokes
+ * delete_attribute(int fd, const char *filename, const char *name)
+ * https://github.com/apple-oss-distributions/file_cmds/blob/main/xattr/xattr.c#L329
+ *
+ * which calls sys/xattr.h
+ * int fremovexattr(int fd, const char *name, int options);
+ * https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/xattr.h#L98
  */
 @Slf4j
 public class MacUnquarantine {
@@ -32,7 +42,7 @@ public class MacUnquarantine {
 	 * @return Returns if the un-quarantine was successful
 	 */
 	public static boolean Unquarantine(Path piperExePath) {
-		// check if OS is mac
+		// check if OS is macOS
 		if (!OSValidator.IS_MAC) {
 			log.error("Only MacOS requires un-quarantining.");
 			return true; // return true because it's "un-quarantined", as Windows/Linux never needed it.
@@ -45,7 +55,7 @@ public class MacUnquarantine {
 		}
 
 		// Piper executable and dynamic libraries
-		String[] exeFilenames = new String[] {
+		final String[] exeFilenames = new String[] {
 			"piper",
 			"libespeak-ng.1.52.0.1.dylib",
 			"libpiper_phonemize.1.2.0.dylib",

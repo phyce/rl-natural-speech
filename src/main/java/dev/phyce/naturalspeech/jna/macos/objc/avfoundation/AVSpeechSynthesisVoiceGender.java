@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.jna.macos.foundation.objects.avfoundation;
+package dev.phyce.naturalspeech.jna.macos.objc.avfoundation;
 
 public interface AVSpeechSynthesisVoiceGender {
 	int AVSpeechSynthesisVoiceGenderUnspecified = 0;

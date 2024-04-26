@@ -1,14 +1,9 @@
-package dev.phyce.naturalspeech.jna.macos.foundation.util;
+package dev.phyce.naturalspeech.jna.macos.objc.javautil;
 
-import com.google.common.annotations.VisibleForTesting;
 import static com.google.common.base.Preconditions.checkState;
-import com.sun.jna.NativeLong;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.ID;
-import dev.phyce.naturalspeech.jna.macos.foundation.objects.NSObject;
+import dev.phyce.naturalspeech.jna.macos.objc.ID;
+import dev.phyce.naturalspeech.jna.macos.objc.foundation.NSObject;
 import java.lang.ref.Cleaner;
-import java.lang.ref.PhantomReference;
-import java.lang.ref.WeakReference;
-import java.util.Vector;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.Value;
@@ -58,7 +53,7 @@ public final class AutoRelease {
 		checkState(!id.isNil(), "Attempting to registering nil to be auto released.");
 
 		// Important:
-		// Imagine the case: obj == id, we do not want to keep the reference to the ID object.
+		// We do not want the Releaser to hold a reference to the ID object.
 		// So we capture the internal long value instead.
 		long idValue = id.longValue();
 
@@ -105,9 +100,14 @@ public final class AutoRelease {
 
 		@Override
 		public void run() {
-			// Unless clean() is called, this will run on the cleaner thread.
 			// The cleaner thread is not synchronized with the main thread or the GC thread.
-			// Therefore, for a brief moment in the main thread, the native object is still alive, but the object is already GC-ed.
+
+			// Therefore, for a brief moment on the main thread,
+			// the java object will have been GC-ed, but the native object will still alive,
+			// until the cleaner thread runs this code.
+
+			// This may cause confusion if you are not aware of this behavior.
+			// As what should be a segfault, may not be a segfault, yet.
 
 			NSObject.release(new ID(id));
 		}
