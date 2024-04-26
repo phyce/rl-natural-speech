@@ -63,6 +63,8 @@ public class SpeechEventHandler {
 		String username;
 		int distance;
 		VoiceID voiceId;
+		username = Text.standardize(message.getName());
+		message.setName(username);
 		String text = Text.sanitizeMultilineText(message.getMessage());
 
 		if (isChatMessageMuted(message)) return;
@@ -77,7 +79,6 @@ public class SpeechEventHandler {
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
 			else if (isChatOtherPlayerVoice(message)) {
-				username = Text.standardize(message.getName());
 				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
@@ -366,14 +367,13 @@ public class SpeechEventHandler {
 
 	private boolean isSelfMuted(ChatMessage message) {
 		//noinspection RedundantIfStatement
-		if (config.muteSelf() && message.getName().equals(MagicUsernames.LOCAL_USER)) return true;
+		if (config.muteSelf() && message.getName().equals(PluginHelper.getLocalPlayerUsername())) return true;
 		return false;
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
-
-		return config.muteOthers() && !message.getName().equals(MagicUsernames.LOCAL_USER);
+		return config.muteOthers() && !message.getName().equals(PluginHelper.getLocalPlayerUsername());
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
