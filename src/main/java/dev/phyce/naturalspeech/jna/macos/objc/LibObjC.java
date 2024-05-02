@@ -6,8 +6,33 @@ import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
 
 /**
- * libobjc.dylib
+ * Objective-C Runtime Library<br>
+ * Make sure to check {@link #INSTANCE} null-ness before using; null means the platform does not have libobjc.dylib available.
+ * <br><br>
+ * The only operating systems with libobjc.dylib bundled are Apple OS (macOS, iOS, etc.)
  * @see <a href="https://developer.apple.com/documentation/objectivec/objective-c_runtime?language=objc">Apple Documentation: Objective-C Runtime</a>
+ *
+ * @note Objective-C is a two-part system built-upon C. <br>
+ * <ol>
+ * <li><b>Clang code-generation</b>
+ *   <p>
+ *       Clang code-generates Objective-C code into C code, which assumes the existence of an Objective-C runtime.
+ *       (metaphorically; in reality into LLVM IR and then into machine code)
+ *   </p>
+ * </li>
+ * <li><b>Objective-C runtime</b>
+ *   <p>
+ *     The Objective-C runtime lives in libobjc.dylib, placed in the OS file system and dynamically links
+ *     to executables. The runtime library implements features common in interpreted languages, such as
+ *     dynamic method resolution, introspection, runtime class creation, closures etc.
+ *   </p>
+ * </li>
+ * </ol>
+ *   <p>
+ *    In a way, Objective-C and Java are quite similar.
+ *    The Java bytecode runtime is the JVM, and the Objective-C bytecode runtime is libobjc.dylib.
+ *   </p>
+ *
  */
 public final class LibObjC {
 
@@ -20,6 +45,7 @@ public final class LibObjC {
 		try {
 			inst = new LibObjC();
 		} catch (UnsatisfiedLinkError linkError) {
+			// The Platform does not have libobjc available (e.g., Windows)
 			inst = null;
 		}
 
