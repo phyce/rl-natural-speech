@@ -1,8 +1,9 @@
-package dev.phyce.naturalspeech.jna.macos.objc.javautil;
+package dev.phyce.naturalspeech.jna.macos.javautil;
 
 import static com.google.common.base.Preconditions.checkState;
+import com.sun.jna.Pointer;
+import dev.phyce.naturalspeech.jna.macos.foundation.NSObject;
 import dev.phyce.naturalspeech.jna.macos.objc.ID;
-import dev.phyce.naturalspeech.jna.macos.objc.foundation.NSObject;
 import java.lang.ref.Cleaner;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -10,7 +11,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * This class is used to automatically release the native objects when the java objects are phantom reachable.<br>
+ * This class is used to automatically release the ARC objects when the java objects are phantom reachable.<br>
  *
  * @see #register(ID)
  * @see #register(Object, ID)
@@ -22,19 +23,18 @@ public final class AutoRelease {
 	private AutoRelease() {}
 
 	/**
-	 * Registers the object to be released when the object is phantom reachable.<br>
+	 * Registers the native object to be released when the java object is phantom reachable.<br><br>
 	 *
-	 * <b>This metaphorically links the java object's life cycle to the native object's life cycle.</b><br>
-	 *
-	 * When the java object is phantom reachable, the native object will be released.</b><br>
+	 * When the java object is phantom reachable, the native object will be released.
+	 * This metaphorically links the java object's life cycle to the native object's life cycle.<br>
 	 *
 	 * example:
 	 * <pre>{@code
 	 * ID ID = NSObject.alloc();
 	 * // keep the reference to this java object, representing the native object ID
-	 * this.obj = new Object();
-	 * // the ID will be released when this.obj is phantom reachable
-	 * AutoRelease.register(obj, ID);
+	 * this.javaObj = new Object();
+	 * // the ID will be released when this.javaObj is phantom reachable
+	 * AutoRelease.register(javaObj, ID);
 	 * }</pre>
 	 *
 	 * Special note: <br>
@@ -45,20 +45,19 @@ public final class AutoRelease {
 	 *
 	 * Make sure you understand the life cycle of the object you are registering.<br>
 	 *
-	 * @param obj the object to be registered
-	 * @param id the objective-c id of the object
-	 * @return the original id and the object as a pair, for convenience
+	 * @param javaObj the object to be registered
+	 * @param nativeID the objective-c nativeID of the object
+	 * @return the original nativeID and the object as a pair, for convenience
 	 */
-	public static <T> Pair<T> register(@NonNull T obj, @NonNull ID id) {
-		checkState(!id.isNil(), "Attempting to registering nil to be auto released.");
+	public static <T> Pair<T> register(@NonNull T javaObj, @NonNull ID nativeID) {
+		checkState(!nativeID.isNil(), "Attempting to registering nil to be auto released.");
 
 		// Important:
 		// We do not want the Releaser to hold a reference to the ID object.
 		// So we capture the internal long value instead.
-		long idValue = id.longValue();
-
-		CLEANER.register(obj, new Releaser(idValue));
-		return new Pair<>(obj, id);
+		long pointer = Pointer.nativeValue(nativeID);
+		CLEANER.register(javaObj, new Releaser(pointer));
+		return new Pair<>(javaObj, nativeID);
 	}
 
 	/**
@@ -72,20 +71,20 @@ public final class AutoRelease {
 	 * this.obj = obj;
 	 * }</pre>
 	 *
-	 * <b>You must keep the ID object referenced until you don't need the native object anymore.<br><b>
+	 * <b>You must keep the ID object referenced until you don't need the native object anymore.<br></b>
 	 *
-	 * @param id This ID Object will release the native object when it is phantom reachable.
+	 * @param nativeID This ID Object will release the native object when it is phantom reachable.
 	 * @return The original ID object for, convenience.
 	 */
-	public static ID register(@NonNull ID id) {
-		register(id, id);
-		return id;
+	public static ID register(@NonNull ID nativeID) {
+		register(nativeID, nativeID);
+		return nativeID;
 	}
 
 	@Value
 	@AllArgsConstructor
 	public static class Pair<T> {
-		T obj;
+		T javaObj;
 		ID id;
 	}
 

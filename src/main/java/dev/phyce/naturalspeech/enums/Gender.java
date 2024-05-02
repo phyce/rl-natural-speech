@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.enums;
 
+import dev.phyce.naturalspeech.jna.macos.avfoundation.AVSpeechSynthesisVoiceGender;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 
@@ -43,4 +44,19 @@ public enum Gender {
 		}
 	}
 
+	/**
+	 * Convert an AVSpeechSynthesisVoiceGender to Gender
+	 * @param avGender AVSpeechSynthesisVoiceGender found in AVFoundation
+	 */
+	public static Gender fromAVGender(AVSpeechSynthesisVoiceGender avGender) {
+		switch (avGender) {
+			case AVSpeechSynthesisVoiceGenderMale:
+				return Gender.MALE;
+			case AVSpeechSynthesisVoiceGenderFemale:
+				return Gender.FEMALE;
+			case AVSpeechSynthesisVoiceGenderUnspecified:
+			default:
+				return Gender.OTHER;
+		}
+	}
 }
