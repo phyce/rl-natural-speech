@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.spamdetection;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -305,14 +305,12 @@ public class ChatFilterPluglet {
 			.map(s -> Pattern.compile(Pattern.quote(s), Pattern.CASE_INSENSITIVE))
 			.forEach(patterns::add);
 
-		//noinspection UnstableApiUsage
 		NEWLINE_SPLITTER.splitToList(config.filteredRegex()).stream()
 			.map(this::stripAccents)
 			.map(ChatFilterPluglet::compilePattern)
 			.filter(Objects::nonNull)
 			.forEach(patterns::add);
 
-		//noinspection UnstableApiUsage
 		NEWLINE_SPLITTER.splitToList(config.filteredNames()).stream()
 			.map(this::stripAccents)
 			.map(ChatFilterPluglet::compilePattern)

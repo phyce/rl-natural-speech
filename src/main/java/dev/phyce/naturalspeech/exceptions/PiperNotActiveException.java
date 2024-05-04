@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.exceptions;
 
-import dev.phyce.naturalspeech.tts.VoiceID;
+import dev.phyce.naturalspeech.texttospeech.VoiceID;
 
 public class PiperNotActiveException extends RuntimeException {
 	public PiperNotActiveException(VoiceID voiceID) {

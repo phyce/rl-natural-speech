@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.audio;
 
-import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;

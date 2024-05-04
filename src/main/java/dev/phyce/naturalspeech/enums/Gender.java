@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.enums;
 
-import dev.phyce.naturalspeech.jna.macos.avfoundation.AVSpeechSynthesisVoiceGender;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesisVoiceGender;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 

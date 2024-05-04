@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.spamdetection;
 
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -192,7 +192,7 @@ public class SpamFilterPluglet {
 			}
 		}
 
-		InputStream badCorpusRes = this.getClass().getResourceAsStream(FILE_NAME_BAD_CORPUS);
+		InputStream badCorpusRes = SpamFilterPluglet.class.getResourceAsStream(FILE_NAME_BAD_CORPUS);
 		if (badCorpusRes != null) {
 			BufferedReader badCorpusReader = new BufferedReader(new InputStreamReader(badCorpusRes, StandardCharsets.UTF_8));
 			badCorpusReader.lines().forEach(builtinBadCorpus::add);
