@@ -50,6 +50,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 
 ---
 # Changelog
+
 ## 1.3.0
  - Added `Friends only` mode
  - Added `Friend volume boost` option
@@ -65,6 +66,18 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Duplicate system messages won't be played every time anymore
  - Fixed issue where certain dialogs were not working (eg Spirit Tree)
  - NPC Dialogs now have an individual queue for NPC + Player dialog messages
+
+
+## 1.2.3
+- Fixed issue with `mute others` also muted local player, and `mute self` not doing anything
+
+## 1.2.2
+ - Fixed issue with setting NPC voices
+
+## 1.2.1
+ - Re-added Dutch
+ - Fixed issue where option to disable dialogs didn't work
+ - Fixed issue where option to disable examine text didn't work for all examine messages
 
 ## 1.2.0
  - Added filtering by [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter)

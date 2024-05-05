@@ -67,6 +67,8 @@ public class SpeechEventHandler {
 		String username;
 		float volume = 0f;
 		VoiceID voiceId;
+		username = Text.standardize(message.getName());
+		message.setName(username);
 		String text = Text.sanitizeMultilineText(message.getMessage());
 		int distance = 0;
 
@@ -81,7 +83,6 @@ public class SpeechEventHandler {
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
 			else if (isChatOtherPlayerVoice(message)) {
-				username = Text.standardize(message.getName());
 				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
 
 
@@ -120,6 +121,7 @@ public class SpeechEventHandler {
 
 	@Subscribe
 	private void onWidgetLoaded(WidgetLoaded event) {
+		if(!config.dialogEnabled())return;
 		float volume = calculateVolume(0, false);
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
 			// InvokeAtTickEnd to wait until the text has loaded in
@@ -378,6 +380,8 @@ public class SpeechEventHandler {
 				if (!config.clanGuestChatEnabled()) return true;
 				break;
 			case OBJECT_EXAMINE:
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
 				if (!config.examineChatEnabled()) return true;
 				break;
 			case WELCOME:
@@ -397,14 +401,13 @@ public class SpeechEventHandler {
 
 	private boolean isSelfMuted(ChatMessage message) {
 		//noinspection RedundantIfStatement
-		if (config.muteSelf() && message.getName().equals(MagicUsernames.LOCAL_USER)) return true;
+		if (config.muteSelf() && message.getName().equals(PluginHelper.getLocalPlayerUsername())) return true;
 		return false;
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
 		if (isNPCChatMessage(message)) return false;
-
-		return config.muteOthers() && !message.getName().equals(MagicUsernames.LOCAL_USER);
+		return config.muteOthers() && !message.getName().equals(PluginHelper.getLocalPlayerUsername());
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
