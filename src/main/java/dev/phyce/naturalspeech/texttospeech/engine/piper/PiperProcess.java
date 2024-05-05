@@ -4,7 +4,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
-import dev.phyce.naturalspeech.utils.TextUtil;
+import dev.phyce.naturalspeech.utils.Texts;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -147,7 +147,7 @@ public class PiperProcess {
 
 			synchronized (streamCapture) {streamCapture.reset();}
 
-			processStdIn.write(TextUtil.generateJson(text, piperVoiceID));
+			processStdIn.write(Texts.generateJson(text, piperVoiceID));
 			processStdIn.newLine();
 			processStdIn.flush();
 

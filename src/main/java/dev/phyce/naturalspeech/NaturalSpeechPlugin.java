@@ -10,7 +10,7 @@ import dev.phyce.naturalspeech.statics.ConfigKeys;
 import static dev.phyce.naturalspeech.statics.PluginResources.NATURAL_SPEECH_ICON;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.singleton.PluginSingletonScope;
-import dev.phyce.naturalspeech.statics.AudioLineNames;
+import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.audio.VolumeManager;
 import java.time.temporal.ChronoUnit;
@@ -125,7 +125,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		});
 
 		// Load Abbreviations is a method that can be called later when configs are changed
-		ns.speechManager.loadAbbreviations();
+		ns.chatHelper.loadAbbreviations();
 
 		loadSpeechEngines();
 
@@ -203,12 +203,12 @@ public class NaturalSpeechPlugin extends Plugin {
 			switch (event.getKey()) {
 				case ConfigKeys.MUTE_SELF:
 					log.trace("Detected mute-self toggle, clearing audio queue.");
-					ns.speechManager.silence((otherLineName) -> otherLineName.equals(AudioLineNames.LOCAL_USER));
+					ns.speechManager.silence((otherLineName) -> otherLineName.equals(Names.LOCAL_USER));
 					break;
 
 				case ConfigKeys.MUTE_OTHERS:
 					log.trace("Detected mute-others toggle, clearing audio queue.");
-					ns.speechManager.silence((otherLineName) -> !otherLineName.equals(AudioLineNames.LOCAL_USER));
+					ns.speechManager.silence((otherLineName) -> !otherLineName.equals(Names.LOCAL_USER));
 					break;
 
 			}
@@ -218,7 +218,7 @@ public class NaturalSpeechPlugin extends Plugin {
 			case ConfigKeys.COMMON_ABBREVIATIONS:
 			case ConfigKeys.CUSTOM_ABBREVIATIONS:
 				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
-				ns.speechManager.loadAbbreviations();
+				ns.chatHelper.loadAbbreviations();
 				break;
 
 			case ConfigKeys.PERSONAL_VOICE:
@@ -272,7 +272,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void saveConfigs() {
 		ns.voiceManager.saveVoiceConfig();
 		ns.piperEngine.savePiperConfig();
-		//		ns.runtimeConfig.savePiperPath(ns.runtimeConfig.getPiperPath());
 		ns.muteManager.saveConfig();
 	}
 
@@ -284,34 +283,35 @@ public class NaturalSpeechPlugin extends Plugin {
 			case ConfigKeys.PERSONAL_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting personal voice to {}", voiceID);
-					ns.voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.LOCAL_USER, voiceID);
+					ns.voiceManager.setDefaultVoiceIDForUsername(Names.LOCAL_USER, voiceID);
 				}
 				else {
 					log.debug("Invalid personal voice {}, resetting.", voiceString);
-					ns.voiceManager.resetForUsername(AudioLineNames.LOCAL_USER);
+					ns.voiceManager.resetForUsername(Names.LOCAL_USER);
 				}
 				break;
 			case ConfigKeys.GLOBAL_NPC_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting global npc voice to {}", voiceID);
-					ns.voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.GLOBAL_NPC, voiceID);
+					ns.voiceManager.setDefaultVoiceIDForUsername(Names.GLOBAL_NPC, voiceID);
 				}
 				else {
 					log.debug("Invalid global npc voice to {}, resetting.", voiceString);
-					ns.voiceManager.resetForUsername(AudioLineNames.GLOBAL_NPC);
+					ns.voiceManager.resetForUsername(Names.GLOBAL_NPC);
 				}
 				break;
 			case ConfigKeys.SYSTEM_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting system voice to {}", voiceID);
-					ns.voiceManager.setDefaultVoiceIDForUsername(AudioLineNames.SYSTEM, voiceID);
+					ns.voiceManager.setDefaultVoiceIDForUsername(Names.SYSTEM, voiceID);
 				}
 				else {
 					log.debug("Invalid system voice {}, resetting.", voiceString);
-					ns.voiceManager.resetForUsername(AudioLineNames.SYSTEM);
+					ns.voiceManager.resetForUsername(Names.SYSTEM);
 				}
 				break;
 		}
+		saveConfigs();
 	}
 	// endregion
 

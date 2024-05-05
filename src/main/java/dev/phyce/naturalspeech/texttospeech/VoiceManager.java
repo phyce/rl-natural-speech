@@ -11,13 +11,12 @@ import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.collections.GenderedVoiceMap;
-import dev.phyce.naturalspeech.statics.AudioLineNames;
+import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.utils.ClientHelper;
 import dev.phyce.naturalspeech.utils.Standardize;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.CheckForNull;
@@ -27,7 +26,6 @@ import net.runelite.api.Actor;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.client.config.ConfigManager;
-import net.runelite.client.util.Text;
 
 
 /**
@@ -198,13 +196,11 @@ public class VoiceManager {
 	}
 
 	@NonNull
-	public VoiceID getVoiceIDFromNPCId(int npcId, @NonNull String npcName) throws VoiceSelectionOutOfOption {
-		npcName = Standardize.getStandardName(npcName);
-		Preconditions.checkNotNull(npcName);
+	public VoiceID getNPCVoice(int npcId) throws VoiceSelectionOutOfOption {
 
 		VoiceID result = null;
 
-		List<VoiceID> results = voiceConfig.findUsername(AudioLineNames.GLOBAL_NPC);
+		List<VoiceID> results = voiceConfig.findUsername(Names.GLOBAL_NPC);
 		if (results != null) {
 			result = contains(results);
 		}
@@ -215,39 +211,17 @@ public class VoiceManager {
 			if (results != null) {
 				result = contains(results);
 				if (result == null) {
-					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, but model is not active", npcId,
-						npcName);
+					log.debug("Existing NPC ID voice found for NPC id:{} but model is not active", npcId);
 				}
 				else {
-					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, using {}",
-						npcId, npcName, result);
+					log.debug("Existing NPC ID voice found for NPC id:{} using {}", npcId, result);
 				}
 			}
 			else {
-				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId, npcName);
+				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId);
 			}
 		}
 
-		if (result == null) {
-			// Check NPC Name
-			results = voiceConfig.findNpcName(npcName);
-			if (results != null) result = contains(results);
-
-			if (result == null) {
-				log.debug("No NPC ID voice found, NPC Name is also not available for NPC id:{} npcName:{}",
-					npcId, npcName);
-			}
-			else {
-				log.debug("No NPC ID voice found, falling back to NPC Name for NPC id:{} npcName:{}, using {}",
-					npcId, npcName, result);
-			}
-		}
-
-		if (result == null) {
-			// If no NPC Global is available, randomize using npc name
-			result = randomVoiceFromActiveModels(npcName);
-			log.debug("No global NPC voice found, using random voice {}", result);
-		}
 
 		if (result == null) {
 			log.debug("Voice selection out of options. Likely no models are active.");
@@ -262,18 +236,9 @@ public class VoiceManager {
 		return voiceAndFallback != null && !voiceAndFallback.isEmpty();
 	}
 
-	public boolean containsNPC(int npcId, @NonNull String standardized_name) {
-		{
-			List<VoiceID> voiceAndFallback = voiceConfig.findNpcId(npcId);
-			if (voiceAndFallback != null && !voiceAndFallback.isEmpty()) {
-				return true;
-			}
-		}
-
-		{
-			List<VoiceID> voiceAndFallback = voiceConfig.findNpcName(standardized_name);
-			return voiceAndFallback != null && !voiceAndFallback.isEmpty();
-		}
+	public boolean containsNPC(int npcId) {
+		List<VoiceID> voiceAndFallback = voiceConfig.findNpcId(npcId);
+		return voiceAndFallback != null && !voiceAndFallback.isEmpty();
 	}
 
 	@NonNull
@@ -332,7 +297,7 @@ public class VoiceManager {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
 			// I have no idea what a Composition is
-			var compId = npc.getComposition().getId();
+			var compId = Standardize.id(npc);
 			// This is to solve the issue where the ModelID does not match the NPCID
 			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
 			voiceConfig.setDefaultNpcIdVoice(compId, voiceId);
@@ -341,7 +306,9 @@ public class VoiceManager {
 				npc.getId(), compId, npc.getName(), voiceId);
 		}
 		else if (actor instanceof Player) {
-			String standardized_username = Text.standardize(Objects.requireNonNull(actor.getName()));
+			String standardized_username = Standardize.name(actor);
+			Preconditions.checkNotNull(standardized_username);
+
 			voiceConfig.setDefaultPlayerVoice(standardized_username, voiceId);
 			log.debug("Setting Default Player Voice for {} to {}", actor.getName(), voiceId);
 		}
@@ -350,9 +317,6 @@ public class VoiceManager {
 		}
 	}
 
-	public void setDefaultVoiceIDForNPC(@NonNull String npcName, VoiceID voiceId) {
-		voiceConfig.setDefaultNpcNameVoice(npcName, voiceId);
-	}
 
 	//</editor-fold>
 
@@ -364,11 +328,24 @@ public class VoiceManager {
 	public void resetVoiceIDForNPC(@NonNull NPC actor) {
 		voiceConfig.resetNpcIdVoices(actor.getId());
 		voiceConfig.resetNpcIdVoices(actor.getComposition().getId());
+	}
 
-		if (actor.getName() != null) {
-			String standardNpcName = Text.standardize(Text.removeTags(actor.getName()));
-			voiceConfig.resetNpcNameVoices(standardNpcName);
-		}
+	public VoiceID getVoice(Standardize.SID sid) {
+		// FIXME
+//		return null;
+	}
+
+	public boolean contains(Standardize.SID sid) {
+		// FIXME
+//		return false;
+	}
+
+	public void setVoice(Standardize.SID sid, VoiceID voiceId) {
+		// FIXME
+	}
+
+	public void unsetVoice(Standardize.SID sid) {
+		// FIXME
 	}
 
 	//</editor-fold>

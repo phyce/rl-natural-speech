@@ -4,7 +4,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.statics.AudioLineNames;
+import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import java.util.Arrays;
@@ -88,7 +88,7 @@ public class CommandExecutedEventHandler {
 				if (args.length < 1) {
 					//					client.addChatMessage(ChatMessageType.CONSOLE, "",
 					//						"use ::checkvoice username, for example ::checkvoice Zezima", null);
-					username = AudioLineNames.LOCAL_USER;
+					username = Names.LOCAL_USER;
 				}
 				else {
 					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);

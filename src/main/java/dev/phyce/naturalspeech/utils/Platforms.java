@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.utils;
 
-public final class PlatformUtil {
+public final class Platforms {
 
 	private static final String OS = System.getProperty("os.name").toLowerCase();
 

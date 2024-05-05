@@ -20,6 +20,8 @@ import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.userinterface.panels.TopLevelPanel;
+import dev.phyce.naturalspeech.utils.ChatHelper;
+import dev.phyce.naturalspeech.utils.ClientHelper;
 
 /**
  * plugin fields are wrapped in a field object
@@ -50,6 +52,8 @@ class NaturalSpeechModule {
 	final TopLevelPanel topLevelPanel;
 	final PluginEventBus pluginEventBus;
 	final PluginExecutorService pluginExecutorService;
+	final ClientHelper clientHelper;
+	final ChatHelper chatHelper
 
 	@Inject
 	public NaturalSpeechModule(
@@ -77,7 +81,9 @@ class NaturalSpeechModule {
 		// See Plugin configure function for binding
 		PluginExecutorService pluginExecutorService,
 		// This private eventbus is entirely separate from RuneLites' EventBus
-		PluginEventBus pluginEventBus
+		PluginEventBus pluginEventBus,
+		ClientHelper clientHelper,
+		ChatHelper chatHelper
 
 	) {
 		this.runtimeConfig = runtimeConfig;
@@ -98,6 +104,8 @@ class NaturalSpeechModule {
 		this.topLevelPanel = topLevelPanel;
 		this.pluginEventBus = pluginEventBus;
 		this.pluginExecutorService = pluginExecutorService;
+		this.clientHelper = clientHelper;
+		this.chatHelper = chatHelper;
 	}
 
 }

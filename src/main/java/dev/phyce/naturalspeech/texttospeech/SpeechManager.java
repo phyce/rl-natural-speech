@@ -20,7 +20,7 @@ import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
-import dev.phyce.naturalspeech.utils.TextUtil;
+import dev.phyce.naturalspeech.utils.Texts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,7 +57,6 @@ public class SpeechManager implements SpeechEngine {
 	private final Vector<SpeechEngine> engines = new Vector<>();
 	private final Vector<SpeechEngine> activeEngines = new Vector<>();
 
-	private final Map<String, String> abbreviations = new HashMap<>();
 
 	@Getter
 	private boolean started = false;
@@ -78,13 +77,6 @@ public class SpeechManager implements SpeechEngine {
 
 	}
 
-	private void loadBuiltinAbbreviations() {
-		try {
-			Arrays.stream(PluginResources.BUILT_IN_ABBREVIATIONS).forEach(entry -> abbreviations.put(entry.acronym, entry.sentence));
-		} catch (JsonSyntaxException e) {
-			log.error("Failed to parse built-in abbreviations from Resources.", e);
-		}
-	}
 
 	@SneakyThrows(InterruptedException.class)
 	@Override
@@ -234,8 +226,6 @@ public class SpeechManager implements SpeechEngine {
 	@Override
 	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 
-		text = expandAbbreviations(text);
-
 		for (SpeechEngine activeEngine : activeEngines) {
 			SpeakResult result = activeEngine.speak(voiceID, text, gainSupplier, lineName);
 			if (result == SpeakResult.ACCEPT) {
@@ -353,25 +343,5 @@ public class SpeechManager implements SpeechEngine {
 		}
 	}
 
-	public String expandAbbreviations(String text) {
-		return TextUtil.expandAbbreviations(text, abbreviations);
-	}
-
-	/**
-	 * In method so we can load again when user changes config
-	 */
-	public void loadAbbreviations() {
-
-		if (config.useCommonAbbreviations()) {
-			loadBuiltinAbbreviations();
-		}
-
-		String phrases = config.customAbbreviations();
-		String[] lines = phrases.split("\n");
-		for (String line : lines) {
-			String[] parts = line.split("=", 2);
-			if (parts.length == 2) abbreviations.put(parts[0].trim(), parts[1].trim());
-		}
-	}
 
 }

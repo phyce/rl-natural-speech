@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5;
 import com.google.common.io.Resources;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -92,7 +92,7 @@ public class SAPI5Process {
 	private final List<SAPI5Voice> availableVoices = new ArrayList<>();
 
 	public static SAPI5Process start() {
-		if (!PlatformUtil.IS_WINDOWS) {
+		if (!Platforms.IS_WINDOWS) {
 			log.error("Attempting to starting CSharp Runtime on non-Windows.");
 			return null;
 		}

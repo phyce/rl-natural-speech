@@ -2,8 +2,9 @@ package dev.phyce.naturalspeech.userinterface.panels;
 
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.statics.AudioLineNames;
+import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
+import dev.phyce.naturalspeech.utils.ChatHelper;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -27,6 +28,7 @@ import net.runelite.client.util.SwingUtil;
 public class VoiceListItem extends JPanel {
 
 	private final SpeechManager speechManager;
+	private final ChatHelper chatHelper;
 	private final VoiceExplorerPanel voiceExplorerPanel;
 	@Getter
 	private final VoiceMetadata voiceMetadata;
@@ -37,11 +39,13 @@ public class VoiceListItem extends JPanel {
 
 
 	public VoiceListItem(
-		VoiceExplorerPanel voiceExplorerPanel,
 		SpeechManager speechManager,
+		ChatHelper chatHelper,
+		VoiceExplorerPanel voiceExplorerPanel,
 		VoiceMetadata voiceMetadata
 	) {
 		this.speechManager = speechManager;
+		this.chatHelper = chatHelper;
 		this.voiceExplorerPanel = voiceExplorerPanel;
 		this.voiceMetadata = voiceMetadata;
 
@@ -75,10 +79,11 @@ public class VoiceListItem extends JPanel {
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
 			.addGap(5)
-			.addComponent(piperIdLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+			.addComponent(piperIdLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE,
+				GroupLayout.PREFERRED_SIZE)
 			.addGap(5)
 			.addComponent(nameLabel, 0, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-			.addGap(0,5,5)
+			.addGap(0, 5, 5)
 			.addComponent(genderLabel));
 
 		int lineHeight = (int) (nameLabel.getFontMetrics(nameLabel.getFont()).getHeight() * 1.5);
@@ -94,14 +99,15 @@ public class VoiceListItem extends JPanel {
 		JButton playButton = new JButton(PluginResources.PLAY_BUTTON_ICON);
 		SwingUtil.removeButtonDecorations(playButton);
 		playButton.setPreferredSize(
-			new Dimension(PluginResources.PLAY_BUTTON_DISABLED_ICON.getIconWidth(), PluginResources.PLAY_BUTTON_DISABLED_ICON.getIconHeight()));
+			new Dimension(PluginResources.PLAY_BUTTON_DISABLED_ICON.getIconWidth(),
+				PluginResources.PLAY_BUTTON_DISABLED_ICON.getIconHeight()));
 		playButton.addActionListener(event -> {
-				speechManager.silence((lineName) -> lineName.equals(AudioLineNames.VOICE_EXPLORER));
+				speechManager.silence((lineName) -> lineName.equals(Names.VOICE_EXPLORER));
 				speechManager.speak(
 					voiceMetadata.voiceId,
-					speechManager.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
+					chatHelper.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
 					() -> 0f,
-					AudioLineNames.VOICE_EXPLORER
+					Names.VOICE_EXPLORER
 				);
 			}
 		);

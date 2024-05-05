@@ -42,7 +42,7 @@ public class MacUnquarantine {
 	 */
 	public static boolean Unquarantine(Path piperExePath) {
 		// check if OS is macOS
-		if (!PlatformUtil.IS_MAC) {
+		if (!Platforms.IS_MAC) {
 			log.error("Only MacOS requires un-quarantining.");
 			return true; // return true because it's "un-quarantined", as Windows/Linux never needed it.
 		}
@@ -64,12 +64,12 @@ public class MacUnquarantine {
 		boolean success = true;
 
 		// get the folder in order to resolve each file (not using resolveSibling for code clarity)
-		Path piperFolder = piperExePath.getParent();
+		final Path piperFolder = piperExePath.getParent();
 
 		// go through each file and remove the quarantine
 		for (String filename : exeFilenames) {
 
-			Path path = piperFolder.resolve(filename);
+			final Path path = piperFolder.resolve(filename);
 
 			// check if the file exists
 			if (path.toFile().exists()) {

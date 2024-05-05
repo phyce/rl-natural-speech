@@ -28,7 +28,7 @@ import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Platforms;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -727,7 +727,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 				// if the user accidentally set the piper folder and not the executable, automatically correct
 				if (newPath.toFile().isDirectory()) {
-					if (PlatformUtil.IS_WINDOWS) {
+					if (Platforms.IS_WINDOWS) {
 						newPath = newPath.resolve("piper.exe");
 					}
 					else { // assume unix based

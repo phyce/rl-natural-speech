@@ -10,7 +10,7 @@ import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Platforms;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +54,7 @@ public class SAPI4Engine implements SpeechEngine {
 		this.audioEngine = audioEngine;
 		this.voiceManager = voiceManager;
 
-		if (!PlatformUtil.IS_WINDOWS) {
+		if (!Platforms.IS_WINDOWS) {
 			return;
 		}
 
@@ -91,7 +91,7 @@ public class SAPI4Engine implements SpeechEngine {
 	@Synchronized("lock")
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
 
-		if (!PlatformUtil.IS_WINDOWS) {
+		if (!Platforms.IS_WINDOWS) {
 			log.trace("Not windows, SAPI4 skipping");
 			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
 		}

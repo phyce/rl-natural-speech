@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public final class TextUtil {
+public final class Texts {
 
 	public static List<String> splitSentence(String text) {
 		// https://www.baeldung.com/java-split-string-keep-delimiters
@@ -85,7 +85,7 @@ public final class TextUtil {
 	/*
 	 * For MenuEntry menuTarget name.
 	 * Keeps tag information, removes level information.
-	 * For example <col=ffffff>Guard</col>  (level-32) -> Guard
+	 * example: Guard (level-32) -> Guard
 	 * @return
 	 */
 	public static String removeLevelFromTargetName(String menuTarget) {

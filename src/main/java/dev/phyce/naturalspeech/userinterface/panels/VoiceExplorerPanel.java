@@ -25,6 +25,7 @@ import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repos
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Alias;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process;
+import dev.phyce.naturalspeech.utils.ChatHelper;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -69,8 +70,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final SAPI4Repository sapi4Repository;
 	private final SAPI4Engine sapi4Engine;
 	private final SAPI5Engine sapi5Engine;
-
 	private final SpeechManager speechManager;
+	private final ChatHelper chatHelper;
 
 	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
 
@@ -93,13 +94,15 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SAPI4Engine sapi4Engine,
 		SAPI5Engine sapi5Engine,
 		SpeechManager speechManager,
-		PluginEventBus pluginEventBus
+		PluginEventBus pluginEventBus,
+		ChatHelper chatHelper
 	) {
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
 		this.sapi4Engine = sapi4Engine;
 		this.sapi5Engine = sapi5Engine;
 		this.speechManager = speechManager;
+		this.chatHelper = chatHelper;
 
 		pluginEventBus.register(this);
 
@@ -426,7 +429,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			.forEach((modelName) -> {
 				VoiceMetadata metadata =
 					new VoiceMetadata("", Gender.MALE, new VoiceID(SAPI4Engine.SAPI4_MODEL_NAME, modelName));
-				VoiceListItem speakerItem = new VoiceListItem(this, speechManager, metadata);
+				VoiceListItem speakerItem = new VoiceListItem(speechManager, chatHelper, this, metadata);
 				voiceListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
 			});
@@ -441,7 +444,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 					new VoiceID(SAPI5Engine.SAPI5_MODEL_NAME, modelName)
 				);
 
-				VoiceListItem speakerItem = new VoiceListItem(this, speechManager, metadata);
+				VoiceListItem speakerItem = new VoiceListItem(speechManager, chatHelper, this, metadata);
 				voiceListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
 			});
@@ -519,7 +522,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 				.sorted(Comparator.comparing(a -> a.getPiperVoiceID()))
 				.forEach((piperVoiceMetadata) -> {
 					VoiceListItem speakerItem =
-						new VoiceListItem(this, speechManager, VoiceMetadata.from(piperVoiceMetadata));
+						new VoiceListItem(speechManager, chatHelper, this, VoiceMetadata.from(piperVoiceMetadata));
 					voiceListItems.add(speakerItem);
 					sectionContent.add(speakerItem);
 				});

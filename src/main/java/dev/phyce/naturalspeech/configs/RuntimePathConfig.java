@@ -7,7 +7,7 @@ import dev.phyce.naturalspeech.statics.PluginPaths;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Platforms;
 import java.nio.file.Path;
 import net.runelite.client.config.ConfigManager;
 
@@ -50,7 +50,7 @@ public class RuntimePathConfig {
 
 	private static Path getDefaultPath() {
 		Path path;
-		if (PlatformUtil.IS_MAC || PlatformUtil.IS_UNIX) {
+		if (Platforms.IS_MAC || Platforms.IS_UNIX) {
 			path = PluginPaths.NATURAL_SPEECH_PATH
 				.resolve("piper") // piper folder
 				.resolve("piper"); // piper executable;

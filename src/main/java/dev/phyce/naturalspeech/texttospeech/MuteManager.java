@@ -12,7 +12,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Actor;
 import net.runelite.api.NPC;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.util.Text;
@@ -44,89 +43,89 @@ public class MuteManager {
 		loadConfig();
 	}
 
-	public boolean isActorAllowed(Actor actor) {
-		if (actor == null) {
-			return false;
-		}
-
-		if (actor instanceof NPC) {
-			return isNpcAllowed((NPC) actor);
-		} else {
-			return isUsernameAllowed(Standardize.getStandardName(actor));
-		}
-	}
-
-	public boolean isActorMuted(Actor actor) {
-		if (actor == null) {
-			return false;
-		}
-
-		if (actor instanceof NPC) {
-			return !isNpcAllowed((NPC) actor);
-		} else {
-			return !isUsernameAllowed(Standardize.getStandardName(actor));
-		}
-	}
-
-	public boolean isActorListened(Actor actor) {
-		if (actor == null) {
-			return false;
-		}
-
-		if (actor instanceof NPC) {
-			return isNpcListened((NPC) actor);
-		} else {
-			return isUsernameListened(Standardize.getStandardName(actor));
-		}
-	}
-
-	public void muteActor(Actor actor) {
-		if (actor == null) {
-			return;
-		}
-
-		if (actor instanceof NPC) {
-			muteNpc((NPC) actor);
-		} else {
-			muteUsername(Standardize.getStandardName(actor));
-		}
-	}
-
-	public void unmuteActor(Actor actor) {
-		if (actor == null) {
-			return;
-		}
-
-		if (actor instanceof NPC) {
-			unmuteNpc((NPC) actor);
-		} else {
-			unmuteUsername(Standardize.getStandardName(actor));
-		}
-	}
-
-	public void listenActor(Actor actor) {
-		if (actor == null) {
-			return;
-		}
-
-		if (actor instanceof NPC) {
-			listenNpc((NPC) actor);
-		} else {
-			listenUsername(Standardize.getStandardName(actor));
-		}
-	}
-
-	public void unlistenActor(Actor actor) {
-		if (actor == null) {
-			return;
-		}
-
-		if (actor instanceof NPC) {
-			unlistenNpc((NPC) actor);
-		} else {
-			unlistenUsername(Standardize.getStandardName(actor));
-		}
-	}
+//	public boolean isActorAllowed(Actor actor) {
+//		if (actor == null) {
+//			return false;
+//		}
+//
+//		if (actor instanceof NPC) {
+//			return isNpcAllowed((NPC) actor);
+//		} else {
+//			return isUsernameAllowed(Actors.name(actor));
+//		}
+//	}
+//
+//	public boolean isActorMuted(Actor actor) {
+//		if (actor == null) {
+//			return false;
+//		}
+//
+//		if (actor instanceof NPC) {
+//			return !isNpcAllowed((NPC) actor);
+//		} else {
+//			return !isUsernameAllowed(Actors.name(actor));
+//		}
+//	}
+//
+//	public boolean isActorListened(Actor actor) {
+//		if (actor == null) {
+//			return false;
+//		}
+//
+//		if (actor instanceof NPC) {
+//			return isNpcListened((NPC) actor);
+//		} else {
+//			return isUsernameListened(Actors.name(actor));
+//		}
+//	}
+//
+//	public void muteActor(Actor actor) {
+//		if (actor == null) {
+//			return;
+//		}
+//
+//		if (actor instanceof NPC) {
+//			muteNpc((NPC) actor);
+//		} else {
+//			muteUsername(Actors.name(actor));
+//		}
+//	}
+//
+//	public void unmuteActor(Actor actor) {
+//		if (actor == null) {
+//			return;
+//		}
+//
+//		if (actor instanceof NPC) {
+//			unmuteNpc((NPC) actor);
+//		} else {
+//			unmuteUsername(Actors.name(actor));
+//		}
+//	}
+//
+//	public void listenActor(Actor actor) {
+//		if (actor == null) {
+//			return;
+//		}
+//
+//		if (actor instanceof NPC) {
+//			listenNpc((NPC) actor);
+//		} else {
+//			listenUsername(Actors.name(actor));
+//		}
+//	}
+//
+//	public void unlistenActor(Actor actor) {
+//		if (actor == null) {
+//			return;
+//		}
+//
+//		if (actor instanceof NPC) {
+//			unlistenNpc((NPC) actor);
+//		} else {
+//			unlistenUsername(Actors.name(actor));
+//		}
+//	}
 
 	public boolean isNpcAllowed(NPC npc) {
 		if (listenMode) {
@@ -135,7 +134,7 @@ public class MuteManager {
 			return isNpcUnmuted(npc);
 		}
 	}
-	public boolean isNpcIdAllowed(Integer npcId) {
+	public boolean isNpcAllowed(Integer npcId) {
 		if (listenMode) {
 			return npcIdListenList.contains(npcId);
 		} else {
@@ -341,5 +340,24 @@ public class MuteManager {
 				usernameMuteList.addAll(Text.fromCSV(result));
 			}
 		}
+	}
+
+	public boolean isMuted(Standardize.SID sid) {
+		// FIXME
+//		return false;
+	}
+
+	public boolean isListened(Standardize.SID sid) {
+		// FIXME
+//		return false;
+	}
+
+	public boolean isAllowed(Standardize.SID sid) {
+		// FIXME
+//		return false;
+	}
+
+	public void mute(Standardize.SID sid) {
+		// FIXME
 	}
 }

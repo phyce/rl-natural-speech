@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -33,7 +33,7 @@ public class SAPI4Repository {
 			return;
 		}
 
-		if (PlatformUtil.IS_WINDOWS) {
+		if (Platforms.IS_WINDOWS) {
 			reload();
 		}
 	}

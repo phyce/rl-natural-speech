@@ -1,8 +1,12 @@
 package dev.phyce.naturalspeech.audio;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
+import dev.phyce.naturalspeech.utils.ChatHelper;
+import dev.phyce.naturalspeech.utils.ClientHelper;
+import dev.phyce.naturalspeech.utils.Standardize;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -26,6 +30,7 @@ public class VolumeManager {
 	public final static Supplier<Float> ZERO_GAIN = () -> 0f;
 
 	private final Client client;
+	private final ClientHelper clientHelper;
 	private final NaturalSpeechConfig config;
 
 	private final Set<Actor> spawnedActors = new HashSet<>();
@@ -40,10 +45,11 @@ public class VolumeManager {
 
 	@Inject
 	public VolumeManager(
-		Client client,
+		Client client, ClientHelper clientHelper,
 		NaturalSpeechConfig config
 	) {
 		this.client = client;
+		this.clientHelper = clientHelper;
 		this.config = config;
 	}
 
@@ -118,6 +124,32 @@ public class VolumeManager {
 		return ZERO_GAIN;
 	}
 
+	public Supplier<Float> chat(ChatHelper.VoiceType voiceType, Standardize.SID sid) {
+		Supplier<Float> volume;
+		switch (voiceType) {
+			case InnerVoice:
+				volume = localplayer();
+				break;
+			case OtherPlayerVoice:
+				Player player = clientHelper.findPlayer(sid);
+				Preconditions.checkNotNull(player, "Player not found. sid:%s", sid);
+
+				if (clientHelper.isFriend(sid)) {
+					volume = friend(player);
+				}
+				else {
+					volume = overhead(player);
+				}
+				break;
+			case SystemVoice:
+				volume = system();
+				break;
+			default:
+				throw new RuntimeException("Unknown ChatVoiceType");
+		}
+		return volume;
+	}
+
 	public float attenuation(float distance, float max_distance, float floor) {
 		if (distance < 1) {
 			return 0;
@@ -128,16 +160,16 @@ public class VolumeManager {
 
 		return result;
 	}
-
 	// we need accurate distances, WorldPoint::distanceTo is too coarse for audio
+
 	private static float distance(WorldPoint a, WorldPoint b) {
 		int dx = a.getX() - b.getX();
 		int dy = a.getY() - b.getY();
 		int dz = a.getPlane() - b.getPlane();
 		return (float) Math.sqrt(dx*dx + dy*dy + dz*dz);
 	}
-
 	// https://easings.net/#easeInOutQuad
+
 	private static float easeInOutQuad(float x) {
 		return (float) (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
 	}

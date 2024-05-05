@@ -20,7 +20,7 @@ import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.utils.MacUnquarantine;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -212,7 +212,7 @@ public class PiperEngine implements SpeechEngine {
 
 		File piper_file = runtimeConfig.getPiperPath().toFile();
 
-		if (PlatformUtil.IS_WINDOWS) {
+		if (Platforms.IS_WINDOWS) {
 			String filename = piper_file.getName();
 			// naive canExecute check for windows, 99.99% of humans use .exe extension for executables on Windows
 			// File::canExecute returns true for all files on Windows.
@@ -232,7 +232,7 @@ public class PiperEngine implements SpeechEngine {
 			stopModel(duplicate.getModelLocal());
 		}
 
-		if (!isPiperUnquarantined && PlatformUtil.IS_MAC) {
+		if (!isPiperUnquarantined && Platforms.IS_MAC) {
 			isPiperUnquarantined = MacUnquarantine.Unquarantine(runtimeConfig.getPiperPath());
 		}
 

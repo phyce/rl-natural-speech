@@ -10,7 +10,7 @@ import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import static dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process.AUDIO_FORMAT;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,7 +56,7 @@ public class SAPI5Engine implements SpeechEngine {
 			return;
 		}
 
-		if (!PlatformUtil.IS_WINDOWS) {
+		if (!Platforms.IS_WINDOWS) {
 			log.trace("Not windows, SAPI5 skipping");
 			availableSAPI5s = Collections.unmodifiableList(new ArrayList<>());
 			return;
@@ -106,7 +106,7 @@ public class SAPI5Engine implements SpeechEngine {
 			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
 		}
 
-		if (!PlatformUtil.IS_WINDOWS) {
+		if (!Platforms.IS_WINDOWS) {
 			log.trace("Not windows, WSAPI5 fail.");
 			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
 		}

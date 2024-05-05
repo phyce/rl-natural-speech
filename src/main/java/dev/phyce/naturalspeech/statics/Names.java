@@ -1,11 +1,11 @@
 package dev.phyce.naturalspeech.statics;
 
-public interface AudioLineNames {
+public interface Names {
 	String SYSTEM = "&system";
 	String GLOBAL_NPC = "&globalnpc";
 	String LOCAL_USER = "&localuser";
 	String DIALOG = "&dialog";
-	String VOICE_EXPLORER = "&VoiceExplorer";
+	String VOICE_EXPLORER = "&voiceexplorer";
 
 	static String Username(String username) {
 		return "&user_" + username;
