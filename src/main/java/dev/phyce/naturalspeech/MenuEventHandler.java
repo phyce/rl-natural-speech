@@ -5,7 +5,7 @@ import com.google.inject.Provider;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.tts.MuteManager;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.engine.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.game.VoiceConfigChatboxTextInput;
@@ -73,7 +73,7 @@ public class MenuEventHandler {
 	private void onMenuOpened(MenuOpened event) {
 		if (config.holdShiftRightClickMenu() && !client.isKeyPressed(KeyCode.KC_SHIFT)) return;
 
-		if (textToSpeech.activePiperProcessCount() < 1) return;
+		if (!textToSpeech.isStarted()) return;
 		final MenuEntry[] entries = event.getMenuEntries();
 
 		List<Integer> interfaces = List.of(

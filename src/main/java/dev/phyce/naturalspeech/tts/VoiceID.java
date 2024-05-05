@@ -1,19 +1,31 @@
 package dev.phyce.naturalspeech.tts;
 
+import com.google.gson.annotations.JsonAdapter;
+import javax.annotation.CheckForNull;
 import lombok.Data;
 
+/**
+ * VoiceID represents the model and id for a speak request. <br>
+ * Similar to URLs for http, representing server and document.<br>
+ */
 @Data
+@JsonAdapter(VoiceIDSerializer.class)
 public class VoiceID {
 	public String modelName;
-	public int piperVoiceID;
+	public String id;
 
-	public VoiceID() {
-
+	public VoiceID(String modelName, String id) {
+		this.modelName = modelName;
+		this.id = id;
 	}
 
-	public VoiceID(String modelName, int piperVoiceID) {
-		this.modelName = modelName;
-		this.piperVoiceID = piperVoiceID;
+	@CheckForNull
+	public Integer getIntId() {
+		try {
+			return Integer.parseInt(id);
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	/**
@@ -32,23 +44,18 @@ public class VoiceID {
 		// verify model short name
 		if (split[0].isEmpty() || split[0].isBlank()) return null;
 
-		// verify voice ID
-		int voiceID;
+		// verify id
+		if (split[1].isEmpty() || split[1].isBlank()) return null;
 
-		try {
-			voiceID = Integer.parseUnsignedInt(split[1]);
-		} catch (NumberFormatException ignored) {
-			return null;
-		}
-
-		return new VoiceID(split[0], voiceID);
+		return new VoiceID(split[0], split[1]);
 	}
 
 	public String toVoiceIDString() {
-		return String.format("%s:%d", modelName, piperVoiceID);
+		return String.format("%s:%s", modelName, id);
 	}
 
 	public String toString() {
 		return toVoiceIDString();
 	}
+
 }

@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.tts.MagicUsernames;
+import dev.phyce.naturalspeech.tts.AudioLineNames;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import java.util.Arrays;
@@ -31,7 +31,6 @@ public class CommandExecutedEventHandler {
 	private void onCommandExecuted(CommandExecuted commandExecuted) {
 		String[] args = commandExecuted.getArguments();
 
-		//noinspection SwitchStatementWithTooFewBranches
 		switch (commandExecuted.getCommand()) {
 			case "nslogger": {
 				final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
@@ -88,7 +87,7 @@ public class CommandExecutedEventHandler {
 				if (args.length < 1) {
 					//					client.addChatMessage(ChatMessageType.CONSOLE, "",
 					//						"use ::checkvoice username, for example ::checkvoice Zezima", null);
-					username = MagicUsernames.LOCAL_USER;
+					username = AudioLineNames.LOCAL_USER;
 				}
 				else {
 					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);

@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.tts;
 
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.guice.PluginSingleton;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,7 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.util.Text;
 
 @Slf4j
-@Singleton
+@PluginSingleton
 public class MuteManager {
 
 	private static final String KEY_USERNAME_LISTEN_LIST = "usernameListenList";
