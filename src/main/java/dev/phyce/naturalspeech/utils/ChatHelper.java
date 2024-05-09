@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.utils;
 
+import com.google.common.base.Optional;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.audio.VolumeManager;
@@ -150,30 +151,19 @@ public class ChatHelper {
 		ChatType chatType = getChatType(message);
 		EntityID eid = getEntityID(message);
 
-		if (eid.isUser()) {
-			return config.muteSelf();
+		// example: "::::::))))))" (no alpha numeric, muted)
+		if (!Texts.containAlphaNumeric(message.getMessage())) {
+			log.trace("Muting message. No alpha numeric characters. Message:{}", message);
+			return true;
 		}
 
 		if (chatType == ChatType.Unknown) return true;
 
-		if (config.distanceFadeEnabled()) {
-			Actor actor = clientHelper.findActor(eid);
-			if (actor != null) {
-				float gain = volumeManager.overhead(actor).get();
-				if (gain <= VolumeManager.NOISE_FLOOR) {
-					log.trace("(Distance Fade: {}db) {} is too quiet to be audible, ignoring.", gain, eid);
-					return true;
-				}
-			}
+		if (eid.isUser()) {
+			return config.muteSelf();
 		}
 
 		if (config.friendsOnlyMode() && chatType == ChatType.OtherPlayers && !clientHelper.isFriend(eid)) {
-			return true;
-		}
-
-		// example: "::::::))))))" (no alpha numeric, muted)
-		if (!Texts.containAlphaNumeric(message.getMessage())) {
-			log.trace("Muting message. No alpha numeric characters. Message:{}", message);
 			return true;
 		}
 
@@ -204,9 +194,21 @@ public class ChatHelper {
 			return true;
 		}
 
-		if (spamDetection.isSpam(message.getName(), message.getMessage())) {
+		if (message.getType() == ChatMessageType.PUBLICCHAT && spamDetection.isSpam(message.getName(), message.getMessage())) {
 			log.trace("Muting message. Spam detected. Message:{}", message);
 			return true;
+		}
+
+		// Optimization: Ignore speech that are too quiet with distance fade
+		if (config.distanceFadeEnabled()) {
+			Optional<Actor> actor = clientHelper.getActor(eid);
+			if (actor.isPresent()) {
+				float gain = volumeManager.overhead(actor.get()).get();
+				if (gain <= VolumeManager.NOISE_FLOOR) {
+					log.trace("(Distance Fade: {}db) {} is too quiet to be audible, ignoring.", gain, eid);
+					return true;
+				}
+			}
 		}
 
 		return false;

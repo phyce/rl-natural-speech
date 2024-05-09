@@ -68,7 +68,7 @@ public class SpeechEventHandler {
 		this.chatHelper = chatHelper;
 	}
 
-	@Subscribe
+	@Subscribe(priority = -100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (!speechManager.isStarted()) return;
 
@@ -82,7 +82,7 @@ public class SpeechEventHandler {
 		ChatHelper.ChatType chatType = chatHelper.getChatType(message);
 		Supplier<Float> volume = volumeManager.chat(chatType, entityID);
 
-		String lineName = entityID.toString();
+		String lineName = String.valueOf(entityID.hashCode());
 
 		String text = chatHelper.getText(message);
 

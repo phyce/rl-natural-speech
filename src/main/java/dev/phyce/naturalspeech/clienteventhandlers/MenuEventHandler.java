@@ -13,6 +13,7 @@ import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.ingame.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.utils.Texts;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
@@ -102,10 +103,15 @@ public class MenuEventHandler {
 	 */
 
 	public void drawOptions(MenuEntry entry, int index) {
+
+		@Nullable
 		Actor actor = entry.getActor();
 
 		EntityID entityID;
-		if (actor instanceof NPC) {
+		if (actor == null) {
+			entityID = EntityID.name(entry.getTarget());
+		}
+		else if (actor instanceof NPC) {
 			entityID = EntityID.npc((NPC) actor);
 		}
 		else if (actor instanceof Player) {
@@ -170,7 +176,10 @@ public class MenuEventHandler {
 				MenuEntry muteEntry = client.createMenuEntry(1)
 					.setOption("Mute")
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> muteManager.mute(entityID));
+					.onClick(e -> {
+						muteManager.mute(entityID);
+						speechManager.silence(name -> name.equals(String.valueOf(entityID.hashCode())));
+					});
 				muteEntry.setParent(parent);
 
 			}
@@ -187,7 +196,10 @@ public class MenuEventHandler {
 			MenuEntry unlistenEntry = client.createMenuEntry(0)
 				.setOption("Unlisten")
 				.setType(MenuAction.RUNELITE)
-				.onClick(e -> muteManager.unlisten(entityID));
+				.onClick(e -> {
+					muteManager.unlisten(entityID);
+					speechManager.silenceAll();
+				});
 			unlistenEntry.setParent(parent);
 		}
 		else {
@@ -197,6 +209,7 @@ public class MenuEventHandler {
 				.onClick(e -> {
 					muteManager.listen(entityID);
 					muteManager.setListenMode(true);
+					speechManager.silenceAll();
 				});
 			listenEntry.setParent(parent);
 		}

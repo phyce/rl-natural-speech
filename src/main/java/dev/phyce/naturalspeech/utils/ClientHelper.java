@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.utils;
 
+import com.google.common.base.Optional;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
@@ -8,7 +9,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +17,6 @@ import net.runelite.api.Client;
 import net.runelite.api.Friend;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
-import net.runelite.api.coords.WorldPoint;
 
 @Slf4j
 @PluginSingleton
@@ -29,26 +28,24 @@ public final class ClientHelper {
 		this.client = client;
 	}
 
-	@CheckForNull
-	public Player getPlayer(@NonNull EntityID eid) {
+	public Optional<Player> getPlayer(@NonNull EntityID eid) {
 
 		if (eid.isUser()) {
-			return client.getLocalPlayer();
+			return Optional.of(client.getLocalPlayer());
 		}
 
-		return Arrays.stream(client.getCachedPlayers())
+		return Optional.fromJavaUtil(Arrays.stream(client.getCachedPlayers())
 			.filter(Objects::nonNull)
 			.filter(player -> player.getName() != null)
 			.filter(eid::isPlayer)
-			.findFirst()
-			.orElse(null);
+			.findFirst());
 	}
 
 	@NonNull
 	public Gender getGender(@NonNull EntityID eid) {
-		Player player = getPlayer(eid);
-		if (player != null) {
-			return Gender.fromPlayer(player);
+		Optional<Player> player = getPlayer(eid);
+		if (player.isPresent()) {
+			return Gender.fromPlayer(player.get());
 		}
 		else {
 			// TODO(Louis): Figure out NPC gender using OSRS Wiki
@@ -76,45 +73,27 @@ public final class ClientHelper {
 	}
 
 	public int getLevel(@NonNull EntityID eid) {
-		Player targetPlayer = getPlayer(eid);
+		Optional<Player> targetPlayer = getPlayer(eid);
 
-		if (targetPlayer == null) return Integer.MAX_VALUE;
+		if (!targetPlayer.isPresent()) return Integer.MAX_VALUE;
 
-		return targetPlayer.getCombatLevel();
+		return targetPlayer.get().getCombatLevel();
 	}
 
-	@CheckForNull
-	public Actor findActor(@NonNull EntityID eid) {
-		if (eid.isUser()) return client.getLocalPlayer();
-
-		Player player = client.getPlayers().stream()
-			.filter(p -> p.getName() != null)
-			.filter(p -> eid.isName(p.getName()))
-			.findAny()
-			.orElse(null);
-
-		if (player != null) return player;
-
-		NPC npc = client.getNpcs().stream()
-			.filter(a -> eid.isNPC(a))
-			.findAny()
-			.orElse(null);
-
-		if (npc != null) return npc;
-
-		return null;
+	public Optional<NPC> getNPC(@NonNull EntityID eid) {
+		return Optional.fromJavaUtil(client.getNpcs().stream()
+			.filter(eid::isNPC)
+			.findFirst());
 	}
 
-	public int distanceToUser(@NonNull EntityID eid) {
+	public Optional<Actor> getActor(@NonNull EntityID eid) {
+		Optional<Player> player = getPlayer(eid);
+		if (player.isPresent()) return player.transform(p -> p);
 
-		Actor other = findActor(eid);
-		if (other == null) return 0;
+		Optional<NPC> npc = getNPC(eid);
+		if (npc.isPresent()) return npc.transform(n -> n);
 
-		WorldPoint pos1 = client.getLocalPlayer().getWorldLocation();
-		WorldPoint pos2 = other.getWorldLocation();
-
-		int distance = pos1.distanceTo(pos2);
-		return distance;
+		return Optional.absent();
 	}
 
 	@NonNull

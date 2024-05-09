@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.audio;
 
+import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.entity.EntityID;
@@ -51,6 +52,9 @@ public class VolumeManager {
 		this.client = client;
 		this.clientHelper = clientHelper;
 		this.config = config;
+
+		spawnedActors.addAll(client.getNpcs());
+		spawnedActors.addAll(client.getPlayers());
 	}
 
 	@NonNull
@@ -131,16 +135,16 @@ public class VolumeManager {
 				volume = localplayer();
 				break;
 			case OtherPlayers:
-				Player player = clientHelper.getPlayer(entityID);
+				Optional<Player> player = clientHelper.getPlayer(entityID);
 
-				if (player == null) {
+				if (!player.isPresent()) {
 					volume = localplayer();
 				}
 				else if (clientHelper.isFriend(entityID)) {
-					volume = friend(player);
+					volume = friend(player.get());
 				}
 				else {
-					volume = overhead(player);
+					volume = overhead(player.get());
 				}
 				break;
 			case System:

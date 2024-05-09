@@ -226,7 +226,7 @@ public class ChatFilterPluglet {
 		}
 	}
 
-	@Subscribe(priority=-2) // run after ChatMessageManager
+	@Subscribe(priority=-1) // run before SpeechEventHandler
 	public void onChatMessage(ChatMessage chatMessage) {
 		if (!isChatFilterEnabled) return;
 
