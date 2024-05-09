@@ -1,9 +1,9 @@
 package dev.phyce.naturalspeech.userinterface.ingame;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
-import dev.phyce.naturalspeech.utils.Standardize;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
@@ -19,7 +19,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private static final int LINE_HEIGHT = 20;
 	private static final int CHATBOX_HEIGHT = 120;
 	private final ChatboxPanelManager chatboxPanelManager;
-	private Standardize.SID sid;
+	private EntityID entityID;
 
 	@Inject
 	public VoiceConfigChatboxTextInput(
@@ -38,13 +38,13 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 			if (!string.isEmpty()) {
 				VoiceID voiceId = VoiceID.fromIDString(string);
 				if (voiceId != null) {
-					voiceManager.setVoice(sid, voiceId);
-					voiceManager.saveVoiceConfig();
+					voiceManager.set(entityID, voiceId);
+					voiceManager.save();
 				} else {
 					log.info("Attempting to set invalid voiceID with {}", string);
 				}
 			} else {
-				voiceManager.unsetVoice(sid);
+				voiceManager.unset(entityID);
 			}
 		});
 	}
@@ -82,8 +82,8 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		separator.revalidate();
 	}
 
-	public VoiceConfigChatboxTextInput configSID(Standardize.SID sid) {
-		this.sid = sid;
+	public VoiceConfigChatboxTextInput entityID(EntityID entityID) {
+		this.entityID = entityID;
 		return this;
 	}
 }

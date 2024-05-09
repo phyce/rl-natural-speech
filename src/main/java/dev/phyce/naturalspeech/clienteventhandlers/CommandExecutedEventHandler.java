@@ -4,11 +4,11 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import java.util.Arrays;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -63,7 +63,8 @@ public class CommandExecutedEventHandler {
 							null);
 					}
 					else {
-						voiceManager.setDefaultVoiceIDForUsername(username, voiceId);
+						EntityID entityID = EntityID.name(username);
+						voiceManager.set(entityID, voiceId);
 						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + args[0],
 							null);
 					}
@@ -77,7 +78,7 @@ public class CommandExecutedEventHandler {
 				}
 				else {
 					String username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
-					voiceManager.resetForUsername(username);
+					voiceManager.unset(EntityID.name(username));
 					client.addChatMessage(ChatMessageType.CONSOLE, "",
 						"All voices are removed for " + username, null);
 				}
@@ -86,23 +87,21 @@ public class CommandExecutedEventHandler {
 			case "checkvoice": {
 				String username;
 				if (args.length < 1) {
-					//					client.addChatMessage(ChatMessageType.CONSOLE, "",
-					//						"use ::checkvoice username, for example ::checkvoice Zezima", null);
-					username = Names.LOCAL_USER;
+					username = Names.USER;
 				}
 				else {
 					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
 				}
 
-				List<VoiceID> voiceIds = voiceManager.checkVoiceIDWithUsername(username);
-				if (voiceIds == null) {
+				EntityID entityID = EntityID.name(username);
+				if (!voiceManager.contains(entityID)) {
 					client.addChatMessage(ChatMessageType.CONSOLE, "",
 						"There are no voices set for " + username + ".", null);
 				}
 				else {
-					String idStr = voiceIds.stream().map(VoiceID::toString).reduce((a, b) -> a + ", " + b)
-						.orElse("No voice set");
-					client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + idStr, null);
+					VoiceID voice = voiceManager.resolve(entityID);
+					client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " +
+						voice.toString(), null);
 				}
 				break;
 			}

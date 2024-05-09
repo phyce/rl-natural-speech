@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.enums;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesisVoiceGender;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import net.runelite.api.Player;
 
 @AllArgsConstructor
 public enum Gender {
@@ -17,8 +18,22 @@ public enum Gender {
 		return string;
 	}
 
-	public static Gender parseInt(int id) {
-		switch (id) {
+	public static Gender fromInt(int number) {
+		number = number % 2;
+
+		switch (number) {
+			case 0:
+				return MALE;
+			case 1:
+				return FEMALE;
+			default:
+				return OTHER;
+		}
+	}
+
+	public static Gender fromPlayer(Player player) {
+		int genderId = player.getPlayerComposition().getGender();
+		switch (genderId) {
 			case 0:
 				return MALE;
 			case 1:

@@ -53,7 +53,7 @@ class NaturalSpeechModule {
 	final PluginEventBus pluginEventBus;
 	final PluginExecutorService pluginExecutorService;
 	final ClientHelper clientHelper;
-	final ChatHelper chatHelper
+	final ChatHelper chatHelper;
 
 	@Inject
 	public NaturalSpeechModule(

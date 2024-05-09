@@ -50,11 +50,18 @@ public interface ConfigKeys {
 	String VOICE_CONFIG_KEY = "speaker_config.json";
 
 	// region Mute and listen
-	String USERNAME_LISTEN_LIST = "usernameListenList";
 	String LISTEN_MODE = "listenMode";
-	String USERNAME_MUTE_LIST = "usernameMuteList";
-	String NPC_ID_LISTEN_LIST = "npcIdListenList";
-	String NPC_ID_MUTE_LIST = "npcIdMuteList";
+	String LISTEN_LIST = "listenList";
+	String MUTE_LIST = "muteList";
+
+	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	String DEPRECATED_USERNAME_LISTEN_LIST = "usernameListenList";
+	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	String DEPRECATED_USERNAME_MUTE_LIST = "usernameMuteList";
+	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	String DEPRECATED_NPC_ID_LISTEN_LIST = "npcIdListenList";
+	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	String DEPRECATED_NPC_ID_MUTE_LIST = "npcIdMuteList";
 
 	// endregion
 }

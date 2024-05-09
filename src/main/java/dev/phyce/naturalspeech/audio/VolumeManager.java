@@ -1,12 +1,11 @@
 package dev.phyce.naturalspeech.audio;
 
-import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.utils.ChatHelper;
 import dev.phyce.naturalspeech.utils.ClientHelper;
-import dev.phyce.naturalspeech.utils.Standardize;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -45,7 +44,8 @@ public class VolumeManager {
 
 	@Inject
 	public VolumeManager(
-		Client client, ClientHelper clientHelper,
+		Client client,
+		ClientHelper clientHelper,
 		NaturalSpeechConfig config
 	) {
 		this.client = client;
@@ -124,24 +124,26 @@ public class VolumeManager {
 		return ZERO_GAIN;
 	}
 
-	public Supplier<Float> chat(ChatHelper.VoiceType voiceType, Standardize.SID sid) {
+	public Supplier<Float> chat(ChatHelper.ChatType chatType, EntityID entityID) {
 		Supplier<Float> volume;
-		switch (voiceType) {
-			case InnerVoice:
+		switch (chatType) {
+			case User:
 				volume = localplayer();
 				break;
-			case OtherPlayerVoice:
-				Player player = clientHelper.findPlayer(sid);
-				Preconditions.checkNotNull(player, "Player not found. sid:%s", sid);
+			case OtherPlayers:
+				Player player = clientHelper.getPlayer(entityID);
 
-				if (clientHelper.isFriend(sid)) {
+				if (player == null) {
+					volume = localplayer();
+				}
+				else if (clientHelper.isFriend(entityID)) {
 					volume = friend(player);
 				}
 				else {
 					volume = overhead(player);
 				}
 				break;
-			case SystemVoice:
+			case System:
 				volume = system();
 				break;
 			default:

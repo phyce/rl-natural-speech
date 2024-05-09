@@ -2,7 +2,7 @@ package dev.phyce.naturalspeech.statics;
 
 import com.google.common.io.Resources;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.configs.VoiceConfig;
+import dev.phyce.naturalspeech.configs.VoiceSettings;
 import dev.phyce.naturalspeech.configs.json.AbbreviationEntryJSON;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process;
 import dev.phyce.naturalspeech.userinterface.components.IconTextField;
@@ -39,23 +39,22 @@ public final class PluginResources {
 		BUILT_IN_ABBREVIATIONS = RuneLiteAPI.GSON.fromJson(json, AbbreviationEntryJSON[].class);
 	}
 
-	public static final String defaultVoiceConfigJson;
+	@NonNull
+	public static final String DEFAULT_VOICE_CONFIG_JSON;
 	static {
 		String result;
 		try {
-			result = Resources.toString(PluginResources.DEFAULT_VOICE_CONFIG_JSON, StandardCharsets.UTF_8);
+			result = Resources.toString(Resources.getResource(VoiceSettings.class, "default_speaker_config.json"), StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			log.error("Default voice config file failed to load from resources. " +
 				"Either file path is incorrect, or the file doesn't exist.", e);
 
 			result = "{}";
 		}
-		defaultVoiceConfigJson = result;
+		DEFAULT_VOICE_CONFIG_JSON = result;
 	}
 
 
-	@NonNull
-	public static final URL DEFAULT_VOICE_CONFIG_JSON = Resources.getResource(VoiceConfig.class, "default_speaker_config.json");
 	@NonNull
 	public static final URL WSAPI5_CSHARP_RUNTIME = Resources.getResource(SAPI5Process.class, "WSAPI5.cs");
 	@NonNull

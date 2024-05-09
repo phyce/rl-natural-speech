@@ -1,30 +1,25 @@
 package dev.phyce.naturalspeech.texttospeech;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.statics.ConfigKeys;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
-import dev.phyce.naturalspeech.configs.VoiceConfig;
-import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
-import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.collections.GenderedVoiceMap;
-import dev.phyce.naturalspeech.statics.Names;
+import dev.phyce.naturalspeech.configs.VoiceSettings;
+import dev.phyce.naturalspeech.entity.EntityID;
+import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
+import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.utils.ClientHelper;
-import dev.phyce.naturalspeech.utils.Standardize;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Actor;
-import net.runelite.api.NPC;
-import net.runelite.api.Player;
 import net.runelite.client.config.ConfigManager;
 
 
@@ -41,10 +36,7 @@ public class VoiceManager {
 	private final ConfigManager configManager;
 	private final ClientHelper clientHelper;
 
-	/**
-	 * VoiceConfig contains the user's voice settings for NPCs and other players.
-	 */
-	private final VoiceConfig voiceConfig = new VoiceConfig();
+	private final Map<EntityID, VoiceID> settings = Collections.synchronizedMap(new HashMap<>());
 
 	/**
 	 * Gendered Voice Map contains the voices registered with the VoiceManager,
@@ -54,8 +46,9 @@ public class VoiceManager {
 
 	/**
 	 * Active Voice Map contains the active voices that are registered with the VoiceManager.
-	 * @see #registerVoiceID(VoiceID, Gender)
-	 * @see #unregisterVoiceID(VoiceID)
+	 *
+	 * @see #register(VoiceID, Gender)
+	 * @see #unregister(VoiceID)
 	 */
 	private final Set<VoiceID> activeVoiceMap = Collections.synchronizedSet(new HashSet<>());
 
@@ -66,40 +59,19 @@ public class VoiceManager {
 
 		// try to load from existing json in configManager
 		String json = configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY);
+
 		if (json != null) {
-			try {
-				voiceConfig.loadJSON(json);
-				log.info("Loaded {} voice config entries from existing profile settings.",
-					voiceConfig.countAll());
-			} catch (JsonSyntaxException ignored) {
-				// fallback to default json
-				log.error("Invalid voice config stored in profile, falling back to default. Invalid JSON: {}", json);
-			}
+			settings.putAll(VoiceSettings.fromJSON(json));
 		}
 		else {
 			log.info("No existing voice config stored in profile, falling back to default");
 			// if configManager fails, load default from resources
-			voiceConfig.loadDefault();
+			settings.putAll(VoiceSettings.fromJSON(PluginResources.DEFAULT_VOICE_CONFIG_JSON));
 		}
 	}
 
-	/**
-	 * helper function for Piper, registers each voice inside the model with {@link #registerVoiceID(VoiceID, Gender)}.
-	 * <b>Unregister the voice when no longer speakable by the engine.</b>
-	 */
-	public void registerPiperModel(PiperRepository.ModelLocal modelLocal) {
-		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
-			registerVoiceID(voiceMetadata.toVoiceID(), voiceMetadata.getGender());
-		}
-	}
-
-	/**
-	 * helper function for Piper, unregisters each voice inside the model with {@link #unregisterVoiceID(VoiceID)}
-	 */
-	public void unregisterPiperModel(PiperRepository.ModelLocal modelLocal) {
-		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
-			unregisterVoiceID(voiceMetadata.toVoiceID());
-		}
+	public void save() {
+		configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY, VoiceSettings.toJSON(settings));
 	}
 
 	/**
@@ -109,9 +81,9 @@ public class VoiceManager {
 	 * @param voiceID Voice
 	 * @param gender  Gender
 	 *
-	 * @see #unregisterVoiceID(VoiceID)
+	 * @see #unregister(VoiceID)
 	 */
-	public void registerVoiceID(VoiceID voiceID, Gender gender) {
+	public void register(VoiceID voiceID, Gender gender) {
 		if (activeVoiceMap.contains(voiceID)) {
 			log.error(
 				"Attempting to register duplicate VoiceID. Likely another SpeechEngine is using the same VoiceID. {}",
@@ -127,9 +99,9 @@ public class VoiceManager {
 	 *
 	 * @param voiceID Voice
 	 *
-	 * @see #registerVoiceID(VoiceID, Gender)
+	 * @see #register(VoiceID, Gender)
 	 */
-	public void unregisterVoiceID(VoiceID voiceID) {
+	public void unregister(VoiceID voiceID) {
 		if (!activeVoiceMap.contains(voiceID)) {
 			log.error("Attempting to unregister VoiceID that was never registered. {}", voiceID);
 			return;
@@ -138,215 +110,82 @@ public class VoiceManager {
 		genderedVoiceMap.removeVoiceID(voiceID);
 	}
 
-	@CheckForNull
-	public List<VoiceID> checkVoiceIDWithUsername(@NonNull String standardized_username) {
-		return voiceConfig.findUsername(standardized_username);
-	}
-
-	public void saveVoiceConfig() {
-		configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY, voiceConfig.toJSON());
+	public boolean isActive(VoiceID voiceID) {
+		return activeVoiceMap.contains(voiceID);
 	}
 
 	@CheckForNull
-	public VoiceID randomVoiceFromActiveModels(String standardized_username) {
-		int hashCode = standardized_username.hashCode();
-
-		long count = activeVoiceMap.size();
-
-		Optional<VoiceID> first = activeVoiceMap.stream().skip(Math.abs(hashCode) % count).findFirst();
-
-		return first.orElse(null);
+	public VoiceID get(@NonNull EntityID entityID) {
+		return settings.get(entityID);
 	}
 
-	@CheckForNull
-	private VoiceID randomGenderedVoice(String standardized_username, Gender gender) {
-		Set<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
-		if (voiceIDs == null || voiceIDs.isEmpty()) {
-			return null;
+	@NonNull
+	public VoiceID resolve(@NonNull EntityID entityID) {
+		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
+
+		// if there is setting for this entity, use that
+		VoiceID voiceID = settings.get(entityID);
+
+		if (voiceID != null && !activeVoiceMap.contains(voiceID)) {
+			log.trace("Voice Setting found, but not active: {}", voiceID);
+			voiceID = null;
 		}
 
-		int hashCode = standardized_username.hashCode();
+		// no settings, randomize
+		if (voiceID == null) {
+			log.trace("No voice setting for {}. Randomizing voice.", entityID);
+			voiceID = random(entityID);
+		} else {
+			log.trace("Voice setting found for {}: {}", entityID, voiceID);
+		}
+
+		return voiceID;
+	}
+
+	public boolean contains(EntityID entityID) {
+		return settings.containsKey(entityID);
+	}
+
+	public void set(EntityID entityID, VoiceID voiceId) {
+		settings.put(entityID, voiceId);
+	}
+
+	public void unset(EntityID entityID) {
+		settings.remove(entityID);
+	}
+
+
+	@NonNull
+	private VoiceID random(EntityID eid) {
+		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
+
+		Gender gender = clientHelper.getGender(eid);
+
+		Set<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
+		if (voiceIDs == null || voiceIDs.isEmpty()) {
+			// no voices available for gender
+			return fallback();
+		}
+
+		int hashCode = eid.hashCode();
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
-		return voiceIDs.stream().skip(voice).findFirst().orElse(null);
+		return voiceIDs
+			.stream()
+			.skip(voice)
+			.findFirst()
+			.orElseThrow();
 	}
 
 	// Ultimate fallback
-	@SuppressWarnings("unused")
-	@CheckForNull
-	public VoiceID randomVoice() {
+	@NonNull
+	private VoiceID fallback() {
+		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
+
 		long count = activeVoiceMap.size();
 		Optional<VoiceID> first = activeVoiceMap.stream().skip((int) (Math.random() * count)).findFirst();
-
-		return first.orElse(null);
+		return first.orElseThrow();
 	}
-
 	//<editor-fold desc="> Get">
-	@CheckForNull
-	private VoiceID contains(@NonNull List<VoiceID> voiceIdAndFallbacks) {
-		for (VoiceID voiceID : voiceIdAndFallbacks) {
-			// if the config is invalid, a null might be present
-			if (voiceID == null) continue;
 
-			if (activeVoiceMap.contains(voiceID)) {
-				return voiceID;
-			}
-		}
-		return null;
-	}
-
-	@NonNull
-	public VoiceID getNPCVoice(int npcId) throws VoiceSelectionOutOfOption {
-
-		VoiceID result = null;
-
-		List<VoiceID> results = voiceConfig.findUsername(Names.GLOBAL_NPC);
-		if (results != null) {
-			result = contains(results);
-		}
-
-		if (results == null) {
-			// Check NPC ID, takes priority over everything.
-			results = voiceConfig.findNpcId(npcId);
-			if (results != null) {
-				result = contains(results);
-				if (result == null) {
-					log.debug("Existing NPC ID voice found for NPC id:{} but model is not active", npcId);
-				}
-				else {
-					log.debug("Existing NPC ID voice found for NPC id:{} using {}", npcId, result);
-				}
-			}
-			else {
-				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId);
-			}
-		}
-
-
-		if (result == null) {
-			log.debug("Voice selection out of options. Likely no models are active.");
-			throw new VoiceSelectionOutOfOption();
-		}
-
-		return result;
-	}
-
-	public boolean containsUsername(@NonNull String standardized_username) {
-		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
-		return voiceAndFallback != null && !voiceAndFallback.isEmpty();
-	}
-
-	public boolean containsNPC(int npcId) {
-		List<VoiceID> voiceAndFallback = voiceConfig.findNpcId(npcId);
-		return voiceAndFallback != null && !voiceAndFallback.isEmpty();
-	}
-
-	@NonNull
-	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
-		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
-
-		VoiceID result;
-		if (voiceAndFallback != null) {
-			result = contains(voiceAndFallback);
-			if (result == null) {
-				log.debug("Existing settings {} found for username {}, but model is not active.", voiceAndFallback,
-					standardized_username);
-			}
-		}
-		else {
-			result = null;
-			log.debug("No existing settings found for username {}, generate random voice.", standardized_username);
-		}
-
-		if (result == null) {
-			Player player = clientHelper.findPlayerWithUsername(standardized_username);
-			if (player != null) {
-				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
-				log.debug("Using randomize gendered voice for {}.", standardized_username);
-				VoiceID voiceID = randomGenderedVoice(standardized_username, gender);
-				if (voiceID != null) {
-					return voiceID;
-				}
-				else {
-					throw new VoiceSelectionOutOfOption();
-				}
-			}
-			else {
-				log.debug("Could not determine gender, no Player object found with {}, using random voice.",
-					standardized_username);
-				VoiceID voiceID = randomVoiceFromActiveModels(standardized_username);
-				if (voiceID == null) {
-					throw new VoiceSelectionOutOfOption();
-				}
-				return voiceID;
-			}
-		}
-		else {
-			log.debug("Existing settings found for {} and model is active. using {}.",
-				standardized_username, result);
-			return result;
-		}
-	}
-
-	public void setDefaultVoiceIDForUsername(@NonNull String standardized_username, VoiceID voiceID) {
-		voiceConfig.setDefaultPlayerVoice(standardized_username, voiceID);
-	}
-
-
-	public void setActorVoiceID(@NonNull Actor actor, VoiceID voiceId) {
-		if (actor instanceof NPC) {
-			NPC npc = ((NPC) actor);
-			// I have no idea what a Composition is
-			var compId = Standardize.id(npc);
-			// This is to solve the issue where the ModelID does not match the NPCID
-			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
-			voiceConfig.setDefaultNpcIdVoice(compId, voiceId);
-
-			log.debug("Setting Default NPC Voice for NpcID: {} CompID: {} NpcName: {} to {}",
-				npc.getId(), compId, npc.getName(), voiceId);
-		}
-		else if (actor instanceof Player) {
-			String standardized_username = Standardize.name(actor);
-			Preconditions.checkNotNull(standardized_username);
-
-			voiceConfig.setDefaultPlayerVoice(standardized_username, voiceId);
-			log.debug("Setting Default Player Voice for {} to {}", actor.getName(), voiceId);
-		}
-		else {
-			log.error("Tried setting a voice for neither NPC or player. Possibly for an object.");
-		}
-	}
-
-
-	//</editor-fold>
-
-	//<editor-fold desc="> Reset">
-	public void resetForUsername(@NonNull String standardized_username) {
-		voiceConfig.resetPlayerVoice(standardized_username);
-	}
-
-	public void resetVoiceIDForNPC(@NonNull NPC actor) {
-		voiceConfig.resetNpcIdVoices(actor.getId());
-		voiceConfig.resetNpcIdVoices(actor.getComposition().getId());
-	}
-
-	public VoiceID getVoice(Standardize.SID sid) {
-		// FIXME
-//		return null;
-	}
-
-	public boolean contains(Standardize.SID sid) {
-		// FIXME
-//		return false;
-	}
-
-	public void setVoice(Standardize.SID sid, VoiceID voiceId) {
-		// FIXME
-	}
-
-	public void unsetVoice(Standardize.SID sid) {
-		// FIXME
-	}
-
-	//</editor-fold>
 }

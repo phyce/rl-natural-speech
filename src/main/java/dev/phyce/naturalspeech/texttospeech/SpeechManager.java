@@ -4,7 +4,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.SettableFuture;
-import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
@@ -18,14 +17,9 @@ import dev.phyce.naturalspeech.events.SpeechManagerStarting;
 import dev.phyce.naturalspeech.events.SpeechManagerStopped;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
-import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
-import dev.phyce.naturalspeech.utils.Texts;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -57,10 +51,8 @@ public class SpeechManager implements SpeechEngine {
 	private final Vector<SpeechEngine> engines = new Vector<>();
 	private final Vector<SpeechEngine> activeEngines = new Vector<>();
 
-
 	@Getter
 	private boolean started = false;
-
 
 	@Inject
 	private SpeechManager(
@@ -73,10 +65,7 @@ public class SpeechManager implements SpeechEngine {
 		this.pluginEventBus = pluginEventBus;
 		this.pluginExecutorService = pluginExecutorService;
 		this.speechManagerConfig = speechManagerConfig;
-
-
 	}
-
 
 	@SneakyThrows(InterruptedException.class)
 	@Override
@@ -234,6 +223,7 @@ public class SpeechManager implements SpeechEngine {
 		}
 
 		log.error("No engines were able to speak voiceID:{} text:{} lineName:{}", voiceID, text, lineName);
+		Thread.dumpStack();
 		return SpeakResult.REJECT;
 	}
 

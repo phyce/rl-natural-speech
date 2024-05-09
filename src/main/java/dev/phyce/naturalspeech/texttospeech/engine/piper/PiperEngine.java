@@ -269,7 +269,9 @@ public class PiperEngine implements SpeechEngine {
 
 		// if this is going to be the first model running this model register
 		models.put(modelLocal.getModelName(), model);
-		voiceManager.registerPiperModel(modelLocal);
+		for (PiperRepository.PiperVoiceMetadata voiceMetadata : modelLocal.getPiperVoiceMetadata()) {
+			voiceManager.register(voiceMetadata.toVoiceID(), voiceMetadata.getGender());
+		}
 		pluginEventBus.post(new PiperModelStarted(model));
 	}
 
@@ -278,7 +280,9 @@ public class PiperEngine implements SpeechEngine {
 		PiperModel piper = models.remove(modelLocal.getModelName());
 		if (piper != null) {
 			piper.stop();
-			voiceManager.unregisterPiperModel(piper.getModelLocal());
+			for (PiperRepository.PiperVoiceMetadata voiceMetadata : piper.getModelLocal().getPiperVoiceMetadata()) {
+				voiceManager.unregister(voiceMetadata.toVoiceID());
+			}
 			pluginEventBus.post(new PiperModelStopped(piper));
 		}
 		else {

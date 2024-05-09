@@ -2,33 +2,25 @@ package dev.phyce.naturalspeech.texttospeech;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.statics.ConfigKeys;
+import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
-import dev.phyce.naturalspeech.utils.Standardize;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.NPC;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.util.Text;
+import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
 @PluginSingleton
 public class MuteManager {
 
-	private final List<String> usernameListenList = new ArrayList<>();
-	private final List<String> usernameMuteList = new ArrayList<>();
-
-
-	// WARNING: Most List.remove List.get have overloads for using index,
-	// Can easily use List.remove(int index) accidentally
-	// When we want to use List.remove(Integer value)
-	private final List<Integer> npcIdListenList = new ArrayList<>();
-	private final List<Integer> npcIdMuteList = new ArrayList<>();
+	private final Set<EntityID> listenList = new HashSet<>();
+	private final Set<EntityID> muteList = new HashSet<>();
 
 	private final ConfigManager configManager;
 
@@ -40,324 +32,219 @@ public class MuteManager {
 	public MuteManager(ConfigManager configManager) {
 		this.configManager = configManager;
 
-		loadConfig();
+		load();
 	}
 
-//	public boolean isActorAllowed(Actor actor) {
-//		if (actor == null) {
-//			return false;
-//		}
-//
-//		if (actor instanceof NPC) {
-//			return isNpcAllowed((NPC) actor);
-//		} else {
-//			return isUsernameAllowed(Actors.name(actor));
-//		}
-//	}
-//
-//	public boolean isActorMuted(Actor actor) {
-//		if (actor == null) {
-//			return false;
-//		}
-//
-//		if (actor instanceof NPC) {
-//			return !isNpcAllowed((NPC) actor);
-//		} else {
-//			return !isUsernameAllowed(Actors.name(actor));
-//		}
-//	}
-//
-//	public boolean isActorListened(Actor actor) {
-//		if (actor == null) {
-//			return false;
-//		}
-//
-//		if (actor instanceof NPC) {
-//			return isNpcListened((NPC) actor);
-//		} else {
-//			return isUsernameListened(Actors.name(actor));
-//		}
-//	}
-//
-//	public void muteActor(Actor actor) {
-//		if (actor == null) {
-//			return;
-//		}
-//
-//		if (actor instanceof NPC) {
-//			muteNpc((NPC) actor);
-//		} else {
-//			muteUsername(Actors.name(actor));
-//		}
-//	}
-//
-//	public void unmuteActor(Actor actor) {
-//		if (actor == null) {
-//			return;
-//		}
-//
-//		if (actor instanceof NPC) {
-//			unmuteNpc((NPC) actor);
-//		} else {
-//			unmuteUsername(Actors.name(actor));
-//		}
-//	}
-//
-//	public void listenActor(Actor actor) {
-//		if (actor == null) {
-//			return;
-//		}
-//
-//		if (actor instanceof NPC) {
-//			listenNpc((NPC) actor);
-//		} else {
-//			listenUsername(Actors.name(actor));
-//		}
-//	}
-//
-//	public void unlistenActor(Actor actor) {
-//		if (actor == null) {
-//			return;
-//		}
-//
-//		if (actor instanceof NPC) {
-//			unlistenNpc((NPC) actor);
-//		} else {
-//			unlistenUsername(Actors.name(actor));
-//		}
-//	}
-
-	public boolean isNpcAllowed(NPC npc) {
+	public boolean isAllowed(@NonNull EntityID eid) {
 		if (listenMode) {
-			return isNpcListened(npc);
-		} else {
-			return isNpcUnmuted(npc);
+			return isListened(eid);
 		}
-	}
-	public boolean isNpcAllowed(Integer npcId) {
-		if (listenMode) {
-			return npcIdListenList.contains(npcId);
-		} else {
-			return !npcIdMuteList.contains(npcId);
+		else {
+			return !isMuted(eid);
 		}
 	}
 
-	public boolean isNpcListened(NPC npc) {
-		int npcId = npc.getId();
-		int compId = npc.getComposition().getId();
-
-		return npcIdListenList.contains(npcId) || npcIdListenList.contains(compId);
+	public boolean isMuted(EntityID eid) {
+		return muteList.contains(eid);
 	}
 
-	public boolean isNpcUnmuted(NPC npc) {
-		int npcId = npc.getId();
-		int compId = npc.getComposition().getId();
-
-		return !npcIdMuteList.contains(npcId) && !npcIdMuteList.contains(compId);
+	public boolean isListened(EntityID eid) {
+		return listenList.contains(eid);
 	}
 
-	public boolean isUsernameAllowed(String standardized_username) {
-		if (listenMode) {
-			return isUsernameListened(standardized_username);
-		} else {
-			return isUsernameUnmuted(standardized_username);
-		}
+	public void listen(EntityID eid) {
+		listenList.add(eid);
 	}
 
-	public boolean isUsernameUnmuted(String standardActorName) {
-		return !usernameMuteList.contains(standardActorName);
+	public void unlisten(EntityID eid) {
+		listenList.remove(eid);
 	}
 
-	public boolean isUsernameListened(String standardActorName) {
-		return usernameListenList.contains(standardActorName);
+	public void mute(EntityID eid) {
+		muteList.add(eid);
 	}
 
-	public void muteNpcId(Integer npcId) {
-		npcIdMuteList.remove(npcId); // de-duplicate
-		npcIdMuteList.add(npcId);
-	}
-
-	public void muteNpc(@NonNull NPC npc) {
-		muteNpcId(npc.getId());
-		muteNpcId(npc.getComposition().getId());
-		// deprecating muting NPC names
-		log.trace("Muting NpcId:{} CompID:{}",
-			npc.getId(), npc.getComposition().getId());
-	}
-
-	public void unmuteNpc(@NonNull NPC npc) {
-		unmuteNpcId(npc.getId());
-		unmuteNpcId(npc.getComposition().getId());
-		log.trace("Unmuting NpcId:{} CompID:{}",
-			npc.getId(), npc.getComposition().getId());
-	}
-
-	public void listenNpc(NPC npc) {
-		int npcId = npc.getId();
-		int compId = npc.getComposition().getId();
-
-		listenNpcId(npcId);
-		listenNpcId(compId);
-	}
-
-	public void unlistenNpc(NPC npc) {
-		int npcId = npc.getId();
-		int compId = npc.getComposition().getId();
-
-		unlistenNpcId(npcId);
-		unlistenNpcId(compId);
-	}
-
-	public void unmuteNpcId(Integer npcId) {
-		npcIdMuteList.remove(npcId);
-	}
-
-	public void listenNpcId(Integer npcId) {
-		npcIdListenList.remove(npcId); // de-duplicate
-		npcIdListenList.add(npcId);
-	}
-
-	public void unlistenNpcId(Integer npcId) {
-		npcIdListenList.remove(npcId);
-	}
-
-	public void muteUsername(String username) {
-		usernameMuteList.remove(username); // de-duplicate
-		usernameMuteList.add(username);
-	}
-
-	public void unmuteUsername(String username) {
-		usernameMuteList.remove(username);
-	}
-
-	public void listenUsername(String username) {
-		usernameListenList.remove(username); // de-duplicate
-		usernameListenList.add(username);
-	}
-
-	public void unlistenUsername(String username) {
-		usernameListenList.remove(username);
+	public void unmute(EntityID eid) {
+		muteList.remove(eid);
 	}
 
 	public void clearListens() {
-		this.npcIdListenList.clear();
-		this.usernameListenList.clear();
+		listenList.clear();
 	}
 
-	public void saveConfig() {
-		saveUsernameConfig();
-		saveNpcIdConfig();
-		saveListenModeConfig();
-	}
-
-
-
-	public void loadConfig() {
-		loadUsernameConfig();
-		loadNpcIdConfig();
-		loadListenModeConfig();
-	}
-
-	private void saveListenModeConfig() {
+	public void save() {
 		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_MODE, listenMode);
 	}
 
+	public void load() {
 
-	private void saveNpcIdConfig() {
-		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_LISTEN_LIST,
-			Text.toCSV(npcIdListenList
-				.stream()
-				.map(Object::toString)
-				.collect(Collectors.toList()))
-		);
-		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_MUTE_LIST,
-			Text.toCSV(npcIdMuteList
-				.stream()
-				.map(Object::toString)
-				.collect(Collectors.toList()))
-		);
+		loadListenMode();
+		loadListenList();
+		loadMuteList();
+
+		appendDeprecated();
 	}
 
-	private void saveUsernameConfig() {
-		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_LISTEN_LIST,
-			Text.toCSV(usernameListenList));
-		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_MUTE_LIST,
-			Text.toCSV(usernameMuteList));
+	private void loadMuteList() {
+		this.muteList.clear();
+
+		String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.MUTE_LIST);
+		if (result != null) {
+			Text.fromCSV(result)
+				.stream()
+				.map(json -> RuneLiteAPI.GSON.fromJson(json, EntityID.class))
+				.forEach(muteList::add);
+		}
 	}
 
-	private void loadListenModeConfig() {
+	private void loadListenList() {
+		this.listenList.clear();
+
+		String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_LIST);
+		if (result != null) {
+			Text.fromCSV(result)
+				.stream()
+				.map(json -> RuneLiteAPI.GSON.fromJson(json, EntityID.class))
+				.forEach(listenList::add);
+		}
+	}
+
+	private void loadListenMode() {
 		String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_MODE);
 		if (result != null) {
 			listenMode = Boolean.parseBoolean(result);
-		} else {
+		}
+		else {
 			listenMode = false;
 		}
 	}
 
-
-	private void loadNpcIdConfig() {
+	@SuppressWarnings("deprecation")
+	private void appendDeprecated() {
 		{
-			npcIdListenList.clear();
-			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_LISTEN_LIST);
+			String result = configManager.getConfiguration(
+				NaturalSpeechPlugin.CONFIG_GROUP,
+				ConfigKeys.DEPRECATED_NPC_ID_LISTEN_LIST
+			);
 			if (result != null) {
-				npcIdListenList.addAll(
-					Text.fromCSV(result)
-						.stream()
-						.map(Integer::parseInt)
-						.collect(Collectors.toList())
-				);
+				Text.fromCSV(result)
+					.stream()
+					.map(Integer::parseInt)
+					.map(EntityID::id)
+					.forEach(listenList::add);
 			}
 		}
 
 		{
-			npcIdMuteList.clear();
-			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_MUTE_LIST);
+			String result = configManager.getConfiguration(
+				NaturalSpeechPlugin.CONFIG_GROUP,
+				ConfigKeys.DEPRECATED_NPC_ID_MUTE_LIST
+			);
 			if (result != null) {
-				npcIdMuteList.addAll(
-					Text.fromCSV(result)
-						.stream()
-						.map(Integer::parseInt)
-						.collect(Collectors.toList())
-				);
-			}
-		}
-	}
-
-	private void loadUsernameConfig() {
-		{
-			usernameListenList.clear();
-			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_LISTEN_LIST);
-			if (result != null) {
-				usernameListenList.addAll(Text.fromCSV(result));
-
+				Text.fromCSV(result)
+					.stream()
+					.map(Integer::parseInt)
+					.map(EntityID::id)
+					.forEach(muteList::add);
 			}
 		}
 
 		{
-			usernameMuteList.clear();
-			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_MUTE_LIST);
+			String result = configManager.getConfiguration(
+				NaturalSpeechPlugin.CONFIG_GROUP,
+				ConfigKeys.DEPRECATED_USERNAME_LISTEN_LIST
+			);
 			if (result != null) {
-				usernameMuteList.addAll(Text.fromCSV(result));
+				Text.fromCSV(result)
+					.stream()
+					.map(EntityID::name)
+					.forEach(listenList::add);
+			}
+		}
+
+		{
+			String result = configManager.getConfiguration(
+				NaturalSpeechPlugin.CONFIG_GROUP,
+				ConfigKeys.DEPRECATED_USERNAME_MUTE_LIST
+			);
+			if (result != null) {
+				Text.fromCSV(result)
+					.stream()
+					.map(EntityID::name)
+					.forEach(muteList::add);
 			}
 		}
 	}
 
-	public boolean isMuted(Standardize.SID sid) {
-		// FIXME
-//		return false;
-	}
 
-	public boolean isListened(Standardize.SID sid) {
-		// FIXME
-//		return false;
-	}
+	//	private void saveNpcIdConfig() {
+	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_LISTEN_LIST,
+	//			Text.toCSV(npcIdListenList
+	//				.stream()
+	//				.map(Object::toString)
+	//				.collect(Collectors.toList()))
+	//		);
+	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_MUTE_LIST,
+	//			Text.toCSV(npcIdMuteList
+	//				.stream()
+	//				.map(Object::toString)
+	//				.collect(Collectors.toList()))
+	//		);
+	//	}
+	//
+	//	private void saveUsernameConfig() {
+	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_LISTEN_LIST,
+	//			Text.toCSV(usernameListenList));
+	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_MUTE_LIST,
+	//			Text.toCSV(usernameMuteList));
+	//	}
 
-	public boolean isAllowed(Standardize.SID sid) {
-		// FIXME
-//		return false;
-	}
 
-	public void mute(Standardize.SID sid) {
-		// FIXME
-	}
+	//	private void loadNpcIdConfig() {
+	//		{
+	//			npcIdListenList.clear();
+	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_LISTEN_LIST);
+	//			if (result != null) {
+	//				npcIdListenList.addAll(
+	//					Text.fromCSV(result)
+	//						.stream()
+	//						.map(Integer::parseInt)
+	//						.collect(Collectors.toList())
+	//				);
+	//			}
+	//		}
+	//
+	//		{
+	//			npcIdMuteList.clear();
+	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_MUTE_LIST);
+	//			if (result != null) {
+	//				npcIdMuteList.addAll(
+	//					Text.fromCSV(result)
+	//						.stream()
+	//						.map(Integer::parseInt)
+	//						.collect(Collectors.toList())
+	//				);
+	//			}
+	//		}
+	//	}
+	//
+	//	private void loadUsernameConfig() {
+	//		{
+	//			usernameListenList.clear();
+	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_LISTEN_LIST);
+	//			if (result != null) {
+	//				usernameListenList.addAll(Text.fromCSV(result));
+	//
+	//			}
+	//		}
+	//
+	//		{
+	//			usernameMuteList.clear();
+	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_MUTE_LIST);
+	//			if (result != null) {
+	//				usernameMuteList.addAll(Text.fromCSV(result));
+	//			}
+	//		}
+	//	}
+
 }

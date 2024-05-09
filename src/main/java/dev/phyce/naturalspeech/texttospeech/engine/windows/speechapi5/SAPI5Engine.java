@@ -130,7 +130,7 @@ public class SAPI5Engine implements SpeechEngine {
 					String sapiName = model.getName();
 					String modelName = SAPI5Alias.sapiToModelName.getOrDefault(sapiName, sapiName);
 					// SAPI5 have a virtual "microsoft" model, the actual model fits in the id.
-					voiceManager.registerVoiceID(new VoiceID(SAPI5_MODEL_NAME, modelName), model.getGender());
+					voiceManager.register(new VoiceID(SAPI5_MODEL_NAME, modelName), model.getGender());
 				}
 
 				started = true;
@@ -152,7 +152,7 @@ public class SAPI5Engine implements SpeechEngine {
 		for (SAPI5Process.SAPI5Voice model : availableSAPI5s) {
 			String sapiName = model.getName();
 			String modelName = SAPI5Alias.sapiToModelName.getOrDefault(sapiName, sapiName);
-			voiceManager.unregisterVoiceID(new VoiceID(SAPI5_MODEL_NAME, modelName));
+			voiceManager.unregister(new VoiceID(SAPI5_MODEL_NAME, modelName));
 		}
 
 		started = false;

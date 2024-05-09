@@ -106,7 +106,7 @@ public class SAPI4Engine implements SpeechEngine {
 				} else {
 
 					sapi4s.forEach((voiceName, sapi) -> {
-						voiceManager.registerVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
+						voiceManager.register(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
 					});
 
 					started = true;
@@ -124,7 +124,7 @@ public class SAPI4Engine implements SpeechEngine {
 	@Synchronized("lock")
 	public void stop() {
 		sapi4s.forEach((voiceName, sapi) -> {
-			voiceManager.unregisterVoiceID(new VoiceID(SAPI4_MODEL_NAME, voiceName));
+			voiceManager.unregister(new VoiceID(SAPI4_MODEL_NAME, voiceName));
 		});
 		started = false;
 	}

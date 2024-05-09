@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.statics;
 public interface Names {
 	String SYSTEM = "&system";
 	String GLOBAL_NPC = "&globalnpc";
-	String LOCAL_USER = "&localuser";
+	String USER = "&localuser";
 	String DIALOG = "&dialog";
 	String VOICE_EXPLORER = "&voiceexplorer";
 

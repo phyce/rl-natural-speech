@@ -2,16 +2,15 @@ package dev.phyce.naturalspeech.utils;
 
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.SpamDetection;
-import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import static dev.phyce.naturalspeech.utils.Locations.inGrandExchange;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import javax.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -51,126 +50,154 @@ public class ChatHelper {
 		this.muteManager = muteManager;
 	}
 
-	public boolean isMuted(@NonNull ChatMessage message) {
+	public EntityID getEntityID(ChatMessage message) {
+		final ChatType chatType = getChatType(message);
+		final EntityID eid;
+		switch (chatType) {
+			case User:
+				eid = EntityID.USER;
+				break;
+			case OtherPlayers:
+				eid = EntityID.name(message.getName());
+				break;
+			case System:
+				eid = EntityID.SYSTEM;
+				break;
+			case Unknown:
+			default:
+				eid = EntityID.SYSTEM;
+		}
+		return eid;
+	}
 
-		if (config.friendsOnlyMode()) {
-			switch (message.getType()) {
-				case PUBLICCHAT:
-				case PRIVATECHAT:
-				case CLAN_CHAT:
-				case CLAN_GUEST_CHAT:
-				case MODCHAT:
-					if (!clientHelper.isFriend(message.getName())) {
-						return true;
-					}
+	public ChatType getChatType(ChatMessage message) {
+		final EntityID nameEID = EntityID.name(message.getName());
+		if (isChatSystemVoice(message.getType())) {
+			return ChatType.System;
+		}
+		else if (isPlayerChat(message.getType())) {
+			if (clientHelper.isLocalPlayer(nameEID)) {
+				return ChatType.User;
+			}
+			else {
+				return ChatType.OtherPlayers;
 			}
 		}
-		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
-		// dialog messages are handled in onWidgetLoad
-		if (message.getType() == ChatMessageType.DIALOG) return true;
+		else if (isInnerVoice(message.getType())) {
+			return ChatType.User;
+		}
+		else {
+			return ChatType.Unknown;
+		}
+	}
+
+	private static boolean isChatSystemVoice(@NonNull ChatMessageType messageType) {
+		switch (messageType) {
+			case ENGINE:
+			case LOGINLOGOUTNOTIFICATION:
+			case BROADCAST:
+			case IGNORENOTIFICATION:
+			case CLAN_MESSAGE:
+			case CONSOLE:
+			case TRADE:
+			case PLAYERRELATED:
+			case TENSECTIMEOUT:
+			case WELCOME:
+			case CLAN_CREATION_INVITATION:
+			case CLAN_GIM_FORM_GROUP:
+			case CLAN_GIM_GROUP_WITH:
+			case GAMEMESSAGE:
+			case MESBOX:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	private static boolean isInnerVoice(@NonNull ChatMessageType messageType) {
+		switch (messageType) {
+			case NPC_EXAMINE:
+			case OBJECT_EXAMINE:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	private static boolean isPlayerChat(@NonNull ChatMessageType messageType) {
+		switch (messageType) {
+			case PUBLICCHAT:
+			case MODCHAT:
+			case PRIVATECHAT:
+			case MODPRIVATECHAT:
+			case TRADEREQ:
+			case CLAN_CHAT:
+			case CLAN_GUEST_CHAT:
+			case FRIENDSCHAT:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	public boolean isMuted(@NonNull ChatMessage message) {
+
+		ChatType chatType = getChatType(message);
+		EntityID eid = getEntityID(message);
+
+		if (eid.isUser()) {
+			return config.muteSelf();
+		}
+
+		if (chatType == ChatType.Unknown) return true;
+
+		if (config.friendsOnlyMode() && chatType == ChatType.OtherPlayers && !clientHelper.isFriend(eid)) {
+			return true;
+		}
 
 		// example: "::::::))))))" (no alpha numeric, muted)
 		if (!Texts.containAlphaNumeric(message.getMessage())) {
-			log.trace("Muting message. No alpha numeric characters. Message:{}", message.getMessage());
-			return true;
-		}
-		// console messages seems to be errors and warnings from other plugins, mute
-		if (message.getType() == ChatMessageType.CONSOLE) {
-			log.trace("Muting console message. Message:{}", message.getMessage());
+			log.trace("Muting message. No alpha numeric characters. Message:{}", message);
 			return true;
 		}
 
-		if (isMessageTypeDisabledInConfig(message)) {
-			log.trace("Muting message. Disabled message type {}. Message:{}", message.getType(), message.getMessage());
+		if (isMessageDisabled(message.getType())) {
+			log.trace("Muting message. Disabled message type. Message:{}", message);
 			return true;
 		}
 
 		if (isTooCrowded()) return true;
 
-		if (message.getType() == ChatMessageType.PUBLICCHAT && isAreaDisabled()) {
-			log.trace("Muting message. Area is disabled. Message:{}", message.getMessage());
+		if (chatType == ChatType.OtherPlayers && isAreaDisabled()) {
+			log.trace("Muting message. Area is disabled. Message:{}", message);
 			return true;
 		}
 
-		if (isSelfMuted(message)) {
-			log.trace("Muting message. Self muted. Message:{}", message.getMessage());
+		if (config.muteOthers() && chatType == ChatType.OtherPlayers) {
+			log.trace("Muting message. Muting others. Message:{}", message);
 			return true;
 		}
 
-		if (isMutingOthers(message)) {
-			log.trace("Muting message. Muting others. Message:{}", message.getMessage());
+		if (clientHelper.getLevel(eid) < config.muteLevelThreshold()) {
+			log.trace("Muting message. Mute level threshold. Message:{}", message);
 			return true;
 		}
 
-		if (checkMuteLevelThreshold(message)) {
-			log.trace("Muting message. Mute level threshold. Message:{}", message.getMessage());
-			return true;
-		}
-
-		if (!muteManager.isUsernameAllowed(Text.standardize(Text.removeTags(message.getName())))) {
-			log.trace("Muting message. Username is muted. Message:{}", message.getMessage());
+		if (!muteManager.isAllowed(eid)) {
+			log.trace("Muting message. Username is muted. Message:{}", message);
 			return true;
 		}
 
 		if (spamDetection.isSpam(message.getName(), message.getMessage())) {
-			log.trace("Muting message. Spam detected. Message:{}", message.getMessage());
+			log.trace("Muting message. Spam detected. Message:{}", message);
 			return true;
 		}
 
 		return false;
 	}
 
-	public static boolean isNPCChatMessage(@NonNull ChatMessage message) {
-		// From NPC
-		switch (message.getType()) {
-			case DIALOG:
-			case ITEM_EXAMINE:
-			case NPC_EXAMINE:
-			case OBJECT_EXAMINE:
-			case WELCOME:
-			case GAMEMESSAGE:
-			case CONSOLE:
-			case MESBOX:
-				return true;
-		}
-		return false;
-	}
-
-	public boolean isChatInnerVoice(@NonNull ChatMessage message) {
-		switch (message.getType()) {
-			case PUBLICCHAT:
-				return Standardize.equals(message.getName(), client.getLocalPlayer());
-			case PRIVATECHATOUT:
-			case MODPRIVATECHAT:
-			case ITEM_EXAMINE:
-			case NPC_EXAMINE:
-			case OBJECT_EXAMINE:
-			case TRADEREQ:
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	public boolean isChatOtherPlayerVoice(@NonNull ChatMessage message) {
-		switch (message.getType()) {
-			case PUBLICCHAT:
-				return Standardize.equals(message.getName(), client.getLocalPlayer());
-			case MODCHAT:
-			case PRIVATECHAT:
-			case MODPRIVATECHAT:
-			case FRIENDSCHAT:
-			case CLAN_CHAT:
-			case CLAN_GUEST_CHAT:
-				//			case TRADEREQ:
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	public boolean isMessageTypeDisabledInConfig(@NonNull ChatMessage message) {
-		switch (message.getType()) {
+	private boolean isMessageDisabled(@NonNull ChatMessageType messageType) {
+		switch (messageType) {
 			case PUBLICCHAT:
 				if (!config.publicChatEnabled()) return true;
 				break;
@@ -207,38 +234,16 @@ public class ChatHelper {
 		return false;
 	}
 
-	public static boolean isChatSystemVoice(@NonNull ChatMessageType messageType) {
-		switch (messageType) {
-			case ENGINE:
-			case LOGINLOGOUTNOTIFICATION:
-			case BROADCAST:
-			case IGNORENOTIFICATION:
-			case CLAN_MESSAGE:
-			case CONSOLE:
-			case TRADE:
-			case PLAYERRELATED:
-			case TENSECTIMEOUT:
-			case WELCOME:
-			case CLAN_CREATION_INVITATION:
-			case CLAN_GIM_FORM_GROUP:
-			case CLAN_GIM_GROUP_WITH:
-			case GAMEMESSAGE:
-			case MESBOX:
-				return true;
-			default:
-				return false;
-		}
-	}
-
 
 	private boolean isTooCrowded() {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;
 
 		int count = (int) client.getPlayers().stream()
-			.filter(player -> player != localPlayer) // Exclude the local player themselves
-			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <=
-				15) // For example, within 15 tiles
+			// Exclude the local player themselves
+			.filter(player -> player != localPlayer)
+			// For example, within 15 tiles
+			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <= 15)
 			.count();
 
 		return config.muteCrowds() > 0 && config.muteCrowds() < count;
@@ -252,34 +257,8 @@ public class ChatHelper {
 		return false;
 	}
 
-	private boolean isSelfMuted(ChatMessage message) {
-		//noinspection RedundantIfStatement
-		if (config.muteSelf() && Standardize.equals(message.getName(), client.getLocalPlayer())) return true;
-		return false;
-	}
-
-	private boolean isMutingOthers(ChatMessage message) {
-		if (ChatHelper.isNPCChatMessage(message)) return false;
-
-		return config.muteOthers() && !Standardize.equals(message.getName(), client.getLocalPlayer());
-	}
-
-	private boolean checkMuteLevelThreshold(ChatMessage message) {
-		if (ChatHelper.isNPCChatMessage(message)) return false;
-		if (Objects.equals(Names.LOCAL_USER, message.getName())) return false;
-		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
-		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
-		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
-		if (message.getType() == ChatMessageType.CLAN_GUEST_CHAT) return false;
-		//noinspection RedundantIfStatement
-		if (clientHelper.getLevel(message.getName()) < config.muteLevelThreshold()) return true;
-
-
-		return false;
-	}
-
 	@NonNull
-	public String standardizeChatText(@NonNull ChatMessage message) {
+	public String getText(@NonNull ChatMessage message) {
 		return expandAbbreviations(Text.sanitizeMultilineText(message.getMessage()));
 	}
 
@@ -287,7 +266,8 @@ public class ChatHelper {
 	public String standardizeWidgetText(@NonNull Widget widget, boolean expand) {
 		if (expand) {
 			return expandAbbreviations(Text.sanitizeMultilineText(widget.getText()));
-		} else {
+		}
+		else {
 			return Text.sanitizeMultilineText(widget.getText());
 		}
 	}
@@ -333,42 +313,10 @@ public class ChatHelper {
 		}
 	}
 
-
-	@NonNull
-	public Standardize.SID getSID(@NonNull ChatMessage message) {
-		if (isChatInnerVoice(message)) {
-			return Standardize.LOCAL_PLAYER_SID;
-		}
-		else if (isChatOtherPlayerVoice(message)) {
-			return new Standardize.SID(Standardize.name(message));
-		}
-		else if (ChatHelper.isChatSystemVoice(message.getType())) {
-			return Standardize.SYSTEM_SID;
-		}
-
-		throw new RuntimeException("Unknown ChatVoiceType");
-	}
-
-
-	public VoiceType getVoiceType(@NonNull ChatMessage message) {
-		if (isChatInnerVoice(message)) {
-			return VoiceType.InnerVoice;
-		}
-		else if (isChatOtherPlayerVoice(message)) {
-			return VoiceType.OtherPlayerVoice;
-		}
-		else if (ChatHelper.isChatSystemVoice(message.getType())) {
-			return VoiceType.SystemVoice;
-		}
-		else {
-			return VoiceType.Unknown;
-		}
-	}
-
-	public enum VoiceType {
-		InnerVoice,
-		OtherPlayerVoice,
-		SystemVoice,
+	public enum ChatType {
+		User,
+		OtherPlayers,
+		System,
 		Unknown
 	}
 }

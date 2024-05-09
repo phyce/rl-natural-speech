@@ -1,9 +1,9 @@
 package dev.phyce.naturalspeech.clienteventhandlers;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.entity.EntityID;
 import static dev.phyce.naturalspeech.statics.PluginResources.INGAME_MUTE_ICON;
 import static dev.phyce.naturalspeech.statics.PluginResources.INGAME_UNMUTE_ICON;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
@@ -11,7 +11,6 @@ import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.ingame.VoiceConfigChatboxTextInput;
-import dev.phyce.naturalspeech.utils.Standardize;
 import dev.phyce.naturalspeech.utils.Texts;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +20,7 @@ import net.runelite.api.KeyCode;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetUtil;
@@ -104,45 +104,40 @@ public class MenuEventHandler {
 	public void drawOptions(MenuEntry entry, int index) {
 		Actor actor = entry.getActor();
 
-		// if there are no targets for this menu entry, it should be a client ui menu entry.
-		String standardActorName = actor != null
-			// true: Dawncore (level-90)
-			// false: <img=123><col=ffffff>Dawncore</col>
-			? Standardize.name(actor) : Standardize.name(entry.getTarget());
-
-		checkNotNull(standardActorName);
-
-		Standardize.SID sid;
+		EntityID entityID;
 		if (actor instanceof NPC) {
-			sid = new Standardize.SID((NPC) actor);
+			entityID = EntityID.npc((NPC) actor);
+		}
+		else if (actor instanceof Player) {
+			entityID = EntityID.player((Player) actor);
 		}
 		else {
-			sid = new Standardize.SID(standardActorName);
+			log.error("Unknown actor type: {}", actor);
+			return;
 		}
 
-
-		boolean isUnmuted = muteManager.isMuted(sid);
-		boolean isListened = muteManager.isListened(sid);
-		boolean isAllowed = muteManager.isAllowed(sid);
+		boolean isUnmuted = muteManager.isMuted(entityID);
+		boolean isListened = muteManager.isListened(entityID);
+		boolean isAllowed = muteManager.isAllowed(entityID);
 
 		String statusColorTag = isAllowed ? "<col=78B159>" : "<col=DD2E44>";
 		String status = isAllowed ? getIconImgTag(unmuteIconId) : getIconImgTag(muteIconId);
 
-		VoiceID voiceID = voiceManager.getVoice(sid);
 
-		if (!voiceManager.contains(sid)) {
+		if (!voiceManager.isActive(voiceManager.get(entityID))) {
 			statusColorTag = "<col=888888>";
 		}
 
+		VoiceID voiceID = voiceManager.resolve(entityID);
 		// reformat the target name
 		String target = Texts.removeLevelFromTargetName(entry.getTarget());
-		if (voiceID != null) {
-			// re-colorize the target name with the voiceID
-			target = String.format("%s %s(%s)</col>", target, statusColorTag, voiceID);
-		}
-		else {
-			target = String.format("%s %s(voice-error)</col>", target, statusColorTag);
-		}
+//		if (hasSetting) {
+//			// re-colorize the target name with the voiceID
+		target = String.format("%s %s(%s)</col>", target, statusColorTag, voiceID);
+//		}
+//		else {
+//			target = String.format("%s %s(voice-error)</col>", target, statusColorTag);
+//		}
 
 		MenuEntry parent = client.createMenuEntry(index + 1)
 			.setOption(status + " Voice")
@@ -150,16 +145,14 @@ public class MenuEventHandler {
 			.setType(MenuAction.RUNELITE_SUBMENU);
 
 		{
-			final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
+			final String value = voiceID.toVoiceIDString();
 			MenuEntry configVoiceEntry = client.createMenuEntry(1)
 				.setOption("Configure")
 				.setType(MenuAction.RUNELITE)
-				.onClick(e -> {
-					voiceConfigChatboxTextInputProvider.get()
-						.configSID(sid)
-						.value(value)
-						.build();
-				});
+				.onClick(e -> voiceConfigChatboxTextInputProvider.get()
+					.entityID(entityID)
+					.value(value)
+					.build());
 			configVoiceEntry.setParent(parent);
 		}
 		if (muteManager.isListenMode()) {
@@ -173,11 +166,11 @@ public class MenuEventHandler {
 			stopListenEntry.setParent(parent);
 		}
 		else {
-			if (isUnmuted) {
+			if (!isUnmuted) {
 				MenuEntry muteEntry = client.createMenuEntry(1)
 					.setOption("Mute")
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> muteManager.mute(sid));
+					.onClick(e -> muteManager.mute(entityID));
 				muteEntry.setParent(parent);
 
 			}
@@ -185,7 +178,7 @@ public class MenuEventHandler {
 				MenuEntry unmuteEntry = client.createMenuEntry(1)
 					.setOption("Unmute")
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> muteManager.mute(sid));
+					.onClick(e -> muteManager.unmute(entityID));
 				unmuteEntry.setParent(parent);
 			}
 		}
@@ -194,7 +187,7 @@ public class MenuEventHandler {
 			MenuEntry unlistenEntry = client.createMenuEntry(0)
 				.setOption("Unlisten")
 				.setType(MenuAction.RUNELITE)
-				.onClick(e -> muteManager.mute(sid));
+				.onClick(e -> muteManager.unlisten(entityID));
 			unlistenEntry.setParent(parent);
 		}
 		else {
@@ -202,7 +195,7 @@ public class MenuEventHandler {
 				.setOption("Listen")
 				.setType(MenuAction.RUNELITE)
 				.onClick(e -> {
-					muteManager.mute(sid);
+					muteManager.listen(entityID);
 					muteManager.setListenMode(true);
 				});
 			listenEntry.setParent(parent);

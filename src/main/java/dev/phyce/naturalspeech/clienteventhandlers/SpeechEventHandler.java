@@ -3,15 +3,15 @@ package dev.phyce.naturalspeech.clienteventhandlers;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.audio.VolumeManager;
-import dev.phyce.naturalspeech.utils.ChatHelper;
+import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
-import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
-import dev.phyce.naturalspeech.utils.Standardize;
+import dev.phyce.naturalspeech.utils.ChatHelper;
+import dev.phyce.naturalspeech.utils.ClientHelper;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -28,6 +28,7 @@ import net.runelite.client.eventbus.Subscribe;
 @Slf4j
 public class SpeechEventHandler {
 	private final Client client;
+	private final ClientHelper clientHelper;
 	private final NaturalSpeechConfig config;
 	private final SpeechManager speechManager;
 	private final VolumeManager volumeManager;
@@ -46,6 +47,7 @@ public class SpeechEventHandler {
 	@Inject
 	public SpeechEventHandler(
 		Client client,
+		ClientHelper clientHelper,
 		SpeechManager speechManager,
 		NaturalSpeechConfig config,
 		VolumeManager volumeManager,
@@ -55,6 +57,7 @@ public class SpeechEventHandler {
 		ChatHelper chatHelper
 	) {
 		this.client = client;
+		this.clientHelper = clientHelper;
 		this.speechManager = speechManager;
 		this.config = config;
 		this.volumeManager = volumeManager;
@@ -65,37 +68,32 @@ public class SpeechEventHandler {
 		this.chatHelper = chatHelper;
 	}
 
-
-
-	@Subscribe(priority=-100)
+	@Subscribe
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (!speechManager.isStarted()) return;
 
 		if (chatHelper.isMuted(message)) return;
 
-		ChatHelper.VoiceType voiceType = chatHelper.getVoiceType(message);
+		log.trace("Speaking Chat Message: {}", message);
 
-		if (voiceType == ChatHelper.VoiceType.Unknown) {
-			log.error("ChatMessage ignored, didn't match innerVoice, otherPlayerVoice, or SystemVoice. name:{} type:{} message:{}",
-				message.getName(), message.getType(), message.getMessage());
-			return;
-		}
+		EntityID entityID = chatHelper.getEntityID(message);
+		VoiceID voiceId = voiceManager.resolve(entityID);
 
-		Standardize.SID sid = chatHelper.getSID(message);
-		VoiceID voiceId = voiceManager.getVoice(sid);
-		String lineName = sid.toString();
-		Supplier<Float> volume = volumeManager.chat(voiceType, sid);
+		ChatHelper.ChatType chatType = chatHelper.getChatType(message);
+		Supplier<Float> volume = volumeManager.chat(chatType, entityID);
 
-		String text = chatHelper.standardizeChatText(message);
+		String lineName = entityID.toString();
 
-		if (deduplicate(voiceType, text)) {
+		String text = chatHelper.getText(message);
+
+		if (deduplicate(message)) {
 			return;
 		}
 
 		speechManager.speak(voiceId, text, volume, lineName);
 	}
 
-	@Subscribe(priority=-100)
+	@Subscribe
 	private void onWidgetLoaded(WidgetLoaded event) {
 		if (!config.dialogEnabled()) return;
 		if (!speechManager.isStarted()) return;
@@ -108,26 +106,28 @@ public class SpeechEventHandler {
 		}
 	}
 
-	@Subscribe(priority=-1)
+	/*
+	Player chat is handled by onChatMessage
+	This event is exclusively used for NPC overhead text
+	 */
+	@Subscribe
 	private void onOverheadTextChanged(OverheadTextChanged event) {
-		/*
-		Player chat is handled by onChatMessage
-		This event is exclusively used for NPC overhead text
-		 */
-		if (!speechManager.isStarted()) return;
 		if (!(event.getActor() instanceof NPC)) {return;}
+
+		if (!speechManager.isStarted()) return;
+
 		if (!config.npcOverheadEnabled()) return;
 
 		NPC npc = (NPC) event.getActor();
-		Standardize.SID sid = new Standardize.SID(npc);
+		EntityID entityID = EntityID.npc(npc);
 
-		if (!muteManager.isAllowed(sid)) return;
+		if (!muteManager.isAllowed(entityID)) return;
 
-		String lineName = sid.toString();
+		String lineName = entityID.toString();
 		Supplier<Float> volume = volumeManager.npc(npc);
 
 		VoiceID voiceID;
-		voiceID = voiceManager.getVoice(sid);
+		voiceID = voiceManager.resolve(entityID);
 
 		String text = chatHelper.standardizeOverheadText(event);
 
@@ -155,18 +155,20 @@ public class SpeechEventHandler {
 				log.error("NPC name textWidget is null");
 				return;
 			}
-			log.trace("NPC dialog textWidget detected:{}", textWidget.getText());
 
-			Standardize.SID sid = new Standardize.SID(headModelWidget.getModelId());
+			int npcId = clientHelper.widgetModelIdToNpcId(headModelWidget.getModelId());
+			EntityID entityID = EntityID.id(npcId);
+			log.trace("NPC {} dialog textWidget detected:{}", entityID, textWidget.getText());
 
-			if (!muteManager.isAllowed(sid)) {
-				log.debug("NPC Dialogue is muted. CompId:{}", sid);
+
+			if (!muteManager.isAllowed(entityID)) {
+				log.debug("NPC Dialogue is muted. CompId:{}", entityID);
 				return;
 			}
 
 			boolean expand = config.useNpcCustomAbbreviations();
 			String text = chatHelper.standardizeWidgetText(textWidget, expand);
-			VoiceID voiceID = voiceManager.getVoice(sid);
+			VoiceID voiceID = voiceManager.resolve(entityID);
 
 			speechManager.speak(voiceID, text, volumeManager.dialog(), Names.DIALOG);
 		});
@@ -185,20 +187,21 @@ public class SpeechEventHandler {
 			log.trace("Player dialog textWidget detected:{}", textWidget.getText());
 
 			String text = chatHelper.standardizeWidgetText(textWidget, true);
-			VoiceID voiceID = voiceManager.getVoice(Standardize.LOCAL_PLAYER_SID);
+			VoiceID voiceID = voiceManager.resolve(EntityID.USER);
 
 			speechManager.speak(voiceID, text, volumeManager.dialog(), Names.DIALOG);
 		});
 	}
 
-	private boolean deduplicate(ChatHelper.VoiceType voiceType, String text) {
-		if (voiceType == ChatHelper.VoiceType.SystemVoice) {
+	private boolean deduplicate(ChatMessage message) {
+		ChatHelper.ChatType chatType = chatHelper.getChatType(message);
+		if (chatType == ChatHelper.ChatType.System) {
 			long currentTime = System.currentTimeMillis();
-			if (lastDialogMessage.message.equals(text)) {
+			if (lastDialogMessage.message.equals(message.getMessage())) {
 				if ((currentTime - lastDialogMessage.timestamp) < 5000) return true;
 			}
 			lastDialogMessage.timestamp = currentTime;
-			lastDialogMessage.message = text;
+			lastDialogMessage.message = message.getMessage();
 		}
 		return false;
 	}
