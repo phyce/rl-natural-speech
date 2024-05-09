@@ -1,9 +1,10 @@
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface.components;
 
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
+import dev.phyce.naturalspeech.userinterface.panels.VoiceExplorerPanel;
 import dev.phyce.naturalspeech.utils.ChatHelper;
 import java.awt.BorderLayout;
 import java.awt.Color;

@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface.components;
 
 import java.awt.Font;
 import javax.swing.JLabel;

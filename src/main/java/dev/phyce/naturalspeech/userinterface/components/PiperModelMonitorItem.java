@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface.components;
 
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperModel;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperProcess;

@@ -22,13 +22,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface.components;
 
 import java.awt.Dimension;
 import javax.swing.JPanel;
 import net.runelite.client.ui.PluginPanel;
 
-class FixedWidthPanel extends JPanel {
+public class FixedWidthPanel extends JPanel {
 	@Override
 	public Dimension getPreferredSize() {
 		return new Dimension(PluginPanel.PANEL_WIDTH, super.getPreferredSize().height);
