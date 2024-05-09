@@ -5,11 +5,6 @@ import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.configs.VoiceSettings;
 import dev.phyce.naturalspeech.configs.json.AbbreviationEntryJSON;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process;
-import dev.phyce.naturalspeech.userinterface.components.IconTextField;
-import dev.phyce.naturalspeech.userinterface.panels.MainSettingsPanel;
-import dev.phyce.naturalspeech.userinterface.panels.TopLevelPanel;
-import dev.phyce.naturalspeech.userinterface.panels.VoiceExplorerPanel;
-import dev.phyce.naturalspeech.userinterface.panels.VoiceListItem;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -68,22 +63,22 @@ public final class PluginResources {
 	public static final BufferedImage INGAME_UNMUTE_ICON = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "unmute.png");
 
 	@NonNull
-	public static final ImageIcon MAIN_SETTINGS_ICON = new ImageIcon(ImageUtil.loadImageResource(TopLevelPanel.class, "config_icon.png"));
+	public static final ImageIcon MAIN_SETTINGS_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "config_icon.png"));
 	@NonNull
-	public static final ImageIcon VOICE_EXPLORER_ICON = new ImageIcon(ImageUtil.loadImageResource(TopLevelPanel.class, "profile_icon.png"));
+	public static final ImageIcon VOICE_EXPLORER_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "profile_icon.png"));
 	@NonNull
-	public static final ImageIcon SPEECH_TEXT_ICON = new ImageIcon(ImageUtil.loadImageResource(VoiceExplorerPanel.class, "speechText.png"));
+	public static final ImageIcon SPEECH_TEXT_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "speechText.png"));
 	@NonNull
-	public static final ImageIcon START_TEXT_TO_SPEECH_ICON = new ImageIcon(ImageUtil.loadImageResource(MainSettingsPanel.class, "start.png"));
+	public static final ImageIcon START_TEXT_TO_SPEECH_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "start.png"));
 	@NonNull
-	public static final ImageIcon STOP_TEXT_TO_SPEECH_ICON = new ImageIcon(ImageUtil.loadImageResource(MainSettingsPanel.class, "stop.png"));
+	public static final ImageIcon STOP_TEXT_TO_SPEECH_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "stop.png"));
 
 	@NonNull
 	public static final ImageIcon ON_SWITCHER;
 	@NonNull
 	public static final ImageIcon OFF_SWITCHER;
 	static {
-		BufferedImage onSwitcher = ImageUtil.loadImageResource(MainSettingsPanel.class, "switcher_on.png");
+		BufferedImage onSwitcher = ImageUtil.loadImageResource(PluginResources.class, "switcher_on.png");
 		ON_SWITCHER = new ImageIcon(onSwitcher);
 		OFF_SWITCHER = new ImageIcon(ImageUtil.flipImage(
 			ImageUtil.luminanceScale(
@@ -100,7 +95,7 @@ public final class PluginResources {
 	@NonNull
 	public static final ImageIcon PLAY_BUTTON_DISABLED_ICON;
 	static {
-		BufferedImage image = ImageUtil.loadImageResource(VoiceListItem.class, "start.png");
+		BufferedImage image = ImageUtil.loadImageResource(PluginResources.class, "start.png");
 		PLAY_BUTTON_ICON = new ImageIcon(image.getScaledInstance(25, 25, Image.SCALE_SMOOTH));
 		PLAY_BUTTON_DISABLED_ICON = new ImageIcon(
 			ImageUtil.luminanceScale(ImageUtil.grayscaleImage(image), 0.61f)
@@ -114,7 +109,7 @@ public final class PluginResources {
 	public static final ImageIcon SECTION_RETRACT_ICON;
 	static {
 		BufferedImage sectionRetractIcon =
-			ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
+			ImageUtil.loadImageResource(PluginResources.class, "arrow_right.png");
 		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
 		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
 		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
@@ -122,12 +117,12 @@ public final class PluginResources {
 	}
 
 	@NonNull
-	public static final ImageIcon SEARCH_ICON = new ImageIcon(ImageUtil.loadImageResource(IconTextField.class, "search.png"));
+	public static final ImageIcon SEARCH_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "search.png"));
 	@NonNull
-	public static final ImageIcon LOADING_ICON = new ImageIcon(ImageUtil.loadImageResource(IconTextField.class, "loading_spinner.gif"));
+	public static final ImageIcon LOADING_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "loading_spinner.gif"));
 	@NonNull
-	public static final ImageIcon LOADING_DARKER_ICON = new ImageIcon(ImageUtil.loadImageResource(IconTextField.class, "loading_spinner_darker.gif"));
+	public static final ImageIcon LOADING_DARKER_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "loading_spinner_darker.gif"));
 	@NonNull
-	public static final ImageIcon ERROR_ICON = new ImageIcon(ImageUtil.loadImageResource(IconTextField.class, "error.png"));
+	public static final ImageIcon ERROR_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "error.png"));
 
 }
