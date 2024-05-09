@@ -34,10 +34,10 @@ public class VolumeManager {
 
 	private final Set<Actor> spawnedActors = new HashSet<>();
 
-	public static final float NOISE_FLOOR = -60f;
+	public static final float NOISE_FLOOR = -30f;
 	public static final float CHAT_FLOOR = -60f;
 	public static final float FRIEND_FLOOR = -20f;
-	public static final float NPC_FLOOR = NOISE_FLOOR;
+	public static final float NPC_FLOOR = -60f;
 
 	public static final float CHAT_MAX_DISTANCE = 15f;
 	public static final float NPC_MAX_DISTANCE = 15f;
@@ -62,8 +62,8 @@ public class VolumeManager {
 				WorldPoint sourceLoc = actor.getWorldLocation();
 				WorldPoint listenLoc = client.getLocalPlayer().getWorldLocation();
 
-				int distance = listenLoc.distanceTo(sourceLoc);
-				return Math.max(NOISE_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, CHAT_FLOOR));
+				float distance = distance(listenLoc, sourceLoc);
+				return Math.max(CHAT_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, CHAT_FLOOR));
 			}
 			else {
 				// actor has despawned, silence
@@ -80,8 +80,8 @@ public class VolumeManager {
 				WorldPoint sourceLoc = npc.getWorldLocation();
 				WorldPoint listenLoc = client.getLocalPlayer().getWorldLocation();
 
-				int distance = listenLoc.distanceTo(sourceLoc);
-				return Math.max(NOISE_FLOOR, attenuation(distance, NPC_MAX_DISTANCE, NPC_FLOOR));
+				float distance = distance(listenLoc, sourceLoc);
+				return Math.max(NPC_FLOOR, attenuation(distance, NPC_MAX_DISTANCE, NPC_FLOOR));
 			}
 			else {
 				// actor has despawned, silence
@@ -100,7 +100,7 @@ public class VolumeManager {
 				WorldPoint listenLoc = client.getLocalPlayer().getWorldLocation();
 
 				float distance = distance(sourceLoc, listenLoc);
-				return Math.max(NOISE_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, FRIEND_FLOOR));
+				return Math.max(FRIEND_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, FRIEND_FLOOR));
 			}
 			else {
 				// actor has despawned, silence

@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.utils;
 
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.audio.VolumeManager;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.SpamDetection;
@@ -14,6 +15,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
@@ -31,6 +33,7 @@ public class ChatHelper {
 	private final SpamDetection spamDetection;
 	private final NaturalSpeechConfig config;
 	private final MuteManager muteManager;
+	private final VolumeManager volumeManager;
 
 	private final Map<String, String> abbreviations = new HashMap<>();
 
@@ -41,13 +44,15 @@ public class ChatHelper {
 		ClientHelper clientHelper,
 		SpamDetection spamDetection,
 		NaturalSpeechConfig config,
-		MuteManager muteManager
+		MuteManager muteManager,
+		VolumeManager volumeManager
 	) {
 		this.client = client;
 		this.clientHelper = clientHelper;
 		this.spamDetection = spamDetection;
 		this.config = config;
 		this.muteManager = muteManager;
+		this.volumeManager = volumeManager;
 	}
 
 	public EntityID getEntityID(ChatMessage message) {
@@ -151,6 +156,17 @@ public class ChatHelper {
 
 		if (chatType == ChatType.Unknown) return true;
 
+		if (config.distanceFadeEnabled()) {
+			Actor actor = clientHelper.findActor(eid);
+			if (actor != null) {
+				float gain = volumeManager.overhead(actor).get();
+				if (gain <= VolumeManager.NOISE_FLOOR) {
+					log.trace("(Distance Fade: {}db) {} is too quiet to be audible, ignoring.", gain, eid);
+					return true;
+				}
+			}
+		}
+
 		if (config.friendsOnlyMode() && chatType == ChatType.OtherPlayers && !clientHelper.isFriend(eid)) {
 			return true;
 		}
@@ -222,6 +238,8 @@ public class ChatHelper {
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
+			case CLAN_MESSAGE:
+			case LOGINLOGOUTNOTIFICATION:
 				if (!config.systemMesagesEnabled()) return true;
 				break;
 			case TRADEREQ:

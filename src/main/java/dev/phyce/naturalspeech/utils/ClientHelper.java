@@ -12,9 +12,12 @@ import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.Friend;
+import net.runelite.api.NPC;
 import net.runelite.api.Player;
+import net.runelite.api.coords.WorldPoint;
 
 @Slf4j
 @PluginSingleton
@@ -78,6 +81,40 @@ public final class ClientHelper {
 		if (targetPlayer == null) return Integer.MAX_VALUE;
 
 		return targetPlayer.getCombatLevel();
+	}
+
+	@CheckForNull
+	public Actor findActor(@NonNull EntityID eid) {
+		if (eid.isUser()) return client.getLocalPlayer();
+
+		Player player = client.getPlayers().stream()
+			.filter(p -> p.getName() != null)
+			.filter(p -> eid.isName(p.getName()))
+			.findAny()
+			.orElse(null);
+
+		if (player != null) return player;
+
+		NPC npc = client.getNpcs().stream()
+			.filter(a -> eid.isNPC(a))
+			.findAny()
+			.orElse(null);
+
+		if (npc != null) return npc;
+
+		return null;
+	}
+
+	public int distanceToUser(@NonNull EntityID eid) {
+
+		Actor other = findActor(eid);
+		if (other == null) return 0;
+
+		WorldPoint pos1 = client.getLocalPlayer().getWorldLocation();
+		WorldPoint pos2 = other.getWorldLocation();
+
+		int distance = pos1.distanceTo(pos2);
+		return distance;
 	}
 
 	@NonNull

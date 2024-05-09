@@ -109,14 +109,6 @@ public interface NaturalSpeechConfig extends Config {
 		return false;
 	}
 
-	@ConfigItem(
-		position=10,
-		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
-		name="Friends only mode",
-		description="Only generate text-to-speech for friends.",
-		section=generalSettingsSection
-	)
-	default boolean friendsOnlyMode() {return false;}
 
 	// endregion
 
@@ -247,7 +239,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=12
 	)
 	default boolean systemMesagesEnabled() {
-		return true;
+		return false;
 	}
 	// endregion
 
@@ -285,6 +277,15 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=3,
+		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
+		name="Friends only mode",
+		description="Only generate text-to-speech for friends.",
+		section=muteOptionsSection
+	)
+	default boolean friendsOnlyMode() {return false;}
+
+	@ConfigItem(
+		position=4,
 		keyName=ConfigKeys.MUTE_GRAND_EXCHANGE,
 		name="Grand Exchange",
 		description="Disable text-to-speech in the grand exchange area",
