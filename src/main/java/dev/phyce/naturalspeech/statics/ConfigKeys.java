@@ -13,9 +13,10 @@ public interface ConfigKeys {
 	String PUBLIC_CHAT = "publicChat";
 	String PRIVATE_CHAT = "privateChat";
 	String PRIVATE_OUT_CHAT = "privateOutChat";
-	String FRIENDS_CHAT = "friendsChat";
+//	String FRIENDS_CHAT = "friendsChat";
 	String CLAN_CHAT = "clanChat";
 	String CLAN_GUEST_CHAT = "clanGuestChat";
+	String GIM_CHAT = "groupIronmanChat";
 	String EXAMINE_CHAT = "examineChat";
 	String NPC_OVERHEAD = "npcOverhead";
 	String DIALOG = "dialog";

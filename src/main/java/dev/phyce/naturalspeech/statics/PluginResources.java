@@ -67,6 +67,8 @@ public final class PluginResources {
 	@NonNull
 	public static final ImageIcon VOICE_EXPLORER_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "profile_icon.png"));
 	@NonNull
+	public static final ImageIcon VOICE_HUB_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "voice_hub_icon.png"));
+	@NonNull
 	public static final ImageIcon SPEECH_TEXT_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "speechText.png"));
 	@NonNull
 	public static final ImageIcon START_TEXT_TO_SPEECH_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "start.png"));

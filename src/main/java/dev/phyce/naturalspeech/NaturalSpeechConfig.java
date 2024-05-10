@@ -125,7 +125,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Public messages",
 		description="Enable text-to-speech to the public chat messages",
 		section=ttsOptionsSection,
-		position=1
+		position=0
 	)
 	default boolean publicChatEnabled() {
 		return true;
@@ -136,7 +136,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Private received messages",
 		description="Enable text-to-speech to the received private chat messages",
 		section=ttsOptionsSection,
-		position=2
+		position=10
 	)
 	default boolean privateChatEnabled() {
 		return false;
@@ -148,29 +148,29 @@ public interface NaturalSpeechConfig extends Config {
 		description="Enable text-to-speech to the sent out private chat messages",
 		section=ttsOptionsSection
 		,
-		position=3
+		position=20
 	)
 	default boolean privateOutChatEnabled() {
 		return false;
 	}
 
-	@ConfigItem(
-		keyName=ConfigKeys.FRIENDS_CHAT,
-		name="Friends chat",
-		description="Enable text-to-speech to friends chat messages",
-		section=ttsOptionsSection,
-		position=4
-	)
-	default boolean friendsChatEnabled() {
-		return true;
-	}
+//	@ConfigItem(
+//		keyName=ConfigKeys.FRIENDS_CHAT,
+//		name="Friends chat",
+//		description="Enable text-to-speech to friends chat messages",
+//		section=ttsOptionsSection,
+//		position=30
+//	)
+//	default boolean friendsChatEnabled() {
+//		return true;
+//	}
 
 	@ConfigItem(
 		keyName=ConfigKeys.CLAN_CHAT,
 		name="Clan chat",
 		description="Enable text-to-speech to the clan chat messages",
 		section=ttsOptionsSection,
-		position=5
+		position=40
 	)
 	default boolean clanChatEnabled() {
 		return false;
@@ -181,18 +181,30 @@ public interface NaturalSpeechConfig extends Config {
 		name="Guest clan chat",
 		description="Enable text-to-speech to the guest clan chat messages",
 		section=ttsOptionsSection,
-		position=6
+		position=50
 	)
 	default boolean clanGuestChatEnabled() {
 		return false;
 	}
 
 	@ConfigItem(
+		keyName=ConfigKeys.GIM_CHAT,
+		name="Group Ironman Chat",
+		description="Enable text-to-speech to the group ironman chat messages",
+		section=ttsOptionsSection,
+		position=51
+	)
+	default boolean groupIronmanChatEnabled() {
+		return false;
+	}
+
+
+	@ConfigItem(
 		keyName=ConfigKeys.EXAMINE_CHAT,
 		name="Examine text",
 		description="Enable text-to-speech to the 'Examine' messages",
 		section=ttsOptionsSection,
-		position=7
+		position=60
 	)
 	default boolean examineChatEnabled() {
 		return true;
@@ -203,7 +215,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="NPC overhead dialog",
 		description="Enable text-to-speech to the overhead dialog for NPCs",
 		section=ttsOptionsSection,
-		position=9
+		position=70
 	)
 	default boolean npcOverheadEnabled() {
 		return false;
@@ -214,7 +226,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Dialogs",
 		description="Enable text-to-speech to dialog text",
 		section=ttsOptionsSection,
-		position=10
+		position=80
 	)
 	default boolean dialogEnabled() {
 		return true;
@@ -225,7 +237,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests",
 		section=ttsOptionsSection,
-		position=11
+		position=90
 	)
 	default boolean requestsEnabled() {
 		return false;
@@ -236,7 +248,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="System messages",
 		description="Generate text-to-speech to game's messages",
 		section=ttsOptionsSection,
-		position=12
+		position=100
 	)
 	default boolean systemMesagesEnabled() {
 		return false;

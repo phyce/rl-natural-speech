@@ -135,10 +135,12 @@ public class ChatHelper {
 			case PUBLICCHAT:
 			case MODCHAT:
 			case PRIVATECHAT:
+			case PRIVATECHATOUT:
 			case MODPRIVATECHAT:
 			case TRADEREQ:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
+			case CLAN_GIM_CHAT:
 			case FRIENDSCHAT:
 				return true;
 			default:
@@ -225,23 +227,28 @@ public class ChatHelper {
 			case PRIVATECHATOUT:
 				if (!config.privateOutChatEnabled()) return true;
 				break;
-			case FRIENDSCHAT:
-				if (!config.friendsChatEnabled()) return true;
-				break;
+//			case FRIENDSCHAT:
+//				if (!config.friendsChatEnabled()) return true;
+//				break;
 			case CLAN_CHAT:
 				if (!config.clanChatEnabled()) return true;
 				break;
 			case CLAN_GUEST_CHAT:
 				if (!config.clanGuestChatEnabled()) return true;
 				break;
+			case CLAN_GIM_CHAT:
+				if (!config.groupIronmanChatEnabled()) return true;
+				break;
 			case OBJECT_EXAMINE:
 				if (!config.examineChatEnabled()) return true;
 				break;
 			case WELCOME:
-			case GAMEMESSAGE:
 			case CONSOLE:
-			case CLAN_MESSAGE:
 			case LOGINLOGOUTNOTIFICATION:
+			case GAMEMESSAGE:
+			case CLAN_MESSAGE:
+			case CLAN_GIM_MESSAGE:
+			case CLAN_GUEST_MESSAGE:
 				if (!config.systemMesagesEnabled()) return true;
 				break;
 			case TRADEREQ:

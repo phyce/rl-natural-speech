@@ -1,13 +1,14 @@
 package dev.phyce.naturalspeech.userinterface.panels;
 
 import com.google.inject.Inject;
-import com.google.inject.Provider;
-import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.eventbus.PluginEventBus;
-import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
+import dev.phyce.naturalspeech.eventbus.PluginEventBus;
+import dev.phyce.naturalspeech.events.PiperModelStarted;
+import dev.phyce.naturalspeech.events.PiperModelStopped;
+import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.events.PiperProcessCrashed;
+import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.events.SpeechEngineSkippedEngine;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
@@ -15,24 +16,20 @@ import dev.phyce.naturalspeech.events.SpeechManagerFailedStart;
 import dev.phyce.naturalspeech.events.SpeechManagerStarted;
 import dev.phyce.naturalspeech.events.SpeechManagerStarting;
 import dev.phyce.naturalspeech.events.SpeechManagerStopped;
-import dev.phyce.naturalspeech.events.PiperModelStarted;
-import dev.phyce.naturalspeech.events.PiperModelStopped;
-import dev.phyce.naturalspeech.events.PiperPathChanged;
-import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
-import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
-import dev.phyce.naturalspeech.userinterface.components.PiperModelItem;
-import dev.phyce.naturalspeech.userinterface.components.PiperModelMonitorItem;
-import dev.phyce.naturalspeech.userinterface.components.SAPI4ListItem;
-import dev.phyce.naturalspeech.userinterface.components.SAPI5ListItem;
-import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
-import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
+import dev.phyce.naturalspeech.executor.PluginExecutorService;
+import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperModel;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
+import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
+import dev.phyce.naturalspeech.userinterface.components.PiperModelItem;
+import dev.phyce.naturalspeech.userinterface.components.PiperModelMonitorItem;
+import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -48,7 +45,6 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.swing.BoxLayout;
@@ -76,23 +72,21 @@ import net.runelite.client.util.SwingUtil;
 @Slf4j
 public class MainSettingsPanel extends PluginPanel {
 
-	private final FixedWidthPanel mainContentPanel;
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
 	private final SAPI5Engine sapi5Engine;
-	private final SpeechManager speechManager;
 	private final PiperEngine piperEngine;
+	private final SpeechManager speechManager;
 	private final RuntimePathConfig runtimeConfig;
 	private final PluginExecutorService pluginExecutorService;
 
+	private final FixedWidthPanel mainContentPanel;
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
 	//	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
-	private final Map<PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Map<String, PiperModelItem> piperModelMap = new HashMap<>();
+	private final Map<PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Set<Warning> warnings = new HashSet<>();
-	private final Provider<SAPI4ListItem> sapi4ListItemProvider;
-	private final Provider<SAPI5ListItem> sapi5ListItemProvider;
 
 	private JLabel statusLabel;
 	private JPanel statusPanel;
@@ -117,9 +111,7 @@ public class MainSettingsPanel extends PluginPanel {
 		PluginEventBus pluginEventBus,
 		SAPI5Engine sapi5Engine,
 		PluginExecutorService pluginExecutorService,
-		SpeechManagerConfig speechManagerConfig,
-		Provider<SAPI4ListItem> sapi4ListItemProvider,
-		Provider<SAPI5ListItem> sapi5ListItemProvider
+		SpeechManagerConfig speechManagerConfig
 	) {
 		super(false);
 		this.sapi4Repository = sapi4Repository;
@@ -129,8 +121,6 @@ public class MainSettingsPanel extends PluginPanel {
 		this.runtimeConfig = runtimeConfig;
 		this.sapi5Engine = sapi5Engine;
 		this.pluginExecutorService = pluginExecutorService;
-		this.sapi4ListItemProvider = sapi4ListItemProvider;
-		this.sapi5ListItemProvider = sapi5ListItemProvider;
 
 		pluginEventBus.register(this);
 
@@ -158,7 +148,6 @@ public class MainSettingsPanel extends PluginPanel {
 
 		buildHeaderSegment();
 		buildTextToSpeechStatusSegment();
-		buildVoiceRepositorySegment();
 		buildAdvancedSegment();
 
 		this.revalidate();
@@ -475,80 +464,6 @@ public class MainSettingsPanel extends PluginPanel {
 		updateWarningsUI();
 	}
 
-	public void buildVoiceRepositorySegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(PluginResources.SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final String name = "Voice Packs";
-		final String description = "Download and manage your voice models.";
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
-
-		// Piper Model
-		for (PiperRepository.ModelURL modelUrl : piperRepository.getModelURLS()) {
-
-			PiperModelItem modelItem = new PiperModelItem(speechManager, piperEngine, piperRepository,
-				pluginExecutorService, modelUrl);
-			piperModelMap.put(modelUrl.getModelName(), modelItem);
-			sectionContent.add(modelItem);
-		}
-
-		// Sapi5 Model
-		if (!sapi5Engine.getAvailableSAPI5s().isEmpty()) {
-			sectionContent.add(sapi5ListItemProvider.get(), 0);
-		}
-
-		// Sapi4 Model
-		List<String> sapi4Models = sapi4Repository.getVoices();
-		if (!sapi4Models.isEmpty()) {
-			sectionContent.add(sapi4ListItemProvider.get(), 0);
-		}
-
-
-	}
 
 	public void buildTextToSpeechStatusSegment() {
 		final JPanel section = new JPanel();

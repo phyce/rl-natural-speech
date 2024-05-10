@@ -24,6 +24,8 @@ public class TopLevelPanel extends PluginPanel {
 	private final MainSettingsPanel mainSettingsPanel;
 	@Getter
 	private final VoiceExplorerPanel voiceExplorerPanel;
+	@Getter
+	private final VoiceHubPanel voiceHubPanel;
 	private final MaterialTab mainSettingsTab;
 	//	@Getter
 	//	private final EditorPanel editorPanel;
@@ -35,13 +37,15 @@ public class TopLevelPanel extends PluginPanel {
 	@Inject
 	TopLevelPanel(
 		MainSettingsPanel mainSettingsPanel,
-		VoiceExplorerPanel voiceExplorerPanel
+		VoiceExplorerPanel voiceExplorerPanel,
+		VoiceHubPanel voiceHubPanel
 		//			EditorPanel editorPanel
 	) {
 		super(false);
 
 		this.mainSettingsPanel = mainSettingsPanel;
 		this.voiceExplorerPanel = voiceExplorerPanel;
+		this.voiceHubPanel = voiceHubPanel;
 		//		this.editorPanel = editorPanel;
 
 		tabGroup = new MaterialTabGroup();
@@ -63,6 +67,8 @@ public class TopLevelPanel extends PluginPanel {
 
 		// Speaker Explorer Panel Tab
 		addTab(voiceExplorerPanel, PluginResources.VOICE_EXPLORER_ICON, "Voice Explorer");
+
+		addTab(voiceHubPanel, PluginResources.VOICE_HUB_ICON, "Voice Hub");
 
 		// Editor Panel Tab
 		//		addTab(editorPanel, "plugin_hub_icon.png", "Editor");
