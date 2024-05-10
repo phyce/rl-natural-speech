@@ -66,22 +66,25 @@ public final class TextUtil {
 	public static String expandShortenedPhrases(String text, Map<String, String> phrases) {
 		List<String> tokens = tokenize(text);
 		StringBuilder parsedMessage = new StringBuilder();
+		int lastIndex = 0;
 
 		for (String token : tokens) {
-			String key = token.replaceAll("\\p{Punct}", "").toLowerCase();
+			if (text.indexOf(token, lastIndex) > lastIndex) parsedMessage.append(" ");
 
+			String key = token.toLowerCase();
 			String replacement = phrases.getOrDefault(key, token);
-			parsedMessage.append(replacement.equals(token)? token: replacement).append(" ");
+			parsedMessage.append(replacement);
+			lastIndex = text.indexOf(token, lastIndex) + token.length();
 		}
 
-		return parsedMessage.toString().trim();
+		return parsedMessage.toString();
 	}
 
 	public static List<String> tokenize(String text) {
 		List<String> tokens = new ArrayList<>();
+		Matcher matcher = Pattern.compile("[^\\s]+").matcher(text);
 
-		Matcher matcher = Pattern.compile("[\\w']+(?:[.,;!?]+|\\.\\.\\.)?|\\p{Punct}").matcher(text);
-		while (matcher.find()) {tokens.add(matcher.group());}
+		while (matcher.find()) tokens.add(matcher.group());
 
 		return tokens;
 	}
@@ -123,4 +126,5 @@ public final class TextUtil {
 	public static String removeTags(String input) {
 		return input.replaceAll("<[^>]+>", "");
 	}
+
 }

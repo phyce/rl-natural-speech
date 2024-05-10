@@ -59,13 +59,14 @@ public class SpeechEventHandler {
 		if (textToSpeech.activePiperProcessCount() == 0) return;
 		log.debug("Message received: " + message.toString());
 
-
 		String username;
 		int distance;
 		VoiceID voiceId;
 		username = Text.standardize(message.getName());
 		message.setName(username);
-		String text = Text.sanitizeMultilineText(message.getMessage());
+		String text = message.getMessage()
+			.replace("<lt>", "<")
+			.replace("<gt>", ">");
 
 		if (isChatMessageMuted(message)) return;
 
@@ -88,6 +89,7 @@ public class SpeechEventHandler {
 			else if (isChatSystemVoice(message.getType())) {
 				username = MagicUsernames.SYSTEM;
 				distance = 0;
+				text = Text.standardize(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
