@@ -128,6 +128,20 @@ public final class EntityID {
 		}
 	}
 
+	public String toShortString() {
+		if (id != null && name != null) {
+			return "EntityID(INVALID, id=" + id + ", name=" + name + ")";
+		}
+		else if (id != null) {
+			return "NPC" + id;
+		}
+		else if (name != null){
+			return name;
+		} else {
+			return "EntityID(null)";
+		}
+	}
+
 	static class JSONAdaptor implements JsonSerializer<EntityID>, JsonDeserializer<EntityID> {
 
 		@Override

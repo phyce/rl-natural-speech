@@ -7,18 +7,18 @@ import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
-import static dev.phyce.naturalspeech.statics.PluginResources.INGAME_MUTE_ICON;
-import static dev.phyce.naturalspeech.statics.PluginResources.INGAME_UNMUTE_ICON;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.ingame.VoiceConfigChatboxTextInput;
+import dev.phyce.naturalspeech.utils.ChatIcons;
 import dev.phyce.naturalspeech.utils.Texts;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -50,9 +50,7 @@ public class MenuEventHandler {
 	private final VoiceManager voiceManager;
 	private final MuteManager muteManager;
 	private final ConfigManager configManager;
-
-	private final int muteIconId;
-	private final int unmuteIconId;
+	private final ChatIcons icons;
 
 	@Inject
 	public MenuEventHandler(
@@ -63,7 +61,8 @@ public class MenuEventHandler {
 		Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider,
 		VoiceManager voiceManager,
 		MuteManager muteManager,
-		ConfigManager configManager
+		ConfigManager configManager,
+		ChatIcons chatIcons
 	) {
 		this.client = client;
 		this.chatIconManager = chatIconManager;
@@ -73,10 +72,7 @@ public class MenuEventHandler {
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
 		this.configManager = configManager;
-
-		muteIconId = chatIconManager.registerChatIcon(INGAME_MUTE_ICON);
-		unmuteIconId = chatIconManager.registerChatIcon(INGAME_UNMUTE_ICON);
-
+		this.icons = chatIcons;
 	}
 
 	@Subscribe
@@ -88,7 +84,10 @@ public class MenuEventHandler {
 
 
 		drawEntityMenu(entries);
-		drawChatMenu(entries);
+		drawMuteMenus(entries);
+		drawVoiceMenus(entries);
+		drawVolumeMenus(entries);
+
 
 		log.info("MENU DEBUG: \n{}",
 			Arrays.stream(entries)
@@ -96,11 +95,123 @@ public class MenuEventHandler {
 				));
 	}
 
-	private void drawSpecialModeMenu(MenuEntry[] entries) {
+	private void drawVolumeMenus(MenuEntry[] entries) {
 		List<Integer> interfaces = List.of(
 			InterfaceID.CHATBOX
 		);
 
+		for (int index = entries.length - 1; index >= 0; index--) {
+			MenuEntry entry = entries[index];
+
+
+			final int componentId = entry.getParam1();
+			final int groupId = WidgetUtil.componentToInterface(componentId);
+
+			if (interfaces.contains(groupId)
+				&& Text.removeFormattingTags(entry.getOption()).contains("Set chat mode: Public")) {
+				MenuEntry parent = client.createMenuEntry(index)
+					.setTarget(icons.unmute.get() + "Set Volume")
+					.setType(MenuAction.RUNELITE_SUBMENU);
+
+				final String[] colorScheme = new String[] {
+					"808080",
+					"878b7d",
+					"8d977a",
+					"93a277",
+					"99ae74",
+					"9fba70",
+					"a4c56b",
+					"a9d166",
+					"aede60",
+					"b3ea5a",
+					"b8f652",
+				};
+
+				final int currentVolumeIndex = config.masterVolume() / 10;
+
+				for (int i = colorScheme.length - 1; i > -1; i--) {
+					final int volume = i*10;
+					final String colorTag = "<col=" + colorScheme[i] + ">";
+					final String meter = i == currentVolumeIndex ? "> " : "- ";
+					client.createMenuEntry(0)
+						.setParent(parent)
+						.setTarget(meter + colorTag + volume + "%")
+						.setType(MenuAction.RUNELITE)
+						.onClick(
+							(e) -> configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.MASTER_VOLUME, volume)
+						);
+				}
+			}
+		}
+	}
+
+	private void _drawVolumeMenu(MenuEntry parent, int index) {
+
+	}
+
+	private void drawVoiceMenus(MenuEntry[] entries) {
+		List<Integer> interfaces = List.of(
+			InterfaceID.CHATBOX
+		);
+
+		for (int index = entries.length - 1; index >= 0; index--) {
+			MenuEntry entry = entries[index];
+
+
+			final int componentId = entry.getParam1();
+			final int groupId = WidgetUtil.componentToInterface(componentId);
+
+			if (interfaces.contains(groupId)) {
+				List<VoiceConfigMenu> results = VoiceConfigMenu.find(Text.removeFormattingTags(entry.getOption()));
+
+				for (VoiceConfigMenu result : results) {
+					if (result.children == null) {
+						_drawVoiceMenu(null, result, 0, MenuAction.RUNELITE);
+					}
+					else {
+						MenuEntry parent = _drawVoiceMenu(null, result, 0, MenuAction.RUNELITE_SUBMENU);
+
+						for (VoiceConfigMenu child : result.children) {
+							Preconditions.checkNotNull(child);
+
+							_drawVoiceMenu(parent, child, 0, MenuAction.RUNELITE);
+						}
+
+					}
+				}
+			}
+		}
+	}
+
+	private MenuEntry _drawVoiceMenu(MenuEntry parent, VoiceConfigMenu tab, int index, MenuAction menuType) {
+
+		String iconTag = drawIconTag(tab.icon, true);
+
+		String action = tab.actionName;
+
+		return client.createMenuEntry(index + 1)
+			.setOption(iconTag + action)
+			.setTarget(tab.targetName)
+			.setType(menuType)
+			.setParent(parent)
+			.onClick(e -> {
+					if (tab.entityID == null) return;
+					if (tab.configKey == null) return;
+
+					voiceConfigChatboxTextInputProvider.get()
+						.configKey(tab.configKey)
+						.entityID(tab.entityID)
+						.value(voiceManager.get(tab.entityID).transform(VoiceID::toString).or(""))
+						.build();
+				}
+			);
+
+	}
+
+	private void drawMuteMenus(MenuEntry[] entries) {
+		List<Integer> interfaces = List.of(
+			InterfaceID.CHATBOX
+		);
 
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
@@ -113,68 +224,58 @@ public class MenuEventHandler {
 				List<TabConfigMenu> results = TabConfigMenu.find(Text.removeFormattingTags(entry.getOption()));
 
 				for (TabConfigMenu result : results) {
-					_drawMuteConfigMenu(result, 0);
-				}
-			}
-		}
-	}
+					if (result.children == null) {
+						_drawMuteMenu(null, result, 0, MenuAction.RUNELITE);
+					}
+					else {
+						MenuEntry parent = _drawMuteMenu(null, result, 0, MenuAction.RUNELITE_SUBMENU);
 
-	private void drawChatMenu(MenuEntry[] entries) {
-		List<Integer> interfaces = List.of(
-			InterfaceID.CHATBOX
-		);
+						for (TabConfigMenu child : result.children) {
+							Preconditions.checkNotNull(child);
 
-		for (int index = entries.length - 1; index >= 0; index--) {
-			MenuEntry entry = entries[index];
+							_drawMuteMenu(parent, child, 0, MenuAction.RUNELITE);
+						}
 
-
-			final int componentId = entry.getParam1();
-			final int groupId = WidgetUtil.componentToInterface(componentId);
-
-			if (interfaces.contains(groupId)) {
-				List<TabConfigMenu> results = TabConfigMenu.find(Text.removeFormattingTags(entry.getOption()));
-
-				for (TabConfigMenu result : results) {
-					_drawMuteConfigMenu(result, 0);
+					}
 				}
 			}
 		}
 	}
 
 
-	private void _drawMuteConfigMenu(TabConfigMenu tab, int index) {
-
-
-		if (tab.children == null) {
-			drawSubMenu(null, tab, index, MenuAction.RUNELITE);
-		}
-		else {
-			MenuEntry parent = drawSubMenu(null, tab, index, MenuAction.RUNELITE_SUBMENU);
-
-			for (TabConfigMenu child : tab.children) {
-				Preconditions.checkNotNull(child);
-
-				drawSubMenu(parent, child, 0, MenuAction.RUNELITE);
-			}
-
+	private String drawIconTag(MenuIconSet set, boolean state) {
+		switch (set) {
+			case MUTE_UNMUTE:
+				return state ? icons.unmute.get() : icons.mute.get();
+			case UNMUTE_MUTE:
+				return !state ? icons.unmute.get() : icons.mute.get();
+			case CHECK_CROSS_DIAMOND:
+				return state ? icons.checkboxChecked.get() : icons.checkbox.get();
+			case LOGO:
+				return icons.logo.get();
+			case NO_ICON:
+			default:
+				return "";
 		}
 	}
 
-	private MenuEntry drawSubMenu(MenuEntry parent, TabConfigMenu tab, int index, MenuAction menuType) {
+	private MenuEntry _drawMuteMenu(MenuEntry parent, TabConfigMenu tab, int index, MenuAction menuType) {
 		final boolean state = Arrays.stream(tab.configKeys)
 			.anyMatch(key -> configManager.getConfiguration(CONFIG_GROUP, key, boolean.class));
 
-		String status = state ? getIconImgTag(unmuteIconId) : getIconImgTag(muteIconId);
-		String action = state ? "Mute" : "Unmute";
+		String iconTag = drawIconTag(tab.icon, state);
+
+		String action = state ? tab.falseAction : tab.trueAction;
 
 		return client.createMenuEntry(index + 1)
-			.setOption(status + " <col=ffff00>" + action + "</col>")
+			.setOption(iconTag + action)
 			.setTarget(tab.name)
 			.setType(menuType)
 			.setParent(parent)
 			.onClick(e -> Arrays.stream(tab.configKeys)
 				.forEach(key -> configManager.setConfiguration(CONFIG_GROUP, key, !state))
 			);
+
 	}
 
 
@@ -239,10 +340,10 @@ public class MenuEventHandler {
 		boolean isAllowed = muteManager.isAllowed(entityID);
 
 		String statusColorTag = isAllowed ? "<col=78B159>" : "<col=DD2E44>";
-		String status = isAllowed ? getIconImgTag(unmuteIconId) : getIconImgTag(muteIconId);
+		String status = isAllowed ? icons.unmute.get() : icons.mute.get();
 
 
-		if (!voiceManager.isActive(voiceManager.get(entityID))) {
+		if (!voiceManager.get(entityID).transform(voiceManager::isActive).or(false)) {
 			statusColorTag = "<col=888888>";
 		}
 
@@ -258,7 +359,7 @@ public class MenuEventHandler {
 		//		}
 
 		MenuEntry parent = client.createMenuEntry(index + 1)
-			.setOption(status + " Voice")
+			.setOption(status + "Voice")
 			.setTarget(target)
 			.setType(MenuAction.RUNELITE_SUBMENU);
 
@@ -327,102 +428,249 @@ public class MenuEventHandler {
 		}
 	}
 
-	private String getIconImgTag(int iconId) {
-		int imgId = chatIconManager.chatIconIndex(iconId);
-		return "<img=" + imgId + ">";
-	}
+}
 
-
+enum MenuIconSet {
+	NO_ICON,
+	MUTE_UNMUTE,
+	UNMUTE_MUTE,
+	LOGO,
+	CHECK_CROSS_DIAMOND
 }
 
 @AllArgsConstructor
-enum SpecialModeMenu {
-	FRIENDS_ONLY_MODE(
+enum VoiceConfigMenu {
+	YOUR_VOICE(
+		ConfigKeys.PERSONAL_VOICE,
+		EntityID.USER,
+		"",
+		"Yourself",
+		null,
+		null,
+		MenuIconSet.LOGO
+	),
 
-	)
+	GLOBAL_NPC_VOICE(
+		ConfigKeys.GLOBAL_NPC_VOICE,
+		EntityID.GLOBAL_NPC,
+		"",
+		"Global NPC",
+		null,
+		null,
+		MenuIconSet.LOGO
+	),
+
+	SYSTEM_VOICE(
+		ConfigKeys.SYSTEM_VOICE,
+		EntityID.SYSTEM,
+		"",
+		"System",
+		null,
+		null,
+		MenuIconSet.LOGO
+	),
+
+	PARENT(
+		null,
+		null,
+		"Voices",
+		"Configure",
+		new VoiceConfigMenu[] {YOUR_VOICE, GLOBAL_NPC_VOICE, SYSTEM_VOICE},
+		new String[] {"Set chat mode: Public"},
+		MenuIconSet.LOGO
+	);
+
+	@Nullable
+	final String configKey;
+	@Nullable
+	final EntityID entityID;
+	@NonNull
+	final String targetName;
+	@NonNull
+	final String actionName;
+	@Nullable
+	final VoiceConfigMenu[] children;
+	@Nullable
+	final String[] optionHook;
+	@NonNull
+	final MenuIconSet icon;
+
+	static List<VoiceConfigMenu> find(String option) {
+		return Arrays.stream(VoiceConfigMenu.values())
+			.filter(tab -> tab.optionHook != null)
+			.filter(tab -> Arrays.stream(tab.optionHook).filter(Objects::nonNull).anyMatch(option::startsWith))
+			.collect(Collectors.toCollection(ArrayList::new));
+	}
 }
+
 
 @AllArgsConstructor
 enum TabConfigMenu {
+	_DIVIDER(
+		new String[] {},
+		"",
+		null,
+		null,
+		"---------", "---------",
+		MenuIconSet.NO_ICON
+	),
+
+	_SYSTEM_MESSAGE(
+		new String[] {ConfigKeys.SYSTEM_MESSAGES},
+		"System Notification",
+		null,
+		null,
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
+
 	PARENT_GIM_CHAT(
 		new String[] {ConfigKeys.GIM_CHAT},
 		"Group",
-		null,
-		new String[] {"Group: Show all"}),
+		new TabConfigMenu[] {_SYSTEM_MESSAGE},
+		new String[] {"Group: Show all"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	PARENT_TRADE(
 		new String[] {ConfigKeys.REQUESTS},
 		"Trade Request",
 		null,
-		new String[] {"Trade: Show all"}),
+		new String[] {"Trade: Show all"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	PARENT_CLAN(
 		new String[] {ConfigKeys.CLAN_CHAT},
 		"Clan",
-		null,
-		new String[] {"Clan: Show all"}),
+		new TabConfigMenu[] {_SYSTEM_MESSAGE},
+		new String[] {"Clan: Show all"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	PARENT_CHANNEL(
 		new String[] {ConfigKeys.CLAN_GUEST_CHAT},
 		"Channel",
-		null,
-		new String[] {"Channel: Show all"}),
+		new TabConfigMenu[] {_SYSTEM_MESSAGE},
+		new String[] {"Channel: Show all"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	_PRIVATE_OUT(
 		new String[] {ConfigKeys.PRIVATE_OUT_CHAT},
 		"Private Sent",
 		null,
-		null),
+		null,
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	_PRIVATE_IN(
 		new String[] {ConfigKeys.PRIVATE_CHAT},
 		"Private Received",
 		null,
-		null),
+		null,
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
+
+	_FRIEND_ONLY_MODE(
+		new String[] {ConfigKeys.FRIENDS_ONLY_MODE},
+		"Friends Only Mode",
+		null,
+		null,
+		"<col=ffff00>Disable</col>", "<col=ffff00>Enable</col>",
+		MenuIconSet.CHECK_CROSS_DIAMOND
+	),
 
 	PARENT_PRIVATE(
 		new String[] {ConfigKeys.PRIVATE_CHAT, ConfigKeys.PRIVATE_OUT_CHAT},
 		"Private",
-		new TabConfigMenu[] {_PRIVATE_IN, _PRIVATE_OUT},
-		new String[] {"Private: Show all"}),
+		new TabConfigMenu[] {_PRIVATE_IN, _PRIVATE_OUT, _FRIEND_ONLY_MODE},
+		new String[] {"Private: Show all"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	_DIALOGUE(
 		new String[] {ConfigKeys.DIALOG},
 		"Dialogue",
 		null,
-		null),
+		null,
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	_NPC_OVERHEAD(
 		new String[] {ConfigKeys.NPC_OVERHEAD},
 		"NPC Overhead",
 		null,
-		null),
+		null,
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	_EXAMINE_MESSAGE(
 		new String[] {ConfigKeys.EXAMINE_CHAT},
 		"Examine",
 		null,
-		null),
-
-	_SYSTEM_MESSAGE(
-		new String[] {ConfigKeys.SYSTEM_MESSAGES},
-		"Notification",
 		null,
-		null),
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	PARENT_GAME(
 		new String[] {ConfigKeys.EXAMINE_CHAT, ConfigKeys.SYSTEM_MESSAGES, ConfigKeys.NPC_OVERHEAD, ConfigKeys.DIALOG},
 		"Game",
-		new TabConfigMenu[] {_EXAMINE_MESSAGE, _SYSTEM_MESSAGE, _NPC_OVERHEAD, _DIALOGUE},
-		new String[] {"Game: Filter"}),
+		new TabConfigMenu[] {_SYSTEM_MESSAGE, _EXAMINE_MESSAGE, _NPC_OVERHEAD, _DIALOGUE},
+		new String[] {"Game: Filter"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	PARENT_PUBLIC(
 		new String[] {ConfigKeys.PUBLIC_CHAT},
 		"Public",
 		null,
-		new String[] {"Public: Show autochat"}),
+		new String[] {"Public: Show autochat"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
-	PARENT_EVERYTHING(
+	_MUTE_YOURSELF(
+		new String[] {ConfigKeys.MUTE_SELF},
+		"Yourself",
+		null,
+		null,
+		"<col=ffff00>Unmute</col>", "<col=ffff00>Mute</col>",
+		MenuIconSet.UNMUTE_MUTE
+	),
+
+	_MUTE_OTHERS(
+		new String[] {ConfigKeys.MUTE_OTHERS},
+		"Others",
+		null,
+		null,
+		"<col=ffff00>Unmute</col>", "<col=ffff00>Mute</col>",
+		MenuIconSet.UNMUTE_MUTE
+	),
+
+
+	_MUTE_GRAND_EXCHANGE(
+		new String[] {ConfigKeys.MUTE_GRAND_EXCHANGE},
+		"GrandExchange Area",
+		null,
+		null,
+		"<col=ffff00>Unmute</col>", "<col=ffff00>Mute</col>",
+		MenuIconSet.UNMUTE_MUTE
+	),
+
+
+	PARENT_ALL(
 		new String[] {
 			ConfigKeys.PUBLIC_CHAT,
 			ConfigKeys.EXAMINE_CHAT,
@@ -436,67 +684,46 @@ enum TabConfigMenu {
 			ConfigKeys.DIALOG,
 			ConfigKeys.NPC_OVERHEAD
 		},
-		"Everything",
-		null,
-		new String[] {"Set chat mode: Public"}),
+		"All",
+		new TabConfigMenu[] {
+			_FRIEND_ONLY_MODE,
+			_MUTE_GRAND_EXCHANGE,
+			_MUTE_OTHERS,
+			_MUTE_YOURSELF,
+			_DIVIDER,
+			_SYSTEM_MESSAGE,
+			PARENT_GAME,
+			PARENT_PUBLIC,
+			PARENT_PRIVATE,
+			PARENT_CHANNEL,
+			PARENT_CLAN,
+			PARENT_CLAN,
+			PARENT_TRADE},
+		new String[] {"Set chat mode: Public"},
+		"<col=ffff00>Mute</col>", "<col=ffff00>Unmute</col>",
+		MenuIconSet.MUTE_UNMUTE
+	),
 
 	;
 
-	//		PUBLIC("Public", "Public:"),
-	//		PRIVATE("Private", "Private:"),
-	//		CHANNEL("Channel", "Channel:"),
-	//		CLAN("Clan", "Clan:"),
-	//		TRADE("Trade", "Trade:");
-
 	@NonNull
 	final String[] configKeys;
-
 	@NonNull
 	final String name;
-
 	@Nullable
 	final TabConfigMenu[] children;
-
 	@Nullable
 	final String[] optionHook;
+	@NonNull
+	final String falseAction;
+	@NonNull
+	final String trueAction;
+	final MenuIconSet icon;
 
 	static List<TabConfigMenu> find(String option) {
-		ArrayList<TabConfigMenu> results = new ArrayList<>();
-		for (TabConfigMenu tab : TabConfigMenu.values()) {
-			if (tab.optionHook != null
-				&& Arrays.stream(tab.optionHook)
-				.filter(Objects::nonNull)
-				.anyMatch(option::startsWith)
-			) {
-				results.add(tab);
-			}
-		}
-		return results;
+		return Arrays.stream(TabConfigMenu.values())
+			.filter(tab -> tab.optionHook != null)
+			.filter(tab -> Arrays.stream(tab.optionHook).filter(Objects::nonNull).anyMatch(option::startsWith))
+			.collect(Collectors.toCollection(ArrayList::new));
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

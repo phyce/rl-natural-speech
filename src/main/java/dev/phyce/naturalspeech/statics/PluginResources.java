@@ -58,9 +58,19 @@ public final class PluginResources {
 	@NonNull
 	public static final BufferedImage NATURAL_SPEECH_ICON = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "icon.png");
 	@NonNull
+	public static final BufferedImage INGAME_NATURAL_SPEECH_SMALL_ICON = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "small_icon.png");
+	@NonNull
 	public static final BufferedImage INGAME_MUTE_ICON = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "mute.png");
 	@NonNull
 	public static final BufferedImage INGAME_UNMUTE_ICON = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "unmute.png");
+	@NonNull
+	public static final BufferedImage INGAME_CHECKBOX = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "checkbox.png");
+	@NonNull
+	public static final BufferedImage INGAME_CHECKBOX_CHECKED = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "checkbox_checked.png");
+	@NonNull
+	public static final BufferedImage INGAME_CHECKMARK = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "checkmark.png");
+	@NonNull
+	public static final BufferedImage INGAME_XMARK = ImageUtil.loadImageResource(NaturalSpeechPlugin.class, "xmark.png");
 
 	@NonNull
 	public static final ImageIcon MAIN_SETTINGS_ICON = new ImageIcon(ImageUtil.loadImageResource(PluginResources.class, "config_icon.png"));

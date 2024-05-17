@@ -243,7 +243,6 @@ public class ChatHelper {
 				if (!config.examineChatEnabled()) return true;
 				break;
 			case WELCOME:
-			case CONSOLE:
 			case LOGINLOGOUTNOTIFICATION:
 			case GAMEMESSAGE:
 			case CLAN_MESSAGE:
@@ -257,6 +256,8 @@ public class ChatHelper {
 			case CHALREQ_TRADE:
 				if (!config.requestsEnabled()) return true;
 				break;
+			case CONSOLE: //
+				return true;
 		}
 		return false;
 	}

@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.texttospeech;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
@@ -15,9 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import javax.annotation.CheckForNull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
@@ -114,9 +113,10 @@ public class VoiceManager {
 		return activeVoiceMap.contains(voiceID);
 	}
 
-	@CheckForNull
-	public VoiceID get(@NonNull EntityID entityID) {
-		return settings.get(entityID);
+	@NonNull
+	public Optional<VoiceID> get(@NonNull EntityID entityID) {
+		VoiceID voice = settings.get(entityID);
+		return voice != null ? Optional.of(voice) : Optional.absent();
 	}
 
 	@NonNull
@@ -183,8 +183,10 @@ public class VoiceManager {
 		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
 
 		long count = activeVoiceMap.size();
-		Optional<VoiceID> first = activeVoiceMap.stream().skip((int) (Math.random() * count)).findFirst();
-		return first.orElseThrow();
+
+		Optional<VoiceID> first = Optional.fromJavaUtil(activeVoiceMap.stream().skip((int) (Math.random() * count)).findFirst());
+		Preconditions.checkState(first != null && first.isPresent());
+		return first.get();
 	}
 	//<editor-fold desc="> Get">
 

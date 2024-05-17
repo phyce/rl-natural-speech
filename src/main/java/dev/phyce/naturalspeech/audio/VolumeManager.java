@@ -35,10 +35,10 @@ public class VolumeManager {
 
 	private final Set<Actor> spawnedActors = new HashSet<>();
 
-	public static final float NOISE_FLOOR = -30f;
-	public static final float CHAT_FLOOR = -60f;
+	public static final float NOISE_FLOOR = -60f;
+	public static final float CHAT_FLOOR = -50f;
 	public static final float FRIEND_FLOOR = -20f;
-	public static final float NPC_FLOOR = -60f;
+	public static final float NPC_FLOOR = -50f;
 
 	public static final float CHAT_MAX_DISTANCE = 15f;
 	public static final float NPC_MAX_DISTANCE = 15f;
