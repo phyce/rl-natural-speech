@@ -14,3 +14,7 @@ nbproject/
 
 # ignore JVM log files
 hs_err_pid*.log
+
+obj/
+*.csproj
+*.sln
