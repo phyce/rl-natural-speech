@@ -79,23 +79,23 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 
 		if (!isModelActive(voiceID.getModelName())) {
-			return SpeakResult.REJECT;
+			return SpeakStatus.REJECT;
 		}
 
 		if (!piperRepository.hasModelLocal(voiceID.modelName)) {
-			return SpeakResult.REJECT;
+			return SpeakStatus.REJECT;
 		}
 
 		PiperModel piper = models.get(voiceID.modelName);
 
 		if (piper.speak(voiceID, text, gainSupplier, lineName)) {
-			return SpeakResult.ACCEPT;
+			return SpeakStatus.ACCEPT;
 		}
 		else {
-			return SpeakResult.REJECT;
+			return SpeakStatus.REJECT;
 		}
 	}
 
@@ -164,7 +164,7 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeak(VoiceID voiceID) {
+	public boolean contains(VoiceID voiceID) {
 		return isModelActive(voiceID.modelName);
 	}
 
@@ -173,7 +173,7 @@ public class PiperEngine implements SpeechEngine {
 		for (PiperModel piper : models.values()) {
 			piper.cancelConditional(lineCondition);
 		}
-		audioEngine.closeLineConditional(lineCondition);
+		audioEngine.closeConditional(lineCondition);
 	}
 
 	@Override

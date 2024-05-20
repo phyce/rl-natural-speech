@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import java.awt.Dimension;
 import javax.swing.GroupLayout;
 import javax.swing.JLabel;
@@ -16,16 +16,15 @@ import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.SwingUtil;
 
-public class SAPI4ListItem extends JPanel {
+public class SAPI5ModelItem extends JPanel {
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
-
 	private final SpeechManagerConfig speechManagerConfig;
-	private final SAPI4Engine engine;
+	private final SAPI5Engine engine;
 	private final SpeechManager speechManager;
 
 	@Inject
-	public SAPI4ListItem(SpeechManagerConfig speechManagerConfig, SAPI4Engine engine, SpeechManager speechManager) {
+	public SAPI5ModelItem(SpeechManagerConfig speechManagerConfig, SAPI5Engine engine, SpeechManager speechManager) {
 		this.speechManagerConfig = speechManagerConfig;
 		this.engine = engine;
 		this.speechManager = speechManager;
@@ -48,14 +47,13 @@ public class SAPI4ListItem extends JPanel {
 		GroupLayout layout = new GroupLayout(this);
 		this.setLayout(layout);
 
-		JLabel name = new JLabel("Microsoft Speech 4");
+		JLabel name = new JLabel("Microsoft Speech 5");
 		name.setFont(FontManager.getRunescapeBoldFont());
 
-		JLabel description = new JLabel(String.format("<html><p>%s</p></html>",
-			"Microsoft Speech 4 from 1999. <span style=\"color:white\">microsoft:sam</span> is Gary Gilbert."));
+		JLabel description = new JLabel(String.format("<html><p>%s</p></html>", "Microsoft Speech 5, built-in"));
 		description.setVerticalAlignment(JLabel.TOP);
 
-		JLabel memorySize = new JLabel("installed");
+		JLabel memorySize = new JLabel("Windows built-In");
 		memorySize.setFont(FontManager.getRunescapeSmallFont());
 
 		JToggleButton toggleButton = new JToggleButton();
@@ -70,7 +68,8 @@ public class SAPI4ListItem extends JPanel {
 				if (speechManager.isStarted()) {
 					if (toggleButton.isSelected()) {
 						speechManager.startEngine(engine);
-					} else {
+					}
+					else {
 						speechManager.stopEngine(engine);
 					}
 				}
@@ -84,10 +83,10 @@ public class SAPI4ListItem extends JPanel {
 			)
 			.addComponent(description, 0, GroupLayout.PREFERRED_SIZE, 0x7000)
 			.addGroup(layout.createSequentialGroup()
-				.addComponent(memorySize)
-				.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 0x7000)
-				.addComponent(toggleButton, 25, 25, 25)
-//				.addComponent(download, 0, 77, GroupLayout.PREFERRED_SIZE)
+					.addComponent(memorySize)
+					.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 0x7000)
+					.addComponent(toggleButton, 25, 25, 25)
+				//				.addComponent(download, 0, 77, GroupLayout.PREFERRED_SIZE)
 			)
 		);
 
@@ -102,9 +101,9 @@ public class SAPI4ListItem extends JPanel {
 			.addComponent(description, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight * 4)
 			.addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.PREFERRED_SIZE, 100)
 			.addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-				.addComponent(memorySize, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
-				.addComponent(toggleButton, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
-//				.addComponent(download, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
+					.addComponent(memorySize, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
+					.addComponent(toggleButton, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
+				//				.addComponent(download, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT, BOTTOM_LINE_HEIGHT)
 			)
 			.addGap(2)
 		);

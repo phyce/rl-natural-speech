@@ -10,7 +10,7 @@ import lombok.NonNull;
 
 public interface SpeechEngine {
 
-	enum SpeakResult {
+	enum SpeakStatus {
 		ACCEPT,
 		REJECT,
 	}
@@ -39,10 +39,10 @@ public interface SpeechEngine {
 	 * @param gainSupplier a supplier that provides the dynamic gain value for the speech
 	 * @param lineName     the name of the AudioEngine line to speak on
 	 *
-	 * @return {@link SpeakResult#ACCEPT} if speak was successful, {@link SpeakResult#REJECT} if the engine cannot speak this VoiceID.
+	 * @return {@link SpeakStatus#ACCEPT} if speak was successful, {@link SpeakStatus#REJECT} if the engine cannot speak this VoiceID.
 	 */
 	@NonNull
-	SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName);
+	SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName);
 
 	ListenableFuture<StartResult> start(ExecutorService executorService);
 
@@ -50,7 +50,7 @@ public interface SpeechEngine {
 
 	boolean isStarted();
 
-	boolean canSpeak(VoiceID voiceID);
+	boolean contains(VoiceID voiceID);
 
 	/**
 	 * Cancels queued and processing speak tasks. Cancel should not try to silence ongoing AudioEngine lines.

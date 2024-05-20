@@ -1,9 +1,12 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
 
+/**
+ * @see <a href="https://developer.apple.com/documentation/avfaudio/avaudioformat?language=objc">Apple Documentation</a>
+ */
 public interface AVAudioFormat {
 	ID idClass = LibObjC.objc_getClass("AVAudioFormat");
 
@@ -20,8 +23,8 @@ public interface AVAudioFormat {
 		return LibObjC.objc_msgSend_double(self, selSampleRate);
 	}
 
-	static int getChannelCount(ID self) {
-		return LibObjC.objc_msgSend_int(self, selChannelCount);
+	static long getChannelCount(ID self) {
+		return LibObjC.objc_msgSend_long(self, selChannelCount);
 	}
 
 	static boolean getIsStandard(ID self) {

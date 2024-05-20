@@ -1,11 +1,14 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSString;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.javautil.AutoRelease;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
 
+/**
+ * @see <a href="https://developer.apple.com/documentation/avfaudio/avspeechutterance?language=objc">Apple Documentation</a>
+ */
 public interface AVSpeechUtterance {
 	ID idClass = LibObjC.objc_getClass("AVSpeechUtterance");
 	SEL selSpeechUtteranceWithString = LibObjC.sel_registerName("speechUtteranceWithString:");
@@ -21,17 +24,20 @@ public interface AVSpeechUtterance {
 	SEL selVolume = LibObjC.sel_registerName("volume");
 	SEL selVoice = LibObjC.sel_registerName("voice");
 
+
 	/**
 	 * {@code + (AVSpeechUtterance *)speechUtteranceWithString:(NSString *)string}
 	 * <br>
 	 * A pointer to an AVSpeechUtterance object.
 	 *
 	 * @see <a href="https://developer.apple.com/documentation/avfaudio/avspeechutterance/1619668-speechutterancewithstring?language=objc">Apple Documentation</a>
+	 * @memory Special note, this returned object exists in the AutoReleasePool, so it is not necessary to release it.
 	 */
-	static ID allocSpeechUtteranceWithString(String string) {
+	static ID getSpeechUtteranceWithString(String string) {
 		ID nsString = NSString.alloc(string);
-		AutoRelease.register(nsString);
-		return LibObjC.objc_msgSend(idClass, selSpeechUtteranceWithString, nsString);
+		ID result = LibObjC.objc_msgSend(idClass, selSpeechUtteranceWithString, nsString);
+		NSObject.release(nsString);
+		return result;
 	}
 
 	static void setVoice(ID self, ID voice) {

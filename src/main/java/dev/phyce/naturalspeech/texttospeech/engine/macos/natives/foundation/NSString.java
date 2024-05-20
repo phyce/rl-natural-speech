@@ -1,13 +1,16 @@
 
-package dev.phyce.naturalspeech.texttospeech.engine.macos.foundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation;
 
 import com.sun.jna.platform.mac.CoreFoundation;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
 import java.nio.charset.StandardCharsets;
 import lombok.NonNull;
 
+/**
+ * @see <a href="https://developer.apple.com/documentation/foundation/nsstring?language=objc">NSString</a>
+ */
 public interface NSString {
 
 	ID idClass = LibObjC.objc_getClass("NSString");
@@ -45,7 +48,7 @@ public interface NSString {
 			);
 	}
 
-	static ID allocStringByAppendingString(ID leftNSString, ID rightNSString) {
+	static ID getStringByAppendingString(ID leftNSString, ID rightNSString) {
 		return LibObjC.objc_msgSend(leftNSString, selStringByAppendingString, rightNSString);
 	}
 }

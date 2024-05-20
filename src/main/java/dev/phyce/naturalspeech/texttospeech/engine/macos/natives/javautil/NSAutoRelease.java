@@ -1,13 +1,11 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.javautil;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.javautil;
 
 import static com.google.common.base.Preconditions.checkState;
 import com.sun.jna.Pointer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSObject;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
 import java.lang.ref.Cleaner;
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -17,10 +15,10 @@ import lombok.extern.slf4j.Slf4j;
  * @see #register(Object, ID)
  */
 @Slf4j
-public final class AutoRelease {
+public final class NSAutoRelease {
 	public static final Cleaner CLEANER = Cleaner.create();
 
-	private AutoRelease() {}
+	private NSAutoRelease() {}
 
 	/**
 	 * Registers the native object to be released when the java object is phantom reachable.<br><br>
@@ -46,18 +44,18 @@ public final class AutoRelease {
 	 * Make sure you understand the life cycle of the object you are registering.<br>
 	 *
 	 * @param javaObj the object to be registered
-	 * @param nativeID the objective-c nativeID of the object
+	 * @param nativeID the nativeID of the native object
 	 * @return the original nativeID and the object as a pair, for convenience
 	 */
-	public static <T> Pair<T> register(@NonNull T javaObj, @NonNull ID nativeID) {
-		checkState(!nativeID.isNil(), "Attempting to registering nil to be auto released.");
+	public static <T> ID register(@NonNull T javaObj, @NonNull ID nativeID) {
+		checkState(!nativeID.equals(Pointer.NULL), "Attempting to registering nil to be auto released.");
 
 		// Important:
 		// We do not want the Releaser to hold a reference to the ID object.
 		// So we capture the internal long value instead.
-		long pointer = Pointer.nativeValue(nativeID);
-		CLEANER.register(javaObj, new Releaser(pointer));
-		return new Pair<>(javaObj, nativeID);
+		long peer = Pointer.nativeValue(nativeID);
+		CLEANER.register(javaObj, new Releaser(peer));
+		return nativeID;
 	}
 
 	/**
@@ -77,15 +75,7 @@ public final class AutoRelease {
 	 * @return The original ID object for, convenience.
 	 */
 	public static ID register(@NonNull ID nativeID) {
-		register(nativeID, nativeID);
-		return nativeID;
-	}
-
-	@Value
-	@AllArgsConstructor
-	public static class Pair<T> {
-		T javaObj;
-		ID id;
+		return register(nativeID, nativeID);
 	}
 
 	private static class Releaser implements Runnable {
@@ -107,8 +97,10 @@ public final class AutoRelease {
 
 			// This may cause confusion if you are not aware of this behavior.
 			// As what should be a segfault, may not be a segfault, yet.
+			ID pointer = new ID(id);
+			log.trace("Releasing native object: {}", pointer);
 
-			NSObject.release(new ID(id));
+			NSObject.release(pointer);
 		}
 	}
 }

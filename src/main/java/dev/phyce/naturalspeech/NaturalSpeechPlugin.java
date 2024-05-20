@@ -147,6 +147,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		module.speechManager.loadEngine(module.piperEngine);
 		module.speechManager.loadEngine(module.sapi4Engine);
 		module.speechManager.loadEngine(module.sapi5Engine);
+		module.speechManager.loadEngine(module.macSpeechEngine);
 	}
 
 	@Override

@@ -91,6 +91,7 @@ public class VoiceManager {
 		}
 		activeVoiceMap.add(voiceID);
 		genderedVoiceMap.addVoiceID(gender, voiceID);
+		log.trace("Registered VoiceID: {}", voiceID);
 	}
 
 	/**
@@ -107,6 +108,7 @@ public class VoiceManager {
 		}
 		activeVoiceMap.remove(voiceID);
 		genderedVoiceMap.removeVoiceID(voiceID);
+		log.trace("Unregistered VoiceID: {}", voiceID);
 	}
 
 	public boolean isActive(VoiceID voiceID) {

@@ -1,22 +1,23 @@
 package dev.phyce.naturalspeech;
 
+import com.google.common.primitives.Ints;
 import com.sun.jna.Pointer;
 import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioBuffer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioCommonFormat;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioFormat;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioPCMBuffer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesisVoice;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesisVoiceGender;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesizer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesizerBufferCallback;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechUtterance;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.javautil.AutoRelease;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.BlockLiteral;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSObject;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSString;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioBuffer;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioCommonFormat;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioFormat;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioPCMBuffer;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesisVoice;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesisVoiceGender;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesizer;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesizerBufferCallback;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechUtterance;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.javautil.NSAutoRelease;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.Block;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
 import java.io.ByteArrayInputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +45,7 @@ public class MacTest {
 
 		// Modify the NSString
 		ID world = NSString.alloc("World!");
-		ID helloworld = NSString.allocStringByAppendingString(hello, world);
+		ID helloworld = NSString.getStringByAppendingString(hello, world);
 
 		// Read the string
 		System.out.println("String: " + NSString.getJavaString(helloworld));
@@ -70,8 +71,8 @@ public class MacTest {
 
 	@Test
 	public void testAVSpeechUtterance() {
-		ID utterance = AVSpeechUtterance.allocSpeechUtteranceWithString("Hello, Natural Speech!");
-		AutoRelease.register(utterance);
+		ID utterance = AVSpeechUtterance.getSpeechUtteranceWithString("Hello, Natural Speech!");
+		NSAutoRelease.register(utterance);
 		ID voice = AVSpeechUtterance.getVoice(utterance);
 		ID speechString = AVSpeechUtterance.getSpeechString(utterance);
 		String voiceName = AVSpeechSynthesisVoice.getName(voice);
@@ -80,7 +81,7 @@ public class MacTest {
 		System.out.println("Speech: " + NSString.getJavaString(speechString));
 
 		ID synthesizer = AVSpeechSynthesizer.alloc();
-		AutoRelease.register(synthesizer);
+		NSAutoRelease.register(synthesizer);
 
 		AVSpeechSynthesizer.speakUtterance(synthesizer, utterance);
 		try {
@@ -105,10 +106,8 @@ public class MacTest {
 				false
 			);
 
-		Vector<byte[]> audioData = new Vector<>();
-
-		ID utterance = AVSpeechUtterance.allocSpeechUtteranceWithString("Hello Natural Speech!");
-		AutoRelease.register(utterance);
+		ID utterance = AVSpeechUtterance.getSpeechUtteranceWithString("Hello Natural Speech!");
+		NSAutoRelease.register(utterance);
 		ID voice = AVSpeechUtterance.getVoice(utterance);
 		ID speechString = AVSpeechUtterance.getSpeechString(utterance);
 		String voiceName = AVSpeechSynthesisVoice.getName(voice);
@@ -117,8 +116,7 @@ public class MacTest {
 		System.out.println("Speech: " + NSString.getJavaString(speechString));
 
 		ID synthesizer = AVSpeechSynthesizer.alloc();
-		AutoRelease.register(synthesizer);
-
+		NSAutoRelease.register(synthesizer);
 
 		AVSpeechSynthesizerBufferCallback invoke = new AVSpeechSynthesizerBufferCallback() {
 
@@ -156,7 +154,7 @@ public class MacTest {
 				AVAudioCommonFormat format = AVAudioFormat.getCommonFormat(avFormat);
 				boolean standard = AVAudioFormat.getIsStandard(avFormat);
 				double sampleRate = AVAudioFormat.getSampleRate(avFormat);
-				int channelCount = AVAudioFormat.getChannelCount(avFormat);
+				int channelCount = Ints.checkedCast(AVAudioFormat.getChannelCount(avFormat));
 				System.out.printf("AVAudioFormat: format(%s) standard(%s) sampleRate(%f) channelCount(%s)\n", format, standard, sampleRate, channelCount);
 
 				// Get the buffer
@@ -171,7 +169,7 @@ public class MacTest {
 			}
 		};
 
-		BlockLiteral bufferBlock = new BlockLiteral(invoke);
+		Block bufferBlock = Block.alloc(invoke);
 
 		AVSpeechSynthesizer.writeUtteranceToBufferCallback(synthesizer, utterance, bufferBlock);
 
@@ -228,10 +226,10 @@ public class MacTest {
 		String hello = new String("Hello, ");
 		String world = new String("World!");
 
-		ID helloID = AutoRelease.register(hello, NSString.alloc(hello)).getId();
-		ID worldID = AutoRelease.register(world, NSString.alloc(world)).getId();
-		ID helloworldID = NSString.allocStringByAppendingString(helloID, worldID);
-		AutoRelease.register(NSString.getJavaString(helloworldID), helloworldID);
+		ID helloID = NSAutoRelease.register(hello, NSString.alloc(hello));
+		ID worldID = NSAutoRelease.register(world, NSString.alloc(world));
+		ID helloworldID = NSString.getStringByAppendingString(helloID, worldID);
+		NSAutoRelease.register(NSString.getJavaString(helloworldID), helloworldID);
 
 		// This should not cause a SEGFAULT
 		System.out.println("CHECKING RETAIN COUNT, ASSERT 1 -> " + NSObject.getRetainCount(helloID));
@@ -263,9 +261,9 @@ public class MacTest {
 		String hello = new String("Hello, ");
 		String world = new String("World!");
 
-		ID helloID = AutoRelease.register(NSString.alloc(hello));
-		ID worldID = AutoRelease.register(NSString.alloc(world));
-		ID helloworldID = AutoRelease.register(NSString.allocStringByAppendingString(helloID, worldID));
+		ID helloID = NSAutoRelease.register(NSString.alloc(hello));
+		ID worldID = NSAutoRelease.register(NSString.alloc(world));
+		ID helloworldID = NSAutoRelease.register(NSString.getStringByAppendingString(helloID, worldID));
 
 		String helloworld = NSString.getJavaString(helloworldID);
 

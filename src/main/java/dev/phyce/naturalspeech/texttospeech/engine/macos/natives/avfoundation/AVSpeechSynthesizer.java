@@ -1,11 +1,14 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.BlockLiteral;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSObject;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.Block;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
 
+/**
+ * @see <a href="https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer?language=objc">Apple Documentation</a>
+ */
 public interface AVSpeechSynthesizer {
 
 	ID idClass = LibObjC.objc_getClass("AVSpeechSynthesizer");
@@ -26,7 +29,7 @@ public interface AVSpeechSynthesizer {
 	 * } </pre>
 	 * @see <a href="https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer/3141659-writeutterance?language=objc">Apple Documentation</a>
 	 */
-	static void writeUtteranceToBufferCallback(ID self, ID utterance, BlockLiteral bufferCallbackBlock) {
+	static void writeUtteranceToBufferCallback(ID self, ID utterance, Block bufferCallbackBlock) {
 		LibObjC.objc_msgSend(self, selWriteUtteranceToBufferCallback, utterance, bufferCallbackBlock);
 	}
 

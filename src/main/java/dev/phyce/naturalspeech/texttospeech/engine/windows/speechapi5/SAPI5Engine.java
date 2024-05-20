@@ -51,12 +51,8 @@ public class SAPI5Engine implements SpeechEngine {
 		this.audioEngine = audioEngine;
 		this.voiceManager = voiceManager;
 
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
-			availableSAPI5s = Collections.unmodifiableList(new ArrayList<>());
-			return;
-		}
 
-		if (!Platforms.IS_WINDOWS) {
+		if (!Platforms.IS_WINDOWS || NaturalSpeechPlugin._SIMULATE_NO_TTS) {
 			log.trace("Not windows, SAPI5 skipping");
 			availableSAPI5s = Collections.unmodifiableList(new ArrayList<>());
 			return;
@@ -75,8 +71,8 @@ public class SAPI5Engine implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
-		if (!canSpeak(voiceID)) return SpeakResult.REJECT;
+	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+		if (!contains(voiceID)) return SpeakStatus.REJECT;
 
 		String sapiName = SAPI5Alias.modelToSapiName.getOrDefault(voiceID.id, voiceID.id);
 
@@ -94,7 +90,7 @@ public class SAPI5Engine implements SpeechEngine {
 			}
 		);
 
-		return SpeakResult.ACCEPT;
+		return SpeakStatus.ACCEPT;
 	}
 
 	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
@@ -159,7 +155,7 @@ public class SAPI5Engine implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeak(VoiceID voiceID) {
+	public boolean contains(VoiceID voiceID) {
 		if (availableSAPI5s == null) return false;
 
 		if (!voiceID.modelName.equals(SAPI5_MODEL_NAME)) {
@@ -173,7 +169,7 @@ public class SAPI5Engine implements SpeechEngine {
 
 	@Override
 	public void silence(Predicate<String> lineCondition) {
-		audioEngine.closeLineConditional(lineCondition);
+		audioEngine.closeConditional(lineCondition);
 	}
 
 	@Override

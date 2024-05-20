@@ -8,14 +8,16 @@ import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
+import dev.phyce.naturalspeech.userinterface.components.MacModelItem;
 import dev.phyce.naturalspeech.userinterface.components.PiperModelItem;
-import dev.phyce.naturalspeech.userinterface.components.SAPI4ListItem;
-import dev.phyce.naturalspeech.userinterface.components.SAPI5ListItem;
+import dev.phyce.naturalspeech.userinterface.components.SAPI4ModelItem;
+import dev.phyce.naturalspeech.userinterface.components.SAPI5ModelItem;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -48,6 +50,7 @@ public class VoiceHubPanel extends PluginPanel {
 	private final SAPI4Repository sapi4Repository;
 	private final SAPI5Engine sapi5Engine;
 	private final PiperEngine piperEngine;
+	private final MacSpeechEngine macSpeechEngine;
 	private final SpeechManager speechManager;
 	private final PluginExecutorService pluginExecutorService;
 
@@ -55,8 +58,9 @@ public class VoiceHubPanel extends PluginPanel {
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
 
 	private final Map<String, PiperModelItem> piperModelMap = new HashMap<>();
-	private final Provider<SAPI4ListItem> sapi4ListItemProvider;
-	private final Provider<SAPI5ListItem> sapi5ListItemProvider;
+	private final Provider<SAPI4ModelItem> sapi4ListItemProvider;
+	private final Provider<SAPI5ModelItem> sapi5ListItemProvider;
+	private final Provider<MacModelItem> macListItemProvider;
 
 	@Inject
 	public VoiceHubPanel(
@@ -64,9 +68,11 @@ public class VoiceHubPanel extends PluginPanel {
 		SAPI4Repository sapi4Repository,
 		SAPI5Engine sapi5Engine,
 		PiperEngine piperEngine,
+		MacSpeechEngine macSpeechEngine,
 		SpeechManager speechManager,
-		Provider<SAPI4ListItem> sapi4ListItemProvider,
-		Provider<SAPI5ListItem> sapi5ListItemProvider,
+		Provider<SAPI4ModelItem> sapi4ListItemProvider,
+		Provider<SAPI5ModelItem> sapi5ListItemProvider,
+		Provider<MacModelItem> macListItemProvider,
 		PluginEventBus pluginEventBus,
 		PluginExecutorService pluginExecutorService
 	) {
@@ -75,9 +81,11 @@ public class VoiceHubPanel extends PluginPanel {
 		this.sapi4Repository = sapi4Repository;
 		this.sapi5Engine = sapi5Engine;
 		this.piperEngine = piperEngine;
+		this.macSpeechEngine = macSpeechEngine;
 		this.speechManager = speechManager;
 		this.sapi4ListItemProvider = sapi4ListItemProvider;
 		this.sapi5ListItemProvider = sapi5ListItemProvider;
+		this.macListItemProvider = macListItemProvider;
 		this.pluginExecutorService = pluginExecutorService;
 
 
@@ -169,6 +177,10 @@ public class VoiceHubPanel extends PluginPanel {
 				pluginExecutorService, modelUrl);
 			piperModelMap.put(modelUrl.getModelName(), modelItem);
 			sectionContent.add(modelItem);
+		}
+
+		if (!macSpeechEngine.getNativeVoices().isEmpty()) {
+			sectionContent.add(macListItemProvider.get(), 0);
 		}
 
 		// Sapi5 Model

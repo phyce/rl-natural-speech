@@ -15,6 +15,7 @@ import dev.phyce.naturalspeech.events.PiperModelStarted;
 import dev.phyce.naturalspeech.events.PiperModelStopped;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
 import dev.phyce.naturalspeech.userinterface.components.EditorPanel;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
 import dev.phyce.naturalspeech.userinterface.components.IconTextField;
@@ -74,6 +75,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final SAPI4Repository sapi4Repository;
 	private final SAPI4Engine sapi4Engine;
 	private final SAPI5Engine sapi5Engine;
+	private final MacSpeechEngine macSpeechEngine;
+
 	private final SpeechManager speechManager;
 	private final ChatHelper chatHelper;
 
@@ -86,6 +89,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
 	private final HashMultimap<String, VoiceListItem> searchToItemBiMap = HashMultimap.create();
 	private final Map<String, JPanel> modelSections = new HashMap<>();
+	private JPanel macSegment;
 	private JPanel microsoftSegment;
 	private JPanel centerStoppedWarning;
 	private JPanel centerNoEngineWarning;
@@ -99,6 +103,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SAPI5Engine sapi5Engine,
 		SpeechManager speechManager,
 		PluginEventBus pluginEventBus,
+		MacSpeechEngine macSpeechEngine,
 		ChatHelper chatHelper
 	) {
 		this.piperRepository = piperRepository;
@@ -106,6 +111,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		this.sapi4Engine = sapi4Engine;
 		this.sapi5Engine = sapi5Engine;
 		this.speechManager = speechManager;
+		this.macSpeechEngine = macSpeechEngine;
 		this.chatHelper = chatHelper;
 
 		pluginEventBus.register(this);
@@ -204,6 +210,12 @@ public class VoiceExplorerPanel extends EditorPanel {
 				SwingUtilities.invokeLater(sectionListPanel::revalidate);
 			}
 		}
+
+		if (event.getSpeechEngine() == macSpeechEngine) {
+			macSegment.setVisible(true);
+			SwingUtilities.invokeLater(sectionListPanel::revalidate);
+		}
+
 		updateVoiceListItems();
 		updateWarnings();
 	}
@@ -244,7 +256,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		updateWarnings();
 	}
 
-	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
+	@Deprecated(
+		since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
 	@Subscribe
 	private void onPiperPathChanged(PiperPathChanged event) {
 		SwingUtilities.invokeLater(this::buildSpeakerList);
@@ -264,7 +277,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	private void updateVoiceListItems() {
 		for (VoiceListItem voiceListItem : voiceListItems) {
-			if (speechManager.canSpeak(voiceListItem.getVoiceMetadata().getVoiceId())) {
+			if (speechManager.contains(voiceListItem.getVoiceMetadata().getVoiceId())) {
 				voiceListItem.setVisible(true);
 			}
 			else {
@@ -317,7 +330,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 		List<String> sapi4Models = sapi4Repository.getVoices();
 		List<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getAvailableSAPI5s();
 		List<PiperRepository.ModelURL> piperModelURLS = piperRepository.getModelURLS();
+		Set<VoiceID> macVoices = macSpeechEngine.getNativeVoices().keySet();
 
+		buildMacModelSegment(macVoices);
 		buildMicrosoftModelSegment(sapi4Models, sapi5Models);
 
 		for (PiperRepository.ModelURL modelURL : piperModelURLS) {
@@ -368,11 +383,76 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 			partials.forEach(partialTerm -> searchToItemBiMap.put(partialTerm, voiceListItem));
 			nameTokens.forEach(nameToken -> searchToItemBiMap.put(nameToken, voiceListItem));
-//			searchToItemBiMap.put(name, voiceListItem); // partial already contains complete
+			//			searchToItemBiMap.put(name, voiceListItem); // partial already contains complete
 			searchToItemBiMap.put(modelName, voiceListItem);
 			searchToItemBiMap.put(id, voiceListItem);
 			searchToItemBiMap.put(gender, voiceListItem);
 		}
+	}
+
+	private void buildMacModelSegment(Set<VoiceID> macVoices) {
+
+		macSegment = new JPanel();
+		macSegment.setLayout(new BoxLayout(macSegment, BoxLayout.Y_AXIS));
+		macSegment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		macSegment.setVisible(false);
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		macSegment.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(PluginResources.SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "mac";
+		final String description = name;
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		macSegment.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		macSegment.add(sectionContent, BorderLayout.SOUTH);
+
+		// Add listeners to each part of the header so that it's easier to toggle them
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSpeakerSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSpeakerSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
+		toggleSpeakerSection(sectionToggle, sectionContent);
+
+		macVoices.forEach((voiceId) -> {
+			VoiceMetadata metadata =
+				new VoiceMetadata("", Gender.MALE, voiceId);
+			VoiceListItem speakerItem = new VoiceListItem(speechManager, chatHelper, this, metadata);
+			voiceListItems.add(speakerItem);
+			sectionContent.add(speakerItem);
+		});
+		sectionListPanel.add(macSegment);
+		modelSections.put("mac", macSegment);
 	}
 
 	private void buildMicrosoftModelSegment(List<String> sapi4Models, List<SAPI5Process.SAPI5Voice> sapi5Models) {

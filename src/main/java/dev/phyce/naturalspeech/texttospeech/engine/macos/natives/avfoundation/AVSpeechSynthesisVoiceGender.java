@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation;
 
 import static com.google.common.base.Preconditions.checkState;
 import lombok.Getter;

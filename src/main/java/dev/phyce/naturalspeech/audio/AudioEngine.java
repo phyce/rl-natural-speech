@@ -59,7 +59,7 @@ public class AudioEngine {
 	}
 
 	@CheckForNull
-	private DynamicLine getOrNewLine(String lineName, AudioFormat format) {
+	private DynamicLine getOrNewLine(@NonNull String lineName, AudioFormat format) {
 		DynamicLine line = lines.get(lineName);
 
 		// no existing line, new line
@@ -73,7 +73,7 @@ public class AudioEngine {
 		return line;
 	}
 
-	public void closeLineName(String lineName) {
+	public void closeName(@NonNull String lineName) {
 		DynamicLine line = lines.remove(lineName);
 		if (line != null) {
 			line.close();
@@ -83,10 +83,10 @@ public class AudioEngine {
 		}
 	}
 
-	public void closeLineConditional(Predicate<String> condition) {
+	public void closeConditional(@NonNull Predicate<String> condition) {
 		lines.forEach((lineName, line) -> {
 			if (condition.test(lineName)) {
-				closeLineName(lineName);
+				closeName(lineName);
 			}
 		});
 	}
@@ -96,7 +96,7 @@ public class AudioEngine {
 		lines.clear();
 	}
 
-	public boolean pauseLine(String lineName) {
+	public boolean pauseLine(@NonNull String lineName) {
 		DynamicLine line = lines.get(lineName);
 		if (line != null) {
 			line.stop();
@@ -114,9 +114,10 @@ public class AudioEngine {
 		for (DynamicLine line : lines.values()) {
 			line.setMasterGain(masterGain);
 		}
+		update();
 	}
 
-	private DynamicLine newLine(String lineName, AudioFormat format) {
+	private DynamicLine newLine(@NonNull String lineName, AudioFormat format) {
 		DynamicLine line;
 		try {
 			line = new DynamicLine((SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, format)));
@@ -128,7 +129,7 @@ public class AudioEngine {
 			line.addDynamicLineListener((event) -> {
 				if (event == DynamicLine.DynamicLineEvent.DONE_BUFFERING) {
 					log.trace("Line done buffering, removing line {}", lineName);
-					closeLineName(lineName);
+					closeName(lineName);
 				}
 			});
 

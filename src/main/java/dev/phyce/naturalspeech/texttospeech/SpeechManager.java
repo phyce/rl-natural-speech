@@ -194,9 +194,9 @@ public class SpeechManager implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeak(VoiceID voiceID) {
+	public boolean contains(VoiceID voiceID) {
 		for (SpeechEngine activeEngine : activeEngines) {
-			if (activeEngine.canSpeak(voiceID)) {
+			if (activeEngine.contains(voiceID)) {
 				return true;
 			}
 		}
@@ -213,18 +213,18 @@ public class SpeechManager implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 
 		for (SpeechEngine activeEngine : activeEngines) {
-			SpeakResult result = activeEngine.speak(voiceID, text, gainSupplier, lineName);
-			if (result == SpeakResult.ACCEPT) {
-				return SpeakResult.ACCEPT;
+			SpeakStatus result = activeEngine.speak(voiceID, text, gainSupplier, lineName);
+			if (result == SpeakStatus.ACCEPT) {
+				return SpeakStatus.ACCEPT;
 			}
 		}
 
 		log.error("No engines were able to speak voiceID:{} text:{} lineName:{}", voiceID, text, lineName);
 		Thread.dumpStack();
-		return SpeakResult.REJECT;
+		return SpeakStatus.REJECT;
 	}
 
 	@Override

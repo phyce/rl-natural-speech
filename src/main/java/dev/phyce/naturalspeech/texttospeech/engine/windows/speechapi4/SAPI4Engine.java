@@ -36,9 +36,9 @@ public class SAPI4Engine implements SpeechEngine {
 	public static final String SAPI4_MODEL_NAME = "microsoft";
 
 	private final AudioEngine audioEngine;
+	private final VoiceManager voiceManager;
 
 	private final Map<String, SpeechAPI4> sapi4s = new HashMap<>();
-	private final VoiceManager voiceManager;
 
 
 	@Getter
@@ -72,18 +72,18 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeakResult speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
 		if (!Objects.equals(voiceID.modelName, SAPI4_MODEL_NAME)) {
-			return SpeakResult.REJECT;
+			return SpeakStatus.REJECT;
 		}
 
 		SpeechAPI4 sapi = sapi4s.get(voiceID.id);
 		if (sapi == null) {
-			return SpeakResult.REJECT;
+			return SpeakStatus.REJECT;
 		}
 
 		sapi.speak(text, gainSupplier, lineName);
-		return SpeakResult.ACCEPT;
+		return SpeakStatus.ACCEPT;
 	}
 
 	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
@@ -130,13 +130,13 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
-	public boolean canSpeak(VoiceID voiceID) {
+	public boolean contains(VoiceID voiceID) {
 		return sapi4s.containsKey(voiceID.id);
 	}
 
 	@Override
 	public void silence(Predicate<String> lineCondition) {
-		audioEngine.closeLineConditional(lineCondition);
+		audioEngine.closeConditional(lineCondition);
 	}
 
 	@Override

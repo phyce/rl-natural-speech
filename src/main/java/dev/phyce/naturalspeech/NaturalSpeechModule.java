@@ -16,6 +16,8 @@ import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.audio.VolumeManager;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
@@ -54,6 +56,7 @@ class NaturalSpeechModule {
 	final PluginExecutorService pluginExecutorService;
 	final ClientHelper clientHelper;
 	final ChatHelper chatHelper;
+	final MacSpeechEngine macSpeechEngine;
 
 	@Inject
 	public NaturalSpeechModule(
@@ -68,6 +71,7 @@ class NaturalSpeechModule {
 		PiperEngine piperEngine,
 		SAPI4Engine sapi4Engine,
 		SAPI5Engine sapi5Engine,
+		MacSpeechEngine macSpeechEngine,
 
 		SpamFilterPluglet spamFilterPluglet,
 		ChatFilterPluglet chatFilterPluglet,
@@ -84,7 +88,6 @@ class NaturalSpeechModule {
 		PluginEventBus pluginEventBus,
 		ClientHelper clientHelper,
 		ChatHelper chatHelper
-
 	) {
 		this.runtimeConfig = runtimeConfig;
 		this.voiceManager = voiceManager;
@@ -106,6 +109,7 @@ class NaturalSpeechModule {
 		this.pluginExecutorService = pluginExecutorService;
 		this.clientHelper = clientHelper;
 		this.chatHelper = chatHelper;
+		this.macSpeechEngine = macSpeechEngine;
 	}
 
 }

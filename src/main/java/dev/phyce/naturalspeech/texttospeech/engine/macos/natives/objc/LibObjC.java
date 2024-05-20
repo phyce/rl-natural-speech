@@ -1,15 +1,32 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.objc;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc;
 
 import static com.google.common.base.Preconditions.checkState;
 import com.sun.jna.Function;
 import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
 
 /**
- * Objective-C Runtime Library<br>
+ * <h1>Objective-C Runtime Library</h1>
+ * <p>
+ * <br>
  * Make sure to check {@link #INSTANCE} null-ness before using; null means the platform does not have libobjc.dylib available.
  * <br><br>
  * The only operating systems with libobjc.dylib bundled are Apple OS (macOS, iOS, etc.)
+ * </p>
+ *
+ * <h2>Naming Conventions</h2>
+ * All functions in the Objective-C runtime library follow the naming conventions:
+ * <ul>
+ *     <li>Allocating functions must be prefixed with {@code alloc}; reminding user to dealloc or AutoRelease.<br>
+ *     For example, {@link NSString#alloc(String)}.
+ *     </li>
+ *     <li>Field getters that does not require memory management must be prefixed with {@code get}.<br>
+ *     For example, {@link NSString#getJavaString(ID)}.
+ *     </li>
+ * </ul>
+ *
+ *
  * @see <a href="https://developer.apple.com/documentation/objectivec/objective-c_runtime?language=objc">Apple Documentation: Objective-C Runtime</a>
  *
  * @note Objective-C is a two-part system built-upon C. <br>
@@ -59,10 +76,14 @@ public final class LibObjC {
 	private final Function sel_registerName = dylib.getFunction("sel_registerName");
 	private final Function object_getClass = dylib.getFunction("object_getClass");
 
-	// Runtime block copy/destroy helper functions (from Block_private.h in LLVM)
+	private final Function _Block_release = dylib.getFunction("_Block_release");
+	private final Function _Block_copy = dylib.getFunction("_Block_copy");
+
+	// Foundation is closed source, the actual block runtime implementation is hidden and platform-specific
+	// these are global memory addresses that will be updated with the actual addresses at runtime
 	// https://github.com/llvm/llvm-project/blob/main/compiler-rt/lib/BlocksRuntime/Block_private.h#L127C1-L134C54
 	public final Pointer _NSConcreteGlobalBlock = dylib.getGlobalVariableAddress("_NSConcreteGlobalBlock");
-	public final Pointer _NSConcreteStackBlock = dylib.getGlobalVariableAddress("_NSConcreteStackBlock");
+	public final Pointer _NSConcreteMallocBlock = dylib.getGlobalVariableAddress("_NSConcreteMallocBlock");
 
 	/**
 	 * Sends a message with a simple return value to an instance of a class.
@@ -201,6 +222,20 @@ public final class LibObjC {
 		checkState(INSTANCE.object_getClass != null, "object_getClass is not available");
 
 		return new ID(INSTANCE.object_getClass.invokePointer(new Object[] {object}));
+	}
+
+	public static void Block_release(Block block) {
+		checkState(INSTANCE != null, "LibObjC is not available");
+		checkState(INSTANCE._Block_release != null, "_Block_release is not available");
+
+		INSTANCE._Block_release.invoke(new Object[]{block});
+	}
+
+	public static Block Block_copy(Block block) {
+		checkState(INSTANCE != null, "LibObjC is not available");
+		checkState(INSTANCE._Block_copy != null, "_Block_copy is not available");
+
+		return Block.cast(INSTANCE._Block_copy.invokePointer(new Object[]{block}));
 	}
 
 }

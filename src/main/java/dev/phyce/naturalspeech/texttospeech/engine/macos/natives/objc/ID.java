@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.objc;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc;
 
 import com.sun.jna.Pointer;
 import lombok.Getter;

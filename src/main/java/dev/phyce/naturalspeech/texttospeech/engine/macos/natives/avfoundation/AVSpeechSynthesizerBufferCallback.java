@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation;
 
 import com.sun.jna.Callback;
 import com.sun.jna.Pointer;

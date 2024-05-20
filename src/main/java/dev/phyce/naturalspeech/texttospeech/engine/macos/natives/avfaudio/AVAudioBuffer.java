@@ -1,8 +1,8 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 
 public interface AVAudioBuffer {
 	ID idClass = LibObjC.objc_getClass("AVAudioBuffer");

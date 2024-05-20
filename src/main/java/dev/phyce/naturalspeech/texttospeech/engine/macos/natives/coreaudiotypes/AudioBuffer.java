@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.coreaudiotypes;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.coreaudiotypes;
 
 import com.sun.jna.Structure;
 
