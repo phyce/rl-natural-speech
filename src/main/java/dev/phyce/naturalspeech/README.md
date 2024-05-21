@@ -4,7 +4,7 @@ A high-level overview of the plugin's architecture.
 
 ## _Dear RuneLite Plugin Reviewer_
 
-Natural Speech utilizes interprocess communication and native interop with the operating system API. As a result, we understand this plugin is difficult to audit.
+Natural Speech utilizes interprocess communication and native interop with the operating system API. We understand this plugin might be difficult to audit.
 
 This document is designed to be helpful for your auditing process.
 
@@ -121,7 +121,7 @@ https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/xattr.h#L98
 ### `LibObjC`
 For macOS, we use JNA to directly interface with the OS native Objective-C API, `Foundation`. https://developer.apple.com/documentation/foundation
 
-Since JNA interfaces to C, but macOS is in Objective-C, the interop is performed through the Objective-C Runtime (synonmous with the Java Runtime Environment). 
+Since JNA interfaces to C, but macOS API is in Objective-C, the interop is performed through the Objective-C Runtime (synonmous with the Java Runtime Environment). 
 https://developer.apple.com/documentation/objectivec/objective-c_runtime?language=objc
 
 The level of Java/Obj-C interop we perform is somewhat novel, including implementing the Obj-C Block application-binary-interface (Blocks in Obj-C is synonmous with Java closures).
