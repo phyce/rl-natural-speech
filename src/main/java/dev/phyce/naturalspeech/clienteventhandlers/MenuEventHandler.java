@@ -42,7 +42,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public class MenuEventHandler {
 
 	private final Client client;
-	private final ChatIconManager chatIconManager;
 	private final NaturalSpeechConfig config;
 
 	private final SpeechManager speechManager;
@@ -65,7 +64,6 @@ public class MenuEventHandler {
 		ChatIcons chatIcons
 	) {
 		this.client = client;
-		this.chatIconManager = chatIconManager;
 		this.config = config;
 		this.speechManager = speechManager;
 		this.voiceConfigChatboxTextInputProvider = voiceConfigChatboxTextInputProvider;
