@@ -68,6 +68,9 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - NPC Dialogs now have an individual queue for NPC + Player dialog messages
 
 
+## 1.2.4
+- Fixed issue with shortened phrases using special characters not working
+
 ## 1.2.3
 - Fixed issue with `mute others` also muted local player, and `mute self` not doing anything
 

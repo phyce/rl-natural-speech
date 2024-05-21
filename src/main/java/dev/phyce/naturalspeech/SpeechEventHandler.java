@@ -80,8 +80,10 @@ public class SpeechEventHandler {
 		VoiceID voiceId;
 		username = Text.standardize(message.getName());
 		message.setName(username);
-		String text = Text.sanitizeMultilineText(message.getMessage());
 		Supplier<Float> volume;
+		String text = message.getMessage()
+			.replace("<lt>", "<")
+			.replace("<gt>", ">");
 
 		if (isChatMessageMuted(message)) return;
 
@@ -115,6 +117,7 @@ public class SpeechEventHandler {
 			else if (isChatSystemVoice(message.getType())) {
 				username = AudioLineNames.SYSTEM;
 				lineName = AudioLineNames.SYSTEM;
+				text = Text.standardize(text);
 				volume = volumeManager.system();
 
 				voiceId = voiceManager.getVoiceIDFromUsername(username);

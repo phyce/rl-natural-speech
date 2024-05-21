@@ -53,9 +53,9 @@ public final class TextUtil {
 
 	public static List<String> tokenize(String text) {
 		List<String> tokens = new ArrayList<>();
+		Matcher matcher = Pattern.compile("[^\\s]+").matcher(text);
 
-		Matcher matcher = Pattern.compile("[\\w']+(?:[.,;!?]+|\\.\\.\\.)?|\\p{Punct}").matcher(text);
-		while (matcher.find()) {tokens.add(matcher.group());}
+		while (matcher.find()) tokens.add(matcher.group());
 
 		return tokens;
 	}
@@ -93,5 +93,6 @@ public final class TextUtil {
 		if (matcher.matches()) menuTarget = matcher.group(1);
 		return menuTarget;
 	}
+
 
 }
