@@ -134,7 +134,8 @@ public class SpeechAPI4 {
 
 	public void speak(String text, Supplier<Float> gainSupplier, String lineName) {
 
-		log.debug("Fake Speech API 4 speaking with voice {}: {}", voiceName, text);
+		// Security:
+		// A syscall to start process or a fork depending on JDK, no shell/cmd involved, no chance of injection.
 		ProcessBuilder processBuilder = new ProcessBuilder(
 			sapi4Path.toString(),
 			voiceName,

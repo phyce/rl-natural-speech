@@ -32,22 +32,18 @@ import lombok.extern.slf4j.Slf4j;
 /*
  Why?
 
- RuneLite Plugins are not allowed to distribute binaries.
-
  Our goal is to allow NaturalSpeech to have minimal TTS capabilities without external dependencies (minimal mode).
  Therefore, we need operating system TTS.
 
- Windows Speech API 5 can be accessed with two methods:
-	 1. Dynamically Linking to Windows Speech API 5 SDK for C/C++ https://www.microsoft.com/en-us/download/details.aspx?id=10121
+ Windows Speech API 5.3 can be accessed with two methods:
+	 1. Using Windows Native COM API through JNA/JNI
 	 2. Use OS built-in dotnet assembly System.Speech.dll
 
  Problem:
-	 1. We can't use Java-native-interface because then we'd need to distribute SAPI5 dll to users with the plugin.
-		Aka, Speech 5.1 SDK Redistributable files (SpeechSDK51MSM.exe)
+	 1. Windows Native COM API stinks, it is hard to write and hard to read.
+	    Also requires JNA/JNI, increasing the risk of segfaulting the JVM.
 
-	 2. Java cannot interface with dotnet managed assemblies, aka System.Speech.dll
-		Also, we cannot write a C# runtime and bundle it as an executable.
-
+	 2. Java/C# interop is not viable, Java cannot interface with dotnet managed assemblies, aka System.Speech.dll
 
  Solution:
 	 PowerShell is bundled with Windows and has a built-in .NET 4.0
