@@ -145,10 +145,6 @@ public class MenuEventHandler {
 		}
 	}
 
-	private void _drawVolumeMenu(MenuEntry parent, int index) {
-
-	}
-
 	private void drawVoiceMenus(MenuEntry[] entries) {
 		List<Integer> interfaces = List.of(
 			InterfaceID.CHATBOX
