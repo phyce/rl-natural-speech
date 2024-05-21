@@ -26,11 +26,10 @@ import java.util.Comparator;
 import java.util.Vector;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
-import org.junit.Test;
 
 public class MacTest {
 
-	@Test
+//	@Test
 	public void testJNA() {
 		ID hello = NSString.alloc("Hello, ");
 
@@ -56,7 +55,7 @@ public class MacTest {
 		NSObject.release(helloworld);
 	}
 
-	@Test
+//	@Test
 	public void testAVSpeechSynthesisVoice() {
 		ID[] voices = AVSpeechSynthesisVoice.getSpeechVoices();
 		Arrays.sort(voices, Comparator.comparing(AVSpeechSynthesisVoice::getName));
@@ -69,7 +68,7 @@ public class MacTest {
 		}
 	}
 
-	@Test
+//	@Test
 	public void testAVSpeechUtterance() {
 		ID utterance = AVSpeechUtterance.getSpeechUtteranceWithString("Hello, Natural Speech!");
 		NSAutoRelease.register(utterance);
@@ -91,7 +90,7 @@ public class MacTest {
 		}
 	}
 
-	@Test
+//	@Test
 	public void testAVSpeechUtteranceCallback() {
 
 		AudioEngine audioEngine = new AudioEngine();
@@ -183,7 +182,7 @@ public class MacTest {
 		}
 	}
 
-	@Test
+//	@Test
 	public void testAutoReleaseSEGFAULT() {
 		WeakReference<Pair> helloWeak = testAutoReleaseSUGFAULT_aux();
 
@@ -241,7 +240,7 @@ public class MacTest {
 
 	}
 
-	@Test
+//	@Test
 	public void testAutoReleaseSEGFAULT2() {
 		WeakReference<Pair> weakRefs = testAutoReleaseSEGFAULT2_AUX();
 

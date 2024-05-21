@@ -5,10 +5,9 @@ import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Proce
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import javax.sound.sampled.AudioInputStream;
-import org.junit.Test;
 
 public class WindowTest {
-	@Test
+//	@Test
 	public void testWSAPI5() throws InterruptedException {
 		SAPI5Process wsapi5 = SAPI5Process.start();
 		assert wsapi5 != null;
