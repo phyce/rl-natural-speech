@@ -98,14 +98,16 @@ public class VoiceID {
 					return null;
 				}
 				id = piperIdJson.getAsString();
-			} else if (version == 1) {
+			}
+			else if (version == 1) {
 				JsonElement idJson = obj.get("id");
 				if (idJson == null) {
 					log.error("Missing id in VoiceID version 1: {}", json);
 					return null;
 				}
 				id = idJson.getAsString();
-			} else {
+			}
+			else {
 				log.error("VoiceID Unknown version: {}", json);
 				return null;
 			}

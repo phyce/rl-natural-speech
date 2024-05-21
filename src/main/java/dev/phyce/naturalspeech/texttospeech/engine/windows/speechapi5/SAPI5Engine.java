@@ -5,10 +5,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import static dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process.AUDIO_FORMAT;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.ByteArrayInputStream;
@@ -71,7 +71,12 @@ public class SAPI5Engine implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeechEngine.SpeakStatus speak(
+		VoiceID voiceID,
+		String text,
+		Supplier<Float> gainSupplier,
+		String lineName
+	) {
 		if (!contains(voiceID)) return SpeakStatus.REJECT;
 
 		String sapiName = SAPI5Alias.modelToSapiName.getOrDefault(voiceID.id, voiceID.id);
@@ -93,7 +98,7 @@ public class SAPI5Engine implements SpeechEngine {
 		return SpeakStatus.ACCEPT;
 	}
 
-	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
+	@Deprecated(since="Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
 	@Synchronized("lock")
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {

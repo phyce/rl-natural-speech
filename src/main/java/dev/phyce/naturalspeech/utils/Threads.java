@@ -7,7 +7,8 @@ public final class Threads {
 	public static final Thread.UncaughtExceptionHandler silentInterruptHandler = (t, e) -> {
 		if (!(e instanceof InterruptedException)) {
 			log.error("Uncaught exception in thread {}", t, e);
-		} else {
+		}
+		else {
 			log.trace("Interrupted {} ", t);
 		}
 	};

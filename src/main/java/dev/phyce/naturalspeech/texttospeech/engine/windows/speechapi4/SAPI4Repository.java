@@ -2,8 +2,8 @@ package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.BufferedReader;
 import java.io.IOException;

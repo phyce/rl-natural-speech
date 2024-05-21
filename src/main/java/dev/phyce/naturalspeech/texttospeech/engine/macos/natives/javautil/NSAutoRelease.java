@@ -22,10 +22,8 @@ public final class NSAutoRelease {
 
 	/**
 	 * Registers the native object to be released when the java object is phantom reachable.<br><br>
-	 *
 	 * When the java object is phantom reachable, the native object will be released.
 	 * This metaphorically links the java object's life cycle to the native object's life cycle.<br>
-	 *
 	 * example:
 	 * <pre>{@code
 	 * ID ID = NSObject.alloc();
@@ -34,17 +32,16 @@ public final class NSAutoRelease {
 	 * // the ID will be released when this.javaObj is phantom reachable
 	 * AutoRelease.register(javaObj, ID);
 	 * }</pre>
-	 *
 	 * Special note: <br>
 	 * Avoid using String as the object to be registered,
 	 * because String may be interned and will never be phantom reachable.
 	 * If you must, use new String("..."), never "..."<br>
 	 * see {@link String#intern()} for more information<br><br>
-	 *
 	 * Make sure you understand the life cycle of the object you are registering.<br>
 	 *
-	 * @param javaObj the object to be registered
+	 * @param javaObj  the object to be registered
 	 * @param nativeID the nativeID of the native object
+	 *
 	 * @return the original nativeID and the object as a pair, for convenience
 	 */
 	public static <T> ID register(@NonNull T javaObj, @NonNull ID nativeID) {
@@ -60,7 +57,6 @@ public final class NSAutoRelease {
 
 	/**
 	 * Registers the ID Java object itself to release the native object it represents when itself is phantom reachable.<br><br>
-	 *
 	 * example:
 	 * <pre>{@code
 	 * // registers the ID object itself
@@ -68,10 +64,10 @@ public final class NSAutoRelease {
 	 * // keep the reference to the ID object
 	 * this.obj = obj;
 	 * }</pre>
-	 *
 	 * <b>You must keep the ID object referenced until you don't need the native object anymore.<br></b>
 	 *
 	 * @param nativeID This ID Object will release the native object when it is phantom reachable.
+	 *
 	 * @return The original ID object for, convenience.
 	 */
 	public static ID register(@NonNull ID nativeID) {

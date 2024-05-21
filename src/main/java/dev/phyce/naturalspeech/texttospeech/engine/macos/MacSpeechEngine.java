@@ -8,7 +8,6 @@ import com.sun.jna.Pointer;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
@@ -293,7 +292,8 @@ public class MacSpeechEngine implements SpeechEngine {
 					int shortLength = int16AudioSegments.stream().mapToInt(segment -> segment.length).sum();
 
 					byte[] audioData = new byte[shortLength * 2];
-					ShortBuffer shortBuilder = ByteBuffer.wrap(audioData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer();
+					ShortBuffer shortBuilder =
+						ByteBuffer.wrap(audioData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer();
 
 					int offset = 0;
 					for (short[] data : int16AudioSegments) {

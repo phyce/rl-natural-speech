@@ -3,33 +3,33 @@ package dev.phyce.naturalspeech.userinterface.panels;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.eventbus.PluginEventBus;
+import dev.phyce.naturalspeech.events.PiperModelStarted;
+import dev.phyce.naturalspeech.events.PiperModelStopped;
+import dev.phyce.naturalspeech.events.PiperPathChanged;
+import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
 import dev.phyce.naturalspeech.events.SpeechEngineStopped;
 import dev.phyce.naturalspeech.events.SpeechManagerFailedStart;
 import dev.phyce.naturalspeech.events.SpeechManagerStarted;
 import dev.phyce.naturalspeech.events.SpeechManagerStopped;
-import dev.phyce.naturalspeech.events.PiperModelStarted;
-import dev.phyce.naturalspeech.events.PiperModelStopped;
-import dev.phyce.naturalspeech.events.PiperPathChanged;
-import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
-import dev.phyce.naturalspeech.userinterface.components.EditorPanel;
-import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
-import dev.phyce.naturalspeech.userinterface.components.IconTextField;
-import dev.phyce.naturalspeech.userinterface.components.VoiceListItem;
-import dev.phyce.naturalspeech.userinterface.components.VoiceMetadata;
-import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
+import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Alias;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process;
+import dev.phyce.naturalspeech.userinterface.components.EditorPanel;
+import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
+import dev.phyce.naturalspeech.userinterface.components.IconTextField;
+import dev.phyce.naturalspeech.userinterface.components.VoiceListItem;
+import dev.phyce.naturalspeech.userinterface.components.VoiceMetadata;
+import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
 import dev.phyce.naturalspeech.utils.ChatHelper;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -277,12 +277,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	private void updateVoiceListItems() {
 		for (VoiceListItem voiceListItem : voiceListItems) {
-			if (speechManager.contains(voiceListItem.getVoiceMetadata().getVoiceId())) {
-				voiceListItem.setVisible(true);
-			}
-			else {
-				voiceListItem.setVisible(false);
-			}
+			voiceListItem.setVisible(speechManager.contains(voiceListItem.getVoiceMetadata().getVoiceId()));
 		}
 		revalidate();
 	}

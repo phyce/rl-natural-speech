@@ -196,7 +196,8 @@ public class ChatHelper {
 			return true;
 		}
 
-		if (message.getType() == ChatMessageType.PUBLICCHAT && spamDetection.isSpam(message.getName(), message.getMessage())) {
+		if (message.getType() == ChatMessageType.PUBLICCHAT &&
+			spamDetection.isSpam(message.getName(), message.getMessage())) {
 			log.trace("Muting message. Spam detected. Message:{}", message);
 			return true;
 		}
@@ -227,9 +228,9 @@ public class ChatHelper {
 			case PRIVATECHATOUT:
 				if (!config.privateOutChatEnabled()) return true;
 				break;
-//			case FRIENDSCHAT:
-//				if (!config.friendsChatEnabled()) return true;
-//				break;
+			//			case FRIENDSCHAT:
+			//				if (!config.friendsChatEnabled()) return true;
+			//				break;
 			case CLAN_CHAT:
 				if (!config.clanChatEnabled()) return true;
 				break;

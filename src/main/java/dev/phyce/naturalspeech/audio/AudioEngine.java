@@ -25,7 +25,6 @@ public class AudioEngine {
 	private float masterGain = 0;
 
 
-
 	public AudioEngine() {
 		mixer = AudioSystem.getMixer(null); // null gets the default system mixer
 	}
@@ -66,7 +65,8 @@ public class AudioEngine {
 		if (line == null) {
 			line = newLine(lineName, format);
 			log.trace("New line {} for {}", line, lineName);
-		} else {
+		}
+		else {
 			log.trace("Existing line {} for {}", line, lineName);
 		}
 
@@ -140,7 +140,6 @@ public class AudioEngine {
 		lines.put(lineName, line);
 		return line;
 	}
-
 
 
 }

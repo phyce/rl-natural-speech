@@ -101,7 +101,8 @@ public class SpeechAPI4 {
 				if (limits.size() <= 2) {
 					if (limits.get(1).contains("(null)")) {
 						log.trace("Windows Speech API 4 is not installed, cannot launch {}", sapiName);
-					} else {
+					}
+					else {
 						log.error("Non-existent WSAPI4 model:{}", sapiName);
 					}
 					return null;

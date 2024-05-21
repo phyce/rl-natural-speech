@@ -2,11 +2,11 @@ package dev.phyce.naturalspeech.configs;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.statics.ConfigKeys;
-import dev.phyce.naturalspeech.statics.PluginPaths;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
+import dev.phyce.naturalspeech.statics.PluginPaths;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.nio.file.Path;
 import net.runelite.client.config.ConfigManager;
@@ -31,17 +31,20 @@ public class RuntimePathConfig {
 	public Path getPiperPath() {
 
 		//noinspection deprecation
-		String deprecatedPiperPath = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
+		String deprecatedPiperPath =
+			configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
 
 		Path path = getDefaultPath();
 
 		// If the user has installed Natural Speech, favor the installed piper and return the path
 		if (path.toFile().exists()) {
 			return path;
-		} else if (deprecatedPiperPath != null) {
+		}
+		else if (deprecatedPiperPath != null) {
 			// If the user has not installed using installer, try the deprecated custom piper path
 			return Path.of(deprecatedPiperPath);
-		} else {
+		}
+		else {
 			// Natural Speech not installed and did not have a custom piper path set
 			// We just return the default path and let the user know they need to install Natural Speech
 			return path;
@@ -69,9 +72,11 @@ public class RuntimePathConfig {
 			.resolve("sapi4out.exe");
 	}
 
-	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
+	@Deprecated(
+		since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
 	public void savePiperPath(Path path) {
-		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH, path.toString());
+		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH,
+			path.toString());
 		pluginEventBus.post(new PiperPathChanged(path));
 	}
 

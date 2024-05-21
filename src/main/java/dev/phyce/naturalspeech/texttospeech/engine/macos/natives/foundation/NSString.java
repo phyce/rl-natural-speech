@@ -1,10 +1,9 @@
-
 package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation;
 
 import com.sun.jna.platform.mac.CoreFoundation;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 import java.nio.charset.StandardCharsets;
 import lombok.NonNull;
 

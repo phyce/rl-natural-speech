@@ -2,7 +2,7 @@ package dev.phyce.naturalspeech;
 
 public class OtherTest {
 
-	private static String[] exampleSentences = new String[] {
+	private static final String[] exampleSentences = new String[] {
 		"Hello",
 		"Hello, World.",
 		"Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello, world.",

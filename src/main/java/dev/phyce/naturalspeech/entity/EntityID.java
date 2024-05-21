@@ -69,7 +69,8 @@ public final class EntityID {
 
 		if (other instanceof EntityID) {
 			return this.hashCode() == other.hashCode();
-		} else {
+		}
+		else {
 			return false;
 		}
 	}
@@ -121,9 +122,10 @@ public final class EntityID {
 		else if (id != null) {
 			return "EntityID(id=" + id + ")";
 		}
-		else if (name != null){
+		else if (name != null) {
 			return "EntityID(standardName=" + name + ")";
-		} else {
+		}
+		else {
 			return "EntityID(null)";
 		}
 	}
@@ -135,9 +137,10 @@ public final class EntityID {
 		else if (id != null) {
 			return "NPC" + id;
 		}
-		else if (name != null){
+		else if (name != null) {
 			return name;
-		} else {
+		}
+		else {
 			return "EntityID(null)";
 		}
 	}
@@ -187,7 +190,8 @@ public final class EntityID {
 			if (id == null && name == null) {
 				log.error("SID must have either id or name");
 				return null;
-			} else {
+			}
+			else {
 				return new EntityID(id, name);
 			}
 

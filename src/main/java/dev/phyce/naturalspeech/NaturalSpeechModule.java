@@ -1,22 +1,21 @@
 package dev.phyce.naturalspeech;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.audio.AudioEngine;
+import dev.phyce.naturalspeech.audio.VolumeManager;
 import dev.phyce.naturalspeech.clienteventhandlers.CommandExecutedEventHandler;
 import dev.phyce.naturalspeech.clienteventhandlers.MenuEventHandler;
-import dev.phyce.naturalspeech.executor.PluginExecutorService;
-import dev.phyce.naturalspeech.spamdetection.SpamDetection;
 import dev.phyce.naturalspeech.clienteventhandlers.SpeechEventHandler;
-import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
+import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
+import dev.phyce.naturalspeech.spamdetection.SpamDetection;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
-import dev.phyce.naturalspeech.audio.VolumeManager;
-import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;

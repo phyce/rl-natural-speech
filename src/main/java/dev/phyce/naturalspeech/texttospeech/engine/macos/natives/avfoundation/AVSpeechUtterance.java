@@ -3,8 +3,8 @@ package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 
 /**
  * @see <a href="https://developer.apple.com/documentation/avfaudio/avspeechutterance?language=objc">Apple Documentation</a>
@@ -31,7 +31,6 @@ public interface AVSpeechUtterance {
 	 * A pointer to an AVSpeechUtterance object.
 	 *
 	 * @see <a href="https://developer.apple.com/documentation/avfaudio/avspeechutterance/1619668-speechutterancewithstring?language=objc">Apple Documentation</a>
-	 * @memory Special note, this returned object exists in the AutoReleasePool, so it is not necessary to release it.
 	 */
 	static ID getSpeechUtteranceWithString(String string) {
 		ID nsString = NSString.alloc(string);

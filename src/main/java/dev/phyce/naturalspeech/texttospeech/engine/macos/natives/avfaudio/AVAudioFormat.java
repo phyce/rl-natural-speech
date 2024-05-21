@@ -1,8 +1,8 @@
 package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 
 /**
  * @see <a href="https://developer.apple.com/documentation/avfaudio/avaudioformat?language=objc">Apple Documentation</a>

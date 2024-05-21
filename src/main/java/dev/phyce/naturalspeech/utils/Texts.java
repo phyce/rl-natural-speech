@@ -22,7 +22,7 @@ public final class Texts {
 	}
 
 	public static String sentenceSegmentPrettyPrint(List<String> segments) {
-		return segments.stream().map(s -> "[" + s + "]").reduce("", (a, b) ->  a + b);
+		return segments.stream().map(s -> "[" + s + "]").reduce("", (a, b) -> a + b);
 	}
 
 	public static String expandAbbreviations(String text, Map<String, String> phrases) {
@@ -61,6 +61,7 @@ public final class Texts {
 	}
 
 	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*\\w.*");
+
 	public static boolean containAlphaNumeric(String text) {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
 	}
@@ -77,11 +78,12 @@ public final class Texts {
 
 	public static String generateJson(String text, int voiceId) {
 		text = escape(text);
-		if(voiceId == -1) return String.format("{\"text\":\"%s\"}", text);
-		else return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
+		if (voiceId == -1) {return String.format("{\"text\":\"%s\"}", text);}
+		else {return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);}
 	}
 
 	private static final Pattern patternTargetWithLevel = Pattern.compile("(.+)  \\(level-\\d+\\)");
+
 	/*
 	 * For MenuEntry menuTarget name.
 	 * Keeps tag information, removes level information.

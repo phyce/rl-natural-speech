@@ -6,7 +6,8 @@ import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-import static dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.BlockFlags.*;
+import static dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.BlockFlags.BLOCK_HAS_COPY_DISPOSE;
+import static dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.BlockFlags.BLOCK_NEEDS_FREE;
 import java.util.Vector;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -46,9 +47,6 @@ import lombok.extern.slf4j.Slf4j;
  * </p>
  *
  * @see LibObjC LibObjC explains Objective-C runtime and libobjc.dylib in detail
- * @memory HeapBlocks are reference-counted, API that receive blocks will retain.
- * It is safe to release the block after passing it to an API. <br>
- * Check out: {@link #release(Block)} and {@link #retain(Block)}
  */
 @Structure.FieldOrder({"isa", "flags", "reserved", "invoke", "descriptor"})
 @Slf4j
@@ -80,7 +78,8 @@ public class Block extends Structure {
 				(dst, src) -> log.error("Copying block: @{} -> @{}", dst, src),
 				block -> {
 					BLOCK_CALLBACK_OBJECTS.remove(Block.cast(block).invoke);
-					log.debug("Disposing heap block@{}. BLOCK_CALLBACK_OBJECTS size:{}", block, BLOCK_CALLBACK_OBJECTS.size());
+					log.debug("Disposing heap block@{}. BLOCK_CALLBACK_OBJECTS size:{}", block,
+						BLOCK_CALLBACK_OBJECTS.size());
 				}
 			);
 		}

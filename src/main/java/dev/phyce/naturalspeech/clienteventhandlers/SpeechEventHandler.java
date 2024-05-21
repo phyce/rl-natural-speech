@@ -68,7 +68,7 @@ public class SpeechEventHandler {
 		this.chatHelper = chatHelper;
 	}
 
-	@Subscribe(priority = -100)
+	@Subscribe(priority=-100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (!speechManager.isStarted()) return;
 

@@ -10,6 +10,7 @@ public interface Names {
 	static String Username(String username) {
 		return "&user_" + username;
 	}
+
 	static String NPCName(String npcName) {
 		return "&npc_" + npcName;
 	}

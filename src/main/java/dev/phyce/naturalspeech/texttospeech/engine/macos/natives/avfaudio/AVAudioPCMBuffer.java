@@ -7,7 +7,6 @@ import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 
 /**
  * @see <a href="https://developer.apple.com/documentation/avfaudio/avaudiopcmbuffer?language=objc">Apple Documentation</a>
-
  */
 public interface AVAudioPCMBuffer {
 	ID idClass = LibObjC.objc_getClass("AVAudioPCMBuffer");

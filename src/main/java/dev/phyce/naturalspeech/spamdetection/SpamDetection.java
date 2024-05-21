@@ -10,7 +10,8 @@ public class SpamDetection {
 	private final SpamFilterPluglet spamFilterPluglet;
 
 	@Inject
-	private SpamDetection(ChatFilterPluglet chatFilterPluglet, SpamFilterPluglet spamFilterPluglet
+	private SpamDetection(
+		ChatFilterPluglet chatFilterPluglet, SpamFilterPluglet spamFilterPluglet
 	) {
 		this.chatFilterPluglet = chatFilterPluglet;
 		this.spamFilterPluglet = spamFilterPluglet;

@@ -3,23 +3,23 @@ package dev.phyce.naturalspeech.texttospeech.engine.piper;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.eventbus.PluginEventBus;
-import dev.phyce.naturalspeech.executor.PluginExecutorService;
-import dev.phyce.naturalspeech.audio.AudioEngine;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
-import dev.phyce.naturalspeech.configs.RuntimePathConfig;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.PiperConfig;
-import dev.phyce.naturalspeech.events.PiperProcessCrashed;
+import dev.phyce.naturalspeech.configs.RuntimePathConfig;
+import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.events.PiperModelStarted;
 import dev.phyce.naturalspeech.events.PiperModelStopped;
+import dev.phyce.naturalspeech.events.PiperProcessCrashed;
 import dev.phyce.naturalspeech.events.PiperProcessExited;
 import dev.phyce.naturalspeech.events.PiperProcessStarted;
+import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
-import dev.phyce.naturalspeech.utils.MacUnquarantine;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
+import dev.phyce.naturalspeech.utils.MacUnquarantine;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.File;
 import java.io.IOException;
@@ -79,7 +79,12 @@ public class PiperEngine implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeechEngine.SpeakStatus speak(
+		VoiceID voiceID,
+		String text,
+		Supplier<Float> gainSupplier,
+		String lineName
+	) {
 
 		if (!isModelActive(voiceID.getModelName())) {
 			return SpeakStatus.REJECT;
@@ -99,7 +104,7 @@ public class PiperEngine implements SpeechEngine {
 		}
 	}
 
-	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
+	@Deprecated(since="Do not start engines directly, use TextToSpeech::startEngine.")
 	@Synchronized("lock")
 	@Override
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
@@ -130,7 +135,8 @@ public class PiperEngine implements SpeechEngine {
 									piperRepository.loadModelLocal(modelURL.getModelName());
 								startModel(modelLocal);
 								started = true;
-							} else {
+							}
+							else {
 								isDisabled = true;
 							}
 						}
@@ -141,16 +147,18 @@ public class PiperEngine implements SpeechEngine {
 
 				if (started) {
 					return StartResult.SUCCESS;
-				} else if (isDisabled) {
+				}
+				else if (isDisabled) {
 					return StartResult.DISABLED;
-				} else {
+				}
+				else {
 					return StartResult.FAILED;
 				}
 			}
 		}, executorService);
 	}
 
-	@Deprecated(since = "Do not stop engines directly, use TextToSpeech::stopEngine")
+	@Deprecated(since="Do not stop engines directly, use TextToSpeech::stopEngine")
 	@Override
 	@Synchronized("lock")
 	public void stop() {

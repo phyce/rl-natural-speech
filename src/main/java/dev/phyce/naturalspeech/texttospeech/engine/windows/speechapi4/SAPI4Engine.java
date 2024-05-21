@@ -3,13 +3,13 @@ package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
-import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
+import dev.phyce.naturalspeech.texttospeech.VoiceManager;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +72,12 @@ public class SAPI4Engine implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeechEngine.SpeakStatus speak(
+		VoiceID voiceID,
+		String text,
+		Supplier<Float> gainSupplier,
+		String lineName
+	) {
 		if (!Objects.equals(voiceID.modelName, SAPI4_MODEL_NAME)) {
 			return SpeakStatus.REJECT;
 		}
@@ -86,7 +91,7 @@ public class SAPI4Engine implements SpeechEngine {
 		return SpeakStatus.ACCEPT;
 	}
 
-	@Deprecated(since = "Do not start engines directly, use TextToSpeech::startEngine.")
+	@Deprecated(since="Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
 	@Synchronized("lock")
 	public ListenableFuture<StartResult> start(ExecutorService executorService) {
@@ -103,7 +108,8 @@ public class SAPI4Engine implements SpeechEngine {
 				if (sapi4s.isEmpty()) {
 					started = false;
 					result = StartResult.FAILED;
-				} else {
+				}
+				else {
 
 					sapi4s.forEach((voiceName, sapi) -> {
 						voiceManager.register(new VoiceID(SAPI4_MODEL_NAME, voiceName), sapi.getGender());
@@ -119,7 +125,7 @@ public class SAPI4Engine implements SpeechEngine {
 		}, executorService);
 	}
 
-	@Deprecated(since = "Do not stop engines directly, use TextToSpeech::stopEngine")
+	@Deprecated(since="Do not stop engines directly, use TextToSpeech::stopEngine")
 	@Override
 	@Synchronized("lock")
 	public void stop() {

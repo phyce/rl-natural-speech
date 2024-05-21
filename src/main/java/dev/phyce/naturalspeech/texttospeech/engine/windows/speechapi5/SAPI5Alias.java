@@ -45,6 +45,7 @@ public enum SAPI5Alias {
 	public final String modelName;
 
 	private static String desktop(String name) {return "Microsoft " + name + " Desktop";}
+
 	private static String mobile(String name) {return "Microsoft " + name;}
 
 

@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.userinterface.components;
 
-import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
+import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;

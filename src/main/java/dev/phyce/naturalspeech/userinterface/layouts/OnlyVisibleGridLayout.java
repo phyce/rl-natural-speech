@@ -63,12 +63,10 @@ public class OnlyVisibleGridLayout extends GridLayout {
 
 	@Override
 	public void layoutContainer(Container parent) {
-		synchronized (parent.getTreeLock())
-		{
+		synchronized (parent.getTreeLock()) {
 			// default all children bounds to 0,0
 			// only update the visible children
-			for (Component comp : parent.getComponents())
-			{
+			for (Component comp : parent.getComponents()) {
 				comp.setBounds(0, 0, 0, 0);
 			}
 
@@ -79,17 +77,14 @@ public class OnlyVisibleGridLayout extends GridLayout {
 			int nrows = getRows();
 			int ncols = getColumns();
 
-			if (ncomponents == 0)
-			{
+			if (ncomponents == 0) {
 				return;
 			}
 
-			if (nrows > 0)
-			{
+			if (nrows > 0) {
 				ncols = (ncomponents + nrows - 1) / nrows;
 			}
-			else
-			{
+			else {
 				nrows = (ncomponents + ncols - 1) / ncols;
 			}
 
@@ -108,8 +103,7 @@ public class OnlyVisibleGridLayout extends GridLayout {
 			final int[] h = new int[nrows];
 
 			// calculate dimensions for all components + apply scaling
-			for (int i = 0; i < ncomponents; i++)
-			{
+			for (int i = 0; i < ncomponents; i++) {
 				final int r = i / ncols;
 				final int c = i % ncols;
 				final Component comp = components[i];
@@ -117,29 +111,24 @@ public class OnlyVisibleGridLayout extends GridLayout {
 				d.width = (int) (sw * d.width);
 				d.height = (int) (sh * d.height);
 
-				if (w[c] < d.width)
-				{
+				if (w[c] < d.width) {
 					w[c] = d.width;
 				}
 
-				if (h[r] < d.height)
-				{
+				if (h[r] < d.height) {
 					h[r] = d.height;
 				}
 			}
 
 			// Apply new bounds to all child components
 			Component comp = null;
-			for (int c = 0, x = insets.left; c < ncols; c++)
-			{
-				for (int r = 0, y = insets.top; r < nrows; r++)
-				{
+			for (int c = 0, x = insets.left; c < ncols; c++) {
+				for (int r = 0, y = insets.top; r < nrows; r++) {
 					int i = r * ncols + c;
 
-					if (i < ncomponents)
-					{
+					if (i < ncomponents) {
 						comp = components[i];
-							comp.setBounds(x, y, w[c], h[r]);
+						comp.setBounds(x, y, w[c], h[r]);
 					}
 
 					y += h[r] + vgap;
@@ -165,12 +154,10 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		int nrows = getRows();
 		int ncols = getColumns();
 
-		if (nrows > 0)
-		{
+		if (nrows > 0) {
 			ncols = (ncomponents + nrows - 1) / nrows;
 		}
-		else
-		{
+		else {
 			nrows = (ncomponents + ncols - 1) / ncols;
 		}
 
@@ -178,20 +165,17 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		final int[] h = new int[nrows];
 
 		// Calculate dimensions for all components
-		for (int i = 0; i < ncomponents; i++)
-		{
+		for (int i = 0; i < ncomponents; i++) {
 			final int r = i / ncols;
 			final int c = i % ncols;
 			final Component comp = components[i];
 			final Dimension d = sizer.apply(comp);
 
-			if (w[c] < d.width)
-			{
+			if (w[c] < d.width) {
 				w[c] = d.width;
 			}
 
-			if (h[r] < d.height)
-			{
+			if (h[r] < d.height) {
 				h[r] = d.height;
 			}
 		}
@@ -199,15 +183,13 @@ public class OnlyVisibleGridLayout extends GridLayout {
 		// Calculate total width and height of the layout
 		int nw = 0;
 
-		for (int j = 0; j < ncols; j++)
-		{
+		for (int j = 0; j < ncols; j++) {
 			nw += w[j];
 		}
 
 		int nh = 0;
 
-		for (int i = 0; i < nrows; i++)
-		{
+		for (int i = 0; i < nrows; i++) {
 			nh += h[i];
 		}
 

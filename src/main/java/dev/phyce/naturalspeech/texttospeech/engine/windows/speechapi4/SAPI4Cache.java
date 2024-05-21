@@ -8,7 +8,7 @@ import lombok.NonNull;
 
 @AllArgsConstructor
 public enum SAPI4Cache {
-	SAM("Sam", "sam", Gender.MALE,100, 50, 200, 150, 30, 450),
+	SAM("Sam", "sam", Gender.MALE, 100, 50, 200, 150, 30, 450),
 
 	MARY("Mary", "mary", Gender.FEMALE, 169, 84, 338, 170, 30, 510),
 	MARY_PHONE("Mary (for Telephone)", "maryphone", Gender.FEMALE, 169, 84, 338, 170, 30, 510),
@@ -41,8 +41,10 @@ public enum SAPI4Cache {
 	TRUEVOICE_MALE7("Adult Male #7, American English (TruVoice)", "trueman7", Gender.MALE, 117, 50, 400, 150, 50, 250),
 	TRUEVOICE_MALE8("Adult Male #8, American English (TruVoice)", "trueman8", Gender.MALE, 203, 50, 400, 150, 50, 250),
 
-	TRUEVOICE_FEMALE1("Adult Female #1, American English (TruVoice)", "truefemale1", Gender.FEMALE, 208, 50, 400, 150, 50, 250),
-	TRUEVOICE_FEMALE2("Adult Female #2, American English (TruVoice)", "truefemale2", Gender.FEMALE, 152, 50, 400, 150, 50, 250),
+	TRUEVOICE_FEMALE1("Adult Female #1, American English (TruVoice)", "truefemale1", Gender.FEMALE, 208, 50, 400, 150,
+		50, 250),
+	TRUEVOICE_FEMALE2("Adult Female #2, American English (TruVoice)", "truefemale2", Gender.FEMALE, 152, 50, 400, 150,
+		50, 250),
 	;
 
 	public final String sapiName;

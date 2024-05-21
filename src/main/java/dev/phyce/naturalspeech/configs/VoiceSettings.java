@@ -69,7 +69,7 @@ public class VoiceSettings {
 			JsonSerializationContext context
 		) {
 			List<Setting> settings = new ArrayList<>();
-			voiceSettings.settings.forEach((k,v) -> settings.add(new Setting(k, v)));
+			voiceSettings.settings.forEach((k, v) -> settings.add(new Setting(k, v)));
 
 			JsonObject jsonObject = new JsonObject();
 			jsonObject.add("settings", context.serialize(settings));
@@ -94,9 +94,11 @@ public class VoiceSettings {
 
 			if (version == 0) {
 				settings = deserializeVersion0(context, json);
-			} else if (version == 1) {
+			}
+			else if (version == 1) {
 				settings = deserializeVersion1(context, json);
-			} else {
+			}
+			else {
 				throw new JsonSyntaxException("Unknown VoiceSettings Schema Version: " + version);
 			}
 

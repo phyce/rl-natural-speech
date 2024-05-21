@@ -148,7 +148,8 @@ public class SpeechManager implements SpeechEngine {
 						else {
 							// if there are no engines available/installed
 							log.error("No engines started successfully.");
-							pluginEventBus.post(new SpeechManagerFailedStart(SpeechManagerFailedStart.Reason.ALL_FAILED));
+							pluginEventBus.post(
+								new SpeechManagerFailedStart(SpeechManagerFailedStart.Reason.ALL_FAILED));
 							result = StartResult.FAILED;
 						}
 
@@ -213,7 +214,12 @@ public class SpeechManager implements SpeechEngine {
 	}
 
 	@Override
-	public @NonNull SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName) {
+	public @NonNull SpeechEngine.SpeakStatus speak(
+		VoiceID voiceID,
+		String text,
+		Supplier<Float> gainSupplier,
+		String lineName
+	) {
 
 		for (SpeechEngine activeEngine : activeEngines) {
 			SpeakStatus result = activeEngine.speak(voiceID, text, gainSupplier, lineName);

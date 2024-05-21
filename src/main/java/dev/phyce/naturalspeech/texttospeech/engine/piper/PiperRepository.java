@@ -12,14 +12,14 @@ import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import static dev.phyce.naturalspeech.statics.PluginResources.MODEL_REPO;
-import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
+import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.eventbus.PluginEventBus;
+import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.network.DownloadTask;
 import dev.phyce.naturalspeech.network.Downloader;
-import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
+import static dev.phyce.naturalspeech.statics.PluginResources.MODEL_REPO;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import java.io.File;
 import java.io.FileInputStream;
@@ -303,8 +303,10 @@ public class PiperRepository {
 		}
 
 		@Override
-		public Gender deserialize(JsonElement jsonElement, Type type,
-								  JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
+		public Gender deserialize(
+			JsonElement jsonElement, Type type,
+			JsonDeserializationContext jsonDeserializationContext
+		) throws JsonParseException {
 			if (jsonElement.getAsString().equals("M")) {
 				return Gender.MALE;
 			}

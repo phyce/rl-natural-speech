@@ -36,8 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 public class MacUnquarantine {
 
 	/**
-	 *
 	 * @param piperExePath path to the piper executable (not the folder)
+	 *
 	 * @return Returns if the un-quarantine was successful
 	 */
 	public static boolean Unquarantine(Path piperExePath) {

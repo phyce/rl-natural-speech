@@ -29,7 +29,12 @@ public class BlockDescriptor extends Structure implements Structure.ByReference 
 		read();
 	}
 
-	public BlockDescriptor(@NonNull NativeLong reserved, @NonNull NativeLong size, @NonNull BlockCopyHelper copy, @NonNull BlockDisposeHelper dispose) {
+	public BlockDescriptor(
+		@NonNull NativeLong reserved,
+		@NonNull NativeLong size,
+		@NonNull BlockCopyHelper copy,
+		@NonNull BlockDisposeHelper dispose
+	) {
 		super();
 		this.reserved = reserved;
 		this.size = size;

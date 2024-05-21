@@ -137,7 +137,8 @@ public class VoiceManager {
 		if (voiceID == null) {
 			log.trace("No voice setting for {}. Randomizing voice.", entityID);
 			voiceID = random(entityID);
-		} else {
+		}
+		else {
 			log.trace("Voice setting found for {}: {}", entityID, voiceID);
 		}
 
@@ -186,7 +187,8 @@ public class VoiceManager {
 
 		long count = activeVoiceMap.size();
 
-		Optional<VoiceID> first = Optional.fromJavaUtil(activeVoiceMap.stream().skip((int) (Math.random() * count)).findFirst());
+		Optional<VoiceID> first =
+			Optional.fromJavaUtil(activeVoiceMap.stream().skip((int) (Math.random() * count)).findFirst());
 		Preconditions.checkState(first != null && first.isPresent());
 		return first.get();
 	}

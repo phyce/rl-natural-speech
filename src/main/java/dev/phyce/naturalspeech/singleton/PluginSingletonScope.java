@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- *
  * The scope can be initialized with one or more seed values by calling
  * <code>seed(key, value)</code> before the injector will be called upon to
  * provide for this key.

@@ -197,7 +197,7 @@ public class VoiceHubPanel extends PluginPanel {
 
 	}
 
-	@Deprecated(since = "1.3.0 We have an installer which installs to a standard location, no more path changes.")
+	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, no more path changes.")
 	@Subscribe
 	private void onPiperPathChanged(PiperPathChanged event) {
 		log.debug("Repository refresh. Rebuilding");

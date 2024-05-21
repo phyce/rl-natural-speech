@@ -107,7 +107,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 								icons.logo.get() +
 									"<col=ff1818>Failed: Invalid voice format \"%s\"(" + icons.xmark.get() + ").<br>" +
 									"<col=ff1818>Example format: \"libritts:123\"",
-									string),
+								string),
 							"")
 					);
 

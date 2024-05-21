@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio;
 
 /*
-*/
+ */
 
 import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
@@ -17,6 +17,7 @@ import lombok.Getter;
  *     AVAudioPCMFormatInt32 = 4
  * } NS_ENUM_AVAILABLE(10_10, 8_0);
  * }</pre>
+ *
  * @see <a href="https://developer.apple.com/documentation/avfaudio/avaudiocommonformat?language=objc">Apple Documentation</a>
  */
 @Getter

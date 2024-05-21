@@ -116,7 +116,8 @@ public final class ClientHelper {
 		int[] configs = client.getNpcDefinition(modelId).getConfigs();
 		if (configs == null) {
 			return modelId;
-		} else {
+		}
+		else {
 			return Arrays.stream(configs)
 				.filter(id -> id != -1)
 				.findFirst()

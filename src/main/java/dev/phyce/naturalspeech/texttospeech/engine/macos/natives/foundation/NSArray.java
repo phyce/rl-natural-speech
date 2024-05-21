@@ -1,8 +1,8 @@
 package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
 
 public interface NSArray {
 
@@ -15,7 +15,6 @@ public interface NSArray {
 	SEL selObjectAtIndex = LibObjC.sel_registerName("objectAtIndex:");
 
 	/**
-	 * @param self
 	 * @return unsigned int, represented as a long in Java (no unsigned int in Java)
 	 */
 	static long getCount(ID self) {

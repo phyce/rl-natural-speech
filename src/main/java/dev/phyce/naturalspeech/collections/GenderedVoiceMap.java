@@ -5,7 +5,6 @@ import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -19,19 +18,24 @@ public class GenderedVoiceMap {
 		if (gender == Gender.MALE) {
 			if (maleList.contains(voiceID)) {
 				log.warn("Attempting to add duplicate {} to male voice list", voiceID);
-			} else {
+			}
+			else {
 				maleList.add(voiceID);
 			}
-		} else if (gender == Gender.FEMALE) {
+		}
+		else if (gender == Gender.FEMALE) {
 			if (femaleList.contains(voiceID)) {
 				log.warn("Attempting to add duplicate {} to female voice list", voiceID);
-			} else {
+			}
+			else {
 				femaleList.add(voiceID);
 			}
-		} else {
+		}
+		else {
 			if (otherList.contains(voiceID)) {
 				log.warn("Attempting to add duplicate other {} to other voice list", voiceID);
-			} else {
+			}
+			else {
 				otherList.add(voiceID);
 			}
 		}
@@ -46,9 +50,11 @@ public class GenderedVoiceMap {
 	public Set<VoiceID> find(Gender gender) {
 		if (gender == Gender.MALE) {
 			return Collections.unmodifiableSet(maleList);
-		} else if (gender == Gender.FEMALE) {
+		}
+		else if (gender == Gender.FEMALE) {
 			return Collections.unmodifiableSet(femaleList);
-		} else {
+		}
+		else {
 			return Collections.unmodifiableSet(otherList);
 		}
 	}

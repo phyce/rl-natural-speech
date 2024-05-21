@@ -14,7 +14,6 @@ import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSSt
  * <br><br>
  * The only operating systems with libobjc.dylib bundled are Apple OS (macOS, iOS, etc.)
  * </p>
- *
  * <h2>Naming Conventions</h2>
  * All functions in the Objective-C runtime library follow the naming conventions:
  * <ul>
@@ -26,30 +25,7 @@ import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSSt
  *     </li>
  * </ul>
  *
- *
  * @see <a href="https://developer.apple.com/documentation/objectivec/objective-c_runtime?language=objc">Apple Documentation: Objective-C Runtime</a>
- *
- * @note Objective-C is a two-part system built-upon C. <br>
- * <ol>
- * <li><b>Clang code-generation</b>
- *   <p>
- *       Clang code-generates Objective-C code into C code, which assumes the existence of an Objective-C runtime.
- *       (metaphorically; in reality into LLVM IR and then into machine code)
- *   </p>
- * </li>
- * <li><b>Objective-C runtime</b>
- *   <p>
- *     The Objective-C runtime lives in libobjc.dylib, placed in the OS file system and dynamically links
- *     to executables. The runtime library implements features common in interpreted languages, such as
- *     dynamic method resolution, introspection, runtime class creation, closures etc.
- *   </p>
- * </li>
- * </ol>
- *   <p>
- *    In a way, Objective-C and Java are quite similar.
- *    The Java bytecode runtime is the JVM, and the Objective-C bytecode runtime is libobjc.dylib.
- *   </p>
- *
  */
 public final class LibObjC {
 
@@ -57,7 +33,7 @@ public final class LibObjC {
 
 	public static final LibObjC INSTANCE;
 
-	static  {
+	static {
 		LibObjC inst;
 		try {
 			inst = new LibObjC();
@@ -89,17 +65,10 @@ public final class LibObjC {
 	 * Sends a message with a simple return value to an instance of a class.
 	 *
 	 * @param self A pointer to the instance of the class that is to receive the message.
-	 * @param op The op of the method that handles the message.
-	 * @param args
-	 *   A variable argument list containing the arguments to the method.
+	 * @param op   The op of the method that handles the message.
+	 * @param args A variable argument list containing the arguments to the method.
 	 *
 	 * @return The return value of the method.
-	 *
-	 * @note When it encounters a method call, the compiler generates a call to one of the
-	 *  functions {@code objc_msgSend}, {@code objc_msgSend_stret}, {@code objc_msgSendSuper}, or {@code objc_msgSendSuper_stret}.
-	 *  Messages sent to an object’s superclass (using the super keyword) are sent using {@code objc_msgSendSuper};
-	 *  other messages are sent using objc_msgSend. Methods that have data structures as return values
-	 *  are sent using {@code objc_msgSendSuper_stret} and {@code objc_msgSend_stret}.
 	 *
 	 * @see <a href="https://github.com/apple-oss-distributions/objc4/blob/01edf1705fbc3ff78a423cd21e03dfc21eb4d780/runtime/objc.h#L155">Apple Documentation</a>
 	 */
@@ -181,10 +150,7 @@ public final class LibObjC {
 	 * @param name The name of the class to look up.
 	 *
 	 * @return The Class object for the named class, or {@code nil}
-	 *  if the class is not registered with the Objective-C runtime.
-	 *
-	 * @note The implementation of {@code objc_getClass} is identical to the implementation
-	 *  of {@code objc_lookUpClass}.
+	 * if the class is not registered with the Objective-C runtime.
 	 *
 	 * @see <a href="https://github.com/apple-oss-distributions/objc4/blob/01edf1705fbc3ff78a423cd21e03dfc21eb4d780/runtime/runtime.h#L268">Apple Documentation</a>
 	 */
@@ -201,11 +167,8 @@ public final class LibObjC {
 	 * <br>
 	 *
 	 * @param selectorName A pointer to a C string. Pass the name of the method you wish to register.
-	 * @return A pointer of type SEL specifying the selector for the named method.
 	 *
-	 * @note You must register a method name with the Objective-C runtime system to obtain the
-	 * method’s selector before you can add the method to a class definition. If the method name
-	 * has already been registered, this function simply returns the selector.
+	 * @return A pointer of type SEL specifying the selector for the named method.
 	 *
 	 * @see <a href="https://github.com/apple-oss-distributions/objc4/blob/01edf1705fbc3ff78a423cd21e03dfc21eb4d780/runtime/objc.h#L155">Apple Documentation</a>
 	 */
@@ -228,14 +191,14 @@ public final class LibObjC {
 		checkState(INSTANCE != null, "LibObjC is not available");
 		checkState(INSTANCE._Block_release != null, "_Block_release is not available");
 
-		INSTANCE._Block_release.invoke(new Object[]{block});
+		INSTANCE._Block_release.invoke(new Object[] {block});
 	}
 
 	public static Block Block_copy(Block block) {
 		checkState(INSTANCE != null, "LibObjC is not available");
 		checkState(INSTANCE._Block_copy != null, "_Block_copy is not available");
 
-		return Block.cast(INSTANCE._Block_copy.invokePointer(new Object[]{block}));
+		return Block.cast(INSTANCE._Block_copy.invokePointer(new Object[] {block}));
 	}
 
 }

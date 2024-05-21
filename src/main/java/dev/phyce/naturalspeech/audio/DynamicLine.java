@@ -85,7 +85,7 @@ public class DynamicLine implements SourceDataLine {
 					triggerEvent(DynamicLineEvent.DONE_BUFFERING);
 					buffering = false;
 				}
-				synchronized (byteBuffer) { byteBuffer.wait(); }
+				synchronized (byteBuffer) {byteBuffer.wait();}
 			}
 
 			if (!buffering) {
@@ -98,7 +98,8 @@ public class DynamicLine implements SourceDataLine {
 			if (b != null) {
 				write(b, 0, b.length);
 				drain();
-			} else {
+			}
+			else {
 				log.warn("Found null byte array in buffer, somewhere buffer(null) was called.");
 			}
 		}
@@ -119,7 +120,7 @@ public class DynamicLine implements SourceDataLine {
 			gainControl = (FloatControl) getControl(FloatControl.Type.MASTER_GAIN);
 		}
 
-		float suppliedGain = gainSupplier.get() ;
+		float suppliedGain = gainSupplier.get();
 		float mixedGain = suppliedGain + masterGain;
 		mixedGain = Math.min(6, Math.max(VolumeManager.NOISE_FLOOR, mixedGain));
 		gainControl.setValue(mixedGain);
@@ -167,13 +168,14 @@ public class DynamicLine implements SourceDataLine {
 	/**
 	 * This write will conflict and write over data from {@link #buffer(byte[])}.
 	 * Part of Java API.
-	 * @param b a byte array containing data to be written to the data line
+	 *
+	 * @param b   a byte array containing data to be written to the data line
 	 * @param off the offset from the beginning of the array, in bytes
 	 * @param len the length, in bytes, of the valid data in the array (in
-	 *         other words, the requested amount of data to write, in bytes)
-	 * @return
+	 *            other words, the requested amount of data to write, in bytes)
 	 */
-	@Override @Deprecated
+	@Override
+	@Deprecated
 	public int write(byte[] b, int off, int len) {
 		return sourceLine.write(b, off, len);
 	}
@@ -206,7 +208,6 @@ public class DynamicLine implements SourceDataLine {
 
 	/**
 	 * isRunning is better described as isPlaying.
-	 * @return
 	 */
 	@Override
 	public boolean isRunning() {
@@ -226,9 +227,9 @@ public class DynamicLine implements SourceDataLine {
 	/**
 	 * This BufferSize has nothing to do with {@link #buffer(byte[])}.
 	 * Just part of Java API {@link SourceDataLine#getBufferSize()}
-	 * @return
 	 */
-	@Override @Deprecated
+	@Override
+	@Deprecated
 	public int getBufferSize() {
 		return sourceLine.getBufferSize();
 	}
@@ -262,7 +263,6 @@ public class DynamicLine implements SourceDataLine {
 	public Line.Info getLineInfo() {
 		return sourceLine.getLineInfo();
 	}
-
 
 
 	@Override

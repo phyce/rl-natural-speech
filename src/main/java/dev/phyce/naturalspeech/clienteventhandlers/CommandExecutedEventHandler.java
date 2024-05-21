@@ -101,7 +101,7 @@ public class CommandExecutedEventHandler {
 				else {
 					VoiceID voice = voiceManager.resolve(entityID);
 					client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " +
-						voice.toString(), null);
+						voice, null);
 				}
 				break;
 			}

@@ -7,9 +7,7 @@ import lombok.Getter;
 public enum AVSpeechSynthesisVoiceGender {
 	AVSpeechSynthesisVoiceGenderUnspecified(0),
 	AVSpeechSynthesisVoiceGenderMale(1),
-	AVSpeechSynthesisVoiceGenderFemale(2)
-
-	; // End of enum
+	AVSpeechSynthesisVoiceGenderFemale(2); // End of enum
 
 	public final int value;
 
@@ -20,7 +18,6 @@ public enum AVSpeechSynthesisVoiceGender {
 
 		return values()[value];
 	}
-
 
 
 }

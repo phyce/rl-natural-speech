@@ -61,6 +61,7 @@ public enum Gender {
 
 	/**
 	 * Convert an AVSpeechSynthesisVoiceGender to Gender
+	 *
 	 * @param avGender AVSpeechSynthesisVoiceGender found in AVFoundation
 	 */
 	public static Gender fromAVGender(AVSpeechSynthesisVoiceGender avGender) {

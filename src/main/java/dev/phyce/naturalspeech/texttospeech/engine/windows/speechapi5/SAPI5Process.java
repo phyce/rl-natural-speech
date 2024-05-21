@@ -1,8 +1,8 @@
 package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5;
 
 import com.google.common.io.Resources;
-import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

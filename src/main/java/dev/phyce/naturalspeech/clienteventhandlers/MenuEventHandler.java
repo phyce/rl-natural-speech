@@ -130,7 +130,7 @@ public class MenuEventHandler {
 				final int currentVolumeIndex = config.masterVolume() / 10;
 
 				for (int i = colorScheme.length - 1; i > -1; i--) {
-					final int volume = i*10;
+					final int volume = i * 10;
 					final String colorTag = "<col=" + colorScheme[i] + ">";
 					final String meter = i == currentVolumeIndex ? "> " : "- ";
 					client.createMenuEntry(0)

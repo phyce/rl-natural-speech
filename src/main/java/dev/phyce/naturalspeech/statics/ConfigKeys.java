@@ -13,7 +13,7 @@ public interface ConfigKeys {
 	String PUBLIC_CHAT = "publicChat";
 	String PRIVATE_CHAT = "privateChat";
 	String PRIVATE_OUT_CHAT = "privateOutChat";
-//	String FRIENDS_CHAT = "friendsChat";
+	//	String FRIENDS_CHAT = "friendsChat";
 	String CLAN_CHAT = "clanChat";
 	String CLAN_GUEST_CHAT = "clanGuestChat";
 	String GIM_CHAT = "groupIronmanChat";
@@ -44,7 +44,8 @@ public interface ConfigKeys {
 
 	// named ttsEngine because it was the only engine supported at the time
 	@SuppressWarnings("DeprecatedIsStillUsed")
-	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
+	@Deprecated(
+		since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
 	String DEPRECATED_PIPER_PATH = "ttsEngine";
 
 	// Voice
@@ -55,13 +56,13 @@ public interface ConfigKeys {
 	String LISTEN_LIST = "listenList";
 	String MUTE_LIST = "muteList";
 
-	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	@Deprecated(since="1.3 Migrated to LISTEN_LIST using EntityID")
 	String DEPRECATED_USERNAME_LISTEN_LIST = "usernameListenList";
-	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	@Deprecated(since="1.3 Migrated to LISTEN_LIST using EntityID")
 	String DEPRECATED_USERNAME_MUTE_LIST = "usernameMuteList";
-	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	@Deprecated(since="1.3 Migrated to LISTEN_LIST using EntityID")
 	String DEPRECATED_NPC_ID_LISTEN_LIST = "npcIdListenList";
-	@Deprecated(since = "1.3 Migrated to LISTEN_LIST using EntityID")
+	@Deprecated(since="1.3 Migrated to LISTEN_LIST using EntityID")
 	String DEPRECATED_NPC_ID_MUTE_LIST = "npcIdMuteList";
 
 	// endregion

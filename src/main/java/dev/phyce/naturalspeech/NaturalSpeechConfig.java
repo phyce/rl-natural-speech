@@ -154,16 +154,16 @@ public interface NaturalSpeechConfig extends Config {
 		return false;
 	}
 
-//	@ConfigItem(
-//		keyName=ConfigKeys.FRIENDS_CHAT,
-//		name="Friends chat",
-//		description="Enable text-to-speech to friends chat messages",
-//		section=ttsOptionsSection,
-//		position=30
-//	)
-//	default boolean friendsChatEnabled() {
-//		return true;
-//	}
+	//	@ConfigItem(
+	//		keyName=ConfigKeys.FRIENDS_CHAT,
+	//		name="Friends chat",
+	//		description="Enable text-to-speech to friends chat messages",
+	//		section=ttsOptionsSection,
+	//		position=30
+	//	)
+	//	default boolean friendsChatEnabled() {
+	//		return true;
+	//	}
 
 	@ConfigItem(
 		keyName=ConfigKeys.CLAN_CHAT,

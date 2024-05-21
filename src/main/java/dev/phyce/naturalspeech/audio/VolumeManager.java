@@ -172,7 +172,7 @@ public class VolumeManager {
 		int dx = a.getX() - b.getX();
 		int dy = a.getY() - b.getY();
 		int dz = a.getPlane() - b.getPlane();
-		return (float) Math.sqrt(dx*dx + dy*dy + dz*dz);
+		return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
 	// https://easings.net/#easeInOutQuad
 
@@ -212,7 +212,8 @@ public class VolumeManager {
 		// convert linear volume 0-100 to log control
 		if (vol <= 0.1) {
 			gainDB = NOISE_FLOOR;
-		} else {
+		}
+		else {
 			gainDB = (float) (10 * (Math.log(vol / 100)));
 		}
 

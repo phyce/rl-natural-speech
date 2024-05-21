@@ -207,7 +207,8 @@ public class MainSettingsPanel extends PluginPanel {
 			statusPanel.setToolTipText("No available text-to-speech engines detected.");
 			addWarning(Warning.NO_ENGINE);
 			updateWarningsUI();
-		} else if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_DISABLED){
+		}
+		else if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_DISABLED) {
 			statusLabel.setText("All Voices Disabled");
 			statusLabel.setBackground(Color.DARK_GRAY);
 			statusLabel.setForeground(null);
@@ -215,7 +216,8 @@ public class MainSettingsPanel extends PluginPanel {
 			addWarning(Warning.CRASHED);
 			crashLabel.setText("<html>Please enable a voice in the Voice Pack settings.</html>");
 			updateWarningsUI();
-		} else if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_FAILED) {
+		}
+		else if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_FAILED) {
 			statusLabel.setText("Engine Failed");
 			statusLabel.setBackground(Color.DARK_GRAY);
 			statusLabel.setForeground(null);
@@ -257,7 +259,8 @@ public class MainSettingsPanel extends PluginPanel {
 	private void onPiperProcessCrashed(PiperProcessCrashed event) {
 		addWarning(Warning.CRASHED);
 		crashLabel.setText(
-			String.format("<html>Oh no! %s has crashed. (piper)</html>", event.getModel().getModelLocal().getModelName())
+			String.format("<html>Oh no! %s has crashed. (piper)</html>",
+				event.getModel().getModelLocal().getModelName())
 		);
 		updateWarningsUI();
 	}
@@ -271,7 +274,7 @@ public class MainSettingsPanel extends PluginPanel {
 		}
 	}
 
-	@Deprecated(since = "1.3.0 We have an installer which installs to a standard location, no more path changes.")
+	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, no more path changes.")
 	@Subscribe
 	private void onPiperPathChanged(PiperPathChanged event) {
 		log.debug("Repository refresh. Rebuilding");
@@ -715,6 +718,6 @@ public class MainSettingsPanel extends PluginPanel {
 		NO_ENGINE,
 		STOPPED,
 		MINIMUM_MODE,
-		CRASHED;
+		CRASHED
 	}
 }

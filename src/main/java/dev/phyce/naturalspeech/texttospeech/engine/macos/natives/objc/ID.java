@@ -5,13 +5,10 @@ import lombok.Getter;
 
 /**
  * Represents an Objective-C `id` type.<br>
- *
  * {@code typedef struct objc_object *id;}
- *
  * This is a direct pointer to an NSObject.
  *
  * @see <a href="https://developer.apple.com/documentation/objectivec/id?language=objc">obj-c id</a>
-
  */
 @SuppressWarnings("unused")
 public class ID extends Pointer {

@@ -12,11 +12,11 @@ import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AV
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesizer;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesizerBufferCallback;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechUtterance;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.javautil.NSAutoRelease;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.Block;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
 import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
 import java.io.ByteArrayInputStream;
 import java.lang.ref.WeakReference;
@@ -120,7 +120,7 @@ public class MacTest {
 
 		AVSpeechSynthesizerBufferCallback invoke = new AVSpeechSynthesizerBufferCallback() {
 
-			Vector<byte[]> audioData = new Vector<>();
+			final Vector<byte[]> audioData = new Vector<>();
 
 			@Override
 			public void invoke(Pointer block, Pointer pAVAudioBuffer) {
@@ -144,7 +144,8 @@ public class MacTest {
 						return result;
 					});
 
-					AudioInputStream stream = new AudioInputStream(new ByteArrayInputStream(byteArray), AUDIO_FORMAT, byteArray.length);
+					AudioInputStream stream =
+						new AudioInputStream(new ByteArrayInputStream(byteArray), AUDIO_FORMAT, byteArray.length);
 					audioEngine.play(voiceName, stream, () -> 0f);
 					return;
 				}
@@ -155,12 +156,14 @@ public class MacTest {
 				boolean standard = AVAudioFormat.getIsStandard(avFormat);
 				double sampleRate = AVAudioFormat.getSampleRate(avFormat);
 				int channelCount = Ints.checkedCast(AVAudioFormat.getChannelCount(avFormat));
-				System.out.printf("AVAudioFormat: format(%s) standard(%s) sampleRate(%f) channelCount(%s)\n", format, standard, sampleRate, channelCount);
+				System.out.printf("AVAudioFormat: format(%s) standard(%s) sampleRate(%f) channelCount(%s)\n", format,
+					standard, sampleRate, channelCount);
 
 				// Get the buffer
 				Pointer int16ChannelData = AVAudioPCMBuffer.getInt16ChannelData(avAudioBuffer).getPointer(0);
 
-				System.out.printf("Frame Length: %d, Frame Capacity: %d, Stride: %d\n", frameLength, frameCapacity, stride);
+				System.out.printf("Frame Length: %d, Frame Capacity: %d, Stride: %d\n", frameLength, frameCapacity,
+					stride);
 
 				byte[] byteArray = int16ChannelData.getByteArray(0L, (int) frameLength * 2);
 				System.out.println("Int16 Channel Data: " + new String(byteArray, StandardCharsets.UTF_16LE));
