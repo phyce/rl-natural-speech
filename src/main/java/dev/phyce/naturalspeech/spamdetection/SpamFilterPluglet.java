@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.spamdetection;
 
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -95,12 +95,12 @@ public class SpamFilterPluglet {
 		}
 
 		if (goodCorpusDirty) {
-//			log.trace("Reloading good corpus, due to dirty flag...");
+			//			log.trace("Reloading good corpus, due to dirty flag...");
 			loadUserGoodCorpus();
 			goodCorpusDirty = false;
 		}
 		if (badCorpusDirty) {
-//			log.trace("Reloading bad corpus, due to dirty flag...");
+			//			log.trace("Reloading bad corpus, due to dirty flag...");
 			loadUserBadCorpus();
 			badCorpusDirty = false;
 
@@ -148,7 +148,8 @@ public class SpamFilterPluglet {
 			} catch (IOException e) {
 				log.error("Error reading {}", userBadCorpusFile);
 			}
-		} else {
+		}
+		else {
 			log.trace("No {} found", userBadCorpusFile);
 		}
 	}
@@ -174,7 +175,8 @@ public class SpamFilterPluglet {
 			} catch (IOException e) {
 				log.error("Error reading {}", userGoodCorpusFile);
 			}
-		} else {
+		}
+		else {
 			log.trace("No {} found", userGoodCorpusFile);
 		}
 
@@ -183,7 +185,8 @@ public class SpamFilterPluglet {
 	private void loadBuiltinCorpus() {
 		InputStream goodCorpusRes = this.getClass().getResourceAsStream(FILE_NAME_GOOD_CORPUS);
 		if (goodCorpusRes != null) {
-			BufferedReader goodCorpusReader = new BufferedReader(new InputStreamReader(goodCorpusRes, StandardCharsets.UTF_8));
+			BufferedReader goodCorpusReader =
+				new BufferedReader(new InputStreamReader(goodCorpusRes, StandardCharsets.UTF_8));
 			goodCorpusReader.lines().forEach(builtinGoodCorpus::add);
 			try {
 				goodCorpusReader.close();
@@ -192,9 +195,10 @@ public class SpamFilterPluglet {
 			}
 		}
 
-		InputStream badCorpusRes = this.getClass().getResourceAsStream(FILE_NAME_BAD_CORPUS);
+		InputStream badCorpusRes = SpamFilterPluglet.class.getResourceAsStream(FILE_NAME_BAD_CORPUS);
 		if (badCorpusRes != null) {
-			BufferedReader badCorpusReader = new BufferedReader(new InputStreamReader(badCorpusRes, StandardCharsets.UTF_8));
+			BufferedReader badCorpusReader =
+				new BufferedReader(new InputStreamReader(badCorpusRes, StandardCharsets.UTF_8));
 			badCorpusReader.lines().forEach(builtinBadCorpus::add);
 			try {
 				badCorpusReader.close();
@@ -237,6 +241,7 @@ public class SpamFilterPluglet {
 		}
 		return pPredictorsCorrect / (pPredictorsCorrect + pPredictorsIncorrect);
 	}
+
 	private static void countTokens(Map<String, Integer> out_result, List<String> corpus) {
 		for (String message : corpus) {
 			message = message.toLowerCase();
@@ -256,7 +261,8 @@ public class SpamFilterPluglet {
 				loadUserCorpus();
 				loadThreshold();
 				isPluginEnabled = true;
-			} else {
+			}
+			else {
 				isPluginEnabled = false;
 				log.trace("Detected SpamFilter plugin deactivated.");
 			}

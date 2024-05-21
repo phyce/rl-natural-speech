@@ -1,7 +1,9 @@
 package dev.phyce.naturalspeech.enums;
 
+import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesisVoiceGender;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import net.runelite.api.Player;
 
 @AllArgsConstructor
 public enum Gender {
@@ -16,8 +18,22 @@ public enum Gender {
 		return string;
 	}
 
-	public static Gender parseInt(int id) {
-		switch (id) {
+	public static Gender fromInt(int number) {
+		number = number % 2;
+
+		switch (number) {
+			case 0:
+				return MALE;
+			case 1:
+				return FEMALE;
+			default:
+				return OTHER;
+		}
+	}
+
+	public static Gender fromPlayer(Player player) {
+		int genderId = player.getPlayerComposition().getGender();
+		switch (genderId) {
 			case 0:
 				return MALE;
 			case 1:
@@ -43,4 +59,20 @@ public enum Gender {
 		}
 	}
 
+	/**
+	 * Convert an AVSpeechSynthesisVoiceGender to Gender
+	 *
+	 * @param avGender AVSpeechSynthesisVoiceGender found in AVFoundation
+	 */
+	public static Gender fromAVGender(AVSpeechSynthesisVoiceGender avGender) {
+		switch (avGender) {
+			case AVSpeechSynthesisVoiceGenderMale:
+				return Gender.MALE;
+			case AVSpeechSynthesisVoiceGenderFemale:
+				return Gender.FEMALE;
+			case AVSpeechSynthesisVoiceGenderUnspecified:
+			default:
+				return Gender.OTHER;
+		}
+	}
 }

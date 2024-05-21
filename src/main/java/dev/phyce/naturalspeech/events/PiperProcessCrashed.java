@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.events;
 
-import dev.phyce.naturalspeech.tts.piper.PiperModel;
-import dev.phyce.naturalspeech.tts.piper.PiperProcess;
+import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperModel;
+import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperProcess;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 

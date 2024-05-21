@@ -1,30 +1,15 @@
 # Features
 
-## TODO add distance fade explanation
-
 ### Right click option menu
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
 ![](https://mechanic.ink/img/osrs/features/right-click.png)
-
-### Spam Prevention
-
-Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
-![](https://mechanic.ink/img/osrs/features/spam-prevention.png)
 
 ### Voice Explorer
 Choose from over 1000 different voices for your character. 
 You can use the Included voice explorer to preview a voice:<br/>
 ![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
 
-### Multiple processes per voice pack
-You can choose to run multiple instances of the TTS engine to offload the sound generation to allow
-Natural Speech to process more messages at once. this is useful for crowded areas. Simply right click on a voice pack and click on `Set process count`
-
-![](https://mechanic.ink/img/osrs/features/change-process-count.png)
-
-**Warning! Each process that you add will add will consume as much additional memory as the size of the voice pack and can be detrimental to the gameplay on lower end PCs - change this setting with caution.**
-
-### Vast amount of customization
+### Vast Customization
 
 Explore the many customization options to fine-tune your TTS experience:<br/>
 ![](https://mechanic.ink/img/osrs/features/config.png)

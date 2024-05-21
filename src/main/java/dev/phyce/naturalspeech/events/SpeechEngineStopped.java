@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.events;
 
-import dev.phyce.naturalspeech.tts.engine.SpeechEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 

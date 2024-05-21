@@ -2,18 +2,27 @@ package dev.phyce.naturalspeech;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.audio.VolumeManager;
+import dev.phyce.naturalspeech.clienteventhandlers.CommandExecutedEventHandler;
+import dev.phyce.naturalspeech.clienteventhandlers.MenuEventHandler;
+import dev.phyce.naturalspeech.clienteventhandlers.SpeechEventHandler;
+import dev.phyce.naturalspeech.configs.RuntimePathConfig;
+import dev.phyce.naturalspeech.eventbus.PluginEventBus;
+import dev.phyce.naturalspeech.executor.PluginExecutorService;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
+import dev.phyce.naturalspeech.spamdetection.SpamDetection;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
-import dev.phyce.naturalspeech.tts.MuteManager;
-import dev.phyce.naturalspeech.tts.engine.TextToSpeech;
-import dev.phyce.naturalspeech.tts.VoiceManager;
-import dev.phyce.naturalspeech.tts.VolumeManager;
-import dev.phyce.naturalspeech.tts.engine.PiperEngine;
-import dev.phyce.naturalspeech.tts.engine.SAPI4Engine;
-import dev.phyce.naturalspeech.tts.engine.SAPI5Engine;
-import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
+import dev.phyce.naturalspeech.texttospeech.MuteManager;
+import dev.phyce.naturalspeech.texttospeech.SpeechManager;
+import dev.phyce.naturalspeech.texttospeech.VoiceManager;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
+import dev.phyce.naturalspeech.userinterface.panels.TopLevelPanel;
+import dev.phyce.naturalspeech.utils.ChatHelper;
+import dev.phyce.naturalspeech.utils.ClientHelper;
 
 /**
  * plugin fields are wrapped in a field object
@@ -22,14 +31,14 @@ import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
  * <li>Allows plugin objects to leave scope and be garbage collected. Otherwise, RuneLite Plugin objects never leave scope.</li>
  * <li>Allows better hot-reloading because we can re-instantiate plugin objects</li>
  * </ul>
- * Could be an abstract module, but we're lazy-injecting anyway.
+ * Could be an abstract module inside a childInjector, but we're lazy-injecting anyway.
  */
 @PluginSingleton
 class NaturalSpeechModule {
-	final NaturalSpeechRuntimeConfig runtimeConfig;
+	final RuntimePathConfig runtimeConfig;
 	final VoiceManager voiceManager;
 	final MuteManager muteManager;
-	final TextToSpeech textToSpeech;
+	final SpeechManager speechManager;
 	final PiperEngine piperEngine;
 	final SAPI4Engine sapi4Engine;
 	final SAPI5Engine sapi5Engine;
@@ -44,20 +53,24 @@ class NaturalSpeechModule {
 	final TopLevelPanel topLevelPanel;
 	final PluginEventBus pluginEventBus;
 	final PluginExecutorService pluginExecutorService;
+	final ClientHelper clientHelper;
+	final ChatHelper chatHelper;
+	final MacSpeechEngine macSpeechEngine;
 
 	@Inject
 	public NaturalSpeechModule(
-		NaturalSpeechRuntimeConfig runtimeConfig,
+		RuntimePathConfig runtimeConfig,
 		VoiceManager voiceManager,
 		MuteManager muteManager,
 		VolumeManager volumeManager,
 		AudioEngine audioEngine,
 		TopLevelPanel topLevelPanel,
 
-		TextToSpeech textToSpeech,
+		SpeechManager speechManager,
 		PiperEngine piperEngine,
 		SAPI4Engine sapi4Engine,
 		SAPI5Engine sapi5Engine,
+		MacSpeechEngine macSpeechEngine,
 
 		SpamFilterPluglet spamFilterPluglet,
 		ChatFilterPluglet chatFilterPluglet,
@@ -71,13 +84,14 @@ class NaturalSpeechModule {
 		// See Plugin configure function for binding
 		PluginExecutorService pluginExecutorService,
 		// This private eventbus is entirely separate from RuneLites' EventBus
-		PluginEventBus pluginEventBus
-
+		PluginEventBus pluginEventBus,
+		ClientHelper clientHelper,
+		ChatHelper chatHelper
 	) {
 		this.runtimeConfig = runtimeConfig;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
-		this.textToSpeech = textToSpeech;
+		this.speechManager = speechManager;
 		this.piperEngine = piperEngine;
 		this.sapi4Engine = sapi4Engine;
 		this.sapi5Engine = sapi5Engine;
@@ -92,6 +106,9 @@ class NaturalSpeechModule {
 		this.topLevelPanel = topLevelPanel;
 		this.pluginEventBus = pluginEventBus;
 		this.pluginExecutorService = pluginExecutorService;
+		this.clientHelper = clientHelper;
+		this.chatHelper = chatHelper;
+		this.macSpeechEngine = macSpeechEngine;
 	}
 
 }

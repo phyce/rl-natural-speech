@@ -1,15 +1,8 @@
 package dev.phyce.naturalspeech;
 
-import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.tts.wsapi5.SAPI5Process;
-import java.io.ByteArrayInputStream;
-import java.util.List;
-import javax.sound.sampled.AudioInputStream;
-import org.junit.Test;
-
 public class OtherTest {
 
-	private static String[] exampleSentences = new String[] {
+	private static final String[] exampleSentences = new String[] {
 		"Hello",
 		"Hello, World.",
 		"Hello Hello Hello Hello Hello Hello Hello Hello Hello Hello, world.",
@@ -36,93 +29,73 @@ public class OtherTest {
 		"This is a Skillcape of Woodcutting, wearing one increases your chance of finding bird's nests. Only a person who has achieved the highest possible level in a skill can wear one.",
 	};
 
-	@Test
-	public void testWSAPI5() throws InterruptedException {
-		SAPI5Process wsapi5 = SAPI5Process.start();
-		assert wsapi5 != null;
 
-		List<SAPI5Process.SAPI5Voice> availableVoices = wsapi5.getAvailableVoices();
-		System.out.println(availableVoices);
-
-		AudioEngine audioEngine = new AudioEngine();
-
-
-		for (SAPI5Process.SAPI5Voice availableVoice : availableVoices) {
-			wsapi5.generateAudio(availableVoice.getName(), "Hello, Natural Speech",
-				(audio) -> {
-					AudioInputStream stream = new AudioInputStream(new ByteArrayInputStream(audio), SAPI5Process.AUDIO_FORMAT, audio.length);
-					audioEngine.play(availableVoice.getName(), stream, () -> 0f);
-				});
-		}
-		Thread.sleep(3000L );
-	}
-
-//	@Test
-//	public void testHashDistribution() {
-//		Random random = new Random();
-//		// get 10 length long byte array
-//		byte[] bytes = new byte[20];
-//
-//		final int iterations = 50_000;
-//
-//		int[] buckets = new int[iterations];
-//
-//		for (int i = 0; i < iterations; ++i) {
-//			random.nextBytes(bytes);
-//			String username = new String(bytes, StandardCharsets.US_ASCII);
-//			++buckets[Math.abs(username.hashCode()) % iterations];
-//		}
-//
-//
-//		// remap into buckets of 1000
-//		int[] buckets_1000 = new int[iterations / 1000];
-//		for (int i = 0; i < buckets.length; i++) {
-//			buckets_1000[i / 1000] += buckets[i];
-//		}
-//
-//		StringBuilder builder = new StringBuilder();
-//		for (int i = 0; i < buckets_1000.length; i++) {
-//			int bucket = buckets_1000[i];
-//			if (bucket == 0) continue;
-//			builder.append(i);
-//			builder.append(',');
-//			builder.append(bucket);
-//			builder.append(',');
-//			builder.append('\n');
-//		}
-//
-//		System.out.println(builder);
-//	}
-//
-//	@Test
-//	public void testHashOddEvenDistribution() {
-//		Random random = new Random();
-//		// get 10 length long byte array
-//		byte[] bytes = new byte[20];
-//
-//		final int iterations = 50_000;
-//
-//		int[] buckets = new int[iterations];
-//
-//		for (int i = 0; i < iterations; ++i) {
-//			random.nextBytes(bytes);
-//			String username = new String(bytes, StandardCharsets.US_ASCII);
-//			++buckets[Math.abs(username.hashCode()) % iterations];
-//		}
-//
-//		int odd = 0;
-//		int even = 0;
-//		for (int i = 0; i < buckets.length; i++) {
-//			if (i % 2 == 0) {
-//				even += buckets[i];
-//			} else {
-//				odd += buckets[i];
-//			}
-//		}
-//
-//		System.out.println("Even: " + even);
-//		System.out.println("Odd: " + odd);
-//	}
+	//	@Test
+	//	public void testHashDistribution() {
+	//		Random random = new Random();
+	//		// get 10 length long byte array
+	//		byte[] bytes = new byte[20];
+	//
+	//		final int iterations = 50_000;
+	//
+	//		int[] buckets = new int[iterations];
+	//
+	//		for (int i = 0; i < iterations; ++i) {
+	//			random.nextBytes(bytes);
+	//			String username = new String(bytes, StandardCharsets.US_ASCII);
+	//			++buckets[Math.abs(username.hashCode()) % iterations];
+	//		}
+	//
+	//
+	//		// remap into buckets of 1000
+	//		int[] buckets_1000 = new int[iterations / 1000];
+	//		for (int i = 0; i < buckets.length; i++) {
+	//			buckets_1000[i / 1000] += buckets[i];
+	//		}
+	//
+	//		StringBuilder builder = new StringBuilder();
+	//		for (int i = 0; i < buckets_1000.length; i++) {
+	//			int bucket = buckets_1000[i];
+	//			if (bucket == 0) continue;
+	//			builder.append(i);
+	//			builder.append(',');
+	//			builder.append(bucket);
+	//			builder.append(',');
+	//			builder.append('\n');
+	//		}
+	//
+	//		System.out.println(builder);
+	//	}
+	//
+	//	@Test
+	//	public void testHashOddEvenDistribution() {
+	//		Random random = new Random();
+	//		// get 10 length long byte array
+	//		byte[] bytes = new byte[20];
+	//
+	//		final int iterations = 50_000;
+	//
+	//		int[] buckets = new int[iterations];
+	//
+	//		for (int i = 0; i < iterations; ++i) {
+	//			random.nextBytes(bytes);
+	//			String username = new String(bytes, StandardCharsets.US_ASCII);
+	//			++buckets[Math.abs(username.hashCode()) % iterations];
+	//		}
+	//
+	//		int odd = 0;
+	//		int even = 0;
+	//		for (int i = 0; i < buckets.length; i++) {
+	//			if (i % 2 == 0) {
+	//				even += buckets[i];
+	//			} else {
+	//				odd += buckets[i];
+	//			}
+	//		}
+	//
+	//		System.out.println("Even: " + even);
+	//		System.out.println("Odd: " + odd);
+	//	}
 
 	//	@Test
 	//	public void testSplitSentenceNew() {

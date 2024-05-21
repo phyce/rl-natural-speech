@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.spamdetection;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import dev.phyce.naturalspeech.guice.PluginSingleton;
+import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -82,6 +82,7 @@ public class ChatFilterPluglet {
 	// region proxyconfig implementation
 	private static final String ChatFilterClassName = "chatfilterplugin";
 	private static final String CHAT_FILTER_GROUP_NAME = "chatfilter";
+
 	private static final class ConfigKeys {
 		private final static String maxRepeatedPublicChats = "maxRepeatedPublicChats";
 		private final static String filterFriends = "filterFriends";
@@ -92,6 +93,7 @@ public class ChatFilterPluglet {
 		private final static String filteredNames = "filteredNames";
 		private final static String stripAccents = "stripAccents";
 	}
+
 	@SuppressWarnings("SameParameterValue")
 	private class ProxyConfig {
 		private boolean getBoolean(String key, Boolean defaultValue) {
@@ -184,9 +186,9 @@ public class ChatFilterPluglet {
 		}
 
 		Duplicate duplicateCacheEntry = duplicateChatCache.get(username + ":" + message);
-//		log.trace("Duplicate chat entry count:{} for ({})", duplicateCacheEntry.count, duplicateCacheEntry);
+		//		log.trace("Duplicate chat entry count:{} for ({})", duplicateCacheEntry.count, duplicateCacheEntry);
 		if (config.maxRepeatedPublicChats() > 0 && duplicateCacheEntry.count > config.maxRepeatedPublicChats()) {
-//			log.trace("Duplicate chat filtered ({})", duplicateCacheEntry);
+			//			log.trace("Duplicate chat filtered ({})", duplicateCacheEntry);
 			return true;
 		}
 
@@ -210,7 +212,7 @@ public class ChatFilterPluglet {
 	@Subscribe
 	private void onPluginChanged(PluginChanged event) {
 		// if spam filter was installed after runelite session started
-		if (event.getPlugin().getName().equals("Chat Filter") ) {
+		if (event.getPlugin().getName().equals("Chat Filter")) {
 			if (event.isLoaded()) {
 				updateFilteredPatterns();
 				log.trace("Detected ChatFilterPlugin activated");
@@ -226,7 +228,7 @@ public class ChatFilterPluglet {
 		}
 	}
 
-	@Subscribe(priority=-2) // run after ChatMessageManager
+	@Subscribe(priority=-1) // run before SpeechEventHandler
 	public void onChatMessage(ChatMessage chatMessage) {
 		if (!isChatFilterEnabled) return;
 
@@ -244,12 +246,12 @@ public class ChatFilterPluglet {
 			duplicateChatCache.put(key, duplicate);
 		}
 	}
+
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged) {
 		if (!isChatFilterEnabled) return;
 
-		switch (gameStateChanged.getGameState())
-		{
+		switch (gameStateChanged.getGameState()) {
 			// Login drops references to all messages and also resets the global message id counter.
 			// Invalidate the message id so it doesn't collide later when rebuilding the chatfilter.
 			case CONNECTION_LOST:
@@ -258,6 +260,7 @@ public class ChatFilterPluglet {
 				duplicateChatCache.values().forEach(d -> d.messageId = -1);
 		}
 	}
+
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
 		if (!CHAT_FILTER_GROUP_NAME.equals(event.getGroup())) {
@@ -305,14 +308,12 @@ public class ChatFilterPluglet {
 			.map(s -> Pattern.compile(Pattern.quote(s), Pattern.CASE_INSENSITIVE))
 			.forEach(patterns::add);
 
-		//noinspection UnstableApiUsage
 		NEWLINE_SPLITTER.splitToList(config.filteredRegex()).stream()
 			.map(this::stripAccents)
 			.map(ChatFilterPluglet::compilePattern)
 			.filter(Objects::nonNull)
 			.forEach(patterns::add);
 
-		//noinspection UnstableApiUsage
 		NEWLINE_SPLITTER.splitToList(config.filteredNames()).stream()
 			.map(this::stripAccents)
 			.map(ChatFilterPluglet::compilePattern)
