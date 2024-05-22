@@ -4,7 +4,7 @@ A high-level overview of the plugin's architecture.
 
 ## _Dear RuneLite Plugin Reviewer_
 
-Natural Speech utilizes interprocess communication and native interop with the operating system API. We understand this plugin might be difficult to audit.
+Natural Speech uses interprocess communication and native interop with the operating system API to perform text-to-speech locally. We understand this adds complexity to the audit process.
 
 This document is designed to be helpful for your auditing process.
 
@@ -62,12 +62,18 @@ Added for work-out-of-the-box experience, no setup required.
 
 # Plugin Specials
 
-### `PluginEventBus`
+## `PluginEventBus`
+`eventbus/PluginEventBus.java`
+
 Entirely seperate from the client eventbus, used by speech engines to communicate with the plugin UI.
-### `PluginExecutorService`
+## `PluginExecutorService`
+`executor/PluginExecutorService.java`
+
 Entirely seperate from the client executor service, used by speech engines to perform async actions.
 
-### `PluginSingletonScope`
+## `PluginSingletonScope`
+`singleton/PluginSingletonScope.java`
+
 Guice @Singleton via just-in-time bindings lives in the parent injector and are persistent. This interferes with hot-reloading workflow during development, and wastes client memory even after plugin is disabled/uninstalled.
 
 > Guice JavaDoc:<br>
@@ -75,20 +81,23 @@ Guice @Singleton via just-in-time bindings lives in the parent injector and are 
 
 We still want singletons, just scoped to the startup/shutdown lifecycle of the plugin; so we have a custom singleton scope. The annotation is `@PluginSingleton`, binded to scope `PluginSingletonScope`. Singletons inside this scope is cleared on `shutDown`.
 
-### `NaturalSpeechModule`
+## `NaturalSpeechModule`
+`naturalspeech/NaturalSpeechModule.java`
+
 NaturalSpeech just-in-time injects plugin objects into `NaturalSpeechModule`; using the `Plugin::startUp` as the bootstrap. NaturalSpeechModule reference is nullified on `shutdown` and allowed to GC. 
 
 This allows proper hot-reloading and plugin rebooting during development and GC of plugin objects after shutdown.
 
-### `ChatFilterPluglet` and `SpamFilterPluglet`
+## `ChatFilterPluglet` and `SpamFilterPluglet`
+`spamdetection/SpamDetection.java`
+
 Spam filtering is very important to the text-to-speech experience; it is implemented in these two plugins but not accessible to Natural Speech because their APIs are private.
 
 We cannot use reflection because of PluginHub rules, so we copy-pasted the core filtering logic in order to perform identical filtering.
 
-### Explicit Client `EventBus` Registering
-Client event handlers/subscribers were partitioned into multiple objects, they explicitly subscribe to the `EventBus` in `startUp` and reliably unsubscribe on `shutDown`. We placed these event handlers objects in the package `clienteventhandlers`. 
+## `MacUnquanantine`
+`utils/MacUnquarantine.java`
 
-### `MacUnquanantine`
 On macOS, browsers, like Chrome/Safari flag themselves with LSFileQuarantineEnabled in the .plist file: https://developer.apple.com/documentation/bundleresources/information_property_list/lsfilequarantineenabled
 
 For example, here is the flag in the Chromium plist: https://chromium.googlesource.com/chromium/reference_builds/chrome_mac/+/refs/heads/main/Google%20Chrome.app/Contents/Info.plist#320
@@ -118,11 +127,16 @@ int fremovexattr(int fd, const char *name, int options);
 https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/xattr.h#L98
 
 
-### `LibObjC`
+## `LibObjC`
+`texttospeech/engine/macos/natives/objc/LibObjC.java`
+
 For macOS, we use JNA to directly interface with the OS native Objective-C API, `Foundation`. https://developer.apple.com/documentation/foundation
 
-Since JNA interfaces to C, but macOS API is in Objective-C, the interop is performed through the Objective-C Runtime (synonmous with the Java Runtime Environment). 
+Since JNA interfaces to C, but macOS API is in Objective-C, the interop is performed through the Objective-C Runtime (synonymous with the Java Runtime Environment). 
 https://developer.apple.com/documentation/objectivec/objective-c_runtime?language=objc
 
-The level of Java/Obj-C interop we perform is somewhat novel, including implementing the Obj-C Block application-binary-interface (Blocks in Obj-C is synonmous with Java closures).
+The level of Java/Obj-C interop we perform is somewhat novel, including implementing the Obj-C Block application-binary-interface (Blocks in Obj-C is synonymous with Java closures).
 https://clang.llvm.org/docs/Block-ABI-Apple.html
+
+## Explicit Client `EventBus` Registering
+Client event handlers/subscribers were partitioned into multiple objects, they explicitly subscribe to the `EventBus` in `startUp` and reliably unsubscribe on `shutDown`. We placed these event handlers objects in the package `clienteventhandlers`. 

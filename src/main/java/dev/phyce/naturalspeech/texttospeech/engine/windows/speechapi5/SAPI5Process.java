@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
  Therefore, we need operating system TTS.
 
  Windows Speech API 5.3 can be accessed with two methods:
-	 1. Using Windows Native COM API through JNA/JNI
+	 1. Use Windows Native COM API through JNA/JNI
 	 2. Use OS built-in dotnet assembly System.Speech.dll
 
  Problem:
