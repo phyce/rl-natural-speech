@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech.clienteventhandlers;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.audio.VolumeManager;
@@ -69,7 +70,8 @@ public class SpeechEventHandler {
 	}
 
 	@Subscribe(priority=-100)
-	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+	@VisibleForTesting
+	void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
 		if (!speechManager.isStarted()) return;
 
 		if (chatHelper.isMuted(message)) return;
@@ -94,7 +96,8 @@ public class SpeechEventHandler {
 	}
 
 	@Subscribe
-	private void onWidgetLoaded(WidgetLoaded event) {
+	@VisibleForTesting
+	void onWidgetLoaded(WidgetLoaded event) {
 		if (!config.dialogEnabled()) return;
 		if (!speechManager.isStarted()) return;
 
@@ -111,7 +114,8 @@ public class SpeechEventHandler {
 	This event is exclusively used for NPC overhead text
 	 */
 	@Subscribe
-	private void onOverheadTextChanged(OverheadTextChanged event) {
+	@VisibleForTesting
+	void onOverheadTextChanged(OverheadTextChanged event) {
 		if (!(event.getActor() instanceof NPC)) {return;}
 
 		if (!speechManager.isStarted()) return;
@@ -141,7 +145,6 @@ public class SpeechEventHandler {
 
 			Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
 			Widget headModelWidget = client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL);
-			Widget npcNameWidget = client.getWidget(ComponentID.DIALOG_NPC_NAME);
 
 			if (textWidget == null || textWidget.getText() == null) {
 				log.error("NPC dialog textWidget or textWidget.getText() is null");
@@ -151,14 +154,10 @@ public class SpeechEventHandler {
 				log.error("NPC head model textWidget is null");
 				return;
 			}
-			if (npcNameWidget == null) {
-				log.error("NPC name textWidget is null");
-				return;
-			}
 
 			int npcId = clientHelper.widgetModelIdToNpcId(headModelWidget.getModelId());
 			EntityID entityID = EntityID.id(npcId);
-			log.trace("NPC {} dialog textWidget detected:{}", entityID, textWidget.getText());
+			log.trace("NPC {} dialog detected headModelWidget:{} textWidget:{} ", entityID, headModelWidget.getModelId(), textWidget.getText());
 
 
 			if (!muteManager.isAllowed(entityID)) {

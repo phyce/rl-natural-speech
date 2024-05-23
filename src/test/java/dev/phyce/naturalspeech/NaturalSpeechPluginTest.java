@@ -6,14 +6,9 @@ import net.runelite.client.externalplugins.ExternalPluginManager;
 
 public class NaturalSpeechPluginTest {
 	public static void main(String[] args) throws Exception {
-
-/*
-		var repo = new VoiceRepository();
-		VoiceRepository.PiperVoice piperVoice = repo.loadPiperVoice("en_US-libritts-high");
-*/
-
 		//noinspection unchecked
 		ExternalPluginManager.loadBuiltin(NaturalSpeechPlugin.class);
 		RuneLite.main(args);
 	}
+
 }

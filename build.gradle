@@ -14,17 +14,23 @@ repositories {
 def runeLiteVersion = 'latest.release'
 
 dependencies {
-    // Overtakes transient guava 23.2 from RuneLite client.
+    // Overtakes transient guava version from RuneLite client.
     implementation("com.google.guava:guava:33.1.0-jre")
+    // Overtakes transient JNA version from RuneLite client.
     implementation("net.java.dev.jna:jna:5.14.0")
 
-
+    // API
     compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
 
+    // lombok
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
+    // mock and unit testing
 	testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:5.12.0'
+    testImplementation 'com.google.inject.extensions:guice-testlib:4.1.0'
+
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
 }

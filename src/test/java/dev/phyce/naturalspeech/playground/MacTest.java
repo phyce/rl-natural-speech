@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech.playground;
 
 import com.google.common.primitives.Ints;
 import com.sun.jna.Pointer;

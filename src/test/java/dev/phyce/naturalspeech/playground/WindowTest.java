@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech;
+package dev.phyce.naturalspeech.playground;
 
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process;
