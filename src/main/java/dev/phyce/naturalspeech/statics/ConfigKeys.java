@@ -33,7 +33,7 @@ public interface ConfigKeys {
 	String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 	String COMMON_ABBREVIATIONS = "commonAbbreviations";
 	String CUSTOM_ABBREVIATIONS = "customAbbreviations";
-	String CUSTOM_ABBREVIATIONS_NPC = "customAbbreviationsNpc";
+	String ENABLE_NPC_CUSTOM_ABBREVIATIONS = "customAbbreviationsNpc";
 	String OVERRIDE_CUSTOM_NPC_VOICES = "overrideCustomNpcVoices";
 	// endregion
 

@@ -352,7 +352,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=2,
-		keyName=ConfigKeys.CUSTOM_ABBREVIATIONS_NPC,
+		keyName=ConfigKeys.ENABLE_NPC_CUSTOM_ABBREVIATIONS,
 		name="Use for NPC dialogs",
 		description="Enable custom abbreviations for NPC dialogs",
 		section=otherOptionsSection
