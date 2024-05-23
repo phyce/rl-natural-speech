@@ -288,7 +288,7 @@ public class ChatHelper {
 
 	@NonNull
 	public String getText(@NonNull ChatMessage message) {
-		return expandAbbreviations(Text.sanitizeMultilineText(message.getMessage()));
+		return expandAbbreviations(message.getMessage());
 	}
 
 	@NonNull

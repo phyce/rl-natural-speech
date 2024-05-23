@@ -18,9 +18,16 @@ import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
+import dev.phyce.naturalspeech.utils.ChatHelper;
 import dev.phyce.naturalspeech.utils.ClientHelper;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
+import net.runelite.api.Player;
+import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
@@ -105,7 +112,7 @@ public class SpeechEventHandlerTest {
 			throw new RuntimeException(e.getErrorMessages().toString());
 		}
 
-		// mock clientThread invoke
+		// localPlayer clientThread invoke
 		doAnswer(a -> {
 			final Runnable r = a.getArgument(0);
 			r.run();
@@ -113,10 +120,46 @@ public class SpeechEventHandlerTest {
 		}).when(clientThread).invokeAtTickEnd(any(Runnable.class));
 
 
-		// All green light to speak by default
-		lenient().when(muteManager.isAllowed(any())).thenReturn(true);
-		lenient().when(config.dialogEnabled()).thenReturn(true);
+		// All green light configuration to speak everything by default
 		lenient().when(speechManager.isStarted()).thenReturn(true);
+		lenient().when(muteManager.isAllowed(any())).thenReturn(true);
+		lenient().when(clientHelper.getLevel(any())).thenReturn(999);
+		lenient().when(spamDetection.isSpam(any(), any())).thenReturn(false);
+		lenient().when(config.dialogEnabled()).thenReturn(true);
+		lenient().when(config.publicChatEnabled()).thenReturn(true);
+		lenient().when(config.privateChatEnabled()).thenReturn(true);
+		lenient().when(config.privateOutChatEnabled()).thenReturn(true);
+		lenient().when(config.clanChatEnabled()).thenReturn(true);
+		lenient().when(config.clanGuestChatEnabled()).thenReturn(true);
+		lenient().when(config.groupIronmanChatEnabled()).thenReturn(true);
+		lenient().when(config.examineChatEnabled()).thenReturn(true);
+		lenient().when(config.systemMesagesEnabled()).thenReturn(true);
+		lenient().when(config.requestsEnabled()).thenReturn(true);
+		lenient().when(config.muteCrowds()).thenReturn(0);
+		lenient().when(config.muteGrandExchange()).thenReturn(false);
+
+		Player localPlayer = mock(Player.class);
+		lenient().when(client.getLocalPlayer()).thenReturn(localPlayer);
+		// localPlayer mocked at (0,0,0)
+		lenient().when(localPlayer.getWorldLocation()).thenReturn(new WorldPoint(0, 0, 0));
+
+		List<Player> mockPlayers = new ArrayList<>();
+
+		// 50 fake players at (10,0,0) worldpoint
+		for (int i = 0; i < 50; i++) {
+			Player closePlayer = mock(Player.class);
+			lenient().when(closePlayer.getWorldLocation()).thenReturn(new WorldPoint(10, 0, 0));
+			mockPlayers.add(closePlayer);
+		}
+
+		// 50 fake players at (100,0,0) worldpoint
+		for (int i = 0; i < 50; i++) {
+			Player farPlayer = mock(Player.class);
+			lenient().when(farPlayer.getWorldLocation()).thenReturn(new WorldPoint(100, 0, 0));
+			mockPlayers.add(farPlayer);
+		}
+
+		lenient().when(client.getPlayers()).thenReturn(mockPlayers);
 	}
 
 	@After
@@ -127,6 +170,7 @@ public class SpeechEventHandlerTest {
 	@Test
 	public void testDialogWidget_CorrectlySpoken_FormatTags() {
 		// closing format tags
+		// GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/6
 
 		// NPC EntityID(id=11470) dialog detected
 		// headModelWidget:11560
@@ -145,6 +189,7 @@ public class SpeechEventHandlerTest {
 	@Test
 	public void testDialogWidget_CorrectlySpoken_LongDialogWithLineBreaks() {
 		// really long dialog with <br> breaks
+		// GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/6
 
 		// NPC EntityID(id=3225) dialog detected
 		// headModelWidget:3225
@@ -152,7 +197,8 @@ public class SpeechEventHandlerTest {
 
 		final String text =
 			"As you get better you'll find you will be able to smith<br>Mithril and eventually Adamantite and even Runite.<br>This can be very lucrative but very expensive on the<br>coal front.";
-		final String correctText = "As you get better you'll find you will be able to smith Mithril and eventually Adamantite and even Runite. This can be very lucrative but very expensive on the coal front.";
+		final String correctText =
+			"As you get better you'll find you will be able to smith Mithril and eventually Adamantite and even Runite. This can be very lucrative but very expensive on the coal front.";
 		final int headModelId = 3225;
 		final int npcId = 3225;
 
@@ -162,6 +208,7 @@ public class SpeechEventHandlerTest {
 	@Test
 	public void testDialogWidget_CorrectlySpoken_UnclosedFormatTags() {
 		// unclosed format tags
+		// GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/6
 
 		// NPC EntityID(id=4572) dialog detected
 		// headModelWidget:4572
@@ -218,43 +265,34 @@ public class SpeechEventHandlerTest {
 
 
 	@Test
-	public void testChatMessage0() {
+	public void testChatMessage_CorrectlySpoken_LongPlayerChat() {
 		//  ChatMessage(
 		//		messageNode=cn@192d2bbf,
 		//		type=PUBLICCHAT,
 		//		name=<img=41>Dawncore,
-		//		message=Hello natural speech hello natural speech hello natural speech hello natural spe,
+		//		message=Hello natural speech hello natural speech hello natural speech hello natural,
 		//		sender=null,
 		//		timestamp=1716428452
 		//  )
+		String userName = "<img=41>Dawncore";
+		String text = "Hello natural speech hello natural speech hello natural speech hello natural";
+		ChatMessage chatMessage
+			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
+
+		EntityID eid = EntityID.name(userName);
+		VoiceID voiceID = new VoiceID("mock", "player voice");
+		Supplier<Float> gainSupplier = () -> 0f;
+
+		lenient().when(voiceManager.resolve(eid)).thenReturn(voiceID);
+		lenient().when(volumeManager.chat(ChatHelper.ChatType.OtherPlayers, eid)).thenReturn(gainSupplier);
+
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager).speak(eq(voiceID), eq(text), eq(gainSupplier), any());
 	}
 
 	@Test
-	public void testChatMessage1() {
-		//  ChatMessage(
-		// 		messageNode=cn@2f00f8bf,
-		// 		type=PUBLICCHAT,
-		// 		name=<img=41>Dawncore,
-		// 		message=@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@,
-		// 		sender=null,
-		// 		timestamp=1716428992
-		//  )
-	}
-
-	@Test
-	public void testChatMessage2() {
-		//  ChatMessage(
-		//  	messageNode=cn@114168b6,
-		//  	type=PUBLICCHAT,
-		//  	name=<img=41>Dawncore,
-		//  	message=***** crazy way to talk,
-		//  	sender=null,
-		//  	timestamp=1716429084
-		//  )
-	}
-
-	@Test
-	public void testChatMessage3() {
+	public void testChatMessage_CorrectlySpoken_HTMLSymbolInPlayerChat() {
 		//  ChatMessage(
 		//  	messageNode=cn@293ce2b,
 		//  	type=PUBLICCHAT,
@@ -263,19 +301,82 @@ public class SpeechEventHandlerTest {
 		//  	sender=null,
 		//  	timestamp=1716429172
 		//  )
+
+		String userName = "<img=41>Dawncore";
+
+		// since it's public chat, tags should not be sanitized, since it's manually typed.
+		// For spam protection, could consider removing all unspeakable symbols for public chat in the future.
+		// TODO(Louis): Special HTML Characters in Public Chat GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/12
+		// However, for text replacement, user expects the character unspeakable '<', which the client replaces with "<lt>"
+		// with `Text.escapeJagex(String)`
+		// to be replaced back into spoken phrase.
+		String text = "<lt>col=ffffff<gt>fake tags within player chat";
+
+		ChatMessage chatMessage
+			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
+
+		EntityID eid = EntityID.name(userName);
+		VoiceID voiceID = new VoiceID("mock", "player voice");
+		Supplier<Float> gainSupplier = () -> 0f;
+
+		lenient().when(voiceManager.resolve(eid)).thenReturn(voiceID);
+		lenient().when(volumeManager.chat(ChatHelper.ChatType.OtherPlayers, eid)).thenReturn(gainSupplier);
+
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager).speak(eq(voiceID), eq(text), eq(gainSupplier), any());
 	}
 
 	@Test
-	public void testChatMessage4() {
+	public void testChatMessage_NeverSpoken_AllSymbols() {
 		//  ChatMessage(
-		//  	messageNode=cn@e6a6d36,
-		//  	type=PUBLICCHAT,
-		//  	name=<img=41>Dawncore,
-		//  	message=@@@words in sea of @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@,
-		//  	sender=null,
-		//  	timestamp=1716429268
+		// 		messageNode=cn@2f00f8bf,
+		// 		type=PUBLICCHAT,
+		// 		name=<img=41>Dawncore,
+		// 		message=@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@,
+		// 		sender=null,
+		// 		timestamp=1716428992
 		//  )
+		String userName = "<img=41>Dawncore";
+		String text = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
+		ChatMessage chatMessage
+			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
+
+		EntityID eid = EntityID.name(userName);
+		VoiceID voiceID = new VoiceID("mock", "player voice");
+		Supplier<Float> gainSupplier = () -> 0f;
+
+		lenient().when(voiceManager.resolve(eid)).thenReturn(voiceID);
+		lenient().when(volumeManager.chat(ChatHelper.ChatType.OtherPlayers, eid)).thenReturn(gainSupplier);
+
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager, never()).speak(eq(voiceID), eq(text), eq(gainSupplier), any());
 	}
+
+//	@Test
+//	public void testChatMessage2() {
+//		//  ChatMessage(
+//		//  	messageNode=cn@114168b6,
+//		//  	type=PUBLICCHAT,
+//		//  	name=<img=41>Dawncore,
+//		//  	message=***** crazy way to talk,
+//		//  	sender=null,
+//		//  	timestamp=1716429084
+//		//  )
+//	}
+//
+//	@Test
+//	public void testChatMessage4() {
+//		//  ChatMessage(
+//		//  	messageNode=cn@e6a6d36,
+//		//  	type=PUBLICCHAT,
+//		//  	name=<img=41>Dawncore,
+//		//  	message=@@@words in sea of @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@,
+//		//  	sender=null,
+//		//  	timestamp=1716429268
+//		//  )
+//	}
 
 	private void _testNPCDialogWidget_VerifySpoken(String text, int headModelId, int npcId, String correctText) {
 		when(config.useNpcCustomAbbreviations()).thenReturn(false);
