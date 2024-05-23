@@ -51,6 +51,9 @@ public class SpeechEventHandlerTest {
 	@Inject
 	SpeechEventHandler speechEventHandler;
 
+	@Inject
+	ChatHelper chatHelper;
+
 	//////////////////////////////////////////
 
 	@Mock
@@ -328,6 +331,74 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
+	public void testChatMessage_CorrectlySpoken_CustomTextReplacements() {
+		// disable built-in
+		when(config.useBuiltInReplacements()).thenReturn(false);
+		when(config.customTextReplacements()).thenReturn(
+			"testing=OK1\n" +
+				"replace_me=OK2\n" +
+				"<3=OK3\n" +
+				"()[]{}<>=OK4\n" +
+				"dräpare=OK5\n" +
+				"multiple words 1=OK6\n" +
+				"multiple words 2=MULTIPLE OK7\n" +
+				"=_==OK8\n" +
+				"*blush*=OK9\n" +
+				"=MISSING_PATTERN\n" +
+				"=\n" + // just empty pattern both sides
+			    "delete me=\n"
+		);
+		chatHelper.loadUserReplacements();
+
+		//  ChatMessage(
+		//  	messageNode=cn@293ce2b,
+		//  	type=PUBLICCHAT,
+		//  	name=<img=41>Dawncore,
+		//  	message= ...,
+		//  	sender=null,
+		//  	timestamp=1716429172
+		//  )
+		String userName = "<img=41>Dawncore";
+
+		// since it's public chat, tags should not be sanitized, since it's manually typed.
+		// For spam protection, could consider removing all unspeakable symbols for public chat in the future.
+		// TODO(Louis): Special HTML Characters in Public Chat GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/12
+		// However, for text replacement, user expects the character unspeakable '<', which the client replaces with "<lt>"
+		// with `Text.escapeJagex(String)`
+		// to be replaced back into spoken phrase.
+
+		@SuppressWarnings("SpellCheckingInspection")
+		String text = "don't replace me @ " +
+			"testing replace_me <lt>3 ()[]{}<lt><gt> dräpare multiple words 1 multiple words 2 =_= *blush* delete me" +
+			" @ dont_replace_me";
+
+		@SuppressWarnings("SpellCheckingInspection")
+		String correctText = "don't replace me @ " +
+			"OK1 OK2 OK3 OK4 OK5 OK6 MULTIPLE OK7 OK8 OK9 " +
+			" @ dont_replace_me";
+
+		ChatMessage chatMessage
+			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
+
+		EntityID eid = EntityID.name(userName);
+		VoiceID voiceID = new VoiceID("mock", "player voice");
+		Supplier<Float> gainSupplier = () -> 0f;
+
+		lenient().when(voiceManager.resolve(eid)).thenReturn(voiceID);
+		lenient().when(volumeManager.chat(ChatHelper.ChatType.OtherPlayers, eid)).thenReturn(gainSupplier);
+
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager).speak(
+			eq(voiceID),
+			eq(correctText),
+			eq(gainSupplier),
+			any()
+		);
+
+	}
+
+	@Test
 	public void testChatMessage_NeverSpoken_AllSymbols() {
 		//  ChatMessage(
 		// 		messageNode=cn@2f00f8bf,
@@ -354,32 +425,32 @@ public class SpeechEventHandlerTest {
 		verify(speechManager, never()).speak(eq(voiceID), eq(text), eq(gainSupplier), any());
 	}
 
-//	@Test
-//	public void testChatMessage2() {
-//		//  ChatMessage(
-//		//  	messageNode=cn@114168b6,
-//		//  	type=PUBLICCHAT,
-//		//  	name=<img=41>Dawncore,
-//		//  	message=***** crazy way to talk,
-//		//  	sender=null,
-//		//  	timestamp=1716429084
-//		//  )
-//	}
-//
-//	@Test
-//	public void testChatMessage4() {
-//		//  ChatMessage(
-//		//  	messageNode=cn@e6a6d36,
-//		//  	type=PUBLICCHAT,
-//		//  	name=<img=41>Dawncore,
-//		//  	message=@@@words in sea of @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@,
-//		//  	sender=null,
-//		//  	timestamp=1716429268
-//		//  )
-//	}
+	//	@Test
+	//	public void testChatMessage2() {
+	//		//  ChatMessage(
+	//		//  	messageNode=cn@114168b6,
+	//		//  	type=PUBLICCHAT,
+	//		//  	name=<img=41>Dawncore,
+	//		//  	message=***** crazy way to talk,
+	//		//  	sender=null,
+	//		//  	timestamp=1716429084
+	//		//  )
+	//	}
+	//
+	//	@Test
+	//	public void testChatMessage4() {
+	//		//  ChatMessage(
+	//		//  	messageNode=cn@e6a6d36,
+	//		//  	type=PUBLICCHAT,
+	//		//  	name=<img=41>Dawncore,
+	//		//  	message=@@@words in sea of @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@,
+	//		//  	sender=null,
+	//		//  	timestamp=1716429268
+	//		//  )
+	//	}
 
 	private void _testNPCDialogWidget_VerifySpoken(String text, int headModelId, int npcId, String correctText) {
-		when(config.useNpcCustomAbbreviations()).thenReturn(false);
+		when(config.enableTextReplacementsForNPCDialog()).thenReturn(false);
 
 		mock_NPCDialogWidget(text, headModelId, npcId);
 

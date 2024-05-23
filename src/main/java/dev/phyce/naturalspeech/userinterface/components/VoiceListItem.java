@@ -106,7 +106,7 @@ public class VoiceListItem extends JPanel {
 				speechManager.silence((lineName) -> lineName.equals(Names.VOICE_EXPLORER));
 				speechManager.speak(
 					voiceMetadata.voiceId,
-					chatHelper.expandAbbreviations(voiceExplorerPanel.getSpeechText().getText()),
+					chatHelper.renderReplacements(voiceExplorerPanel.getSpeechText().getText()),
 					() -> 0f,
 					Names.VOICE_EXPLORER
 				);

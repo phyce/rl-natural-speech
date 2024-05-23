@@ -1,13 +1,14 @@
 package dev.phyce.naturalspeech.utils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public final class Texts {
 
 	public static List<String> splitSentence(String text) {
@@ -25,22 +26,55 @@ public final class Texts {
 		return segments.stream().map(s -> "[" + s + "]").reduce("", (a, b) -> a + b);
 	}
 
-	public static String expandAbbreviations(String text, Map<String, String> phrases) {
-		text = preprocessNumbers(text);
-		List<String> tokens = tokenize(text);
-		StringBuilder parsedMessage = new StringBuilder();
+	public static String renderReplacements(String text, Map<String, String> replacements) {
+		// instead of tokenizing, we do a find-and-replace
+		// this supports space separated targets to be replaced, for example "multiple words"="OK"
 
-		for (String token : tokens) {
-			String key = token.replaceAll("\\p{Punct}", "").toLowerCase();
+		// special characteristic: find target requires to either be start of line or preceded by ' ' space
+		// example: "replace me"="OK"
 
-			String replacement = phrases.getOrDefault(key, token);
-			parsedMessage.append(replacement.equals(token) ? token : replacement).append(" ");
+		// replace me -> OK
+		// ^ start of line
+
+		// dont_replace me -> dont_replace me
+		//     ^ not space, not start of line
+
+		// filler_word replace me -> filler_word OK
+		//            ^ space
+
+		// "replace me" -> "replace me"
+		// ^ not space, not start of line
+
+		for (Map.Entry<String, String> entry : replacements.entrySet()) {
+
+			StringBuilder result = new StringBuilder();
+			String original = entry.getKey();
+			String replaced = entry.getValue();
+
+			int start = 0;
+			int end = text.indexOf(entry.getKey());
+
+			while (end != -1) {
+
+				result.append(text, start, end);
+				result.append(start > 0 && text.charAt(start) == ' ' ? original : replaced);
+
+				start = end + original.length();
+				end = text.indexOf(original, start);
+			}
+
+			if (start < text.length()) {
+				result.append(text, start, text.length());
+			}
+
+//			log.info("\nREPLACE\t{}\nTEXT\t{}\nRESULT\t{}\n", entry, text, result);
+			text = result.toString();
 		}
 
-		return parsedMessage.toString().trim();
+		return text.trim();
 	}
 
-	private static String preprocessNumbers(String text) {
+	public static String renderLargeNumbers(String text) {
 		text = text.replaceAll("(?i)(\\d{1,3})(,)(\\d{3})", "$1$3");
 		text = text.replaceAll("(?i)(\\d)(,)(\\d{3})(\\.\\d+)?", "$1$3$4");
 
@@ -49,15 +83,6 @@ public final class Texts {
 		text = text.replaceAll("(?i)(\\d+)\\s?b\\b", "$1 billion");
 		text = text.replaceAll("(?i)(\\d+)\\s?t\\b", "$1 trillion");
 		return text;
-	}
-
-	public static List<String> tokenize(String text) {
-		List<String> tokens = new ArrayList<>();
-		Matcher matcher = Pattern.compile("[^\\s]+").matcher(text);
-
-		while (matcher.find()) tokens.add(matcher.group());
-
-		return tokens;
 	}
 
 	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*\\w.*");

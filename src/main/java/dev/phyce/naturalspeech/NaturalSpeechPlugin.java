@@ -126,7 +126,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		});
 
 		// Load Abbreviations is a method that can be called later when configs are changed
-		module.chatHelper.loadAbbreviations();
+		module.chatHelper.loadUserReplacements();
 
 		loadSpeechEngines();
 
@@ -217,10 +217,10 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		switch (event.getKey()) {
-			case ConfigKeys.COMMON_ABBREVIATIONS:
-			case ConfigKeys.CUSTOM_ABBREVIATIONS:
+			case ConfigKeys.COMMON_REPLACEMENTS:
+			case ConfigKeys.CUSTOM_TEXT_REPLACEMENTS:
 				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
-				module.chatHelper.loadAbbreviations();
+				module.chatHelper.loadUserReplacements();
 				break;
 
 			case ConfigKeys.PERSONAL_VOICE:

@@ -86,7 +86,7 @@ public class SpeechEventHandler {
 
 		String lineName = String.valueOf(entityID.hashCode());
 
-		String text = chatHelper.getText(message);
+		String text = chatHelper.standardizeChatMessageText(message);
 
 		if (deduplicate(message)) {
 			return;
@@ -165,8 +165,7 @@ public class SpeechEventHandler {
 				return;
 			}
 
-			boolean expand = config.useNpcCustomAbbreviations();
-			String text = chatHelper.standardizeWidgetText(textWidget, expand);
+			String text = chatHelper.standardizeWidgetText(textWidget, config.enableTextReplacementsForNPCDialog());
 			VoiceID voiceID = voiceManager.resolve(entityID);
 
 			speechManager.speak(voiceID, text, volumeManager.dialog(), Names.DIALOG);

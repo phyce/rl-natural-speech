@@ -343,30 +343,30 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=1,
-		keyName=ConfigKeys.COMMON_ABBREVIATIONS,
-		name="Common Abbreviations",
-		description="Enable commonly used abbreviations",
+		keyName=ConfigKeys.COMMON_REPLACEMENTS,
+		name="Built In Replacements",
+		description="Enable commonly used replacements the developer designed.",
 		section=otherOptionsSection
 	)
-	default boolean useCommonAbbreviations() {return true;}
+	default boolean useBuiltInReplacements() {return true;}
 
 	@ConfigItem(
 		position=2,
-		keyName=ConfigKeys.ENABLE_NPC_CUSTOM_ABBREVIATIONS,
+		keyName=ConfigKeys.ENABLE_NPC_DIALOG_TEXT_REPLACE,
 		name="Use for NPC dialogs",
-		description="Enable custom abbreviations for NPC dialogs",
+		description="Enable custom text replacements for NPC dialogs",
 		section=otherOptionsSection
 	)
-	default boolean useNpcCustomAbbreviations() {return true;}
+	default boolean enableTextReplacementsForNPCDialog() {return true;}
 
 	@ConfigItem(
 		position=3,
-		keyName=ConfigKeys.CUSTOM_ABBREVIATIONS,
-		name="Custom Abbreviations",
-		description="One per line. Example:wuu2=what you up to",
+		keyName=ConfigKeys.CUSTOM_TEXT_REPLACEMENTS,
+		name="Custom Text Replacements",
+		description="One per line. Example: wtf=what the heck",
 		section=otherOptionsSection
 	)
-	default String customAbbreviations() {
+	default String customTextReplacements() {
 		return "\n";
 	}
 

@@ -36,7 +36,8 @@ public class ChatHelper {
 	private final MuteManager muteManager;
 	private final VolumeManager volumeManager;
 
-	private final Map<String, String> abbreviations = new HashMap<>();
+	private final Map<String, String> builtinReplacements = new HashMap<>();
+	private final Map<String, String> userReplacements = new HashMap<>();
 
 
 	@Inject
@@ -54,6 +55,13 @@ public class ChatHelper {
 		this.config = config;
 		this.muteManager = muteManager;
 		this.volumeManager = volumeManager;
+
+		try {
+			Arrays.stream(PluginResources.BUILT_IN_ABBREVIATIONS)
+				.forEach(entry -> builtinReplacements.put(entry.acronym, entry.sentence));
+		} catch (JsonSyntaxException e) {
+			log.error("Failed to parse built-in abbreviations from Resources.", e);
+		}
 	}
 
 	public EntityID getEntityID(ChatMessage message) {
@@ -287,58 +295,63 @@ public class ChatHelper {
 	}
 
 	@NonNull
-	public String getText(@NonNull ChatMessage message) {
-		return expandAbbreviations(message.getMessage());
+	public String standardizeChatMessageText(@NonNull ChatMessage message) {
+		String text = renderReplacements(message.getMessage());
+		text = Texts.renderLargeNumbers(text);
+		return text;
 	}
 
 	@NonNull
-	public String standardizeWidgetText(@NonNull Widget widget, boolean expand) {
-		if (expand) {
-			return expandAbbreviations(Text.sanitizeMultilineText(widget.getText()));
+	public String standardizeWidgetText(@NonNull Widget widget, boolean replace) {
+		String text = Text.sanitizeMultilineText(widget.getText());
+		if (replace) {
+			text = renderReplacements(text);
 		}
-		else {
-			return Text.sanitizeMultilineText(widget.getText());
-		}
+		return text;
+
 	}
 
 	@NonNull
 	public String standardizeOverheadText(@NonNull OverheadTextChanged overhead) {
-		return expandAbbreviations(Text.sanitizeMultilineText(overhead.getOverheadText()));
+		return renderReplacements(Text.sanitizeMultilineText(overhead.getOverheadText()));
 	}
 
 	@NonNull
-	public String standardizeText(@NonNull String message) {
-		return expandAbbreviations(Text.sanitizeMultilineText(message));
-	}
+	public String renderReplacements(String text) {
+		// apply user replacements first
+		text = Texts.renderReplacements(text, userReplacements);
 
-	@NonNull
-	public String expandAbbreviations(String text) {
-		return Texts.expandAbbreviations(text, abbreviations);
-	}
-
-	private void loadBuiltinAbbreviations() {
-		try {
-			Arrays.stream(PluginResources.BUILT_IN_ABBREVIATIONS)
-				.forEach(entry -> abbreviations.put(entry.acronym, entry.sentence));
-		} catch (JsonSyntaxException e) {
-			log.error("Failed to parse built-in abbreviations from Resources.", e);
+		if (config.useBuiltInReplacements()) {
+			text = Texts.renderReplacements(text, builtinReplacements);
 		}
+
+		return text;
 	}
 
 	/**
 	 * In method so we can load again when user changes config
 	 */
-	public void loadAbbreviations() {
+	public void loadUserReplacements() {
 
-		if (config.useCommonAbbreviations()) {
-			loadBuiltinAbbreviations();
-		}
-
-		String phrases = config.customAbbreviations();
-		String[] lines = phrases.split("\n");
+		String[] lines = config.customTextReplacements().split("\n");
 		for (String line : lines) {
-			String[] parts = line.split("=", 2);
-			if (parts.length == 2) abbreviations.put(parts[0].trim(), parts[1].trim());
+			// last index of = instead of string split by =
+			// This support "=_=" to "squint face" replacement
+
+			int index = line.lastIndexOf("=");
+			if (index == -1) continue;
+
+			// we use Jagex style escapes for special characters because this is what ChatMessage will contain
+			// For example <3 will become <lt>3 in ChatMessage
+			String match = Text.escapeJagex(line.substring(0, index)).trim();
+			if (match.isEmpty()) continue;
+
+			// index + 1 to skip the "="
+			String replace = line.substring(index + 1).trim();
+			// replacement allowed to be empty, so user can replace with empty (removal).
+			// if (replace.isEmpty()) continue;
+
+			userReplacements.put(match, replace);
 		}
 	}
 
