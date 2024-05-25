@@ -136,28 +136,7 @@ public class TestMuteManager {
 
 		ConfigManager configManager = mock(ConfigManager.class);
 
-		List<Integer> deprecatedNPCMute = List.of(200, 201, 202);
-		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_NPC_ID_MUTE_LIST))
-			.thenReturn(Text.toCSV(deprecatedNPCMute.stream().map(String::valueOf).collect(Collectors.toList())));
-
-		List<Integer> deprecatedNPCListen = List.of(300, 301, 302);
-		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_NPC_ID_LISTEN_LIST))
-			.thenReturn(Text.toCSV(deprecatedNPCListen.stream().map(String::valueOf).collect(Collectors.toList())));
-
-		List<String> deprecatedUserMute = List.of("LegacyMuted1", "LegacyMuted2");
-		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_USERNAME_MUTE_LIST))
-			.thenReturn(Text.toCSV(deprecatedUserMute));
-
-		List<String> deprecatedUserListen = List.of("LegacyListened1", "LegacyListened2");
-		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP,
-			ConfigKeys.DEPRECATED_USERNAME_LISTEN_LIST))
-			.thenReturn(Text.toCSV(deprecatedUserListen));
-
-		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_MODE))
-			.thenReturn("true");
-
-		MuteManager muteManager = new MuteManager(configManager);
-
+		// test data
 		List<EntityID> listened = List.of(
 			EntityID.id(1),
 			EntityID.id(2),
@@ -172,7 +151,28 @@ public class TestMuteManager {
 			EntityID.name("Zanela"),
 			EntityID.name("Phyce")
 		);
+		List<Integer> deprecatedNPCMute = List.of(200, 201, 202);
+		List<Integer> deprecatedNPCListen = List.of(300, 301, 302);
+		List<String> deprecatedUserMute = List.of("LegacyMuted1", "LegacyMuted2");
+		List<String> deprecatedUserListen = List.of("LegacyListened1", "LegacyListened2");
+		String muteMode = "true";
 
+		// mock deprecated test configs
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_NPC_ID_MUTE_LIST))
+			.thenReturn(Text.toCSV(deprecatedNPCMute.stream().map(String::valueOf).collect(Collectors.toList())));
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_NPC_ID_LISTEN_LIST))
+			.thenReturn(Text.toCSV(deprecatedNPCListen.stream().map(String::valueOf).collect(Collectors.toList())));
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_USERNAME_MUTE_LIST))
+			.thenReturn(Text.toCSV(deprecatedUserMute));
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.DEPRECATED_USERNAME_LISTEN_LIST))
+			.thenReturn(Text.toCSV(deprecatedUserListen));
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_MODE))
+			.thenReturn(muteMode);
+
+		MuteManager muteManager = new MuteManager(configManager);
+
+		// just set the listened and mute directly
 		for (EntityID entity : listened) {
 			muteManager.listen(entity);
 		}
@@ -181,10 +181,11 @@ public class TestMuteManager {
 			muteManager.mute(entity);
 		}
 
-		/////
-
+		// assert the test data is applied
 		_testSaveLoadAsserts(muteManager, muted, listened, deprecatedNPCMute, deprecatedNPCListen, deprecatedUserMute,
 			deprecatedUserListen);
+
+		///// save the test data and load it back into MuteManager
 
 		// capture the configuration set by the mute manager
 		StringBuilder muteListConfigCapture = captureConfigManagerSetConfiguration(ConfigKeys.MUTE_LIST, configManager);
@@ -222,6 +223,7 @@ public class TestMuteManager {
 		// load the saved configuration
 		muteManager.load();
 
+		// assert the test configs are loaded back and applied
 		_testSaveLoadAsserts(muteManager, muted, listened, deprecatedNPCMute, deprecatedNPCListen, deprecatedUserMute,
 			deprecatedUserListen);
 
