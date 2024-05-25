@@ -21,7 +21,9 @@ import dev.phyce.naturalspeech.utils.ChatHelper;
 import dev.phyce.naturalspeech.utils.ClientHelper;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
@@ -36,12 +38,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.assertArg;
 import org.mockito.Mock;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("SpellCheckingInspection")
+@Slf4j
 @RunWith(MockitoJUnitRunner.class)
 public class SpeechEventHandlerTest {
 
@@ -167,7 +172,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testDialogWidget_CorrectlySpoken_FormatTags() {
+	public void testDialogWidget_Spoken_FormatTags() {
 		// closing format tags
 		// GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/6
 
@@ -186,7 +191,7 @@ public class SpeechEventHandlerTest {
 
 
 	@Test
-	public void testDialogWidget_CorrectlySpoken_LongDialogWithLineBreaks() {
+	public void testDialogWidget_Spoken_LongDialogWithLineBreaks() {
 		// really long dialog with <br> breaks
 		// GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/6
 
@@ -205,7 +210,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testDialogWidget_CorrectlySpoken_UnclosedFormatTags() {
+	public void testDialogWidget_Spoken_UnclosedFormatTags() {
 		// unclosed format tags
 		// GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/6
 
@@ -264,7 +269,7 @@ public class SpeechEventHandlerTest {
 
 
 	@Test
-	public void testChatMessage_CorrectlySpoken_LongPlayerChat() {
+	public void testChatMessage_Spoken_Plain() {
 		//  ChatMessage(
 		//		messageNode=cn@192d2bbf,
 		//		type=PUBLICCHAT,
@@ -291,7 +296,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_CorrectlySpoken_HTMLSymbolInPlayerChat() {
+	public void testChatMessage_Spoken_DontSanitizeTags() {
 		//  ChatMessage(
 		//  	messageNode=cn@293ce2b,
 		//  	type=PUBLICCHAT,
@@ -327,71 +332,97 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_CorrectlySpoken_CustomTextReplacements() {
-		// disable built-in
-		when(config.useBuiltInReplacements()).thenReturn(false);
-		when(config.customTextReplacements()).thenReturn(
-			"testing=OK1\n" +
-				"replace_me=OK2\n" +
-				"<3=OK3\n" +
-				"()[]{}<>=OK4\n" +
-				"dräpare=OK5\n" +
-				"multiple words 1=OK6\n" +
-				"multiple words 2=MULTIPLE OK7\n" +
-				"=_==OK8\n" +
-				"*blush*=OK9\n" +
-				"=MISSING_PATTERN\n" +
-				"=\n" + // just empty pattern both sides
-				"delete me=\n"
-		);
-		chatHelper.loadUserReplacements();
-
-		//  ChatMessage(
-		//  	messageNode=cn@293ce2b,
-		//  	type=PUBLICCHAT,
-		//  	name=<img=41>Dawncore,
-		//  	message= ...,
-		//  	sender=null,
-		//  	timestamp=1716429172
-		//  )
+	public void testChatMessage_Spoken_CustomReplace_SpecialCharacters() {
 		String userName = "<img=41>Dawncore";
-
-		// since it's public chat, tags should not be sanitized, since it's manually typed.
-		// For spam protection, could consider removing all unspeakable symbols for public chat in the future.
-		// TODO(Louis): Special HTML Characters in Public Chat GitHub Issue: https://github.com/phyce/rl-natural-speech/issues/12
-		// However, for text replacement, user expects the character unspeakable '<', which the client replaces with "<lt>"
-		// with `Text.escapeJagex(String)`
-		// to be replaced back into spoken phrase.
-
-		@SuppressWarnings("SpellCheckingInspection")
-		String text = "don't replace me @ " +
+		String text =
+			"don't replace me @ " +
 			"testing replace_me <lt>3 ()[]{}<lt><gt> dräpare multiple words 1 multiple words 2 =_= *blush* delete me" +
 			" @ dont_replace_me";
-
-		@SuppressWarnings("SpellCheckingInspection")
-		String correctText = "don't replace me @ " +
+		String correctText =
+			"don't replace me @ " +
 			"OK1 OK2 OK3 OK4 OK5 OK6 MULTIPLE OK7 OK8 OK9 " +
 			" @ dont_replace_me";
 
-		ChatMessage chatMessage
-			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
+		String customTextReplacements = "testing=OK1\n" +
+			"replace_me=OK2\n" +
+			"<3=OK3\n" +
+			"()[]{}<>=OK4\n" +
+			"dräpare=OK5\n" +
+			"multiple words 1=OK6\n" +
+			"multiple words 2=MULTIPLE OK7\n" +
+			"=_==OK8\n" +
+			"*blush*=OK9\n" +
+			"=MISSING_PATTERN\n" +
+			"=\n" + // just empty pattern both sides
+			"delete me=\n";
 
-		EntityID eid = EntityID.name(userName);
-		VoiceID voiceID = new VoiceID("mock", "player voice");
-		Supplier<Float> gainSupplier = () -> 0f;
+		_testCustomReplacements(customTextReplacements, userName, text, correctText);
+	}
 
-		lenient().when(voiceManager.resolve(eid)).thenReturn(voiceID);
-		lenient().when(volumeManager.chat(ChatHelper.ChatType.OtherPlayers, eid)).thenReturn(gainSupplier);
+	@Test
+	public void testChatMessage_Spoken_CustomReplace_EndOfLine() {
+		String userName = "<img=41>Dawncore";
+		String text = "FAKE_OK0 OK0";
+		String correctText = "FAKE_OK0 WEGOOD";
+		String customTextReplacements = "OK0=OK1\n" +
+			"OK1=OK2\n" +
+			"OK2=OK3\n" +
+			"OK3=WEGOOD";
 
-		speechEventHandler.onChatMessage(chatMessage);
+		_testCustomReplacements(customTextReplacements, userName, text, correctText);
+	}
 
-		verify(speechManager).speak(
-			eq(voiceID),
-			eq(correctText),
-			eq(gainSupplier),
-			any()
-		);
+	@Test
+	public void testChatMessage_Spoken_CustomReplace_StartOfLine() {
+		String userName = "<img=41>Dawncore";
+		String text = "FAKE_OK0 OK0";
+		String correctText = "FAKE_OK0 WEGOOD";
+		String customTextReplacements = "OK0=OK1\n" +
+			"OK1=OK2\n" +
+			"OK2=OK3\n" +
+			"OK3=WEGOOD";
 
+		_testCustomReplacements(customTextReplacements, userName, text, correctText);
+	}
+
+	@Test
+	public void testChatMessage_Spoken_CustomReplace_Fakes1() {
+		String userName = "<img=41>Dawncore";
+		String text = "FAKE_OK0 FAKE_OK0";
+		String correctText = "FAKE_OK0 FAKE_OK0";
+		String customTextReplacements = "OK0=OK1\n" +
+			"OK1=OK2\n" +
+			"OK2=OK3\n" +
+			"OK3=WEGOOD";
+
+		_testCustomReplacements(customTextReplacements, userName, text, correctText);
+	}
+
+	@Test
+	public void testChatMessage_Spoken_CustomReplace_Fakes2() {
+		String userName = "<img=41>Dawncore";
+		String text = "OK0_FAKE OK0_FAKE";
+		String correctText = "OK0_FAKE OK0_FAKE";
+		String customTextReplacements = "OK0=OK1\n" +
+			"OK1=OK2\n" +
+			"OK2=OK3\n" +
+			"OK3=WEGOOD";
+
+		_testCustomReplacements(customTextReplacements, userName, text, correctText);
+	}
+
+	@Test
+	public void testChatMessage_Spoken_CustomReplace_Chain() {
+
+		String userName = "<img=41>Dawncore";
+		String text = "OK0 OK0 FAKE_OK0";
+		String correctText = "WEGOOD WEGOOD FAKE_OK0";
+		String customTextReplacements = "OK0=OK1\n" +
+			"OK1=OK2\n" +
+			"OK2=OK3\n" +
+			"OK3=WEGOOD";
+
+		_testCustomReplacements(customTextReplacements, userName, text, correctText);
 	}
 
 	@Test
@@ -420,30 +451,6 @@ public class SpeechEventHandlerTest {
 
 		verify(speechManager, never()).speak(eq(voiceID), eq(text), eq(gainSupplier), any());
 	}
-
-	//	@Test
-	//	public void testChatMessage2() {
-	//		//  ChatMessage(
-	//		//  	messageNode=cn@114168b6,
-	//		//  	type=PUBLICCHAT,
-	//		//  	name=<img=41>Dawncore,
-	//		//  	message=***** crazy way to talk,
-	//		//  	sender=null,
-	//		//  	timestamp=1716429084
-	//		//  )
-	//	}
-	//
-	//	@Test
-	//	public void testChatMessage4() {
-	//		//  ChatMessage(
-	//		//  	messageNode=cn@e6a6d36,
-	//		//  	type=PUBLICCHAT,
-	//		//  	name=<img=41>Dawncore,
-	//		//  	message=@@@words in sea of @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@,
-	//		//  	sender=null,
-	//		//  	timestamp=1716429268
-	//		//  )
-	//	}
 
 	private void _testNPCDialogWidget_VerifySpoken(String text, int headModelId, int npcId, String correctText) {
 		when(config.enableTextReplacementsForNPCDialog()).thenReturn(false);
@@ -485,5 +492,37 @@ public class SpeechEventHandlerTest {
 		when(client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL)).thenReturn(headModelWidget);
 
 		when(clientHelper.widgetModelIdToNpcId(headModelId)).thenReturn(npcId);
+	}
+
+	private void _testCustomReplacements(String customTextReplacements, String userName, String text, String correctText) {
+		// disable built-in
+		when(config.useBuiltInReplacements()).thenReturn(false);
+		when(config.customTextReplacements()).thenReturn(customTextReplacements);
+		chatHelper.loadUserReplacements();
+
+		ChatMessage chatMessage
+			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
+
+		EntityID eid = EntityID.name(userName);
+		VoiceID voiceID = new VoiceID("mock", "player voice");
+		Supplier<Float> gainSupplier = () -> 0f;
+
+		lenient().when(voiceManager.resolve(eid)).thenReturn(voiceID);
+		lenient().when(volumeManager.chat(ChatHelper.ChatType.OtherPlayers, eid)).thenReturn(gainSupplier);
+
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager).speak(
+			eq(voiceID),
+//			eq(correctText),
+			ArgumentMatchers.assertArg((Consumer<String>) actual -> {
+				if (!actual.equals(correctText)) {
+					log.error("Custom Replacement Mismatch!\nExpect:\t{}\nActual:\t{}", correctText, actual);
+					throw new AssertionError();
+				}
+			}),
+			eq(gainSupplier),
+			any()
+		);
 	}
 }

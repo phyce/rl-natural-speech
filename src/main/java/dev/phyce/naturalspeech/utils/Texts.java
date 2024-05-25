@@ -2,7 +2,6 @@ package dev.phyce.naturalspeech.utils;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -24,54 +23,6 @@ public final class Texts {
 
 	public static String sentenceSegmentPrettyPrint(List<String> segments) {
 		return segments.stream().map(s -> "[" + s + "]").reduce("", (a, b) -> a + b);
-	}
-
-	public static String renderReplacements(String text, Map<String, String> replacements) {
-		// instead of tokenizing, we do a find-and-replace
-		// this supports space separated targets to be replaced, for example "multiple words"="OK"
-
-		// special characteristic: find target requires to either be start of line or preceded by ' ' space
-		// example: "replace me"="OK"
-
-		// replace me -> OK
-		// ^ start of line
-
-		// dont_replace me -> dont_replace me
-		//     ^ not space, not start of line
-
-		// filler_word replace me -> filler_word OK
-		//            ^ space
-
-		// "replace me" -> "replace me"
-		// ^ not space, not start of line
-
-		for (Map.Entry<String, String> entry : replacements.entrySet()) {
-
-			StringBuilder result = new StringBuilder();
-			String original = entry.getKey();
-			String replaced = entry.getValue();
-
-			int start = 0;
-			int end = text.indexOf(entry.getKey());
-
-			while (end != -1) {
-
-				result.append(text, start, end);
-				result.append(start > 0 && text.charAt(start) == ' ' ? original : replaced);
-
-				start = end + original.length();
-				end = text.indexOf(original, start);
-			}
-
-			if (start < text.length()) {
-				result.append(text, start, text.length());
-			}
-
-//			log.info("\nREPLACE\t{}\nTEXT\t{}\nRESULT\t{}\n", entry, text, result);
-			text = result.toString();
-		}
-
-		return text.trim();
 	}
 
 	public static String renderLargeNumbers(String text) {

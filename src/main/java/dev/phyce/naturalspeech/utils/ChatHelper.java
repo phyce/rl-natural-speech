@@ -10,11 +10,13 @@ import dev.phyce.naturalspeech.spamdetection.SpamDetection;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import static dev.phyce.naturalspeech.utils.Locations.inGrandExchange;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import javax.inject.Inject;
+import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
@@ -36,9 +38,22 @@ public class ChatHelper {
 	private final MuteManager muteManager;
 	private final VolumeManager volumeManager;
 
-	private final Map<String, String> builtinReplacements = new HashMap<>();
-	private final Map<String, String> userReplacements = new HashMap<>();
+	public enum ChatType {
+		User,
+		OtherPlayers,
+		System,
+		Unknown;
+	}
 
+	@Value
+	@AllArgsConstructor
+	static class Replacement {
+		String match;
+		String replacement;
+	}
+
+	private final List<Replacement> builtinReplacements = new ArrayList<>();
+	private final List<Replacement> userReplacements = new ArrayList<>();
 
 	@Inject
 	public ChatHelper(
@@ -58,7 +73,7 @@ public class ChatHelper {
 
 		try {
 			Arrays.stream(PluginResources.BUILT_IN_ABBREVIATIONS)
-				.forEach(entry -> builtinReplacements.put(entry.acronym, entry.sentence));
+				.forEach(entry -> builtinReplacements.add(new Replacement(entry.acronym, entry.sentence)));
 		} catch (JsonSyntaxException e) {
 			log.error("Failed to parse built-in abbreviations from Resources.", e);
 		}
@@ -319,10 +334,10 @@ public class ChatHelper {
 	@NonNull
 	public String renderReplacements(String text) {
 		// apply user replacements first
-		text = Texts.renderReplacements(text, userReplacements);
+		text = renderReplacements(text, userReplacements);
 
 		if (config.useBuiltInReplacements()) {
-			text = Texts.renderReplacements(text, builtinReplacements);
+			text = renderReplacements(text, builtinReplacements);
 		}
 
 		return text;
@@ -351,14 +366,51 @@ public class ChatHelper {
 			// replacement allowed to be empty, so user can replace with empty (removal).
 			// if (replace.isEmpty()) continue;
 
-			userReplacements.put(match, replace);
+			userReplacements.add(new Replacement(match, replace));
 		}
 	}
 
-	public enum ChatType {
-		User,
-		OtherPlayers,
-		System,
-		Unknown
+
+	static String renderReplacements(String text, List<Replacement> replacements) {
+		// instead of tokenizing, we do a find-and-replace
+		// this supports space separated targets to be replaced, for example "multiple words"="OK"
+
+		// special characteristic:
+		// Rule 1. match head requires to either be start of line or preceded by ' ' space
+		// Rule 2. match tail requires to be end of line or ' ' space
+
+		for (Replacement entry : replacements) {
+
+			StringBuilder result = new StringBuilder();
+
+			int prev = 0;
+			int head = text.toLowerCase().indexOf(entry.match.toLowerCase());
+
+			while (head != -1) {
+
+				result.append(text, prev, head);
+
+				int tail = head + entry.match.length();
+				if ((head == 0 || text.charAt(head - 1) == ' ') && // rule 1
+					(tail == text.length() || text.charAt(tail) == ' ') // rule 2
+				) {
+					result.append(entry.replacement);
+				} else {
+					result.append(entry.match);
+				}
+
+				prev = tail;
+				head = text.indexOf(entry.match, prev);
+			}
+
+			if (prev < text.length()) {
+				result.append(text, prev, text.length());
+			}
+
+			//			log.info("\nREPLACE\t{}\nTEXT\t{}\nRESULT\t{}\n", entry, text, result);
+			text = result.toString();
+		}
+
+		return text.trim();
 	}
 }
