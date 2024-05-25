@@ -343,7 +343,7 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=1,
-		keyName=ConfigKeys.COMMON_REPLACEMENTS,
+		keyName=ConfigKeys.BUILTIN_REPLACEMENTS,
 		name="Built In Replacements",
 		description="Enable commonly used replacements the developer designed.",
 		section=otherOptionsSection
@@ -352,12 +352,12 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=2,
-		keyName=ConfigKeys.ENABLE_NPC_DIALOG_TEXT_REPLACE,
-		name="Use for NPC dialogs",
-		description="Enable custom text replacements for NPC dialogs",
+		keyName=ConfigKeys.ENABLE_DIALOG_TEXT_REPLACE,
+		name="Use for dialogs",
+		description="Enable custom text replacements for in-game dialogs",
 		section=otherOptionsSection
 	)
-	default boolean enableTextReplacementsForNPCDialog() {return true;}
+	default boolean enableDialogTextReplacements() {return true;}
 
 	@ConfigItem(
 		position=3,

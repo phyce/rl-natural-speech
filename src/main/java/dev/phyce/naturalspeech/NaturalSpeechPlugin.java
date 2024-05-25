@@ -113,7 +113,6 @@ public class NaturalSpeechPlugin extends Plugin {
 		registerClientEventBus(module.chatFilterPluglet);
 		registerClientEventBus(module.volumeManager);
 
-
 		// Build panel and navButton
 		SwingUtilities.invokeLater(() -> {
 			navButton = NavigationButton.builder()
@@ -126,7 +125,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		});
 
 		// Load Abbreviations is a method that can be called later when configs are changed
-		module.chatHelper.loadUserReplacements();
+		module.chatHelper.loadCustomReplacements();
 
 		loadSpeechEngines();
 
@@ -217,10 +216,9 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		switch (event.getKey()) {
-			case ConfigKeys.COMMON_REPLACEMENTS:
 			case ConfigKeys.CUSTOM_TEXT_REPLACEMENTS:
 				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
-				module.chatHelper.loadUserReplacements();
+				module.chatHelper.loadCustomReplacements();
 				break;
 
 			case ConfigKeys.PERSONAL_VOICE:
@@ -242,6 +240,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		else if (event.getKey().equals(ConfigKeys.DEVELOPER_MINIMUM_MODE)) {
 			NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE = config.simulateMinimumMode();
 		}
+
 	}
 
 	// endregion

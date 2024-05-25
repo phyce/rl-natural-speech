@@ -3,7 +3,7 @@ package dev.phyce.naturalspeech.statics;
 import com.google.common.io.Resources;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.configs.VoiceSettings;
-import dev.phyce.naturalspeech.configs.json.AbbreviationEntryJSON;
+import dev.phyce.naturalspeech.configs.json.ReplacementsJSON;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -20,18 +20,18 @@ import net.runelite.http.api.RuneLiteAPI;
 @Slf4j
 public final class PluginResources {
 
-	public static final AbbreviationEntryJSON[] BUILT_IN_ABBREVIATIONS;
+	public static final ReplacementsJSON[] BUILT_IN_REPLACEMENTS;
 	static {
 		String json;
 		try {
-			URL resource = Resources.getResource(NaturalSpeechPlugin.class, "abbreviations.json");
+			URL resource = Resources.getResource(NaturalSpeechPlugin.class, "builtin_replacements.json");
 			json = Resources.toString(resource, StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			log.error("Failed to load built-in abbreviations from Resources.", e);
 			json = "[]";
 		}
 
-		BUILT_IN_ABBREVIATIONS = RuneLiteAPI.GSON.fromJson(json, AbbreviationEntryJSON[].class);
+		BUILT_IN_REPLACEMENTS = RuneLiteAPI.GSON.fromJson(json, ReplacementsJSON[].class);
 	}
 
 	@NonNull

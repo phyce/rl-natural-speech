@@ -31,9 +31,9 @@ public interface ConfigKeys {
 	String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
 	String FRIENDS_ONLY_MODE = "friendsOnlyMode";
 	String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
-	String COMMON_REPLACEMENTS = "commonAbbreviations";
+	String BUILTIN_REPLACEMENTS = "commonAbbreviations";
 	String CUSTOM_TEXT_REPLACEMENTS = "customAbbreviations";
-	String ENABLE_NPC_DIALOG_TEXT_REPLACE = "customAbbreviationsNpc";
+	String ENABLE_DIALOG_TEXT_REPLACE = "customAbbreviationsNpc";
 	String OVERRIDE_CUSTOM_NPC_VOICES = "overrideCustomNpcVoices";
 	// endregion
 

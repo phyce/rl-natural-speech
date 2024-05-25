@@ -8,6 +8,7 @@ import com.google.inject.testing.fieldbinder.Bind;
 import com.google.inject.testing.fieldbinder.BoundFieldModule;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.audio.VolumeManager;
+import dev.phyce.naturalspeech.configs.json.ReplacementsJSON;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.singleton.PluginSingletonScope;
@@ -332,16 +333,16 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_Spoken_CustomReplace_SpecialCharacters() {
+	public void testChatMessage_CustomReplace_SpecialCharacters() {
 		String userName = "<img=41>Dawncore";
 		String text =
 			"don't replace me @ " +
-			"testing replace_me <lt>3 ()[]{}<lt><gt> dräpare multiple words 1 multiple words 2 =_= *blush* delete me" +
-			" @ dont_replace_me";
+				"testing replace_me <lt>3 ()[]{}<lt><gt> dräpare multiple words 1 multiple words 2 =_= *blush* delete me" +
+				" @ dont_replace_me";
 		String correctText =
 			"don't replace me @ " +
-			"OK1 OK2 OK3 OK4 OK5 OK6 MULTIPLE OK7 OK8 OK9 " +
-			" @ dont_replace_me";
+				"OK1 OK2 OK3 OK4 OK5 OK6 MULTIPLE OK7 OK8 OK9 " +
+				" @ dont_replace_me";
 
 		String customTextReplacements = "testing=OK1\n" +
 			"replace_me=OK2\n" +
@@ -360,7 +361,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_Spoken_CustomReplace_EndOfLine() {
+	public void testChatMessage_CustomReplace_EndOfLine() {
 		String userName = "<img=41>Dawncore";
 		String text = "FAKE_OK0 OK0";
 		String correctText = "FAKE_OK0 WEGOOD";
@@ -373,7 +374,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_Spoken_CustomReplace_StartOfLine() {
+	public void testChatMessage_CustomReplace_StartOfLine() {
 		String userName = "<img=41>Dawncore";
 		String text = "FAKE_OK0 OK0";
 		String correctText = "FAKE_OK0 WEGOOD";
@@ -386,7 +387,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_Spoken_CustomReplace_Fakes1() {
+	public void testChatMessage_CustomReplace_Fakes1() {
 		String userName = "<img=41>Dawncore";
 		String text = "FAKE_OK0 FAKE_OK0";
 		String correctText = "FAKE_OK0 FAKE_OK0";
@@ -399,7 +400,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_Spoken_CustomReplace_Fakes2() {
+	public void testChatMessage_CustomReplace_Fakes2() {
 		String userName = "<img=41>Dawncore";
 		String text = "OK0_FAKE OK0_FAKE";
 		String correctText = "OK0_FAKE OK0_FAKE";
@@ -412,7 +413,7 @@ public class SpeechEventHandlerTest {
 	}
 
 	@Test
-	public void testChatMessage_Spoken_CustomReplace_Chain() {
+	public void testChatMessage_CustomReplace_Chain() {
 
 		String userName = "<img=41>Dawncore";
 		String text = "OK0 OK0 FAKE_OK0";
@@ -423,6 +424,11 @@ public class SpeechEventHandlerTest {
 			"OK3=WEGOOD";
 
 		_testCustomReplacements(customTextReplacements, userName, text, correctText);
+	}
+
+	@Test
+	public void testChatMessage_BuiltInReplace_ConfigDisabled() {
+
 	}
 
 	@Test
@@ -452,8 +458,9 @@ public class SpeechEventHandlerTest {
 		verify(speechManager, never()).speak(eq(voiceID), eq(text), eq(gainSupplier), any());
 	}
 
+
 	private void _testNPCDialogWidget_VerifySpoken(String text, int headModelId, int npcId, String correctText) {
-		when(config.enableTextReplacementsForNPCDialog()).thenReturn(false);
+		when(config.enableDialogTextReplacements()).thenReturn(false);
 
 		mock_NPCDialogWidget(text, headModelId, npcId);
 
@@ -494,11 +501,17 @@ public class SpeechEventHandlerTest {
 		when(clientHelper.widgetModelIdToNpcId(headModelId)).thenReturn(npcId);
 	}
 
-	private void _testCustomReplacements(String customTextReplacements, String userName, String text, String correctText) {
+	private void _testBuiltInReplacements(
+		ReplacementsJSON[] builtInTextReplacements,
+		String userName,
+		String text,
+		String correctText
+	) {
 		// disable built-in
-		when(config.useBuiltInReplacements()).thenReturn(false);
-		when(config.customTextReplacements()).thenReturn(customTextReplacements);
-		chatHelper.loadUserReplacements();
+		when(config.useBuiltInReplacements()).thenReturn(true);
+		when(config.customTextReplacements()).thenReturn("");
+		chatHelper.loadCustomReplacements();
+		chatHelper.loadBuiltInReplacement(builtInTextReplacements);
 
 		ChatMessage chatMessage
 			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
@@ -514,7 +527,63 @@ public class SpeechEventHandlerTest {
 
 		verify(speechManager).speak(
 			eq(voiceID),
-//			eq(correctText),
+			//			eq(correctText),
+			ArgumentMatchers.assertArg((Consumer<String>) actual -> {
+				if (!actual.equals(correctText)) {
+					log.error("Built-in Replacement Mismatch!\nExpect:\t{}\nActual:\t{}", correctText, actual);
+					throw new AssertionError();
+				}
+			}),
+			eq(gainSupplier),
+			any()
+		);
+
+		clearInvocations(speechManager);
+
+		// disable built-in
+		when(config.useBuiltInReplacements()).thenReturn(false);
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager).speak(
+			eq(voiceID),
+			//			eq(correctText),
+			ArgumentMatchers.assertArg((Consumer<String>) actual -> {
+				if (!actual.equals(text)) {
+					log.error("Replacement even when built-in disabled!\nExpect:\t{}\nActual:\t{}", text, actual);
+					throw new AssertionError();
+				}
+			}),
+			eq(gainSupplier),
+			any()
+		);
+
+	}
+
+	private void _testCustomReplacements(
+		String customTextReplacements,
+		String userName,
+		String text,
+		String correctText
+	) {
+		// disable built-in
+		when(config.useBuiltInReplacements()).thenReturn(false);
+		when(config.customTextReplacements()).thenReturn(customTextReplacements);
+		chatHelper.loadCustomReplacements();
+
+		ChatMessage chatMessage
+			= new ChatMessage(null, ChatMessageType.PUBLICCHAT, userName, text, null, 0);
+
+		EntityID eid = EntityID.name(userName);
+		VoiceID voiceID = new VoiceID("mock", "player voice");
+		Supplier<Float> gainSupplier = () -> 0f;
+
+		lenient().when(voiceManager.resolve(eid)).thenReturn(voiceID);
+		lenient().when(volumeManager.chat(ChatHelper.ChatType.OtherPlayers, eid)).thenReturn(gainSupplier);
+
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager).speak(
+			eq(voiceID),
 			ArgumentMatchers.assertArg((Consumer<String>) actual -> {
 				if (!actual.equals(correctText)) {
 					log.error("Custom Replacement Mismatch!\nExpect:\t{}\nActual:\t{}", correctText, actual);
@@ -524,5 +593,26 @@ public class SpeechEventHandlerTest {
 			eq(gainSupplier),
 			any()
 		);
+
+		clearInvocations(speechManager);
+
+		// reload empty customs
+		when(config.customTextReplacements()).thenReturn("");
+		chatHelper.loadCustomReplacements();
+		speechEventHandler.onChatMessage(chatMessage);
+
+		verify(speechManager).speak(
+			eq(voiceID),
+			ArgumentMatchers.assertArg((Consumer<String>) actual -> {
+				if (!actual.equals(text)) {
+					log.error("Replacement occured after loading empty custom replacements!\nExpect:\t{}\nActual:\t{}",
+						text, actual);
+					throw new AssertionError();
+				}
+			}),
+			eq(gainSupplier),
+			any()
+		);
+
 	}
 }

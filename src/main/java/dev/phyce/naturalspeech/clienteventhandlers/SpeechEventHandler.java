@@ -69,6 +69,9 @@ public class SpeechEventHandler {
 		this.chatHelper = chatHelper;
 	}
 
+	/**
+	 * Used for all player chats
+	 */
 	@Subscribe(priority=-100)
 	@VisibleForTesting
 	void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
@@ -95,6 +98,9 @@ public class SpeechEventHandler {
 		speechManager.speak(voiceId, text, volume, lineName);
 	}
 
+	/**
+	 * Used for dialog
+	 */
 	@Subscribe
 	@VisibleForTesting
 	void onWidgetLoaded(WidgetLoaded event) {
@@ -165,7 +171,7 @@ public class SpeechEventHandler {
 				return;
 			}
 
-			String text = chatHelper.standardizeWidgetText(textWidget, config.enableTextReplacementsForNPCDialog());
+			String text = chatHelper.standardizeWidgetText(textWidget);
 			VoiceID voiceID = voiceManager.resolve(entityID);
 
 			speechManager.speak(voiceID, text, volumeManager.dialog(), Names.DIALOG);
@@ -184,7 +190,7 @@ public class SpeechEventHandler {
 			}
 			log.trace("Player dialog textWidget detected:{}", textWidget.getText());
 
-			String text = chatHelper.standardizeWidgetText(textWidget, true);
+			String text = chatHelper.standardizeWidgetText(textWidget);
 			VoiceID voiceID = voiceManager.resolve(EntityID.USER);
 
 			speechManager.speak(voiceID, text, volumeManager.dialog(), Names.DIALOG);

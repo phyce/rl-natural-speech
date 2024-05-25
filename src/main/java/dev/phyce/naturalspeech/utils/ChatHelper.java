@@ -1,9 +1,11 @@
 package dev.phyce.naturalspeech.utils;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.audio.VolumeManager;
+import dev.phyce.naturalspeech.configs.json.ReplacementsJSON;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.SpamDetection;
@@ -47,13 +49,13 @@ public class ChatHelper {
 
 	@Value
 	@AllArgsConstructor
-	static class Replacement {
+	private static class Replacement {
 		String match;
 		String replacement;
 	}
 
 	private final List<Replacement> builtinReplacements = new ArrayList<>();
-	private final List<Replacement> userReplacements = new ArrayList<>();
+	private final List<Replacement> customReplacements = new ArrayList<>();
 
 	@Inject
 	public ChatHelper(
@@ -71,12 +73,7 @@ public class ChatHelper {
 		this.muteManager = muteManager;
 		this.volumeManager = volumeManager;
 
-		try {
-			Arrays.stream(PluginResources.BUILT_IN_ABBREVIATIONS)
-				.forEach(entry -> builtinReplacements.add(new Replacement(entry.acronym, entry.sentence)));
-		} catch (JsonSyntaxException e) {
-			log.error("Failed to parse built-in abbreviations from Resources.", e);
-		}
+		loadBuiltInReplacement(PluginResources.BUILT_IN_REPLACEMENTS);
 	}
 
 	public EntityID getEntityID(ChatMessage message) {
@@ -317,13 +314,12 @@ public class ChatHelper {
 	}
 
 	@NonNull
-	public String standardizeWidgetText(@NonNull Widget widget, boolean replace) {
+	public String standardizeWidgetText(@NonNull Widget widget) {
 		String text = Text.sanitizeMultilineText(widget.getText());
-		if (replace) {
+		if (config.enableDialogTextReplacements()) {
 			text = renderReplacements(text);
 		}
 		return text;
-
 	}
 
 	@NonNull
@@ -334,7 +330,7 @@ public class ChatHelper {
 	@NonNull
 	public String renderReplacements(String text) {
 		// apply user replacements first
-		text = renderReplacements(text, userReplacements);
+		text = renderReplacements(text, customReplacements);
 
 		if (config.useBuiltInReplacements()) {
 			text = renderReplacements(text, builtinReplacements);
@@ -346,7 +342,8 @@ public class ChatHelper {
 	/**
 	 * In method so we can load again when user changes config
 	 */
-	public void loadUserReplacements() {
+	public void loadCustomReplacements() {
+		customReplacements.clear();
 
 		String[] lines = config.customTextReplacements().split("\n");
 		for (String line : lines) {
@@ -366,12 +363,23 @@ public class ChatHelper {
 			// replacement allowed to be empty, so user can replace with empty (removal).
 			// if (replace.isEmpty()) continue;
 
-			userReplacements.add(new Replacement(match, replace));
+			customReplacements.add(new Replacement(match, replace));
+		}
+	}
+
+	@VisibleForTesting
+	public void loadBuiltInReplacement(ReplacementsJSON[] builtInReplacements) {
+		builtinReplacements.clear();
+		try {
+			Arrays.stream(builtInReplacements)
+				.forEach(entry -> builtinReplacements.add(new Replacement(entry.acronym, entry.sentence)));
+		} catch (JsonSyntaxException e) {
+			log.error("Failed to parse built-in abbreviations from Resources.", e);
 		}
 	}
 
 
-	static String renderReplacements(String text, List<Replacement> replacements) {
+	private static String renderReplacements(String text, List<Replacement> replacements) {
 		// instead of tokenizing, we do a find-and-replace
 		// this supports space separated targets to be replaced, for example "multiple words"="OK"
 
