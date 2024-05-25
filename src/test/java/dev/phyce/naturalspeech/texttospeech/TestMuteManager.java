@@ -13,10 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -274,7 +271,7 @@ public class TestMuteManager {
 	private StringBuilder captureConfigManagerSetConfiguration(String configKey, ConfigManager configManager) {
 		StringBuilder capture = new StringBuilder();
 
-		doAnswer((call) -> {
+		lenient().doAnswer((call) -> {
 			throw new RuntimeException("Unsupported capture type, if you need to test, just add another doAnswer");
 		}).when(configManager)
 			.setConfiguration(eq(NaturalSpeechPlugin.CONFIG_GROUP), eq(configKey), any());
