@@ -25,6 +25,9 @@ dependencies {
     // lombok
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    // lombok for test
+    testCompileOnly 'org.projectlombok:lombok:1.18.30'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     // mock and unit testing
 	testImplementation 'junit:junit:4.13.2'
@@ -41,4 +44,6 @@ version = '1.3.0'
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 	options.release.set(11)
+    // Xlint:deprecation
+//    options.compilerArgs << '-Xlint:deprecation'
 }

@@ -20,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.http.api.RuneLiteAPI;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 @Slf4j
 @JsonAdapter(VoiceSettings.JSONAdaptor.class)
@@ -123,8 +123,15 @@ public class VoiceSettings {
 		) {
 			List<Setting> settings = new ArrayList<>();
 			Type userNameVoiceDataType = new TypeToken<ArrayList<UsernameVoice>>() {}.getType();
+
 			List<UsernameVoice> usernameVoiceData =
 				context.deserialize(json.get("playerNameVoiceConfigData"), userNameVoiceDataType);
+
+			if (usernameVoiceData == null) {
+				log.error("Failed to deserialize usernameVoiceData");
+				return null;
+			}
+
 			usernameVoiceData.forEach(
 				usernameVoice -> {
 					// only care about the first one, no more fallback voices
@@ -140,8 +147,15 @@ public class VoiceSettings {
 			);
 
 			Type npcIDVoiceDataType = new TypeToken<ArrayList<NPCVoice>>() {}.getType();
+
 			List<NPCVoice> npcIDVoiceData =
 				context.deserialize(json.get("npcIDVoiceConfigData").getAsJsonArray(), npcIDVoiceDataType);
+
+			if (npcIDVoiceData == null) {
+				log.error("Failed to deserialize npcIDVoiceData");
+				return null;
+			}
+
 			npcIDVoiceData.forEach(
 				npcVoice -> {
 					// only care about the first one, no more fallback voices

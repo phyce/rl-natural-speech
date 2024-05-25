@@ -28,9 +28,9 @@ public class RuntimePathConfig {
 		this.pluginEventBus = pluginEventBus;
 	}
 
+	@SuppressWarnings("deprecation")
 	public Path getPiperPath() {
 
-		//noinspection deprecation
 		String deprecatedPiperPath =
 			configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
 
@@ -80,8 +80,8 @@ public class RuntimePathConfig {
 		pluginEventBus.post(new PiperPathChanged(path));
 	}
 
+	@SuppressWarnings("deprecation")
 	public void reset() {
-		//noinspection deprecation
 		configManager.unsetConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
 	}
 

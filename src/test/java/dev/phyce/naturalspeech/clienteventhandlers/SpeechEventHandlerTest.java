@@ -4,7 +4,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.ConfigurationException;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
-import com.google.inject.Injector;
 import com.google.inject.testing.fieldbinder.Bind;
 import com.google.inject.testing.fieldbinder.BoundFieldModule;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
@@ -97,20 +96,17 @@ public class SpeechEventHandlerTest {
 
 	@Before
 	public void before() {
-		BoundFieldModule boundFieldModule = BoundFieldModule.of(this);
-		Injector injector = Guice.createInjector(boundFieldModule).createChildInjector(
-			new AbstractModule() {
-				@Override
-				protected void configure() {
-					bindScope(PluginSingleton.class, scope);
-				}
-			}
-		);
-
 		scope.enter();
-
 		try {
-			injector.injectMembers(this);
+			Guice.createInjector(BoundFieldModule.of(this))
+				.createChildInjector(
+					new AbstractModule() {
+						@Override
+						protected void configure() {
+							bindScope(PluginSingleton.class, scope);
+						}
+					})
+				.injectMembers(this);
 		} catch (ConfigurationException e) {
 			throw new RuntimeException(e.getErrorMessages().toString());
 		}
@@ -346,7 +342,7 @@ public class SpeechEventHandlerTest {
 				"*blush*=OK9\n" +
 				"=MISSING_PATTERN\n" +
 				"=\n" + // just empty pattern both sides
-			    "delete me=\n"
+				"delete me=\n"
 		);
 		chatHelper.loadUserReplacements();
 

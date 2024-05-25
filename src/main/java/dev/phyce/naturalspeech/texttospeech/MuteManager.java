@@ -1,10 +1,13 @@
 package dev.phyce.naturalspeech.texttospeech;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
+import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.Getter;
@@ -73,7 +76,11 @@ public class MuteManager {
 	}
 
 	public void save() {
-		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_MODE, listenMode);
+		saveListenMode();
+		saveMuteList();
+		saveListenList();
+
+		unsetDeprecated();
 	}
 
 	public void load() {
@@ -85,27 +92,51 @@ public class MuteManager {
 		appendDeprecated();
 	}
 
+	private void saveListenMode() {
+		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_MODE, listenMode);
+	}
+
+	private void saveMuteList() {
+		configManager.setConfiguration(
+			NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.MUTE_LIST,
+			RuneLiteAPI.GSON.toJson(muteList)
+		);
+	}
+
+	private void saveListenList() {
+		configManager.setConfiguration(
+			NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.LISTEN_LIST,
+			RuneLiteAPI.GSON.toJson(listenList)
+		);
+	}
+
 	private void loadMuteList() {
 		this.muteList.clear();
 
-		String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.MUTE_LIST);
-		if (result != null) {
-			Text.fromCSV(result)
-				.stream()
-				.map(json -> RuneLiteAPI.GSON.fromJson(json, EntityID.class))
-				.forEach(muteList::add);
+		String configString = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.MUTE_LIST);
+		if (configString == null) return;
+
+		try {
+			Type muteListType = new TypeToken<Set<EntityID>>() {}.getType();
+			muteList.addAll(RuneLiteAPI.GSON.fromJson(configString, muteListType));
+		} catch (JsonSyntaxException e) {
+			log.error("Failed to parse mute list from config: {}", configString, e);
 		}
 	}
 
 	private void loadListenList() {
 		this.listenList.clear();
 
-		String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_LIST);
-		if (result != null) {
-			Text.fromCSV(result)
-				.stream()
-				.map(json -> RuneLiteAPI.GSON.fromJson(json, EntityID.class))
-				.forEach(listenList::add);
+		String configString = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.LISTEN_LIST);
+		if (configString == null) return;
+
+		try {
+			Type listenListType = new TypeToken<Set<EntityID>>() {}.getType();
+			listenList.addAll(RuneLiteAPI.GSON.fromJson(configString, listenListType));
+		} catch (JsonSyntaxException e) {
+			log.error("Failed to parse listen list from config: {}", configString, e);
 		}
 	}
 
@@ -176,75 +207,24 @@ public class MuteManager {
 		}
 	}
 
-
-	//	private void saveNpcIdConfig() {
-	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_LISTEN_LIST,
-	//			Text.toCSV(npcIdListenList
-	//				.stream()
-	//				.map(Object::toString)
-	//				.collect(Collectors.toList()))
-	//		);
-	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_MUTE_LIST,
-	//			Text.toCSV(npcIdMuteList
-	//				.stream()
-	//				.map(Object::toString)
-	//				.collect(Collectors.toList()))
-	//		);
-	//	}
-	//
-	//	private void saveUsernameConfig() {
-	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_LISTEN_LIST,
-	//			Text.toCSV(usernameListenList));
-	//		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_MUTE_LIST,
-	//			Text.toCSV(usernameMuteList));
-	//	}
-
-
-	//	private void loadNpcIdConfig() {
-	//		{
-	//			npcIdListenList.clear();
-	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_LISTEN_LIST);
-	//			if (result != null) {
-	//				npcIdListenList.addAll(
-	//					Text.fromCSV(result)
-	//						.stream()
-	//						.map(Integer::parseInt)
-	//						.collect(Collectors.toList())
-	//				);
-	//			}
-	//		}
-	//
-	//		{
-	//			npcIdMuteList.clear();
-	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.NPC_ID_MUTE_LIST);
-	//			if (result != null) {
-	//				npcIdMuteList.addAll(
-	//					Text.fromCSV(result)
-	//						.stream()
-	//						.map(Integer::parseInt)
-	//						.collect(Collectors.toList())
-	//				);
-	//			}
-	//		}
-	//	}
-	//
-	//	private void loadUsernameConfig() {
-	//		{
-	//			usernameListenList.clear();
-	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_LISTEN_LIST);
-	//			if (result != null) {
-	//				usernameListenList.addAll(Text.fromCSV(result));
-	//
-	//			}
-	//		}
-	//
-	//		{
-	//			usernameMuteList.clear();
-	//			String result = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.USERNAME_MUTE_LIST);
-	//			if (result != null) {
-	//				usernameMuteList.addAll(Text.fromCSV(result));
-	//			}
-	//		}
-	//	}
+	@SuppressWarnings("deprecation")
+	private void unsetDeprecated() {
+		configManager.unsetConfiguration(
+			NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.DEPRECATED_NPC_ID_LISTEN_LIST
+		);
+		configManager.unsetConfiguration(
+			NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.DEPRECATED_NPC_ID_MUTE_LIST
+		);
+		configManager.unsetConfiguration(
+			NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.DEPRECATED_USERNAME_LISTEN_LIST
+		);
+		configManager.unsetConfiguration(
+			NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.DEPRECATED_USERNAME_MUTE_LIST
+		);
+	}
 
 }

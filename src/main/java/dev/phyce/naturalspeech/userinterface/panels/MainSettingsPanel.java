@@ -630,6 +630,7 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionContent.add(piperProcessMonitorPanel);
 	}
 
+	@SuppressWarnings("deprecation")
 	private JPanel buildPiperFileChoose() {
 		JLabel header = new JLabel("Piper Location");
 		header.setForeground(Color.WHITE);

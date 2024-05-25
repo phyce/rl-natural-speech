@@ -30,7 +30,6 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.task.Schedule;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
-import org.slf4j.LoggerFactory;
 
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
@@ -40,10 +39,10 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	static {
 		// Setup package level logger level
-		final Logger logger = (Logger) LoggerFactory.getLogger(NaturalSpeechPlugin.class.getPackageName());
+		final Logger logger = (Logger) log;
 		String result = System.getProperty("nslogger");
 		if (result != null) {
-			log.info("nslogger VM property found, setting logger level to {}", result);
+			logger.info("nslogger VM property found, setting logger level to {}", result);
 			logger.setLevel(Level.valueOf(result));
 		}
 		else {
