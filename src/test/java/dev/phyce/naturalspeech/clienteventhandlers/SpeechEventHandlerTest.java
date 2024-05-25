@@ -428,7 +428,17 @@ public class SpeechEventHandlerTest {
 
 	@Test
 	public void testChatMessage_BuiltInReplace_ConfigDisabled() {
+		String userName = "<img=41>Dawncore";
+		String text = "OK0 OK0 FAKE_OK0";
+		String correctText = "WEGOOD WEGOOD FAKE_OK0";
+		ReplacementsJSON[] builtInReplacements = {
+			new ReplacementsJSON("OK0","OK1"),
+			new ReplacementsJSON("OK1","OK2"),
+			new ReplacementsJSON("OK2","OK3"),
+			new ReplacementsJSON("OK3","WEGOOD"),
+		};
 
+		_testBuiltInReplacements(builtInReplacements, userName, text, correctText);
 	}
 
 	@Test
