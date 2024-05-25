@@ -202,6 +202,16 @@ public class TestMuteManager {
 		verify(configManager)
 			.unsetConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_USERNAME_MUTE_LIST);
 
+		// mock the unset deprecated configs
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_NPC_ID_LISTEN_LIST))
+			.thenReturn(null);
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_NPC_ID_MUTE_LIST))
+			.thenReturn(null);
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_USERNAME_LISTEN_LIST))
+			.thenReturn(null);
+		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_USERNAME_MUTE_LIST))
+			.thenReturn(null);
+
 		// mock the config manager to return the saved configuration
 		when(configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.MUTE_LIST))
 			.thenReturn(muteListConfigCapture.toString());
