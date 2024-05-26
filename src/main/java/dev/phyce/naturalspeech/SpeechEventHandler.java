@@ -67,6 +67,7 @@ public class SpeechEventHandler {
 		String text = message.getMessage()
 			.replace("<lt>", "<")
 			.replace("<gt>", ">");
+		text = Text.removeTags(text);
 
 		if (isChatMessageMuted(message)) return;
 
