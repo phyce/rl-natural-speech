@@ -19,6 +19,7 @@ import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -118,7 +119,7 @@ public class TextToSpeech {
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
 		assert distance >= 0;
-
+		text = new String(text.getBytes(), StandardCharsets.UTF_8);
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
 				throw new ModelLocalUnavailableException(text, voiceID);
