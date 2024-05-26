@@ -147,7 +147,7 @@ public class SpeechEventHandler {
 	private void _speakDialogNPC() {
 		// InvokeAtTickEnd to wait until the text has loaded in
 		clientThread.invokeAtTickEnd(() -> {
-			speechManager.silence((lineName) -> lineName.equals(Names.DIALOG));
+//			speechManager.silence((lineName) -> lineName.equals(Names.DIALOG));
 
 			Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
 			Widget headModelWidget = client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL);
@@ -181,7 +181,7 @@ public class SpeechEventHandler {
 	private void _speakDialogPlayer() {
 		// InvokeAtTickEnd to wait until the text has loaded in
 		clientThread.invokeAtTickEnd(() -> {
-			speechManager.silence((lineName) -> lineName.equals(Names.DIALOG));
+//			speechManager.silence((lineName) -> lineName.equals(Names.DIALOG));
 
 			Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
 			if (textWidget == null || textWidget.getText() == null) {
