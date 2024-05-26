@@ -57,6 +57,9 @@ public class ChatHelper {
 	private final List<Replacement> builtinReplacements = new ArrayList<>();
 	private final List<Replacement> customReplacements = new ArrayList<>();
 
+	// for replacement
+	private final static List<Character> VALID_MATCH_TAILS = List.of(' ', ',', '!', '.', '?');
+
 	@Inject
 	public ChatHelper(
 		Client client,
@@ -400,7 +403,7 @@ public class ChatHelper {
 
 				int tail = head + entry.match.length();
 				if ((head == 0 || text.charAt(head - 1) == ' ') && // rule 1
-					(tail == text.length() || text.charAt(tail) == ' ') // rule 2
+					(tail == text.length() || VALID_MATCH_TAILS.contains(text.charAt(tail))) // rule 2
 				) {
 					result.append(entry.replacement);
 				} else {
