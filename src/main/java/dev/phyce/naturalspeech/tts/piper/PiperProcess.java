@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,7 +45,7 @@ public class PiperProcess {
 
 		process = processBuilder.start();
 
-		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8));
 
 		processStdInThread =
 			new Thread(this::processStdIn, String.format("[%s] PiperProcess::processStdIn Thread", this));

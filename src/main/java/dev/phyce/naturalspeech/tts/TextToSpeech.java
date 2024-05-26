@@ -2,9 +2,9 @@ package dev.phyce.naturalspeech.tts;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.ModelConfigDatum;
 import dev.phyce.naturalspeech.configs.json.ttsconfigs.PiperConfigDatum;
@@ -19,7 +19,6 @@ import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -119,7 +118,6 @@ public class TextToSpeech {
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
 		assert distance >= 0;
-		text = new String(text.getBytes(), StandardCharsets.UTF_8);
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
 				throw new ModelLocalUnavailableException(text, voiceID);
