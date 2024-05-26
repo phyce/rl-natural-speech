@@ -22,24 +22,18 @@ public enum Gender {
 		number = number % 2;
 
 		switch (number) {
-			case 0:
-				return MALE;
-			case 1:
-				return FEMALE;
-			default:
-				return OTHER;
+			case 0: return MALE;
+			case 1: return FEMALE;
+			default: return OTHER;
 		}
 	}
 
 	public static Gender fromPlayer(Player player) {
 		int genderId = player.getPlayerComposition().getGender();
 		switch (genderId) {
-			case 0:
-				return MALE;
-			case 1:
-				return FEMALE;
-			default:
-				return OTHER;
+			case 0: return MALE;
+			case 1: return FEMALE;
+			default: return OTHER;
 		}
 	}
 

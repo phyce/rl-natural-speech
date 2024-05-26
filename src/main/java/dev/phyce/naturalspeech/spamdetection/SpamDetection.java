@@ -21,6 +21,4 @@ public class SpamDetection {
 	public boolean isSpam(String username, String text) {
 		return spamFilterPluglet.isSpam(text) || chatFilterPluglet.isSpam(username, text);
 	}
-
-
 }

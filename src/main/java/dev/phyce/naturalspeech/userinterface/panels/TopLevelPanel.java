@@ -121,9 +121,7 @@ public class TopLevelPanel extends PluginPanel {
 
 		layout.show(content, cardName);
 
-		if (doRemove) {
-			content.remove(prevPanel.getWrappedPanel());
-		}
+		if (doRemove) content.remove(prevPanel.getWrappedPanel());
 
 		content.revalidate();
 	}

@@ -94,9 +94,9 @@ public class DynamicLine implements SourceDataLine {
 				buffering = true;
 			}
 
-			byte[] b = byteBuffer.poll();
-			if (b != null) {
-				write(b, 0, b.length);
+			byte[] bytes = byteBuffer.poll();
+			if (bytes != null) {
+				write(bytes, 0, bytes.length);
 				drain();
 			}
 			else {

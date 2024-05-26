@@ -91,9 +91,7 @@ public class SpeechEventHandler {
 
 		String text = chatHelper.standardizeChatMessageText(message);
 
-		if (deduplicate(message)) {
-			return;
-		}
+		if (deduplicate(message)) return;
 
 		speechManager.speak(voiceId, text, volume, lineName);
 	}
@@ -107,12 +105,8 @@ public class SpeechEventHandler {
 		if (!config.dialogEnabled()) return;
 		if (!speechManager.isStarted()) return;
 
-		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
-			_speakDialogPlayer();
-		}
-		else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
-			_speakDialogNPC();
-		}
+		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) _speakDialogPlayer();
+		else if (event.getGroupId() == InterfaceID.DIALOG_NPC) _speakDialogNPC();
 	}
 
 	/*
@@ -122,7 +116,7 @@ public class SpeechEventHandler {
 	@Subscribe
 	@VisibleForTesting
 	void onOverheadTextChanged(OverheadTextChanged event) {
-		if (!(event.getActor() instanceof NPC)) {return;}
+		if (!(event.getActor() instanceof NPC)) return;
 
 		if (!speechManager.isStarted()) return;
 

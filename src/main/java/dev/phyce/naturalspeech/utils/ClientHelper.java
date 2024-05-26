@@ -30,9 +30,7 @@ public final class ClientHelper {
 
 	public Optional<Player> getPlayer(@NonNull EntityID eid) {
 
-		if (eid.isUser()) {
-			return Optional.of(client.getLocalPlayer());
-		}
+		if (eid.isUser()) return Optional.of(client.getLocalPlayer());
 
 		return Optional.fromJavaUtil(Arrays.stream(client.getCachedPlayers())
 			.filter(Objects::nonNull)
@@ -80,9 +78,9 @@ public final class ClientHelper {
 		return targetPlayer.get().getCombatLevel();
 	}
 
-	public Optional<NPC> getNPC(@NonNull EntityID eid) {
+	public Optional<NPC> getNPC(@NonNull EntityID entityID) {
 		return Optional.fromJavaUtil(client.getNpcs().stream()
-			.filter(eid::isNPC)
+			.filter(entityID::isNPC)
 			.findFirst());
 	}
 
@@ -114,14 +112,11 @@ public final class ClientHelper {
 
 	public int widgetModelIdToNpcId(int modelId) {
 		int[] configs = client.getNpcDefinition(modelId).getConfigs();
-		if (configs == null) {
-			return modelId;
-		}
-		else {
-			return Arrays.stream(configs)
-				.filter(id -> id != -1)
-				.findFirst()
-				.orElse(modelId);
-		}
+
+		if (configs == null) return modelId;
+		else return Arrays.stream(configs)
+			.filter(id -> id != -1)
+			.findFirst()
+			.orElse(modelId);
 	}
 }

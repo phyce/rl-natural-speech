@@ -69,8 +69,6 @@ import net.runelite.client.util.SwingUtil;
 
 @Slf4j
 public class VoiceExplorerPanel extends EditorPanel {
-
-
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
 	private final SAPI4Engine sapi4Engine;
@@ -344,7 +342,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private void builderSearchTermMultiMap() {
 		searchToItemBiMap.clear();
 		for (VoiceListItem voiceListItem : voiceListItems) {
-
 
 			String name = voiceListItem.getVoiceMetadata().getName().toLowerCase();
 			List<String> nameTokens = List.of(name.split(" "));
@@ -640,7 +637,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 		} finally {
 			sectionListPanel.revalidate();
 		}
-
 	}
 
 	public void shutdown() {

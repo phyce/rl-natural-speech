@@ -4,12 +4,10 @@ import dev.phyce.naturalspeech.texttospeech.VoiceID;
 
 public class PiperNotActiveException extends RuntimeException {
 	public PiperNotActiveException(VoiceID voiceID) {
-		super(String.format("No Piper instance for %s",
-			voiceID.toVoiceIDString()));
+		super(String.format("No Piper instance for %s", voiceID.toVoiceIDString()));
 	}
 
 	public PiperNotActiveException(String errMessage, VoiceID voiceID) {
-		super(String.format("No Piper instance for %s\n%s",
-			voiceID.toVoiceIDString(), errMessage));
+		super(String.format("No Piper instance for %s\n%s", voiceID.toVoiceIDString(), errMessage));
 	}
 }

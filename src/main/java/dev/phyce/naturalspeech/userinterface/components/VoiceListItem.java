@@ -62,14 +62,19 @@ public class VoiceListItem extends JPanel {
 		nameLabel.setForeground(Color.white);
 
 		String genderString;
-		if (voiceMetadata.getGender() == Gender.MALE) {
-			genderString = "(M)";
-		}
-		else if (voiceMetadata.getGender() == Gender.FEMALE) {
-			genderString = "(F)";
-		}
-		else {
-			genderString = "(?)";
+		switch(voiceMetadata.getGender()) {
+			case MALE:
+				genderString = "(M)";
+				break;
+
+			case FEMALE:
+				genderString = "(F)";
+				break;
+
+			case OTHER:
+			default:
+				genderString = "(?)";
+				break;
 		}
 
 		JLabel genderLabel = new JLabel(genderString);

@@ -49,8 +49,6 @@ public class VoiceSettings {
 		return RuneLiteAPI.GSON.toJson(new VoiceSettings(settings));
 	}
 
-	//</editor-fold>
-
 	@Data
 	@AllArgsConstructor
 	private static class Setting {
@@ -92,15 +90,9 @@ public class VoiceSettings {
 
 			List<Setting> settings;
 
-			if (version == 0) {
-				settings = deserializeVersion0(context, json);
-			}
-			else if (version == 1) {
-				settings = deserializeVersion1(context, json);
-			}
-			else {
-				throw new JsonSyntaxException("Unknown VoiceSettings Schema Version: " + version);
-			}
+			if (version == 0) settings = deserializeVersion0(context, json);
+			else if (version == 1) settings = deserializeVersion1(context, json);
+			else throw new JsonSyntaxException("Unknown VoiceSettings Schema Version: " + version);
 
 			Map<EntityID, VoiceID> settingMap = new HashMap<>();
 			settings.forEach(setting -> settingMap.put(setting.entityID, setting.voiceID));
@@ -141,8 +133,8 @@ public class VoiceSettings {
 						log.error("Invalid voice id for username: {}", usernameVoice);
 						return;
 					}
-					EntityID eid = EntityID.name(usernameVoice.playerName);
-					settings.add(new Setting(eid, usernameVoice.voiceIDs.get(0)));
+					EntityID entityID = EntityID.name(usernameVoice.playerName);
+					settings.add(new Setting(entityID, usernameVoice.voiceIDs.get(0)));
 				}
 			);
 
@@ -165,8 +157,8 @@ public class VoiceSettings {
 						log.error("Invalid voice id for npc: {}", npcVoice);
 						return;
 					}
-					EntityID eid = EntityID.id(npcVoice.npcId);
-					settings.add(new Setting(eid, npcVoice.voiceIDs.get(0)));
+					EntityID entityID = EntityID.id(npcVoice.npcId);
+					settings.add(new Setting(entityID, npcVoice.voiceIDs.get(0)));
 				}
 			);
 			return settings;

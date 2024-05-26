@@ -50,5 +50,4 @@ public final class Standardize {
 			return actor.getId();
 		}
 	}
-
 }

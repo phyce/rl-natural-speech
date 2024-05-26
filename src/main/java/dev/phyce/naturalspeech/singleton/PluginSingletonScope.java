@@ -61,9 +61,7 @@ public class PluginSingletonScope implements Scope {
 				current = unscoped.get();
 
 				// don't remember proxies; these exist only to serve circular dependencies
-				if (Scopes.isCircularProxy(current)) {
-					return current;
-				}
+				if (Scopes.isCircularProxy(current)) return current;
 
 				scopedObjects.put(key, current);
 			}

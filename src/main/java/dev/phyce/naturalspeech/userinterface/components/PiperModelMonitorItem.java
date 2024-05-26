@@ -18,7 +18,6 @@ public class PiperModelMonitorItem extends JPanel {
 	private final PiperModel piper;
 	private final JPanel processListPanel;
 
-
 	public PiperModelMonitorItem(PiperModel piper) {
 		this.piper = piper;
 
@@ -39,7 +38,6 @@ public class PiperModelMonitorItem extends JPanel {
 		// So the both will be garbage collected.
 		ItemPiperProcessLifeTimeListener listener = new ItemPiperProcessLifeTimeListener(piper);
 		piper.addPiperListener(listener);
-
 	}
 
 	private class ItemPiperProcessLifeTimeListener implements PiperModel.PiperProcessLifetimeListener {

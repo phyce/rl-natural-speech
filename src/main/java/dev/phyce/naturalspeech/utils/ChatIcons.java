@@ -40,8 +40,8 @@ public class ChatIcons {
 		}
 
 		public String get() {
-			int idx = iconManager.chatIconIndex(id);
-			return "<img=" + idx + ">";
+			int index = iconManager.chatIconIndex(id);
+			return "<img=" + index + ">";
 		}
 	}
 }

@@ -111,5 +111,4 @@ public class MacModelItem extends JPanel {
 		);
 
 	}
-
 }

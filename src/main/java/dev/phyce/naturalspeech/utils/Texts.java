@@ -54,8 +54,9 @@ public final class Texts {
 
 	public static String generateJson(String text, int voiceId) {
 		text = escape(text);
-		if (voiceId == -1) {return String.format("{\"text\":\"%s\"}", text);}
-		else {return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);}
+
+		if (voiceId == -1) return String.format("{\"text\":\"%s\"}", text);
+		else return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
 	}
 
 	private static final Pattern patternTargetWithLevel = Pattern.compile("(.+)  \\(level-\\d+\\)");
@@ -71,6 +72,4 @@ public final class Texts {
 		if (matcher.matches()) menuTarget = matcher.group(1);
 		return menuTarget;
 	}
-
-
 }

@@ -161,12 +161,8 @@ public class PiperModelItem extends JPanel {
 		boolean hasLocal;
 		hasLocal = piperRepository.hasModelLocal(modelUrl.getModelName());
 
-		if (hasLocal) {
-			download.setVisible(false);
-		}
-		else {
-			toggleButton.setVisible(false);
-		}
+		if (hasLocal) download.setVisible(false);
+		else toggleButton.setVisible(false);
 
 		layout.setHorizontalGroup(layout
 			.createParallelGroup()
@@ -261,21 +257,19 @@ public class PiperModelItem extends JPanel {
 		menu.setBorder(new EmptyBorder(5, 5, 5, 5));
 
 		for (final JMenuItem menuItem : menuItems) {
-			if (menuItem == null) {
-				continue;
-			}
+			if (menuItem == null) continue;
 			menu.add(menuItem);
 		}
 
 		MouseAdapter listener = new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent mouseEvent) {
-				if (mouseEvent.getButton() == MouseEvent.BUTTON3) {
-					Component source = (Component) mouseEvent.getSource();
-					Point location = MouseInfo.getPointerInfo().getLocation();
-					SwingUtilities.convertPointFromScreen(location, source);
-					menu.show(source, location.x, location.y);
-				}
+			if (mouseEvent.getButton() == MouseEvent.BUTTON3) {
+				Component source = (Component) mouseEvent.getSource();
+				Point location = MouseInfo.getPointerInfo().getLocation();
+				SwingUtilities.convertPointFromScreen(location, source);
+				menu.show(source, location.x, location.y);
+			}
 			}
 		};
 		panel.addMouseListener(listener);

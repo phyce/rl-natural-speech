@@ -122,7 +122,7 @@ public class AudioEngine {
 		try {
 			line = new DynamicLine((SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, format)));
 			line.setMasterGain(masterGain);
-			line.open(); // takes 2 millisecond on my machine
+			line.open();
 			line.start();
 
 			// garbage collect line after buffering
@@ -140,6 +140,4 @@ public class AudioEngine {
 		lines.put(lineName, line);
 		return line;
 	}
-
-
 }

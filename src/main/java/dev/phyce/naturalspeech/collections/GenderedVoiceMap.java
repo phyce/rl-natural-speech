@@ -48,14 +48,8 @@ public class GenderedVoiceMap {
 	}
 
 	public Set<VoiceID> find(Gender gender) {
-		if (gender == Gender.MALE) {
-			return Collections.unmodifiableSet(maleList);
-		}
-		else if (gender == Gender.FEMALE) {
-			return Collections.unmodifiableSet(femaleList);
-		}
-		else {
-			return Collections.unmodifiableSet(otherList);
-		}
+		if (gender == Gender.MALE) return Collections.unmodifiableSet(maleList);
+		else if (gender == Gender.FEMALE) return Collections.unmodifiableSet(femaleList);
+		else return Collections.unmodifiableSet(otherList);
 	}
 }

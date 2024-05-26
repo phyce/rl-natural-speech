@@ -111,9 +111,7 @@ public class IconTextField extends JPanel {
 		final MouseListener hoverEffect = new MouseAdapter() {
 			@Override
 			public void mouseEntered(MouseEvent mouseEvent) {
-				if (textField.isBlocked()) {
-					return;
-				}
+				if (textField.isBlocked()) return;
 
 				final Color hoverColor = textField.getHoverBackgroundColor();
 
@@ -121,7 +119,6 @@ public class IconTextField extends JPanel {
 					IconTextField.super.setBackground(hoverColor);
 					textField.setBackground(hoverColor, false);
 				}
-
 			}
 
 			@Override

@@ -180,9 +180,8 @@ public class MainSettingsPanel extends PluginPanel {
 		statusLabel.setForeground(Color.WHITE);
 		statusPanel.setToolTipText("Text to speech is running.");
 
-		if (isMinimumMode) {
-			addWarning(Warning.MINIMUM_MODE);
-		}
+		if (isMinimumMode) addWarning(Warning.MINIMUM_MODE);
+
 		updateWarningsUI();
 	}
 
@@ -237,7 +236,6 @@ public class MainSettingsPanel extends PluginPanel {
 		if (event.getSpeechEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
 			isMinimumMode = false;
 		}
-
 	}
 
 	@Subscribe
@@ -325,20 +323,20 @@ public class MainSettingsPanel extends PluginPanel {
 		// Instructions Link
 		JLabel instructionsLink =
 			new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
+
 		instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		instructionsLink.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				try {
-					Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
-				} catch (Exception ex) {
-					log.error("Error opening instruction link.", ex);
-				}
+			try {
+				Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
+			} catch (Exception ex) {
+				log.error("Error opening instruction link.", ex);
+			}
 			}
 		});
 		instructionsLink.setBorder(new EmptyBorder(0, 0, 5, 0));
 		mainContentPanel.add(instructionsLink);
-
 
 		{
 			warningStopped = new JPanel();
@@ -446,11 +444,11 @@ public class MainSettingsPanel extends PluginPanel {
 			websiteLinkLabel.addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					try {
-						Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
-					} catch (Exception ex) {
-						log.error("Error opening website link.", ex);
-					}
+				try {
+					Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
+				} catch (Exception ex) {
+					log.error("Error opening website link.", ex);
+				}
 				}
 			});
 
@@ -522,7 +520,6 @@ public class MainSettingsPanel extends PluginPanel {
 		// Status Label with dynamic background color
 		JPanel statusPanel = buildTextToSpeechControlsPanel();
 		sectionContent.add(statusPanel);
-
 	}
 
 	private JPanel buildPiperProcessMonitorPanel() {
@@ -663,9 +660,7 @@ public class MainSettingsPanel extends PluginPanel {
 				runtimeConfig.savePiperPath(newPath);
 
 				// if text to speech is running, restart
-				if (speechManager.isStarted()) {
-					speechManager.stop();
-				}
+				if (speechManager.isStarted()) speechManager.stop();
 			}
 		});
 
@@ -711,7 +706,6 @@ public class MainSettingsPanel extends PluginPanel {
 
 		this.setVisible(false);
 	}
-
 
 	private enum Warning {
 		// Warnings is a 64 slot set implemented with bitmask

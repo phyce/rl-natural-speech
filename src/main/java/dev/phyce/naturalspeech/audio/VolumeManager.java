@@ -63,16 +63,13 @@ public class VolumeManager {
 			if (!config.distanceFadeEnabled()) return 0f;
 
 			if (this.spawnedActors.contains(actor)) {
-				WorldPoint sourceLoc = actor.getWorldLocation();
-				WorldPoint listenLoc = client.getLocalPlayer().getWorldLocation();
+				WorldPoint sourceLocation = actor.getWorldLocation();
+				WorldPoint listenerLocation = client.getLocalPlayer().getWorldLocation();
 
-				float distance = distance(listenLoc, sourceLoc);
+				float distance = distance(listenerLocation, sourceLocation);
 				return Math.max(CHAT_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, CHAT_FLOOR));
 			}
-			else {
-				// actor has despawned, silence
-				return NOISE_FLOOR;
-			}
+			else return NOISE_FLOOR; // actor has despawned, silence
 		};
 	}
 
@@ -81,18 +78,14 @@ public class VolumeManager {
 			if (!config.distanceFadeEnabled()) return 0f;
 
 			if (this.spawnedActors.contains(npc)) {
-				WorldPoint sourceLoc = npc.getWorldLocation();
-				WorldPoint listenLoc = client.getLocalPlayer().getWorldLocation();
+				WorldPoint sourceLocation = npc.getWorldLocation();
+				WorldPoint listenerLocation = client.getLocalPlayer().getWorldLocation();
 
-				float distance = distance(listenLoc, sourceLoc);
+				float distance = distance(listenerLocation, sourceLocation);
 				return Math.max(NPC_FLOOR, attenuation(distance, NPC_MAX_DISTANCE, NPC_FLOOR));
 			}
-			else {
-				// actor has despawned, silence
-				return NOISE_FLOOR;
-			}
+			else return NOISE_FLOOR; // actor has despawned, silence
 		};
-
 	}
 
 	public Supplier<Float> friend(Player player) {
@@ -106,10 +99,7 @@ public class VolumeManager {
 				float distance = distance(sourceLoc, listenLoc);
 				return Math.max(FRIEND_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, FRIEND_FLOOR));
 			}
-			else {
-				// actor has despawned, silence
-				return NOISE_FLOOR;
-			}
+			else return NOISE_FLOOR; // actor has despawned, silence
 		};
 	}
 
@@ -156,23 +146,21 @@ public class VolumeManager {
 		return volume;
 	}
 
-	public float attenuation(float distance, float max_distance, float floor) {
-		if (distance < 1) {
-			return 0;
-		}
+	public float attenuation(float distance, float maxDistance, float floor) {
+		if (distance < 1) return 0;
 
 		//noinspection UnnecessaryLocalVariable
-		float result = floor * easeInOutQuad(distance / max_distance);
+		float result = floor * easeInOutQuad(distance / maxDistance);
 
 		return result;
 	}
 	// we need accurate distances, WorldPoint::distanceTo is too coarse for audio
 
 	private static float distance(WorldPoint a, WorldPoint b) {
-		int dx = a.getX() - b.getX();
-		int dy = a.getY() - b.getY();
-		int dz = a.getPlane() - b.getPlane();
-		return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+		int distanceX = a.getX() - b.getX();
+		int distanceY = a.getY() - b.getY();
+		int distanceZ = a.getPlane() - b.getPlane();
+		return (float) Math.sqrt(distanceX * distanceX + distanceY * distanceY + distanceZ * distanceZ);
 	}
 	// https://easings.net/#easeInOutQuad
 
@@ -208,14 +196,10 @@ public class VolumeManager {
 		// https://www.desmos.com/calculator/wdhsfbxgeo
 
 		// clamp to 0-100
-		float vol = Math.min(100, volume100);
+		float volume = Math.min(100, volume100);
 		// convert linear volume 0-100 to log control
-		if (vol <= 0.1) {
-			gainDB = NOISE_FLOOR;
-		}
-		else {
-			gainDB = (float) (10 * (Math.log(vol / 100)));
-		}
+		if (volume <= 0.1) gainDB = NOISE_FLOOR;
+		else gainDB = (float) (10 * (Math.log(volume / 100)));
 
 		log.info("returning volume {} -> {}db", volume100, gainDB);
 		return gainDB;

@@ -30,7 +30,7 @@ public class CommandExecutedEventHandler {
 
 	@Subscribe
 	private void onCommandExecuted(CommandExecuted commandExecuted) {
-		String[] args = commandExecuted.getArguments();
+		String[] arguments = commandExecuted.getArguments();
 
 		switch (commandExecuted.getCommand()) {
 			case "nslogger": {
@@ -38,11 +38,11 @@ public class CommandExecutedEventHandler {
 				String message;
 				Level currentLoggerLevel = logger.getLevel();
 
-				if (args.length < 1) {
+				if (arguments.length < 1) {
 					message = "Logger level is currently set to " + currentLoggerLevel;
 				}
 				else {
-					Level newLoggerLevel = Level.toLevel(args[0], currentLoggerLevel);
+					Level newLoggerLevel = Level.toLevel(arguments[0], currentLoggerLevel);
 					logger.setLevel(newLoggerLevel);
 					message = "Logger level has been set to " + newLoggerLevel;
 				}
@@ -51,33 +51,33 @@ public class CommandExecutedEventHandler {
 				break;
 			}
 			case "setvoice": {
-				if (args.length < 2) {
+				if (arguments.length < 2) {
 					client.addChatMessage(ChatMessageType.CONSOLE, "",
 						"use ::setvoice model:id username, for example ::setvoice libritts:2 Zezima", null);
 				}
 				else {
-					VoiceID voiceId = VoiceID.fromIDString(args[0]);
-					String username = Arrays.stream(args).skip(1).reduce((a, b) -> a + " " + b).orElse(args[1]);
+					VoiceID voiceId = VoiceID.fromIDString(arguments[0]);
+					String username = Arrays.stream(arguments).skip(1).reduce((a, b) -> a + " " + b).orElse(arguments[1]);
 					if (voiceId == null) {
-						client.addChatMessage(ChatMessageType.CONSOLE, "", "voice id " + args[1] + " is invalid.",
+						client.addChatMessage(ChatMessageType.CONSOLE, "", "voice id " + arguments[1] + " is invalid.",
 							null);
 					}
 					else {
 						EntityID entityID = EntityID.name(username);
 						voiceManager.set(entityID, voiceId);
-						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + args[0],
+						client.addChatMessage(ChatMessageType.CONSOLE, "", username + " voice is set to " + arguments[0],
 							null);
 					}
 				}
 				break;
 			}
 			case "unsetvoice": {
-				if (args.length < 1) {
+				if (arguments.length < 1) {
 					client.addChatMessage(ChatMessageType.CONSOLE, "",
 						"use ::unsetvoice username, for example ::unsetvoice Zezima", null);
 				}
 				else {
-					String username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
+					String username = Arrays.stream(arguments).reduce((a, b) -> a + " " + b).orElse(arguments[0]);
 					voiceManager.unset(EntityID.name(username));
 					client.addChatMessage(ChatMessageType.CONSOLE, "",
 						"All voices are removed for " + username, null);
@@ -86,12 +86,8 @@ public class CommandExecutedEventHandler {
 			}
 			case "checkvoice": {
 				String username;
-				if (args.length < 1) {
-					username = Names.USER;
-				}
-				else {
-					username = Arrays.stream(args).reduce((a, b) -> a + " " + b).orElse(args[0]);
-				}
+				if (arguments.length < 1) username = Names.USER;
+				else username = Arrays.stream(arguments).reduce((a, b) -> a + " " + b).orElse(arguments[0]);
 
 				EntityID entityID = EntityID.name(username);
 				if (!voiceManager.contains(entityID)) {
@@ -107,6 +103,4 @@ public class CommandExecutedEventHandler {
 			}
 		}
 	}
-
-
 }

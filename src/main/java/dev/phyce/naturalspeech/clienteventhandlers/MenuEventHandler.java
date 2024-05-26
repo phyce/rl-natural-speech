@@ -14,6 +14,8 @@ import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.ingame.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.utils.ChatIcons;
 import dev.phyce.naturalspeech.utils.Texts;
+import dev.phyce.naturalspeech.utils.Utils;
+import static dev.phyce.naturalspeech.utils.Utils.inArray;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -80,27 +82,21 @@ public class MenuEventHandler {
 		if (!speechManager.isStarted()) return;
 		final MenuEntry[] entries = event.getMenuEntries();
 
-
 		drawEntityMenu(entries);
 		drawMuteMenus(entries);
 		drawVoiceMenus(entries);
 		drawVolumeMenus(entries);
 
-
-		log.info("MENU DEBUG: \n{}",
-			Arrays.stream(entries)
-				.reduce("", (acc, entry) -> acc + entry.toString() + "\nMENU DEBUG: ", String::concat
-				));
+		log.info("MENU DEBUG: \n{}", Arrays.stream(entries)
+			.reduce("", (acc, entry) -> acc + entry.toString() + "\nMENU DEBUG: ", String::concat)
+		);
 	}
 
 	private void drawVolumeMenus(MenuEntry[] entries) {
-		List<Integer> interfaces = List.of(
-			InterfaceID.CHATBOX
-		);
+		List<Integer> interfaces = List.of(InterfaceID.CHATBOX);
 
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
-
 
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
@@ -144,13 +140,10 @@ public class MenuEventHandler {
 	}
 
 	private void drawVoiceMenus(MenuEntry[] entries) {
-		List<Integer> interfaces = List.of(
-			InterfaceID.CHATBOX
-		);
+		List<Integer> interfaces = List.of(InterfaceID.CHATBOX);
 
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
-
 
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
@@ -170,7 +163,6 @@ public class MenuEventHandler {
 
 							_drawVoiceMenu(parent, child, 0, MenuAction.RUNELITE);
 						}
-
 					}
 				}
 			}
@@ -189,27 +181,22 @@ public class MenuEventHandler {
 			.setType(menuType)
 			.setParent(parent)
 			.onClick(e -> {
-					if (tab.entityID == null) return;
-					if (tab.configKey == null) return;
+				if (tab.entityID == null) return;
+				if (tab.configKey == null) return;
 
-					voiceConfigChatboxTextInputProvider.get()
-						.configKey(tab.configKey)
-						.entityID(tab.entityID)
-						.value(voiceManager.get(tab.entityID).transform(VoiceID::toString).or(""))
-						.build();
-				}
-			);
-
+				voiceConfigChatboxTextInputProvider.get()
+					.configKey(tab.configKey)
+					.entityID(tab.entityID)
+					.value(voiceManager.get(tab.entityID).transform(VoiceID::toString).or(""))
+					.build();
+			});
 	}
 
 	private void drawMuteMenus(MenuEntry[] entries) {
-		List<Integer> interfaces = List.of(
-			InterfaceID.CHATBOX
-		);
+		List<Integer> interfaces = List.of(InterfaceID.CHATBOX);
 
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
-
 
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
@@ -229,24 +216,26 @@ public class MenuEventHandler {
 
 							_drawMuteMenu(parent, child, 0, MenuAction.RUNELITE);
 						}
-
 					}
 				}
 			}
 		}
 	}
 
-
 	private String drawIconTag(MenuIconSet set, boolean state) {
 		switch (set) {
 			case MUTE_UNMUTE:
 				return state ? icons.unmute.get() : icons.mute.get();
+
 			case UNMUTE_MUTE:
 				return !state ? icons.unmute.get() : icons.mute.get();
+
 			case CHECK_CROSS_DIAMOND:
 				return state ? icons.checkboxChecked.get() : icons.checkbox.get();
+
 			case LOGO:
 				return icons.logo.get();
+
 			case NO_ICON:
 			default:
 				return "";
@@ -269,7 +258,6 @@ public class MenuEventHandler {
 			.onClick(e -> Arrays.stream(tab.configKeys)
 				.forEach(key -> configManager.setConfiguration(CONFIG_GROUP, key, !state))
 			);
-
 	}
 
 
@@ -287,11 +275,15 @@ public class MenuEventHandler {
 		for (int index = entries.length - 1; index >= 0; index--) {
 			MenuEntry entry = entries[index];
 
-
 			final int componentId = entry.getParam1();
 			final int groupId = WidgetUtil.componentToInterface(componentId);
 
-			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION || entry.getType() == MenuAction.EXAMINE_NPC) {
+			MenuAction[] triggerEntries = new MenuAction[]{
+				MenuAction.PLAYER_EIGHTH_OPTION,
+				MenuAction.EXAMINE_NPC
+			};
+
+			if(inArray(entry.getType(), triggerEntries)) {
 				drawEntityOptions(entry, index);
 			}
 			else if (interfaces.contains(groupId) && detectableOptions.contains(entry.getOption())) {

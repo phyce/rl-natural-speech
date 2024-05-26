@@ -52,10 +52,8 @@ public class DownloadTask implements Supplier<File> {
 				}
 
 				int length = (int) Objects.requireNonNull(response.body()).contentLength();
-				if (length < 0) {
-					length = 3 * 1024 * 1024;
-				}
-				final int flength = length;
+				if (length < 0) length = 3 * 1024 * 1024;
+				final int finalLength = length;
 
 				// try-with-resources to ensure the input stream is closed
 				try (InputStream in = response.body().byteStream();
@@ -70,7 +68,7 @@ public class DownloadTask implements Supplier<File> {
 
 						out.write(buffer, 0, bytesRead);
 						totalRead += bytesRead;
-						progress = (float) totalRead / flength * 100;
+						progress = (float) totalRead / finalLength * 100;
 						if (progressListener != null) progressListener.onProgress(progress);
 					}
 					progress = 100;

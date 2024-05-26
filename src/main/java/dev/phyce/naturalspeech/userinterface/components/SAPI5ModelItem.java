@@ -66,12 +66,8 @@ public class SAPI5ModelItem extends JPanel {
 			l -> {
 				speechManagerConfig.setEnable(engine, toggleButton.isSelected());
 				if (speechManager.isStarted()) {
-					if (toggleButton.isSelected()) {
-						speechManager.startEngine(engine);
-					}
-					else {
-						speechManager.stopEngine(engine);
-					}
+					if (toggleButton.isSelected()) speechManager.startEngine(engine);
+					else speechManager.stopEngine(engine);
 				}
 			});
 
@@ -107,7 +103,5 @@ public class SAPI5ModelItem extends JPanel {
 			)
 			.addGap(2)
 		);
-
 	}
-
 }

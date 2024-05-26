@@ -68,11 +68,11 @@ public class PiperConfig {
 
 	public void resetPiperConfig(String modelName) {
 		// look for existing config
-		Iterator<ModelConfig> iter = modelConfigs.iterator();
-		while (iter.hasNext()) {
-			ModelConfig modelConfig = iter.next();
+		Iterator<ModelConfig> configurations = modelConfigs.iterator();
+		while (configurations.hasNext()) {
+			ModelConfig modelConfig = configurations.next();
 			if (modelConfig.getModelName().equals(modelName)) {
-				iter.remove();
+				configurations.remove();
 				break;
 			}
 		}
