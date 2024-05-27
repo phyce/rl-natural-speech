@@ -1,5 +1,12 @@
 # Features
 
+show friends only/friends volume boost
+
+show built in windows/osx sapi
+show sapi4 / gary gilbert voice
+show right click options on chat channel buttons
+
+
 ### Right click option menu
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
 ![](https://mechanic.ink/img/osrs/features/right-click.png)
@@ -40,12 +47,20 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Added `Friends only` mode
  - Added `Friend volume boost` option
  - Added numerical abbreviations (k, m, b, t)
+ - Added `Use common abbreviations` option
+ - Added `Use for dialogs` option to enable abbreviations for NPC dialogs
+ - Added Microsoft Speech Api 4 (Windows)
+ - Added Microsoft Speech Api 5 (Built-in Windows)
+ - Added MacOS Text-to-speech (Built-in MacOS)
+ - Added ability to skip NPC dialogs //////////////////
+ - Added Voice Hub tab and moved all the voice packs to it
+ - Added right click options to chat channel buttons
+ - `Global default NPC voice` is now `Global NPC voice` and will override any NPC voice regardless of pre-set voices
+ - `Fade distant sound` option now has dynamic volume updating
  - `Shortened phrases` are now `Abbreviations`
  - `Abbreviations` field is now `Custom abbreviations`
- - Added `Use common abbreviations` option
- - Added `Use for NPC dialogs` option to enable abbreviations for NPCs
- - `Global default NPC voice` is now `Global NPC voice` and will override any NPC voice regardless of pre-set voices.
- - Reworked the way master volume is adjusted internally
+ - Reworked volume settings
+ - Improved performance
  - Fixed issue where master volume was not being applied to all audio sources
  - Fixed having multiple instances never using more than one
  - Duplicate system messages won't be played every time anymore

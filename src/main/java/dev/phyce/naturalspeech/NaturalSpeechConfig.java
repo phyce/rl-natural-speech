@@ -344,8 +344,8 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=1,
 		keyName=ConfigKeys.BUILTIN_REPLACEMENTS,
-		name="Built In Replacements",
-		description="Enable commonly used replacements the developer designed.",
+		name="Use common abbreviations",
+		description="Enable commonly used abbreviations",
 		section=otherOptionsSection
 	)
 	default boolean useBuiltInReplacements() {return true;}
@@ -354,7 +354,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=2,
 		keyName=ConfigKeys.ENABLE_DIALOG_TEXT_REPLACE,
 		name="Use for dialogs",
-		description="Enable custom text replacements for in-game dialogs",
+		description="Enable abbreviations for in-game dialogs",
 		section=otherOptionsSection
 	)
 	default boolean enableDialogTextReplacements() {return true;}
@@ -362,8 +362,8 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=3,
 		keyName=ConfigKeys.CUSTOM_TEXT_REPLACEMENTS,
-		name="Custom Text Replacements",
-		description="One per line. Example: wtf=what the heck",
+		name="Custom abbreviations",
+		description="One per line. Example: wth=what the hell",
 		section=otherOptionsSection
 	)
 	default String customTextReplacements() {
@@ -399,5 +399,4 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	// endregion
-
 }
