@@ -1,7 +1,7 @@
 # Installing voices for Natural Speech
 - #### [Installing Piper](#installing-piper)
 - #### [Downloading Piper Voice Packs](#installing-piper-voice-packs)
-- #### [Installing Microsoft Speech API 4 Windows](#Installing-Microsoft-Speech-API-4-Windows)
+- #### [Installing Microsoft Speech API 4 Windows (Gary Gilbert Voice)](#Installing-Microsoft-Speech-API-4-Windows)
 
 ## Installing Piper
 
