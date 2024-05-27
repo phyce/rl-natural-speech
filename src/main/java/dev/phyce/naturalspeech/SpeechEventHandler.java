@@ -67,7 +67,7 @@ public class SpeechEventHandler {
 		String text = message.getMessage()
 			.replace("<lt>", "<")
 			.replace("<gt>", ">");
-		text = Text.removeTags(text);
+
 
 		if (isChatMessageMuted(message)) return;
 
@@ -90,6 +90,7 @@ public class SpeechEventHandler {
 			else if (isChatSystemVoice(message.getType())) {
 				username = MagicUsernames.SYSTEM;
 				distance = 0;
+				text = Text.removeTags(text);
 				text = Text.standardize(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 
