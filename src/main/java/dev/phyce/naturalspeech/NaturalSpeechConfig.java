@@ -265,6 +265,15 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=1,
+		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
+		name="Friends only mode",
+		description="Only generate text-to-speech for friends.",
+		section=muteOptionsSection
+	)
+	default boolean friendsOnlyMode() {return false;}
+
+	@ConfigItem(
+		position=2,
 		keyName=ConfigKeys.MUTE_OTHERS,
 		name="Others",
 		description="Do not generate text-to-speech for messages from other players",
@@ -276,7 +285,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=2,
+		position=3,
 		keyName=ConfigKeys.MUTE_SELF,
 		name="Yourself",
 		description="Do not generate text-to-speech for messages that you send",
@@ -286,15 +295,6 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean muteSelf() {
 		return false;
 	}
-
-	@ConfigItem(
-		position=3,
-		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
-		name="Friends only mode",
-		description="Only generate text-to-speech for friends.",
-		section=muteOptionsSection
-	)
-	default boolean friendsOnlyMode() {return false;}
 
 	@ConfigItem(
 		position=4,

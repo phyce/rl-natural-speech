@@ -22,3 +22,33 @@
 ### Post installation notes
 
 After Installing Piper you should be able to use TTS in-game once the voice pack is downloaded, and the engine has been started.
+
+
+
+# OLD FROM HERE -------------------------------------------------
+
+You should see a plugin panel looking like the screenshot below.
+
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-1.png)
+
+Make sure that under the `Play` and `Stop` control buttons the location of your piper installation is correct.
+If it's not, piper will not work. To change it click on the browse button, and navigate to find `piper.exe` and press `Open`.
+
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-2.png)
+
+Click `Download` on a voice pack.
+
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-3.png)
+
+
+The button will get greyed out, the download will start and might take a while. Be patient.
+
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-4.png)
+
+After it's finished downloading, **toggle the repository on**.
+
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-5.png)
+
+Piper status should update to `Running`, which means the plugin is ready to go!
+
+![](https://mechanic.ink/img/osrs/readme/naturalspeech-6.png)

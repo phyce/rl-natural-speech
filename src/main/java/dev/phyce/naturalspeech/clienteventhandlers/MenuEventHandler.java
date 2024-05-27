@@ -648,7 +648,7 @@ enum TabConfigMenu {
 
 	_MUTE_GRAND_EXCHANGE(
 		new String[] {ConfigKeys.MUTE_GRAND_EXCHANGE},
-		"GrandExchange Area",
+		"In Grand Exchange",
 		null,
 		null,
 		"<col=ffff00>Unmute</col>", "<col=ffff00>Mute</col>",

@@ -1,50 +1,41 @@
 # Natural Speech [![Plugin Installs](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/naturalspeech)](https://runelite.net/plugin-hub/show/naturalspeech) [![Plugin Rank](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/rank/plugin/naturalspeech)](https://runelite.net/plugin-hub)
 
+[![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/Zg5hMYMZ6E)
 
 Give everyone a voice in OldSchool RuneScape! For all characters and players, with over 1000 different voices.
 
-### To see a list of features, check out [FEATURES.md](FEATURES.md)
-
-Natural Speech requires an installing external tool to process text to generate speech.
-At the moment the only supported TTS engine is  [Piper](https://github.com/rhasspy/piper).
-
-[![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/Zg5hMYMZ6E)
+## To see a list of features, check out [FEATURES.md](FEATURES.md)
 
 ## Getting more voices
 
-Natural Speech is able to use your operating system's text-to-speech (On Windows and MacOS), but you can get more voices by installing additional engines. You can download the installer, or you install them manually by following the instructions in [INSTALLING.md](INSTALLING.md)
+Natural Speech is able to use your operating system's text-to-speech (On Windows and MacOS), but you can get more voices by installing additional engines.
 
-# SET UP NEW SCREENSHOTS SINCE THIS CHANGED
+You can install additional voices by installing languages on your operating system:
+- [Windows Instructions](https://support.microsoft.com/en-gb/topic/download-languages-and-voices-for-immersive-reader-read-mode-and-read-aloud-4c83a8d8-7486-42f7-8e46-2b0fdf753130)<br/>
+- [MacOS Instructions](https://support.apple.com/en-ae/guide/mac-help/mchlp2290/mac)
+
+You can install even more voices by installing additional TTS engines:
+- **Windows:** You can get all voice engines easily by using the installer. ##add link here##<br/>
+- **Windows/MacOS/Linux:** You can set up the engines manually by following the instructions in [INSTALLING.md](INSTALLING.md)
+
 ## Setting up Natural Speech
-To set up Natural Speech, you will need to install a TTS engine, and download atleast one voice pack through the plugin's panel.
+The plugin should work out of the box with a few voices using your system's TTS capabilities.
+if it doesn't, check the settings in the panel by clicking the button on the side:
 
-After intalling the plugin, open the panel by clicking the button on the side:
+![](https://mechanic.ink/img/osrs/natural-speech/readme/01-setting-up.png)
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-0.png)
+At this point you might see a message indicating that there are no available voices installed.
 
-You should see a plugin panel looking like the screenshot below.
+![](https://mechanic.ink/img/osrs/natural-speech/readme/02-no-voices-available.png)
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-1.png)
+Click on the **Voice Hub** button, where you should see atleast one available voice pack. Enable it.
 
-Make sure that under the `Play` and `Stop` control buttons the location of your piper installation is correct.
-If it's not, piper will not work. To change it click on the browse button, and navigate to find `piper.exe` and press `Open`.
+![](https://mechanic.ink/img/osrs/natural-speech/readme/03-enable-mssapi5.png)
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-2.png)
+Go back to the main settings tab. At this point, you might get a message saying that Natural Speech is not running. Click **Start**.
 
-Click `Download` on a voice pack.
+![](https://mechanic.ink/img/osrs/natural-speech/readme/04-start.png)
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-3.png)
+The status bar should update and you should see a green bar indicating that Natural speech is **Running**. The plugin should be ready to use. Congrats!
 
-
-The button will get greyed out, the download will start and might take a while. Be patient.
-
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-4.png)
-
-After it's finished downloading, **toggle the repository on**.
-
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-5.png)
-
-Piper status should update to `Running`, which means the plugin is ready to go!
-
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-6.png)
-
+![](https://mechanic.ink/img/osrs/natural-speech/readme/05-ready.png)

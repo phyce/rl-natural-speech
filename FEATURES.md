@@ -1,20 +1,36 @@
 # Features
 
-show friends only/friends volume boost
+### Voice Packs & Voice Explorer
+You can install several TTS engines to choose from over 1000 different voices for your character.<br/>
+Currently Supported engines:
+- [Piper](https://github.com/rhasspy/piper)
+- [Microsoft Speech API 4](https://en.wikipedia.org/wiki/Microsoft_Speech_API#SAPI_4)
+- [Microsoft Speech API 5](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms723627(v=vs.85))
+- MacOS Speech API
 
-show built in windows/osx sapi
-show sapi4 / gary gilbert voice
-show right click options on chat channel buttons
+Use the Included voice explorer to preview a voice:<br/>
+![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
 
+### Party options
+You can make your friends messages sound louder by adjusting the `Friends volume boost`, or you can listen to them exclusively by using `Friends only mode`. Set a limit of how many people there is around you before the plugin stops generating audio clips. 
+## **show friends volume boost -------------------**
+
+
+### Gary Gilbert
+You can now use [Gary Gilbert](https://www.youtube.com/watch?v=paExDoWOM0Q&list=PLDSJpYkJoHD9f6nowvKrY2vHOZBgIZm_K)'s voice in-game after [installing Microsoft Speech API 4](INSTALLING.md)
+
+### Spam Prevention
+
+Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
+![](https://mechanic.ink/img/osrs/features/spam-prevention.png)
 
 ### Right click option menu
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
-![](https://mechanic.ink/img/osrs/features/right-click.png)
+![](https://mechanic.ink/img/osrs/natural-speech/features/right-click.png)
 
-### Voice Explorer
-Choose from over 1000 different voices for your character. 
-You can use the Included voice explorer to preview a voice:<br/>
-![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
+You can also right-click on the chat channel buttons to toggle the individual channel TTS options. Right-clicking on **All** allows you to quickly change various settings.
+![](https://mechanic.ink/img/osrs/natural-speech/features/right-click-volume.png)
+![](https://mechanic.ink/img/osrs/natural-speech/features/right-click-options.png)
 
 ### Vast Customization
 
@@ -43,7 +59,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 ---
 # Changelog
 
-## 1.3.0
+## 2.0.0
  - Added `Friends only` mode
  - Added `Friend volume boost` option
  - Added numerical abbreviations (k, m, b, t)
