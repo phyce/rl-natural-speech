@@ -6,7 +6,7 @@ Currently Supported engines:
 - [Piper](https://github.com/rhasspy/piper)
 - [Microsoft Speech API 4](https://en.wikipedia.org/wiki/Microsoft_Speech_API#SAPI_4)
 - [Microsoft Speech API 5](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms723627(v=vs.85))
-- MacOS Speech API
+- [Apple Speech synthesis](https://developer.apple.com/documentation/avfoundation/speech_synthesis/)
 
 Use the Included voice explorer to preview a voice:<br/>
 ![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
@@ -60,15 +60,15 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 # Changelog
 
 ## 2.0.0
+ - Added Microsoft Speech Api 5 (Built-in Windows)
+ - Added MacOS Text-to-speech (Built-in MacOS)
+ - Added Microsoft Speech Api 4 (Windows)
  - Added `Friends only` mode
- - Added `Friend volume boost` option
+ - Added `Friend volume boost` option ///////////////////////
  - Added numerical abbreviations (k, m, b, t)
  - Added `Use common abbreviations` option
  - Added `Use for dialogs` option to enable abbreviations for NPC dialogs
- - Added Microsoft Speech Api 4 (Windows)
- - Added Microsoft Speech Api 5 (Built-in Windows)
- - Added MacOS Text-to-speech (Built-in MacOS)
- - Added ability to skip NPC dialogs //////////////////
+ - Added ability to skip NPC dialogs ////////////////////////
  - Added Voice Hub tab and moved all the voice packs to it
  - Added right click options to chat channel buttons
  - `Global default NPC voice` is now `Global NPC voice` and will override any NPC voice regardless of pre-set voices

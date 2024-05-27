@@ -52,7 +52,7 @@ public class SAPI4ModelItem extends JPanel {
 		name.setFont(FontManager.getRunescapeBoldFont());
 
 		JLabel description = new JLabel(String.format("<html><p>%s</p></html>",
-			"Microsoft Speech 4 from 1999. <span style=\"color:white\">microsoft:sam</span> is Gary Gilbert."));
+			"Microsoft Speech 4 from 1999."));
 		description.setVerticalAlignment(JLabel.TOP);
 
 		JLabel memorySize = new JLabel("installed");

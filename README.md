@@ -15,7 +15,7 @@ You can install additional voices by installing languages on your operating syst
 - [MacOS Instructions](https://support.apple.com/en-ae/guide/mac-help/mchlp2290/mac)
 
 You can install even more voices by installing additional TTS engines:
-- **Windows:** You can get all voice engines easily by using the installer. ##add link here##<br/>
+- **Windows:** You can get all voice engines easily through the installer. ##add link here##<br/>
 - **Windows/MacOS/Linux:** You can set up the engines manually by following the instructions in [INSTALLING.md](INSTALLING.md)
 
 ## Setting up Natural Speech
