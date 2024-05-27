@@ -310,8 +310,13 @@ public class ChatHelper {
 	}
 
 	@NonNull
-	public String standardizeChatMessageText(@NonNull ChatMessage message) {
-		String text = renderReplacements(message.getMessage());
+	public String standardizeChatMessageText(ChatType chatType, @NonNull ChatMessage message) {
+		String text = message.getMessage();
+		if (chatType == ChatType.System) {
+			text = Text.removeFormattingTags(text);
+		}
+
+		text = renderReplacements(text);
 		text = Texts.renderLargeNumbers(text);
 		return text;
 	}

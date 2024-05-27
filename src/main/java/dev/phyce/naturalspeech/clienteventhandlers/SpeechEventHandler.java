@@ -89,7 +89,7 @@ public class SpeechEventHandler {
 
 		String lineName = String.valueOf(entityID.hashCode());
 
-		String text = chatHelper.standardizeChatMessageText(message);
+		String text = chatHelper.standardizeChatMessageText(chatType, message);
 
 		if (deduplicate(message)) return;
 

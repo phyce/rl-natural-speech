@@ -36,7 +36,7 @@ public final class Texts {
 		return text;
 	}
 
-	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*\\w.*");
+	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-zÀ-ÖØ-öø-ÿ].*");
 
 	public static boolean containAlphaNumeric(String text) {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
