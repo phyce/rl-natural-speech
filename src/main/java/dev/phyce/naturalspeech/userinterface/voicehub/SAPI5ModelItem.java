@@ -1,10 +1,10 @@
-package dev.phyce.naturalspeech.userinterface.components;
+package dev.phyce.naturalspeech.userinterface.voicehub;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import java.awt.Dimension;
 import javax.swing.GroupLayout;
 import javax.swing.JLabel;
@@ -16,16 +16,15 @@ import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.SwingUtil;
 
-public class SAPI4ModelItem extends JPanel {
+public class SAPI5ModelItem extends JPanel {
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
-
 	private final SpeechManagerConfig speechManagerConfig;
-	private final SAPI4Engine engine;
+	private final SAPI5Engine engine;
 	private final SpeechManager speechManager;
 
 	@Inject
-	public SAPI4ModelItem(SpeechManagerConfig speechManagerConfig, SAPI4Engine engine, SpeechManager speechManager) {
+	public SAPI5ModelItem(SpeechManagerConfig speechManagerConfig, SAPI5Engine engine, SpeechManager speechManager) {
 		this.speechManagerConfig = speechManagerConfig;
 		this.engine = engine;
 		this.speechManager = speechManager;
@@ -48,14 +47,13 @@ public class SAPI4ModelItem extends JPanel {
 		GroupLayout layout = new GroupLayout(this);
 		this.setLayout(layout);
 
-		JLabel name = new JLabel("Microsoft Speech 4");
+		JLabel name = new JLabel("Microsoft Speech 5");
 		name.setFont(FontManager.getRunescapeBoldFont());
 
-		JLabel description = new JLabel(String.format("<html><p>%s</p></html>",
-			"Microsoft Speech 4 from 1999."));
+		JLabel description = new JLabel(String.format("<html><p>%s</p></html>", "Microsoft Speech 5, built-in"));
 		description.setVerticalAlignment(JLabel.TOP);
 
-		JLabel memorySize = new JLabel("installed");
+		JLabel memorySize = new JLabel("Windows built-In");
 		memorySize.setFont(FontManager.getRunescapeSmallFont());
 
 		JToggleButton toggleButton = new JToggleButton();

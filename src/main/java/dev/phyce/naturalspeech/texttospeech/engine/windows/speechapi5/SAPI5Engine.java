@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
+import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
@@ -16,7 +17,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.sound.sampled.AudioInputStream;
@@ -33,6 +33,7 @@ public class SAPI5Engine implements SpeechEngine {
 
 	private final AudioEngine audioEngine;
 	private final VoiceManager voiceManager;
+	private final PluginExecutorService pluginExecutorService;
 
 	private SAPI5Process process;
 
@@ -46,10 +47,13 @@ public class SAPI5Engine implements SpeechEngine {
 
 	@Inject
 	private SAPI5Engine(
-		AudioEngine audioEngine, VoiceManager voiceManager
+		AudioEngine audioEngine,
+		VoiceManager voiceManager,
+		PluginExecutorService pluginExecutorService
 	) {
 		this.audioEngine = audioEngine;
 		this.voiceManager = voiceManager;
+		this.pluginExecutorService = pluginExecutorService;
 
 
 		if (!Platforms.IS_WINDOWS || NaturalSpeechPlugin._SIMULATE_NO_TTS) {
@@ -101,7 +105,7 @@ public class SAPI5Engine implements SpeechEngine {
 	@Deprecated(since="Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
 	@Synchronized("lock")
-	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+	public ListenableFuture<StartResult> start() {
 
 		if (NaturalSpeechPlugin._SIMULATE_NO_TTS) {
 			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
@@ -138,7 +142,7 @@ public class SAPI5Engine implements SpeechEngine {
 
 				return StartResult.SUCCESS;
 			}
-		}, executorService);
+		}, pluginExecutorService);
 	}
 
 

@@ -1,8 +1,11 @@
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.statics.PluginResources;
+import dev.phyce.naturalspeech.userinterface.mainsettings.MainSettingsPanel;
+import dev.phyce.naturalspeech.userinterface.voiceexplorer.VoiceExplorerPanel;
+import dev.phyce.naturalspeech.userinterface.voicehub.VoiceHubPanel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.GridLayout;

@@ -90,7 +90,7 @@ public class CommandExecutedEventHandler {
 				else username = Arrays.stream(arguments).reduce((a, b) -> a + " " + b).orElse(arguments[0]);
 
 				EntityID entityID = EntityID.name(username);
-				if (!voiceManager.contains(entityID)) {
+				if (!voiceManager.isSet(entityID)) {
 					client.addChatMessage(ChatMessageType.CONSOLE, "",
 						"There are no voices set for " + username + ".", null);
 				}

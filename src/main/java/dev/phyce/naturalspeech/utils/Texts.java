@@ -14,8 +14,7 @@ public final class Texts {
 		// https://www.baeldung.com/java-split-string-keep-delimiters
 		// This regex splits: "Hello, NaturalSpeech?" Into ["Hello,", "NaturalSpeech?"]
 		// By using a positive-lookbehind delimiter matcher
-		String[] segments = text.split("((?<=[.,!?:;]))");
-		return Arrays.stream(segments)
+		return Arrays.stream(text.split("((?<=[.,!?:;]))"))
 			.map(String::trim)
 			.filter(s -> !s.isEmpty())
 			.collect(Collectors.toList());

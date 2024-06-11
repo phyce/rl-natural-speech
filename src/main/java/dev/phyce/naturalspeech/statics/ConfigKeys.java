@@ -50,6 +50,7 @@ public interface ConfigKeys {
 
 	// Voice
 	String VOICE_CONFIG_KEY = "speaker_config.json";
+	String VOICE_BLACKLIST_KEY = "voiceBlacklist";
 
 	// region Mute and listen
 	String LISTEN_MODE = "listenMode";

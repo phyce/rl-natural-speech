@@ -1,8 +1,9 @@
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface.voicehub;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
+import dev.phyce.naturalspeech.eventbus.SubscribeWeak;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
@@ -14,10 +15,6 @@ import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
-import dev.phyce.naturalspeech.userinterface.components.MacModelItem;
-import dev.phyce.naturalspeech.userinterface.components.PiperModelItem;
-import dev.phyce.naturalspeech.userinterface.components.SAPI4ModelItem;
-import dev.phyce.naturalspeech.userinterface.components.SAPI5ModelItem;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -38,7 +35,6 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
@@ -61,6 +57,8 @@ public class VoiceHubPanel extends PluginPanel {
 	private final Provider<SAPI4ModelItem> sapi4ListItemProvider;
 	private final Provider<SAPI5ModelItem> sapi5ListItemProvider;
 	private final Provider<MacModelItem> macListItemProvider;
+	private final Provider<PiperModelItem.Factory> piperListItemBuilder;
+
 
 	@Inject
 	public VoiceHubPanel(
@@ -74,7 +72,8 @@ public class VoiceHubPanel extends PluginPanel {
 		Provider<SAPI5ModelItem> sapi5ListItemProvider,
 		Provider<MacModelItem> macListItemProvider,
 		PluginEventBus pluginEventBus,
-		PluginExecutorService pluginExecutorService
+		PluginExecutorService pluginExecutorService,
+		Provider<PiperModelItem.Factory> piperListItemBuilder
 	) {
 		super(false);
 		this.piperRepository = piperRepository;
@@ -87,6 +86,7 @@ public class VoiceHubPanel extends PluginPanel {
 		this.sapi5ListItemProvider = sapi5ListItemProvider;
 		this.macListItemProvider = macListItemProvider;
 		this.pluginExecutorService = pluginExecutorService;
+		this.piperListItemBuilder = piperListItemBuilder;
 
 
 		pluginEventBus.register(this);
@@ -171,13 +171,11 @@ public class VoiceHubPanel extends PluginPanel {
 		sectionHeader.addMouseListener(adapter);
 
 		// Piper Model
-		for (PiperRepository.ModelURL modelUrl : piperRepository.getModelURLS()) {
-
-			PiperModelItem modelItem = new PiperModelItem(speechManager, piperEngine, piperRepository,
-				pluginExecutorService, modelUrl);
+		piperRepository.urls().forEach((modelUrl) -> {
+			PiperModelItem modelItem = piperListItemBuilder.get().create(modelUrl);
 			piperModelMap.put(modelUrl.getModelName(), modelItem);
 			sectionContent.add(modelItem);
-		}
+		});
 
 		if (!macSpeechEngine.getNativeVoices().isEmpty()) {
 			sectionContent.add(macListItemProvider.get(), 0);
@@ -196,8 +194,8 @@ public class VoiceHubPanel extends PluginPanel {
 	}
 
 	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, no more path changes.")
-	@Subscribe
-	private void onPiperPathChanged(PiperPathChanged event) {
+	@SubscribeWeak
+	public void on(PiperPathChanged event) {
 		log.debug("Repository refresh. Rebuilding");
 		for (PiperModelItem listItem : piperModelMap.values()) {
 			listItem.rebuild();
@@ -205,8 +203,8 @@ public class VoiceHubPanel extends PluginPanel {
 		SwingUtilities.invokeLater(this::revalidate);
 	}
 
-	@Subscribe
-	private void onPiperRepositoryChanged(PiperRepositoryChanged event) {
+	@SubscribeWeak
+	public void on(PiperRepositoryChanged event) {
 		PiperModelItem modelItem = piperModelMap.get(event.getModelName());
 		if (modelItem != null) {
 			modelItem.rebuild();

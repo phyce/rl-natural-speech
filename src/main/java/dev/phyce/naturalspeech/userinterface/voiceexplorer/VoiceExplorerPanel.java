@@ -1,12 +1,13 @@
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface.voiceexplorer;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
-import dev.phyce.naturalspeech.events.PiperModelStarted;
-import dev.phyce.naturalspeech.events.PiperModelStopped;
+import dev.phyce.naturalspeech.eventbus.SubscribeWeak;
+import dev.phyce.naturalspeech.events.PiperModelEngineEvent;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
@@ -27,8 +28,6 @@ import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Proce
 import dev.phyce.naturalspeech.userinterface.components.EditorPanel;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
 import dev.phyce.naturalspeech.userinterface.components.IconTextField;
-import dev.phyce.naturalspeech.userinterface.components.VoiceListItem;
-import dev.phyce.naturalspeech.userinterface.components.VoiceMetadata;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
 import dev.phyce.naturalspeech.utils.ChatHelper;
 import java.awt.BorderLayout;
@@ -62,7 +61,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.SwingUtil;
@@ -74,9 +72,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final SAPI4Engine sapi4Engine;
 	private final SAPI5Engine sapi5Engine;
 	private final MacSpeechEngine macSpeechEngine;
-
 	private final SpeechManager speechManager;
 	private final ChatHelper chatHelper;
+	private final VoiceListItem.Factory voiceListItemFactory;
 
 	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
 
@@ -102,7 +100,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SpeechManager speechManager,
 		PluginEventBus pluginEventBus,
 		MacSpeechEngine macSpeechEngine,
-		ChatHelper chatHelper
+		ChatHelper chatHelper,
+		VoiceListItem.Factory voiceListItemFactory
 	) {
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
@@ -111,6 +110,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		this.speechManager = speechManager;
 		this.macSpeechEngine = macSpeechEngine;
 		this.chatHelper = chatHelper;
+		this.voiceListItemFactory = voiceListItemFactory;
 
 		pluginEventBus.register(this);
 
@@ -166,42 +166,25 @@ public class VoiceExplorerPanel extends EditorPanel {
 		buildSpeakerList();
 	}
 
-	@Subscribe
-	private void onPiperModelStarted(PiperModelStarted event) {
-		String modelName = event.getPiper().getModelLocal().getModelName();
-
-		JPanel section = modelSections.get(modelName);
-		if (section != null) {
-			section.setVisible(true);
-			SwingUtilities.invokeLater(sectionListPanel::revalidate);
-		}
-		else {
-			// buildSpeakerList builds sections using PiperRepository
-			// if this triggers that means a new model was not in PiperRepository.
-			log.error("Started model not found in VoiceExplorer:{}", modelName);
-		}
-		updateWarnings();
-	}
-
-	@Subscribe
-	private void onPiperModelStopped(PiperModelStopped event) {
-		String modelName = event.getPiper().getModelLocal().getModelName();
-
-		JPanel section = modelSections.get(modelName);
-		if (section != null) {
-			section.setVisible(false);
-			SwingUtilities.invokeLater(sectionListPanel::revalidate);
-		}
-		else {
-			// buildSpeakerList builds sections using PiperRepository
-			// if this triggers that means a new model was not in PiperRepository.
-			log.error("Started model not found in VoiceExplorer:{}", modelName);
+	@SubscribeWeak
+	public void on(PiperModelEngineEvent event) {
+		String modelName = event.getModel().getModelName();
+		JPanel section = Preconditions.checkNotNull(modelSections.get(modelName));
+		switch (event.getEvent()) {
+			case STARTED:
+				section.setVisible(true);
+				SwingUtilities.invokeLater(sectionListPanel::revalidate);
+				break;
+			case STOPPED:
+				section.setVisible(false);
+				SwingUtilities.invokeLater(sectionListPanel::revalidate);
+				break;
 		}
 		updateWarnings();
 	}
 
-	@Subscribe
-	private void onSpeechEngineStarted(SpeechEngineStarted event) {
+	@SubscribeWeak
+	public void on(SpeechEngineStarted event) {
 		if (event.getSpeechEngine() == sapi4Engine || event.getSpeechEngine() == sapi5Engine) {
 			if (sapi4Engine.isStarted() || sapi5Engine.isStarted()) {
 				microsoftSegment.setVisible(true);
@@ -218,8 +201,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		updateWarnings();
 	}
 
-	@Subscribe
-	private void onSpeechEngineStopped(SpeechEngineStopped event) {
+	@SubscribeWeak
+	public void on(SpeechEngineStopped event) {
 		if (event.getSpeechEngine() == sapi4Engine || event.getSpeechEngine() == sapi5Engine) {
 			if (!sapi4Engine.isStarted() && !sapi5Engine.isStarted()) {
 				microsoftSegment.setVisible(false);
@@ -230,8 +213,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		updateWarnings();
 	}
 
-	@Subscribe
-	private void onSpeechManagerFailedStart(SpeechManagerFailedStart event) {
+	@SubscribeWeak
+	public void on(SpeechManagerFailedStart event) {
 		if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_FAILED) {
 			centerNoEngineWarning.setVisible(true);
 			centerStoppedWarning.setVisible(false);
@@ -244,25 +227,25 @@ public class VoiceExplorerPanel extends EditorPanel {
 		}
 	}
 
-	@Subscribe
-	private void onSpeechManagerStarted(SpeechManagerStarted event) {
+	@SubscribeWeak
+	public void on(SpeechManagerStarted event) {
 		updateWarnings();
 	}
 
-	@Subscribe
-	private void onSpeechManagerStopped(SpeechManagerStopped event) {
+	@SubscribeWeak
+	public void on(SpeechManagerStopped event) {
 		updateWarnings();
 	}
 
 	@Deprecated(
 		since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
-	@Subscribe
-	private void onPiperPathChanged(PiperPathChanged event) {
+	@SubscribeWeak
+	public void on(PiperPathChanged event) {
 		SwingUtilities.invokeLater(this::buildSpeakerList);
 	}
 
-	@Subscribe
-	private void onPiperRepositoryChanged(PiperRepositoryChanged event) {
+	@SubscribeWeak
+	public void on(PiperRepositoryChanged event) {
 		SwingUtilities.invokeLater(this::buildSpeakerList);
 	}
 
@@ -322,15 +305,15 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		List<String> sapi4Models = sapi4Repository.getVoices();
 		List<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getAvailableSAPI5s();
-		List<PiperRepository.ModelURL> piperModelURLS = piperRepository.getModelURLS();
+		List<PiperRepository.PiperModelURL> piperModelURLS = piperRepository.urls().collect(Collectors.toList());
 		Set<VoiceID> macVoices = macSpeechEngine.getNativeVoices().keySet();
 
 		buildMacModelSegment(macVoices);
 		buildMicrosoftModelSegment(sapi4Models, sapi5Models);
 
-		for (PiperRepository.ModelURL modelURL : piperModelURLS) {
-			if (piperRepository.hasModelLocal(modelURL.getModelName())) {
-				buildPiperModelSegment(modelURL.getModelName());
+		for (PiperRepository.PiperModelURL modelURL : piperModelURLS) {
+			if (piperRepository.isLocal(modelURL)) {
+				buildPiperModelSegment(modelURL);
 			}
 		}
 
@@ -439,7 +422,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		macVoices.forEach((voiceId) -> {
 			VoiceMetadata metadata =
 				new VoiceMetadata("", Gender.MALE, voiceId);
-			VoiceListItem speakerItem = new VoiceListItem(speechManager, chatHelper, this, metadata);
+			VoiceListItem speakerItem = voiceListItemFactory.create(speechText, metadata);
 			voiceListItems.add(speakerItem);
 			sectionContent.add(speakerItem);
 		});
@@ -505,7 +488,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			.forEach((modelName) -> {
 				VoiceMetadata metadata =
 					new VoiceMetadata("", Gender.MALE, new VoiceID(SAPI4Engine.SAPI4_MODEL_NAME, modelName));
-				VoiceListItem speakerItem = new VoiceListItem(speechManager, chatHelper, this, metadata);
+				VoiceListItem speakerItem = voiceListItemFactory.create(speechText, metadata);
 				voiceListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
 			});
@@ -520,7 +503,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 					new VoiceID(SAPI5Engine.SAPI5_MODEL_NAME, modelName)
 				);
 
-				VoiceListItem speakerItem = new VoiceListItem(speechManager, chatHelper, this, metadata);
+				VoiceListItem speakerItem = voiceListItemFactory.create(speechText, metadata);
 				voiceListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
 			});
@@ -537,7 +520,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SwingUtilities.invokeLater(sectionContent::revalidate);
 	}
 
-	private void buildPiperModelSegment(String modelName) {
+	private void buildPiperModelSegment(PiperRepository.PiperModelURL modelURL) {
 
 		final JPanel section = new JPanel();
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
@@ -561,8 +544,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final String name = modelName;
-		final String description = modelName;
+		final String name = modelURL.getModelName();
+		final String description = modelURL.getModelName();
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
@@ -592,13 +575,14 @@ public class VoiceExplorerPanel extends EditorPanel {
 		toggleSpeakerSection(sectionToggle, sectionContent);
 
 		try {
-			PiperRepository.ModelLocal modelLocal = piperRepository.loadModelLocal(modelName);
+			PiperRepository.PiperModel piperModel = piperRepository.get(modelURL);
 
-			Arrays.stream(modelLocal.getPiperVoiceMetadata())
-				.sorted(Comparator.comparing(a -> a.getPiperVoiceID()))
-				.forEach((piperVoiceMetadata) -> {
+			Arrays.stream(piperModel.getVoices())
+				.sorted(Comparator.comparing(PiperRepository.PiperVoice::getPiperVoiceID))
+				.forEach((voiceMetadata) -> {
 					VoiceListItem speakerItem =
-						new VoiceListItem(speechManager, chatHelper, this, VoiceMetadata.from(piperVoiceMetadata));
+						voiceListItemFactory.create(speechText, VoiceMetadata.from(voiceMetadata));
+
 					voiceListItems.add(speakerItem);
 					sectionContent.add(speakerItem);
 				});
@@ -606,7 +590,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		} catch (IOException e) {throw new RuntimeException(e);}
 
 		sectionListPanel.add(section);
-		modelSections.put(modelName, section);
+		modelSections.put(modelURL.getModelName(), section);
+		log.trace("Built VoiceExplorer for PiperModel:{}", modelURL.getModelName());
 	}
 
 	void searchFilter(String searchInput) {

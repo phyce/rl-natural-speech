@@ -5,6 +5,8 @@ import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
+import com.google.inject.ProvisionException;
+import com.google.inject.assistedinject.FactoryModuleBuilder;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.audio.VolumeManager;
 import dev.phyce.naturalspeech.entity.EntityID;
@@ -14,6 +16,10 @@ import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.Names;
 import static dev.phyce.naturalspeech.statics.PluginResources.NATURAL_SPEECH_ICON;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
+import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperModelEngine;
+import dev.phyce.naturalspeech.userinterface.mainsettings.PiperModelMonitorItem;
+import dev.phyce.naturalspeech.userinterface.voiceexplorer.VoiceListItem;
+import dev.phyce.naturalspeech.userinterface.voicehub.PiperModelItem;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
@@ -82,6 +88,11 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void configure(Binder binder) {
 		pluginSingletonScope = new PluginSingletonScope();
 		binder.bindScope(PluginSingleton.class, pluginSingletonScope);
+
+		binder.install(new FactoryModuleBuilder().build(PiperModelMonitorItem.Factory.class));
+		binder.install(new FactoryModuleBuilder().build(PiperModelItem.Factory.class));
+		binder.install(new FactoryModuleBuilder().build(PiperModelEngine.Factory.class));
+		binder.install(new FactoryModuleBuilder().build(VoiceListItem.Factory.class));
 	}
 
 	@Override
@@ -101,7 +112,13 @@ public class NaturalSpeechPlugin extends Plugin {
 		_SIMULATE_MINIMUM_MODE = config.simulateMinimumMode();
 
 		// plugin fields are wrapped in a field object
-		module = injector.getInstance(NaturalSpeechModule.class);
+		try {
+			module = injector.getInstance(NaturalSpeechModule.class);
+		} catch (ProvisionException e) {
+			e.getErrorMessages()
+				.forEach(message -> log.error("Provision ErrorResult:{}", message.getMessage(), message.getCause()));
+			throw new IllegalStateException("Failed to create NaturalSpeechModule");
+		}
 
 		// Abstracting the massive client event handlers into their own files
 		// registers to eventbus, unregistered automatically using unregisterClientEventBusAll() in shutdown()
@@ -130,7 +147,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		loadSpeechEngines();
 
 		if (config.autoStart()) {
-			module.speechManager.start(module.pluginExecutorService);
+			module.speechManager.start();
 		}
 
 		applyConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
@@ -272,7 +289,7 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	private void saveConfigs() {
 		module.voiceManager.save();
-		module.piperEngine.savePiperConfig();
+		module.piperConfig.save();
 		module.muteManager.save();
 	}
 

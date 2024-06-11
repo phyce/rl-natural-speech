@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
+import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
@@ -15,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.Getter;
@@ -37,6 +37,7 @@ public class SAPI4Engine implements SpeechEngine {
 
 	private final AudioEngine audioEngine;
 	private final VoiceManager voiceManager;
+	private final PluginExecutorService pluginExecutorService;
 
 	private final Map<String, SpeechAPI4> sapi4s = new HashMap<>();
 
@@ -49,10 +50,12 @@ public class SAPI4Engine implements SpeechEngine {
 		SAPI4Repository sapi4Repository,
 		RuntimePathConfig runtimeConfig,
 		AudioEngine audioEngine,
-		VoiceManager voiceManager
+		VoiceManager voiceManager,
+		PluginExecutorService pluginExecutorService
 	) {
 		this.audioEngine = audioEngine;
 		this.voiceManager = voiceManager;
+		this.pluginExecutorService = pluginExecutorService;
 
 		if (!Platforms.IS_WINDOWS) {
 			return;
@@ -94,7 +97,7 @@ public class SAPI4Engine implements SpeechEngine {
 	@Deprecated(since="Do not start engines directly, use TextToSpeech::startEngine.")
 	@Override
 	@Synchronized("lock")
-	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+	public ListenableFuture<StartResult> start() {
 
 		if (!Platforms.IS_WINDOWS) {
 			log.trace("Not windows, SAPI4 skipping");
@@ -122,7 +125,7 @@ public class SAPI4Engine implements SpeechEngine {
 				}
 				return result;
 			}
-		}, executorService);
+		}, pluginExecutorService);
 	}
 
 	@Deprecated(since="Do not stop engines directly, use TextToSpeech::stopEngine")

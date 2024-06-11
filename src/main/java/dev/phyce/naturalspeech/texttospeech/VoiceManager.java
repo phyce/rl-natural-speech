@@ -1,7 +1,8 @@
 package dev.phyce.naturalspeech.texttospeech;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.collections.GenderedVoiceMap;
@@ -12,14 +13,18 @@ import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.utils.ClientHelper;
+import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.http.api.RuneLiteAPI;
 
 
 /**
@@ -34,14 +39,13 @@ public class VoiceManager {
 
 	private final ConfigManager configManager;
 	private final ClientHelper clientHelper;
-
 	private final Map<EntityID, VoiceID> settings = Collections.synchronizedMap(new HashMap<>());
 
 	/**
 	 * Gendered Voice Map contains the voices registered with the VoiceManager,
 	 * able to query by gender.
 	 */
-	private final GenderedVoiceMap genderedVoiceMap = new GenderedVoiceMap();
+	private final GenderedVoiceMap genderCache = new GenderedVoiceMap();
 
 	/**
 	 * Active Voice Map contains the active voices that are registered with the VoiceManager.
@@ -49,7 +53,10 @@ public class VoiceManager {
 	 * @see #register(VoiceID, Gender)
 	 * @see #unregister(VoiceID)
 	 */
-	private final Set<VoiceID> activeVoiceMap = Collections.synchronizedSet(new HashSet<>());
+	//	private final Set<VoiceID> actives = Collections.synchronizedSet(new HashSet<>());
+	private final Set<VoiceID> blacklist = Collections.synchronizedSet(new HashSet<>());
+	private final Map<VoiceID, Gender> disallowed = Collections.synchronizedMap(new HashMap<>());
+	private final Map<VoiceID, Gender> allowed = Collections.synchronizedMap(new HashMap<>());
 
 	@Inject
 	public VoiceManager(ConfigManager configManager, ClientHelper clientHelper) {
@@ -57,20 +64,43 @@ public class VoiceManager {
 		this.clientHelper = clientHelper;
 
 		// try to load from existing json in configManager
-		String json = configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY);
-
-		if (json != null) {
-			settings.putAll(VoiceSettings.fromJSON(json));
+		{
+			String voiceJson = configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY);
+			if (voiceJson != null) {
+				settings.putAll(VoiceSettings.fromJSON(voiceJson));
+			}
+			else {
+				log.info("No existing voice config stored in profile, falling back to default");
+				// if configManager fails, load default from resources
+				settings.putAll(VoiceSettings.fromJSON(PluginResources.DEFAULT_VOICE_CONFIG_JSON));
+			}
 		}
-		else {
-			log.info("No existing voice config stored in profile, falling back to default");
-			// if configManager fails, load default from resources
-			settings.putAll(VoiceSettings.fromJSON(PluginResources.DEFAULT_VOICE_CONFIG_JSON));
+
+		{
+			String blacklistJson = configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_BLACKLIST_KEY);
+			List<VoiceID> value;
+			if (blacklistJson != null) {
+				Type type = new TypeToken<List<VoiceID>>() {}.getType();
+				try {
+					value = RuneLiteAPI.GSON.fromJson(blacklistJson, type);
+				} catch (JsonSyntaxException e) {
+					log.error("Failed to parse voice blacklist JSON:{}", blacklistJson, e);
+					value = List.of();
+				}
+			}
+			else {
+				value = List.of();
+				log.trace("No existing voice blacklist stored in profile.");
+			}
+			blacklist.addAll(value);
 		}
 	}
 
 	public void save() {
-		configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY, VoiceSettings.toJSON(settings));
+		configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY,
+			VoiceSettings.toJSON(settings));
+		configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_BLACKLIST_KEY,
+			RuneLiteAPI.GSON.toJson(blacklist));
 	}
 
 	/**
@@ -82,15 +112,14 @@ public class VoiceManager {
 	 *
 	 * @see #unregister(VoiceID)
 	 */
-	public void register(VoiceID voiceID, Gender gender) {
-		if (activeVoiceMap.contains(voiceID)) {
-			log.error(
-				"Attempting to register duplicate VoiceID. Likely another SpeechEngine is using the same VoiceID. {}",
-				voiceID);
-			return;
+	public void register(@NonNull VoiceID voiceID, @NonNull Gender gender) {
+		if (blacklist.contains(voiceID)) {
+			disallowed.put(voiceID, gender);
 		}
-		activeVoiceMap.add(voiceID);
-		genderedVoiceMap.addVoiceID(gender, voiceID);
+		else {
+			allowed.put(voiceID, gender);
+			genderCache.add(voiceID, gender);
+		}
 		log.trace("Registered VoiceID: {}", voiceID);
 	}
 
@@ -101,34 +130,65 @@ public class VoiceManager {
 	 *
 	 * @see #register(VoiceID, Gender)
 	 */
-	public void unregister(VoiceID voiceID) {
-		if (!activeVoiceMap.contains(voiceID)) {
-			log.error("Attempting to unregister VoiceID that was never registered. {}", voiceID);
-			return;
+	public void unregister(@NonNull VoiceID voiceID) {
+		Gender removedDisallow = disallowed.remove(voiceID);
+		Gender removedAllow = allowed.remove(voiceID);
+		if (!(removedDisallow != null || removedAllow != null)) {
+			log.error("Attempting to unregister VoiceID that was not registered: {}", voiceID);
 		}
-		activeVoiceMap.remove(voiceID);
-		genderedVoiceMap.removeVoiceID(voiceID);
+
+		genderCache.remove(voiceID);
 		log.trace("Unregistered VoiceID: {}", voiceID);
 	}
 
-	public boolean isActive(VoiceID voiceID) {
-		return activeVoiceMap.contains(voiceID);
+	public void blacklist(@NonNull VoiceID voiceID) {
+		Preconditions.checkState(!blacklist.contains(voiceID), "VoiceID already blacklisted: %s", voiceID);
+
+		blacklist.add(voiceID);
+		Gender gender = allowed.remove(voiceID);
+		if (gender != null) {
+			genderCache.remove(voiceID);
+			disallowed.put(voiceID, gender);
+		} else {
+			log.error("VoiceID was is not registered: {}", voiceID);
+		}
+	}
+
+	public void unblacklist(@NonNull VoiceID voiceID) {
+		Preconditions.checkState(blacklist.contains(voiceID), "VoiceID not blacklisted: %s", voiceID);
+
+		blacklist.remove(voiceID);
+		Gender gender = disallowed.remove(voiceID);
+		if (gender != null) {
+			allowed.put(voiceID, gender);
+			genderCache.add(voiceID, gender);
+		} else {
+			log.error("VoiceID was is not registered: {}", voiceID);
+		}
+	}
+
+
+	public boolean isBlacklisted(@NonNull VoiceID voiceID) {
+		return blacklist.contains(voiceID);
+	}
+
+	public boolean speakable(@NonNull VoiceID voiceID) {
+		return allowed.containsKey(voiceID);
 	}
 
 	@NonNull
 	public Optional<VoiceID> get(@NonNull EntityID entityID) {
-		VoiceID voice = settings.get(entityID);
-		return voice != null ? Optional.of(voice) : Optional.absent();
+		return Optional.ofNullable(settings.get(entityID));
 	}
 
 	@NonNull
 	public VoiceID resolve(@NonNull EntityID entityID) {
-		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
+		Preconditions.checkState(!allowed.isEmpty(), "No allowed voices.");
 
 		// if there is setting for this entity, use that
 		VoiceID voiceID = settings.get(entityID);
 
-		if (voiceID != null && !activeVoiceMap.contains(voiceID)) {
+		if (voiceID != null && !contains(voiceID)) {
 			log.trace("Voice Setting found, but not active: {}", voiceID);
 			voiceID = null;
 		}
@@ -142,10 +202,15 @@ public class VoiceManager {
 			log.trace("Voice setting found for {}: {}", entityID, voiceID);
 		}
 
+		log.trace("Resolved VoiceID {}:{}", entityID, voiceID);
 		return voiceID;
 	}
 
-	public boolean contains(EntityID entityID) {
+	public boolean contains(VoiceID voiceID) {
+		return allowed.containsKey(voiceID) || disallowed.containsKey(voiceID);
+	}
+
+	public boolean isSet(EntityID entityID) {
 		return settings.containsKey(entityID);
 	}
 
@@ -160,11 +225,11 @@ public class VoiceManager {
 
 	@NonNull
 	private VoiceID random(EntityID eid) {
-		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
+		Preconditions.checkState(!allowed.isEmpty(), "No allowed voices.");
 
 		Gender gender = clientHelper.getGender(eid);
 
-		Set<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
+		Set<VoiceID> voiceIDs = genderCache.find(gender);
 		if (voiceIDs == null || voiceIDs.isEmpty()) {
 			// no voices available for gender
 			return fallback();
@@ -173,23 +238,18 @@ public class VoiceManager {
 		int hashCode = eid.hashCode();
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
-		return voiceIDs
-			.stream()
-			.skip(voice)
-			.findFirst()
-			.orElseThrow();
+		return voiceIDs.stream().skip(voice).findFirst().orElseThrow();
 	}
 
 	// Ultimate fallback
 	@NonNull
 	private VoiceID fallback() {
-		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
+		Preconditions.checkState(!allowed.isEmpty(), "No allowed voices.");
 
-		long count = activeVoiceMap.size();
+		long count = allowed.size();
 
-		Optional<VoiceID> first =
-			Optional.fromJavaUtil(activeVoiceMap.stream().skip((int) (Math.random() * count)).findFirst());
-		Preconditions.checkState(first != null && first.isPresent());
+		Optional<VoiceID> first = allowed.keySet().stream().skip((int) (Math.random() * count)).findFirst();
+		Preconditions.checkState(first.isPresent(), "Random index overflowed.");
 		return first.get();
 	}
 	//<editor-fold desc="> Get">

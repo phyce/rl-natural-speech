@@ -120,7 +120,7 @@ public class SpamFilterPluglet {
 		try {
 			threshold = Integer.parseInt(result);
 		} catch (NumberFormatException e) {
-			log.error("Error parsing threshold value from spam filters' config", e);
+			log.error("ErrorResult parsing threshold value from spam filters' config", e);
 		}
 	}
 
@@ -146,7 +146,7 @@ public class SpamFilterPluglet {
 				countTokens(badCounts, builtinBadCorpus);
 				countTokens(badCounts, userBadCorpus);
 			} catch (IOException e) {
-				log.error("Error reading {}", userBadCorpusFile);
+				log.error("ErrorResult reading {}", userBadCorpusFile);
 			}
 		}
 		else {
@@ -173,7 +173,7 @@ public class SpamFilterPluglet {
 				countTokens(goodCounts, builtinGoodCorpus);
 				countTokens(goodCounts, userGoodCorpus);
 			} catch (IOException e) {
-				log.error("Error reading {}", userGoodCorpusFile);
+				log.error("ErrorResult reading {}", userGoodCorpusFile);
 			}
 		}
 		else {
@@ -191,7 +191,7 @@ public class SpamFilterPluglet {
 			try {
 				goodCorpusReader.close();
 			} catch (IOException e) {
-				log.error("Error reading SpamFilter file from {}.", FILE_NAME_GOOD_CORPUS);
+				log.error("ErrorResult reading SpamFilter file from {}.", FILE_NAME_GOOD_CORPUS);
 			}
 		}
 
@@ -203,7 +203,7 @@ public class SpamFilterPluglet {
 			try {
 				badCorpusReader.close();
 			} catch (IOException e) {
-				log.error("Error reading SpamFilter file from {}.", FILE_NAME_BAD_CORPUS);
+				log.error("ErrorResult reading SpamFilter file from {}.", FILE_NAME_BAD_CORPUS);
 			}
 		}
 	}

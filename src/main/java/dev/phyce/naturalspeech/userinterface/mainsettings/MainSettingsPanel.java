@@ -1,13 +1,13 @@
-package dev.phyce.naturalspeech.userinterface.panels;
+package dev.phyce.naturalspeech.userinterface.mainsettings;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
-import dev.phyce.naturalspeech.events.PiperModelStarted;
-import dev.phyce.naturalspeech.events.PiperModelStopped;
+import dev.phyce.naturalspeech.eventbus.SubscribeWeak;
+import dev.phyce.naturalspeech.events.PiperModelEngineEvent;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
-import dev.phyce.naturalspeech.events.PiperProcessCrashed;
+import dev.phyce.naturalspeech.events.PiperProcessEvent;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.events.SpeechEngineSkippedEngine;
 import dev.phyce.naturalspeech.events.SpeechEngineStarted;
@@ -21,14 +21,12 @@ import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperModel;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
-import dev.phyce.naturalspeech.userinterface.components.PiperModelItem;
-import dev.phyce.naturalspeech.userinterface.components.PiperModelMonitorItem;
+import dev.phyce.naturalspeech.userinterface.voicehub.PiperModelItem;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
 import dev.phyce.naturalspeech.utils.Platforms;
 import java.awt.BorderLayout;
@@ -62,7 +60,6 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
@@ -71,6 +68,8 @@ import net.runelite.client.util.SwingUtil;
 
 @Slf4j
 public class MainSettingsPanel extends PluginPanel {
+	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
+	//	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 	private final PiperRepository piperRepository;
 	private final SAPI4Repository sapi4Repository;
@@ -79,13 +78,12 @@ public class MainSettingsPanel extends PluginPanel {
 	private final SpeechManager speechManager;
 	private final RuntimePathConfig runtimeConfig;
 	private final PluginExecutorService pluginExecutorService;
+	private final PiperModelMonitorItem.Factory monitorFactory;
 
 	private final FixedWidthPanel mainContentPanel;
-	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
-	//	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 	private final Map<String, PiperModelItem> piperModelMap = new HashMap<>();
-	private final Map<PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
+	private final Map<PiperRepository.PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Set<Warning> warnings = new HashSet<>();
 
 	private JLabel statusLabel;
@@ -111,7 +109,8 @@ public class MainSettingsPanel extends PluginPanel {
 		PluginEventBus pluginEventBus,
 		SAPI5Engine sapi5Engine,
 		PluginExecutorService pluginExecutorService,
-		SpeechManagerConfig speechManagerConfig
+		SpeechManagerConfig speechManagerConfig,
+		PiperModelMonitorItem.Factory monitorFactory
 	) {
 		super(false);
 		this.sapi4Repository = sapi4Repository;
@@ -121,6 +120,7 @@ public class MainSettingsPanel extends PluginPanel {
 		this.runtimeConfig = runtimeConfig;
 		this.sapi5Engine = sapi5Engine;
 		this.pluginExecutorService = pluginExecutorService;
+		this.monitorFactory = monitorFactory;
 
 		pluginEventBus.register(this);
 
@@ -153,15 +153,15 @@ public class MainSettingsPanel extends PluginPanel {
 		this.revalidate();
 	}
 
-	@Subscribe
-	private void onSpeechEngineSkippedEngine(SpeechEngineSkippedEngine event) {
+	@SubscribeWeak
+	public void on(SpeechEngineSkippedEngine event) {
 		if (event.getEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
 			isMinimumMode = false;
 		}
 	}
 
-	@Subscribe
-	private void onSpeechManagerStarting(SpeechManagerStarting event) {
+	@SubscribeWeak
+	public void on(SpeechManagerStarting event) {
 		isMinimumMode = true;
 
 		statusLabel.setText("Starting...");
@@ -173,8 +173,8 @@ public class MainSettingsPanel extends PluginPanel {
 		revalidate();
 	}
 
-	@Subscribe
-	private void onSpeechManagerStarted(SpeechManagerStarted event) {
+	@SubscribeWeak
+	public void on(SpeechManagerStarted event) {
 		statusLabel.setText("Running");
 		statusLabel.setBackground(Color.GREEN.darker());
 		statusLabel.setForeground(Color.WHITE);
@@ -185,8 +185,8 @@ public class MainSettingsPanel extends PluginPanel {
 		updateWarningsUI();
 	}
 
-	@Subscribe
-	private void onSpeechManagerStopped(SpeechManagerStopped event) {
+	@SubscribeWeak
+	public void on(SpeechManagerStopped event) {
 		statusLabel.setText("Not running");
 		statusLabel.setBackground(Color.DARK_GRAY);
 		statusLabel.setForeground(null);
@@ -196,39 +196,40 @@ public class MainSettingsPanel extends PluginPanel {
 		updateWarningsUI();
 	}
 
-	@Subscribe
-	private void onSpeechManagerFailedStart(SpeechManagerFailedStart event) {
-
-		if (event.getReason() == SpeechManagerFailedStart.Reason.NOT_INSTALLED) {
-			statusLabel.setText("No Engine");
-			statusLabel.setBackground(Color.DARK_GRAY);
-			statusLabel.setForeground(null);
-			statusPanel.setToolTipText("No available text-to-speech engines detected.");
-			addWarning(Warning.NO_ENGINE);
-			updateWarningsUI();
-		}
-		else if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_DISABLED) {
-			statusLabel.setText("All Voices Disabled");
-			statusLabel.setBackground(Color.DARK_GRAY);
-			statusLabel.setForeground(null);
-			statusPanel.setToolTipText("Enable some of the voices to start Text-To-Speech!");
-			addWarning(Warning.CRASHED);
-			crashLabel.setText("<html>Please enable a voice in the Voice Pack settings.</html>");
-			updateWarningsUI();
-		}
-		else if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_FAILED) {
-			statusLabel.setText("Engine Failed");
-			statusLabel.setBackground(Color.DARK_GRAY);
-			statusLabel.setForeground(null);
-			statusPanel.setToolTipText("There might be an issue with the engine. Please check the logs.");
-			addWarning(Warning.CRASHED);
-			crashLabel.setText("<html>There was an issue starting the engine. Please check the logs.</html>");
-			updateWarningsUI();
+	@SubscribeWeak
+	public void on(SpeechManagerFailedStart event) {
+		switch (event.getReason()) {
+			case NOT_INSTALLED:
+				statusLabel.setText("No Engine");
+				statusLabel.setBackground(Color.DARK_GRAY);
+				statusLabel.setForeground(null);
+				statusPanel.setToolTipText("No available text-to-speech engines detected.");
+				addWarning(Warning.NO_ENGINE);
+				updateWarningsUI();
+				break;
+			case ALL_DISABLED:
+				statusLabel.setText("All Voices Disabled");
+				statusLabel.setBackground(Color.DARK_GRAY);
+				statusLabel.setForeground(null);
+				statusPanel.setToolTipText("Enable some of the voices to start Text-To-Speech!");
+				addWarning(Warning.CRASHED);
+				crashLabel.setText("<html>Please enable a voice in the Voice Pack settings.</html>");
+				updateWarningsUI();
+				break;
+			case ALL_FAILED:
+				statusLabel.setText("Engine Failed");
+				statusLabel.setBackground(Color.DARK_GRAY);
+				statusLabel.setForeground(null);
+				statusPanel.setToolTipText("There might be an issue with the engine. Please check the logs.");
+				addWarning(Warning.CRASHED);
+				crashLabel.setText("<html>There was an issue starting the engine. Please check the logs.</html>");
+				updateWarningsUI();
+				break;
 		}
 	}
 
-	@Subscribe
-	private void onSpeechEngineStarted(SpeechEngineStarted event) {
+	@SubscribeWeak
+	public void on(SpeechEngineStarted event) {
 		if (event.getSpeechEngine() instanceof PiperEngine) {
 			piperMonitorPanel.setVisible(true);
 		}
@@ -238,43 +239,50 @@ public class MainSettingsPanel extends PluginPanel {
 		}
 	}
 
-	@Subscribe
-	private void onSpeechEngineStopped(SpeechEngineStopped event) {
+	@SubscribeWeak
+	public void on(SpeechEngineStopped event) {
 		if (event.getSpeechEngine() instanceof PiperEngine) {
 			piperMonitorPanel.setVisible(false);
 		}
 	}
 
-	@Subscribe
-	private void onPiperModelStarted(PiperModelStarted event) {
-		PiperModelMonitorItem piperItem = new PiperModelMonitorItem(event.getPiper());
-		piperModelMonitorMap.put(event.getPiper(), piperItem);
-		piperMonitorPanel.add(piperItem);
-		piperMonitorPanel.revalidate();
+	@SubscribeWeak
+	public void on(PiperModelEngineEvent event) {
+		PiperRepository.PiperModel piperModel = event.getModel();
+
+		switch (event.getEvent()) {
+			case STARTED:
+				PiperModelMonitorItem monitorItem = monitorFactory.create(piperModel);
+				piperModelMonitorMap.put(piperModel, monitorItem);
+				piperMonitorPanel.add(monitorItem);
+				piperMonitorPanel.revalidate();
+				break;
+			case STOPPED:
+				PiperModelMonitorItem remove = piperModelMonitorMap.remove(piperModel);
+				if (remove != null) {
+					piperMonitorPanel.remove(remove);
+					piperMonitorPanel.revalidate();
+				}
+				break;
+		}
 	}
 
-	@Subscribe
-	private void onPiperProcessCrashed(PiperProcessCrashed event) {
+	@SubscribeWeak
+	public void on(PiperProcessEvent event) {
+		if (event.getEvent() != PiperProcessEvent.Events.CRASHED) return;
+
 		addWarning(Warning.CRASHED);
 		crashLabel.setText(
 			String.format("<html>Oh no! %s has crashed. (piper)</html>",
-				event.getModel().getModelLocal().getModelName())
+				event.getModelEngine().getModel().getModelName())
 		);
 		updateWarningsUI();
 	}
 
-	@Subscribe
-	private void onPiperModelStopped(PiperModelStopped event) {
-		PiperModelMonitorItem remove = piperModelMonitorMap.remove(event.getPiper());
-		if (remove != null) {
-			piperMonitorPanel.remove(remove);
-			piperMonitorPanel.revalidate();
-		}
-	}
 
 	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, no more path changes.")
-	@Subscribe
-	private void onPiperPathChanged(PiperPathChanged event) {
+	@SubscribeWeak
+	public void on(PiperPathChanged event) {
 		log.debug("Repository refresh. Rebuilding");
 		for (PiperModelItem listItem : piperModelMap.values()) {
 			listItem.rebuild();
@@ -283,8 +291,8 @@ public class MainSettingsPanel extends PluginPanel {
 		updateWarningsUI();
 	}
 
-	@Subscribe
-	private void onPiperRepositoryChanged(PiperRepositoryChanged event) {
+	@SubscribeWeak
+	public void on(PiperRepositoryChanged event) {
 		PiperModelItem modelItem = piperModelMap.get(event.getModelName());
 		if (modelItem != null) {
 			modelItem.rebuild();
@@ -331,7 +339,7 @@ public class MainSettingsPanel extends PluginPanel {
 			try {
 				Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
 			} catch (Exception ex) {
-				log.error("Error opening instruction link.", ex);
+				log.error("ErrorResult opening instruction link.", ex);
 			}
 			}
 		});
@@ -389,7 +397,7 @@ public class MainSettingsPanel extends PluginPanel {
 					try {
 						Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
 					} catch (Exception ex) {
-						log.error("Error opening website link.", ex);
+						log.error("ErrorResult opening website link.", ex);
 					}
 				}
 			});
@@ -447,7 +455,7 @@ public class MainSettingsPanel extends PluginPanel {
 				try {
 					Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
 				} catch (Exception ex) {
-					log.error("Error opening website link.", ex);
+					log.error("ErrorResult opening website link.", ex);
 				}
 				}
 			});
@@ -557,7 +565,7 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton playButton = createButton(PluginResources.START_TEXT_TO_SPEECH_ICON, "Start");
 		JButton stopButton = createButton(PluginResources.STOP_TEXT_TO_SPEECH_ICON, "Stop");
 
-		playButton.addActionListener(e -> speechManager.start(pluginExecutorService));
+		playButton.addActionListener(e -> speechManager.start());
 		stopButton.addActionListener(e -> speechManager.stop());
 
 		buttonPanel.add(playButton);

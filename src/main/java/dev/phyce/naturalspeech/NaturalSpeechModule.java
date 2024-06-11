@@ -6,6 +6,7 @@ import dev.phyce.naturalspeech.audio.VolumeManager;
 import dev.phyce.naturalspeech.clienteventhandlers.CommandExecutedEventHandler;
 import dev.phyce.naturalspeech.clienteventhandlers.MenuEventHandler;
 import dev.phyce.naturalspeech.clienteventhandlers.SpeechEventHandler;
+import dev.phyce.naturalspeech.configs.PiperConfig;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
@@ -20,7 +21,7 @@ import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
-import dev.phyce.naturalspeech.userinterface.panels.TopLevelPanel;
+import dev.phyce.naturalspeech.userinterface.TopLevelPanel;
 import dev.phyce.naturalspeech.utils.ChatHelper;
 import dev.phyce.naturalspeech.utils.ClientHelper;
 
@@ -40,6 +41,7 @@ class NaturalSpeechModule {
 	final MuteManager muteManager;
 	final SpeechManager speechManager;
 	final PiperEngine piperEngine;
+	final PiperConfig piperConfig;
 	final SAPI4Engine sapi4Engine;
 	final SAPI5Engine sapi5Engine;
 	final SpamFilterPluglet spamFilterPluglet;
@@ -68,6 +70,7 @@ class NaturalSpeechModule {
 
 		SpeechManager speechManager,
 		PiperEngine piperEngine,
+		PiperConfig piperConfig,
 		SAPI4Engine sapi4Engine,
 		SAPI5Engine sapi5Engine,
 		MacSpeechEngine macSpeechEngine,
@@ -91,6 +94,7 @@ class NaturalSpeechModule {
 		this.runtimeConfig = runtimeConfig;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
+		this.piperConfig = piperConfig;
 		this.speechManager = speechManager;
 		this.piperEngine = piperEngine;
 		this.sapi4Engine = sapi4Engine;

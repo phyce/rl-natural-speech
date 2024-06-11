@@ -389,7 +389,7 @@ public class ChatHelper {
 
 	private static String renderReplacements(String text, List<Replacement> replacements) {
 		// instead of tokenizing, we do a find-and-replace
-		// this supports space separated targets to be replaced, for example "multiple words"="OK"
+		// this supports space separated targets to be replaced, for example "multiple words"="OKResult"
 
 		// special characteristic:
 		// Rule 1. match head requires to either be start of line or preceded by ' ' space

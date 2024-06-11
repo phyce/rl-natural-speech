@@ -3,7 +3,6 @@ package dev.phyce.naturalspeech.texttospeech.engine;
 import com.google.common.util.concurrent.ListenableFuture;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.NonNull;
@@ -44,7 +43,7 @@ public interface SpeechEngine {
 	@NonNull
 	SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName);
 
-	ListenableFuture<StartResult> start(ExecutorService executorService);
+	ListenableFuture<StartResult> start();
 
 	void stop();
 

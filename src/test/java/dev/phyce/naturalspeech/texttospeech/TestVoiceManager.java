@@ -4,9 +4,11 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.entity.EntityID;
+import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.utils.ClientHelper;
 import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
 import org.junit.Test;
@@ -69,7 +71,7 @@ public class TestVoiceManager {
 		success = success && verifyVoices(players, voiceManager);
 
 		// save back to json
-		String savedJson = captureSavedJson(configManager, voiceManager);
+		String savedJson = captureSavedJson(configManager, voiceManager, ConfigKeys.VOICE_CONFIG_KEY);
 
 		// verify again with serialized json
 
@@ -123,7 +125,7 @@ public class TestVoiceManager {
 		success = success && verifyVoices(players, voiceManager);
 
 		// save back to json
-		String savedJson = captureSavedJson(configManager, voiceManager);
+		String savedJson = captureSavedJson(configManager, voiceManager, ConfigKeys.VOICE_CONFIG_KEY);
 
 		// verify again with serialized json
 		when(configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY))
@@ -136,12 +138,61 @@ public class TestVoiceManager {
 		assert success;
 	}
 
-	private static String captureSavedJson(ConfigManager configManager, VoiceManager voiceManager) {
+	@SuppressWarnings("DataFlowIssue")
+	@Test
+	public void testBlacklist() {
+		ConfigManager configManager = mock(ConfigManager.class);
+		ClientHelper clientHelper = mock(ClientHelper.class);
+
+		VoiceManager voiceManager = new VoiceManager(configManager, clientHelper);
+
+		voiceManager.register(VoiceID.fromIDString("libritts:0"), Gender.FEMALE);
+		voiceManager.register(VoiceID.fromIDString("vctk:0"), Gender.MALE);
+		voiceManager.register(VoiceID.fromIDString("test:1"), Gender.MALE);
+
+		assert voiceManager.speakable(VoiceID.fromIDString("libritts:0"));
+		assert voiceManager.speakable(VoiceID.fromIDString("vctk:0"));
+		assert voiceManager.speakable(VoiceID.fromIDString("test:1"));
+
+		voiceManager.blacklist(VoiceID.fromIDString("libritts:0"));
+		voiceManager.blacklist(VoiceID.fromIDString("vctk:0"));
+		assert !voiceManager.speakable(VoiceID.fromIDString("libritts:0"));
+		assert !voiceManager.speakable(VoiceID.fromIDString("vctk:0"));
+
+		voiceManager.unblacklist(VoiceID.fromIDString("libritts:0"));
+		voiceManager.unblacklist(VoiceID.fromIDString("vctk:0"));
+		assert voiceManager.speakable(VoiceID.fromIDString("libritts:0"));
+		assert voiceManager.speakable(VoiceID.fromIDString("vctk:0"));
+
+		voiceManager.blacklist(VoiceID.fromIDString("libritts:0"));
+		voiceManager.blacklist(VoiceID.fromIDString("vctk:0"));
+
+		String blacklistConfig = captureSavedJson(configManager, voiceManager, ConfigKeys.VOICE_BLACKLIST_KEY);
+		when(configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_BLACKLIST_KEY))
+			.thenReturn(blacklistConfig);
+
+
+		voiceManager = new VoiceManager(configManager, clientHelper);
+		voiceManager.register(VoiceID.fromIDString("libritts:0"), Gender.FEMALE);
+		voiceManager.register(VoiceID.fromIDString("vctk:0"), Gender.MALE);
+		voiceManager.register(VoiceID.fromIDString("test:1"), Gender.MALE);
+
+		assert !voiceManager.speakable(VoiceID.fromIDString("libritts:0"));
+		assert !voiceManager.speakable(VoiceID.fromIDString("vctk:0"));
+		assert voiceManager.speakable(VoiceID.fromIDString("test:1"));
+
+	}
+
+	private static String captureSavedJson(
+		ConfigManager configManager,
+		VoiceManager voiceManager,
+		String configKey
+	) {
 		StringBuilder savedJsonCapture = new StringBuilder();
 		doAnswer(call -> {
 			savedJsonCapture.append((String) call.getArgument(2));
 			return null;
-		}).when(configManager).setConfiguration(eq(CONFIG_GROUP), eq(ConfigKeys.VOICE_CONFIG_KEY), anyString());
+		}).when(configManager).setConfiguration(eq(CONFIG_GROUP), eq(configKey), anyString());
 
 		voiceManager.save();
 
@@ -154,8 +205,8 @@ public class TestVoiceManager {
 		for (Map.Entry<EntityID, VoiceID> entry : settings.entrySet()) {
 			EntityID entity = entry.getKey();
 			VoiceID voice = entry.getValue();
-			var result = voiceManager.get(entity);
-			if (!result.isPresent() || !result.get().equals(voice)) {
+			Optional<VoiceID> result = voiceManager.get(entity);
+			if (result.isEmpty() || !result.get().equals(voice)) {
 				success = false;
 				log.error("{} VoiceID mismatch: {} != {}", entity, result, voice);
 			}

@@ -21,7 +21,6 @@ import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -70,7 +69,7 @@ public class SpeechManager implements SpeechEngine {
 	@SneakyThrows(InterruptedException.class)
 	@Override
 	@Synchronized
-	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+	public ListenableFuture<StartResult> start() {
 		monitor.enterWhen(whenStartUnlocked);
 
 		try {
@@ -89,7 +88,7 @@ public class SpeechManager implements SpeechEngine {
 			List<ListenableFuture<StartResult>> futures = new ArrayList<>();
 			for (SpeechEngine engine : engines) {
 				if (speechManagerConfig.isEnabled(engine)) {
-					ListenableFuture<StartResult> onDone = engine.start(pluginExecutorService);
+					ListenableFuture<StartResult> onDone = engine.start();
 					startingEngines.add(engine);
 					futures.add(onDone);
 				}
@@ -112,10 +111,10 @@ public class SpeechManager implements SpeechEngine {
 						if (engine.isStarted()) {
 							activeEngines.add(engine);
 							pluginEventBus.post(new SpeechEngineStarted(engine));
-							log.trace("Started text-to-speech engine:{}", engine.getClass().getSimpleName());
+							log.trace("Started engine:{}", engine.getClass().getSimpleName());
 						}
 						else {
-							log.trace("Failed to start engine:{}", engine.getClass().getSimpleName());
+							log.trace("Failed to start:{}", engine.getClass().getSimpleName());
 						}
 					}
 
@@ -155,7 +154,7 @@ public class SpeechManager implements SpeechEngine {
 
 						return result;
 					}
-				}, executorService);
+				}, pluginExecutorService);
 			}
 
 			onAllDone.addListener(() -> {
@@ -280,7 +279,7 @@ public class SpeechManager implements SpeechEngine {
 				Thread.dumpStack();
 			}
 
-			engine.start(pluginExecutorService).addListener(() -> {
+			engine.start().addListener(() -> {
 				monitor.enter();
 				try {
 					if (engine.isStarted()) {

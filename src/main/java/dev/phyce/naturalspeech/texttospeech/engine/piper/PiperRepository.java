@@ -30,10 +30,10 @@ import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
 
@@ -47,45 +47,35 @@ public class PiperRepository {
 	public final static String MODEL_REPO_FILENAME = "model_repository.json";
 	public final static String MODEL_FOLDER_NAME = "models";
 
-	private final Downloader downloader;
 
-	private final RuntimePathConfig runtimeConfig;
-
-	@Getter
-	private final List<ModelURL> modelURLS;
-	//private final List<ModelRepositoryListener> changeListeners = new ArrayList<>();
-
-	@Getter
-	private final ScheduledExecutorService executor;
 	private final Gson gson;
+	private final Downloader downloader;
+	private final RuntimePathConfig runtimeConfig;
+	private final List<PiperModelURL> urls;
 	private final PluginEventBus pluginEventBus;
+
 
 	@Inject
 	public PiperRepository(
 		Downloader downloader,
 		RuntimePathConfig runtimeConfig,
-		ScheduledExecutorService executor,
 		Gson gson,
 		PluginEventBus pluginEventBus
 	) throws IOException {
-		this.executor = executor;
 		this.gson = gson;
 
 		this.downloader = downloader;
 		this.runtimeConfig = runtimeConfig;
 		this.pluginEventBus = pluginEventBus;
 
-		pluginEventBus.register(this);
-
 		try {
-			InputStream is =
-				Objects.requireNonNull(MODEL_REPO).openStream();
+			InputStream inStream = Objects.requireNonNull(MODEL_REPO).openStream();
 			// read dictionary index as name
-			modelURLS = gson.fromJson(new InputStreamReader(is), new TypeToken<List<ModelURL>>() {
+			urls = gson.fromJson(new InputStreamReader(inStream), new TypeToken<List<PiperModelURL>>() {
 			}.getType());
 
-			modelURLS.stream().map(ModelURL::getModelName).reduce((a, b) -> a + ", " + b)
-				.ifPresent(s -> log.info("Loaded voice repository with {} voices. Found: {}", modelURLS.size(), s));
+			urls.stream().map(PiperModelURL::getModelName).reduce((a, b) -> a + ", " + b)
+				.ifPresent(s -> log.info("Loaded voice repository with {} voices. Found: {}", urls.size(), s));
 
 		} catch (IOException e) {
 			log.error("Could not read voice repository file: " + MODEL_REPO_FILENAME);
@@ -93,8 +83,26 @@ public class PiperRepository {
 		}
 	}
 
-	public ModelURL findModelURLFromModelName(String modelName) {
-		for (ModelURL modelURL : modelURLS) {
+	public Stream<PiperModelURL> urls() {
+		return urls.stream();
+	}
+
+	public Stream<PiperModel> models() {
+		return urls.stream()
+			.filter(this::isLocal)
+			.map(modelUrl -> {
+				try {
+					return get(modelUrl);
+				} catch (IOException e) {
+					log.error("Failed to load model local: " + modelUrl, e);
+					return null;
+				}
+			})
+			.filter(Objects::nonNull);
+	}
+
+	public PiperModelURL find(String modelName) {
+		for (PiperModelURL modelURL : urls) {
 			if (modelURL.modelName.equals(modelName)) {
 				return modelURL;
 			}
@@ -102,11 +110,12 @@ public class PiperRepository {
 		return null;
 	}
 
-	public boolean hasModelLocal(String modelName) {
-
+	public boolean isLocal(PiperModelURL modelURL) {
 		if (NaturalSpeechPlugin._SIMULATE_NO_TTS || NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE) {
 			return false;
 		}
+
+		final String modelName = modelURL.getModelName();
 
 		// assume true
 		boolean localVoiceValid = true;
@@ -136,36 +145,37 @@ public class PiperRepository {
 		return localVoiceValid;
 	}
 
-	public void deleteModelLocal(ModelLocal modelLocal) {
+	public void delete(PiperModel piperModel) {
 		Path voiceFolder =
-			runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelLocal.getModelName());
+			runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(piperModel.getModelName());
 		if (voiceFolder.toFile().exists()) {
 			// Check voice is missing any files
-			File onnxFile = voiceFolder.resolve(modelLocal.getModelName() + EXTENSION).toFile();
+			File onnxFile = voiceFolder.resolve(piperModel.getModelName() + EXTENSION).toFile();
 			if (!onnxFile.delete()) {
 				log.error("Failed to delete onnx file: {}", onnxFile.getPath());
 			}
 			// Check if onnx metadata exists
-			File onnxMeta = voiceFolder.resolve(modelLocal.getModelName() + MODEL_METADATA_EXTENSION).toFile();
+			File onnxMeta = voiceFolder.resolve(piperModel.getModelName() + MODEL_METADATA_EXTENSION).toFile();
 			if (!onnxMeta.delete()) {
 				log.error("Failed to delete onnx metadata file: {}", onnxMeta.getPath());
 			}
 			// Check if speakers metadata exists
-			File voiceMeta = voiceFolder.resolve(modelLocal.getModelName() + METADATA_EXTENSION).toFile();
+			File voiceMeta = voiceFolder.resolve(piperModel.getModelName() + METADATA_EXTENSION).toFile();
 			if (!voiceMeta.delete()) {
 				log.error("Failed to delete voice speakers file: {}", voiceMeta.getPath());
 			}
 			if (!voiceFolder.toFile().delete()) {
 				log.error("Failed to delete voice folder: {}", voiceFolder);
 			}
-			pluginEventBus.post(new PiperRepositoryChanged(modelLocal.getModelName()));
+			pluginEventBus.post(new PiperRepositoryChanged(piperModel.getModelName()));
 		}
-		log.info("ModalLocal Deleted {}", modelLocal.getModelName());
+		log.info("ModalLocal Deleted {}", piperModel.getModelName());
 	}
 
 
-	public ModelLocal loadModelLocal(String modelName) throws IOException {
+	public PiperModel get(PiperModelURL modelUrl) throws IOException {
 		boolean localVoiceValid = true;
+		final String modelName = modelUrl.getModelName();
 
 		// First check if voice folder exist
 		Path voiceFolder = runtimeConfig.getPiperPath().resolveSibling(MODEL_FOLDER_NAME).resolve(modelName);
@@ -193,10 +203,10 @@ public class PiperRepository {
 			}
 		}
 
-		ModelURL modelURL = findModelURLFromModelName(modelName);
+		PiperModelURL modelURL = find(modelName);
 		if (modelURL == null) {
-			log.error("Voice not found in repository: " + modelName);
-			return null;
+			log.error("Model not found in repository: " + modelName);
+			throw new IOException("Model not found in repository: " + modelName);
 		}
 
 		// if local voice files weren't valid, clear the folder and re-download.
@@ -227,15 +237,15 @@ public class PiperRepository {
 
 		// Read Speaker File into an HashSet of Array of Speaker
 		try (FileInputStream fis = new FileInputStream(voiceFolder.resolve(modelName + METADATA_EXTENSION).toFile())) {
-			PiperVoiceMetadata[] metadatas =
-				gson.fromJson(new InputStreamReader(fis), new TypeToken<PiperVoiceMetadata[]>() {
+			PiperVoice[] metadatas =
+				gson.fromJson(new InputStreamReader(fis), new TypeToken<PiperVoice[]>() {
 				}.getType());
 
-			for (PiperVoiceMetadata metadata : metadatas) {
+			for (PiperVoice metadata : metadatas) {
 				metadata.setModelName(modelURL.getModelName());
 			}
 
-			return new ModelLocal(
+			return new PiperModel(
 				modelURL.getModelName(),
 				voiceFolder.resolve(modelName + EXTENSION).toFile(),
 				voiceFolder.resolve(modelName + MODEL_METADATA_EXTENSION).toFile(),
@@ -248,10 +258,8 @@ public class PiperRepository {
 		}
 	}
 
-	// Partially Serialized JSON Object
 	@Data
-	public static class ModelURL {
-		// Part of JSON
+	public static class PiperModelURL {
 		@Expose
 		String modelName;
 		@Expose
@@ -267,21 +275,16 @@ public class PiperRepository {
 	}
 
 
-	// Partially Serialized JSON Object
 	@Data
-	public static class PiperVoiceMetadata {
-		// (Serialized in JSON) The speaker name from the model data set
+	public static class PiperVoice {
 		@Expose
 		String name;
-		// (Serialized in JSON) M, F, ...
 		@JsonAdapter(GenderStringSerializer.class)
 		Gender gender;
-		// (Serialized in JSON) The Model ID from the data set
 		@Expose
 		int piperVoiceID;
 
-		// Model Full name, not serialized, manually set when loading metadata
-		String modelName;
+		transient String modelName;
 
 		public VoiceID toVoiceID() {
 			return new VoiceID(modelName, Integer.toString(piperVoiceID));
@@ -322,11 +325,20 @@ public class PiperRepository {
 	// Not a Serialized JSON Object
 	@Data
 	@AllArgsConstructor
-	public static class ModelLocal {
+	public static class PiperModel {
+		@NonNull
 		String modelName;
+		@NonNull
 		File onnx;
+		@NonNull
 		File onnxMetadata;
-		PiperVoiceMetadata[] piperVoiceMetadata;
+		@NonNull
+		PiperVoice[] voices;
+
+		@Override
+		public String toString() {
+			return String.format("PiperModel(%s)", modelName);
+		}
 	}
 
 }

@@ -1,10 +1,10 @@
-package dev.phyce.naturalspeech.userinterface.components;
+package dev.phyce.naturalspeech.userinterface.voicehub;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
 import java.awt.Dimension;
 import javax.swing.GroupLayout;
 import javax.swing.JLabel;
@@ -16,15 +16,16 @@ import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.SwingUtil;
 
-public class SAPI5ModelItem extends JPanel {
+public class MacModelItem extends JPanel {
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
+
 	private final SpeechManagerConfig speechManagerConfig;
-	private final SAPI5Engine engine;
+	private final MacSpeechEngine engine;
 	private final SpeechManager speechManager;
 
 	@Inject
-	public SAPI5ModelItem(SpeechManagerConfig speechManagerConfig, SAPI5Engine engine, SpeechManager speechManager) {
+	public MacModelItem(SpeechManagerConfig speechManagerConfig, MacSpeechEngine engine, SpeechManager speechManager) {
 		this.speechManagerConfig = speechManagerConfig;
 		this.engine = engine;
 		this.speechManager = speechManager;
@@ -47,13 +48,14 @@ public class SAPI5ModelItem extends JPanel {
 		GroupLayout layout = new GroupLayout(this);
 		this.setLayout(layout);
 
-		JLabel name = new JLabel("Microsoft Speech 5");
+		JLabel name = new JLabel("macOS Speech");
 		name.setFont(FontManager.getRunescapeBoldFont());
 
-		JLabel description = new JLabel(String.format("<html><p>%s</p></html>", "Microsoft Speech 5, built-in"));
+		JLabel description = new JLabel(String.format("<html><p>%s</p></html>",
+			"macOS text-to-speech, built-in."));
 		description.setVerticalAlignment(JLabel.TOP);
 
-		JLabel memorySize = new JLabel("Windows built-In");
+		JLabel memorySize = new JLabel("macOS built-in");
 		memorySize.setFont(FontManager.getRunescapeSmallFont());
 
 		JToggleButton toggleButton = new JToggleButton();
@@ -66,8 +68,12 @@ public class SAPI5ModelItem extends JPanel {
 			l -> {
 				speechManagerConfig.setEnable(engine, toggleButton.isSelected());
 				if (speechManager.isStarted()) {
-					if (toggleButton.isSelected()) speechManager.startEngine(engine);
-					else speechManager.stopEngine(engine);
+					if (toggleButton.isSelected()) {
+						speechManager.startEngine(engine);
+					}
+					else {
+						speechManager.stopEngine(engine);
+					}
 				}
 			});
 
@@ -103,5 +109,6 @@ public class SAPI5ModelItem extends JPanel {
 			)
 			.addGap(2)
 		);
+
 	}
 }

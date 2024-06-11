@@ -1,24 +1,34 @@
-package dev.phyce.naturalspeech.userinterface.components;
+package dev.phyce.naturalspeech.userinterface.voiceexplorer;
 
-import dev.phyce.naturalspeech.enums.Gender;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
 import dev.phyce.naturalspeech.statics.Names;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.SpeechManager;
-import dev.phyce.naturalspeech.userinterface.panels.VoiceExplorerPanel;
+import dev.phyce.naturalspeech.texttospeech.VoiceManager;
+import dev.phyce.naturalspeech.userinterface.components.IconTextField;
 import dev.phyce.naturalspeech.utils.ChatHelper;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.MouseInfo;
+import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.OverlayLayout;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import javax.swing.border.EmptyBorder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
@@ -30,25 +40,34 @@ public class VoiceListItem extends JPanel {
 
 	private final SpeechManager speechManager;
 	private final ChatHelper chatHelper;
-	private final VoiceExplorerPanel voiceExplorerPanel;
 	@Getter
 	private final VoiceMetadata voiceMetadata;
-
+	private final VoiceManager voiceManager;
+	private final IconTextField speakTextField;
 
 	private final JPanel hintPanel;
 	private final JPanel contentPanel;
+	private final JLabel nameLabel;
+	private final JLabel genderLabel;
+	private final JLabel idLabel;
 
+	public interface Factory {
+		VoiceListItem create(IconTextField speakTextField, VoiceMetadata voiceMetadata);
+	}
 
+	@Inject
 	public VoiceListItem(
 		SpeechManager speechManager,
 		ChatHelper chatHelper,
-		VoiceExplorerPanel voiceExplorerPanel,
-		VoiceMetadata voiceMetadata
+		VoiceManager voiceManager,
+		@Assisted IconTextField speakTextField,
+		@Assisted VoiceMetadata voiceMetadata
 	) {
 		this.speechManager = speechManager;
 		this.chatHelper = chatHelper;
-		this.voiceExplorerPanel = voiceExplorerPanel;
+		this.voiceManager = voiceManager;
 		this.voiceMetadata = voiceMetadata;
+		this.speakTextField = speakTextField;
 
 
 		JPanel speakerPanel = new JPanel();
@@ -58,11 +77,10 @@ public class VoiceListItem extends JPanel {
 		speakerPanel.setLayout(speakerLayout);
 
 
-		JLabel nameLabel = new JLabel("<html>" + voiceMetadata.getName() + "</html>");
-		nameLabel.setForeground(Color.white);
+		nameLabel = new JLabel("<html>" + voiceMetadata.getName() + "</html>");
 
 		String genderString;
-		switch(voiceMetadata.getGender()) {
+		switch (voiceMetadata.getGender()) {
 			case MALE:
 				genderString = "(M)";
 				break;
@@ -70,22 +88,20 @@ public class VoiceListItem extends JPanel {
 			case FEMALE:
 				genderString = "(F)";
 				break;
-
 			case OTHER:
 			default:
 				genderString = "(?)";
 				break;
 		}
 
-		JLabel genderLabel = new JLabel(genderString);
-		genderLabel.setForeground(Color.white);
+		genderLabel = new JLabel(genderString);
 
-		JLabel piperIdLabel = new JLabel("<html>" + voiceMetadata.voiceId.id + "</html>");
+		idLabel = new JLabel("<html>" + voiceMetadata.voiceId.id + "</html>");
 
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
 			.addGap(5)
-			.addComponent(piperIdLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE,
+			.addComponent(idLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE,
 				GroupLayout.PREFERRED_SIZE)
 			.addGap(5)
 			.addComponent(nameLabel, 0, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
@@ -96,7 +112,7 @@ public class VoiceListItem extends JPanel {
 
 		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup()
 			.addGap(5)
-			.addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
+			.addComponent(idLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight * 2)
 			.addComponent(genderLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addGap(5));
@@ -111,7 +127,7 @@ public class VoiceListItem extends JPanel {
 				speechManager.silence((lineName) -> lineName.equals(Names.VOICE_EXPLORER));
 				speechManager.speak(
 					voiceMetadata.voiceId,
-					chatHelper.renderReplacements(voiceExplorerPanel.getSpeechText().getText()),
+					chatHelper.renderReplacements(speakTextField.getText()),
 					() -> 0f,
 					Names.VOICE_EXPLORER
 				);
@@ -133,21 +149,21 @@ public class VoiceListItem extends JPanel {
 		contentPanel.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				hintPanel.setVisible(true);
+				if (e.getButton() == MouseEvent.BUTTON1) {
+					hintPanel.setVisible(true);
 
-				// copy voiceid to clipboard
-				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
-					new StringSelection(voiceMetadata.voiceId.toVoiceIDString()), null
-				);
+					// copy voiceid to clipboard
+					copyVoice(voiceMetadata);
 
-				Timer timer = new Timer(1500, event -> {
-					hintPanel.setVisible(false);
+					Timer timer = new Timer(1500, event -> {
+						hintPanel.setVisible(false);
+						revalidate();
+					});
+					timer.setRepeats(false);
+					timer.start();
+
 					revalidate();
-				});
-				timer.setRepeats(false);
-				timer.start();
-
-				revalidate();
+				}
 			}
 
 			@Override
@@ -175,6 +191,18 @@ public class VoiceListItem extends JPanel {
 			}
 		});
 
+
+
+		JMenuItem blacklistMenu = new JMenuItem(getBlacklistText());
+		blacklistMenu.addActionListener(e -> {
+			toggleBlacklist();
+			blacklistMenu.setText(getBlacklistText());
+		});
+		JMenuItem copyMenu = new JMenuItem("Copy Voice ID");
+		copyMenu.addActionListener(e -> copyVoice(voiceMetadata));
+		buildContextMenu(contentPanel, blacklistMenu, copyMenu);
+
+
 		hintPanel = new JPanel();
 		hintPanel.setBackground(ColorScheme.BRAND_ORANGE_TRANSPARENT);
 		JLabel copiedHint = new JLabel("copied!");
@@ -190,6 +218,64 @@ public class VoiceListItem extends JPanel {
 		this.setLayout(new BorderLayout());
 		this.add(overlayWrapper);
 
+		updateColors();
 		revalidate();
 	}
+
+	private void toggleBlacklist() {
+		if (voiceManager.isBlacklisted(voiceMetadata.voiceId)) {
+			voiceManager.unblacklist(voiceMetadata.voiceId);
+		} else {
+			voiceManager.blacklist(voiceMetadata.voiceId);
+		}
+
+		updateColors();
+	}
+
+	private void updateColors() {
+		if (voiceManager.isBlacklisted(voiceMetadata.voiceId)) {
+			nameLabel.setForeground(Color.RED);
+			genderLabel.setForeground(Color.RED);
+			idLabel.setForeground(Color.RED);
+		} else {
+			nameLabel.setForeground(Color.WHITE);
+			genderLabel.setForeground(Color.WHITE);
+			idLabel.setForeground(null);
+		}
+	}
+
+	private String getBlacklistText() {
+		boolean isBlacklisted = voiceManager.isBlacklisted(voiceMetadata.voiceId);
+		return isBlacklisted ? "Whitelist" : "Blacklist";
+	}
+
+	private static void copyVoice(VoiceMetadata voiceMetadata) {
+		StringSelection contents = new StringSelection(voiceMetadata.voiceId.toVoiceIDString());
+		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(contents, null);
+	}
+
+	static MouseAdapter buildContextMenu(JPanel panel, JMenuItem... menuItems) {
+		final JPopupMenu menu = new JPopupMenu();
+		menu.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+		for (final JMenuItem menuItem : menuItems) {
+			if (menuItem == null) continue;
+			menu.add(menuItem);
+		}
+
+		MouseAdapter listener = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent mouseEvent) {
+				if (mouseEvent.getButton() == MouseEvent.BUTTON3) {
+					Component source = (Component) mouseEvent.getSource();
+					Point location = MouseInfo.getPointerInfo().getLocation();
+					SwingUtilities.convertPointFromScreen(location, source);
+					menu.show(source, location.x, location.y);
+				}
+			}
+		};
+		panel.addMouseListener(listener);
+		return listener;
+	}
+
 }

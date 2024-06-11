@@ -10,4 +10,5 @@ public class PluginExecutorService extends ExecutorServiceExceptionLogger {
 	public PluginExecutorService() {
 		super(new ScheduledThreadPoolExecutor(16));
 	}
+
 }

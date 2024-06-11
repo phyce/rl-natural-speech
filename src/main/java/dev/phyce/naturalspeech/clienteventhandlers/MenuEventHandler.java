@@ -14,7 +14,6 @@ import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.ingame.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.utils.ChatIcons;
 import dev.phyce.naturalspeech.utils.Texts;
-import dev.phyce.naturalspeech.utils.Utils;
 import static dev.phyce.naturalspeech.utils.Utils.inArray;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,9 +86,6 @@ public class MenuEventHandler {
 		drawVoiceMenus(entries);
 		drawVolumeMenus(entries);
 
-		log.info("MENU DEBUG: \n{}", Arrays.stream(entries)
-			.reduce("", (acc, entry) -> acc + entry.toString() + "\nMENU DEBUG: ", String::concat)
-		);
 	}
 
 	private void drawVolumeMenus(MenuEntry[] entries) {
@@ -187,7 +183,7 @@ public class MenuEventHandler {
 				voiceConfigChatboxTextInputProvider.get()
 					.configKey(tab.configKey)
 					.entityID(tab.entityID)
-					.value(voiceManager.get(tab.entityID).transform(VoiceID::toString).or(""))
+					.value(voiceManager.get(tab.entityID).map(VoiceID::toString).orElse(""))
 					.build();
 			});
 	}
@@ -329,7 +325,7 @@ public class MenuEventHandler {
 		String status = isAllowed ? icons.unmute.get() : icons.mute.get();
 
 
-		if (!voiceManager.get(entityID).transform(voiceManager::isActive).or(false)) {
+		if (!voiceManager.get(entityID).map(voiceManager::speakable).orElse(false)) {
 			statusColorTag = "<col=888888>";
 		}
 

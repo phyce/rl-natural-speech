@@ -32,7 +32,6 @@ import java.nio.ShortBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import javax.sound.sampled.AudioFormat;
@@ -110,7 +109,7 @@ public class MacSpeechEngine implements SpeechEngine {
 	}
 
 	@Override
-	public ListenableFuture<StartResult> start(ExecutorService executorService) {
+	public ListenableFuture<StartResult> start() {
 		if (!Platforms.IS_MAC) {
 			log.trace("Not MacOS, skipping");
 			return Futures.immediateFuture(StartResult.NOT_INSTALLED);
@@ -309,7 +308,7 @@ public class MacSpeechEngine implements SpeechEngine {
 					audioEngine.play(lineName, stream, gainSupplier);
 				}
 			} catch (Exception e) {
-				log.error("Error in buffer callback", e);
+				log.error("ErrorResult in buffer callback", e);
 			}
 
 		}

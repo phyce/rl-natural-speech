@@ -56,7 +56,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 			if (!string.isEmpty()) {
 				VoiceID voiceId = VoiceID.fromIDString(string);
 
-				if (voiceId != null && !voiceManager.isActive(voiceId)) {
+				if (voiceId != null && !voiceManager.speakable(voiceId)) {
 					clientThread.invoke(() ->
 						client.addChatMessage(
 							ChatMessageType.CONSOLE,

@@ -66,9 +66,19 @@ public final class EntityID {
 	@Override
 	public boolean equals(Object other) {
 		if (other == null) return false;
+		if (!(other instanceof EntityID)) return false;
 
-		if (other instanceof EntityID) return this.hashCode() == other.hashCode();
-		else return false;
+		EntityID otherEntity = (EntityID) other;
+
+		if (this.id != null && otherEntity.id != null) {
+			return this.id.equals(otherEntity.id);
+		}
+
+		if (this.name != null && otherEntity.name != null) {
+			return this.name.equals(otherEntity.name);
+		}
+
+		return false;
 	}
 
 	public boolean isUser() {

@@ -100,6 +100,8 @@ public class Block extends Structure {
 	 * Allocates a new heap block with the given function pointer
 	 *
 	 * @param invoke The function pointer to the block invoke function
+	 * @memory ref-counted and Native::freed by the Objective-C Block Runtime, does not need manual free.
+	 * Use {@link #retain(Block)} and {@link #release(Block)} to manage the block's lifecycle.
 	 */
 	private Block(@NonNull Callback invoke) {
 		// Objective-C runtime ref-counts blocks, and free them when they are no longer needed.

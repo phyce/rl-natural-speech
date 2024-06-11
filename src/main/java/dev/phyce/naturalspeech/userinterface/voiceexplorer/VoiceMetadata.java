@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.userinterface.components;
+package dev.phyce.naturalspeech.userinterface.voiceexplorer;
 
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
@@ -13,7 +13,7 @@ public class VoiceMetadata {
 	public Gender gender;
 	public VoiceID voiceId;
 
-	public static VoiceMetadata from(PiperRepository.PiperVoiceMetadata piperMetadata) {
+	public static VoiceMetadata from(PiperRepository.PiperVoice piperMetadata) {
 		return new VoiceMetadata(piperMetadata.getName(), piperMetadata.getGender(), piperMetadata.toVoiceID());
 	}
 }
