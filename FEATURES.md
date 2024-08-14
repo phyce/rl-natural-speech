@@ -39,6 +39,12 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.2.6
+- Updated Menu event handler to work with the latest update affecting submenus
+
+## 1.2.5
+- Moved remove tags on text to only affect system messages
+
 ## 1.2.4
 - Fixed issue with shortened phrases using special characters not working
 

@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.KeyCode;
+import net.runelite.api.Menu;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
@@ -93,10 +94,10 @@ public class MenuEventHandler {
 			final int groupId = WidgetUtil.componentToInterface(componentId);
 
 			if (entry.getType() == MenuAction.PLAYER_EIGHTH_OPTION || entry.getType() == MenuAction.EXAMINE_NPC) {
-				drawOptionsNew(entry, index);
+				drawOptions(entry, index);
 			}
 			else if (interfaces.contains(groupId) && detectableOptions.contains(entry.getOption())) {
-				drawOptionsNew(entry, 1);
+				drawOptions(entry, 1);
 			}
 		}
 	}
@@ -105,7 +106,7 @@ public class MenuEventHandler {
 	 * $1 name, $2 level text
 	 */
 
-	public void drawOptionsNew(MenuEntry entry, int index) {
+	public void drawOptions(MenuEntry entry, int index) {
 		Actor actor = entry.getActor();
 
 		// if there are no targets for this menu entry, it should be a client ui menu entry.
@@ -182,71 +183,13 @@ public class MenuEventHandler {
 			MenuEntry parent = client.createMenuEntry(index + 1)
 				.setOption(status + " Voice")
 				.setTarget(target)
-				.setType(MenuAction.RUNELITE_SUBMENU);
+				.setType(MenuAction.RUNELITE);
 
-			{
-				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
-				MenuEntry configVoiceEntry = client.createMenuEntry(1)
-					.setOption("Configure")
-//					.setTarget(entry.getTarget())
-					.setType(MenuAction.RUNELITE)
-					.onClick(e -> {
-						voiceConfigChatboxTextInputProvider.get()
-							.configNPC(npc) // can be null and will be ignored
-							.configUsername(standardActorName)
-							.value(value)
-							.build();
-					});
-				configVoiceEntry.setParent(parent);
-			}
-			if (muteManager.isListenMode()) {
-				MenuEntry stopListenEntry = client.createMenuEntry(1)
-					.setOption("Stop Listen Mode")
-					.setType(MenuAction.RUNELITE)
-					.onClick(e -> {
-						muteManager.setListenMode(false);
-						muteManager.clearListens();
-					});
-				stopListenEntry.setParent(parent);
-			}
-			else {
-				if (isUnmuted) {
-					MenuEntry muteEntry = client.createMenuEntry(1)
-						.setOption("Mute")
-//						.setTarget(entry.getTarget())
-						.setType(MenuAction.RUNELITE)
-						.onClick(e -> {
-							if (npc != null) {
-								muteManager.muteNpc(npc);
-							}
-							else {
-								muteManager.muteUsername(standardActorName);
-							}
-						});
-					muteEntry.setParent(parent);
-
-				}
-				else {
-					MenuEntry unmuteEntry = client.createMenuEntry(1)
-						.setOption("Unmute")
-//						.setTarget(entry.getTarget())
-						.setType(MenuAction.RUNELITE)
-						.onClick(e -> {
-							if (npc != null) {
-								muteManager.unmuteNpc(npc);
-							}
-							else {
-								muteManager.unmuteUsername(standardActorName);
-							}
-						});
-					unmuteEntry.setParent(parent);
-				}
-			}
+			Menu subMenu = parent.createSubMenu();
 
 			if (isListened) {
-				MenuEntry unlistenEntry = client.createMenuEntry(0)
+				subMenu.createMenuEntry(0)
 					.setOption("Unlisten")
-//					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						if (npc != null) {
@@ -256,12 +199,10 @@ public class MenuEventHandler {
 							muteManager.unlistenUsername(standardActorName);
 						}
 					});
-				unlistenEntry.setParent(parent);
 			}
 			else {
-				MenuEntry listenEntry = client.createMenuEntry(0)
+				subMenu.createMenuEntry(0)
 					.setOption("Listen")
-//					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						if (npc != null) {
@@ -272,12 +213,60 @@ public class MenuEventHandler {
 						}
 						muteManager.setListenMode(true);
 					});
-				listenEntry.setParent(parent);
 			}
 
+			{
+				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
+				subMenu.createMenuEntry(1)
+					.setOption("Configure")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> {
+						voiceConfigChatboxTextInputProvider.get()
+							.configNPC(npc) // can be null and will be ignored
+							.configUsername(standardActorName)
+							.value(value)
+							.build();
+					});
+			}
 
+			if (muteManager.isListenMode()) {
+				subMenu.createMenuEntry(1)
+					.setOption("Stop Listen Mode")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> {
+						muteManager.setListenMode(false);
+						muteManager.clearListens();
+					});
+			}
+			else {
+				if (isUnmuted) {
+					subMenu.createMenuEntry(1)
+						.setOption("Mute")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> {
+							if (npc != null) {
+								muteManager.muteNpc(npc);
+							}
+							else {
+								muteManager.muteUsername(standardActorName);
+							}
+						});
+
+				}
+				else {
+					subMenu.createMenuEntry(1)
+						.setOption("Unmute")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> {
+							if (npc != null) {
+								muteManager.unmuteNpc(npc);
+							}
+							else {
+								muteManager.unmuteUsername(standardActorName);
+							}
+						});
+				}
+			}
 		}
 	}
-
-
 }

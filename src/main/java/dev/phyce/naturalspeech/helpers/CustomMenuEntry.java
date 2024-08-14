@@ -53,7 +53,7 @@ public class CustomMenuEntry {
 				.setType(MenuAction.RUNELITE)
 				.onClick(consumer -> child.action.accept(child));
 
-			childEntry.setParent(parentEntry);
+//			childEntry.setParent(parentEntry);
 		}
 	}
 
