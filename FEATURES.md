@@ -43,7 +43,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 - Updated Menu event handler to work with the latest update affecting submenus
 
 ## 1.2.5
-- Moved remove tags on text to only affect system messages
+- Fixed issue for instances when piper would crash because of incorrect encoding
 
 ## 1.2.4
 - Fixed issue with shortened phrases using special characters not working
