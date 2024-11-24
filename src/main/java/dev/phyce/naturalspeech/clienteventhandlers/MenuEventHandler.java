@@ -14,7 +14,7 @@ import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.ingame.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.utils.ChatIcons;
 import dev.phyce.naturalspeech.utils.Texts;
-import dev.phyce.naturalspeech.utils.Utils;
+import net.runelite.api.Menu;
 import static dev.phyce.naturalspeech.utils.Utils.inArray;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -105,7 +105,9 @@ public class MenuEventHandler {
 				&& Text.removeFormattingTags(entry.getOption()).contains("Set chat mode: Public")) {
 				MenuEntry parent = client.createMenuEntry(index)
 					.setTarget(icons.unmute.get() + "Set Volume")
-					.setType(MenuAction.RUNELITE_SUBMENU);
+					.setType(MenuAction.RUNELITE);
+
+				Menu subMenu = parent.createSubMenu();
 
 				final String[] colorScheme = new String[] {
 					"808080",
@@ -127,8 +129,7 @@ public class MenuEventHandler {
 					final int volume = i * 10;
 					final String colorTag = "<col=" + colorScheme[i] + ">";
 					final String meter = i == currentVolumeIndex ? "> " : "- ";
-					client.createMenuEntry(0)
-						.setParent(parent)
+					subMenu.createMenuEntry(0)
 						.setTarget(meter + colorTag + volume + "%")
 						.setType(MenuAction.RUNELITE)
 						.onClick(
@@ -156,12 +157,14 @@ public class MenuEventHandler {
 						_drawVoiceMenu(null, result, 0, MenuAction.RUNELITE);
 					}
 					else {
-						MenuEntry parent = _drawVoiceMenu(null, result, 0, MenuAction.RUNELITE_SUBMENU);
+						MenuEntry parent = _drawVoiceMenu(null, result, 0, MenuAction.RUNELITE);
+
+						Menu subMenu = parent.createSubMenu();
 
 						for (VoiceConfigMenu child : result.children) {
 							Preconditions.checkNotNull(child);
 
-							_drawVoiceMenu(parent, child, 0, MenuAction.RUNELITE);
+							_drawVoiceMenu(subMenu, child, 0, MenuAction.RUNELITE);
 						}
 					}
 				}
@@ -169,17 +172,16 @@ public class MenuEventHandler {
 		}
 	}
 
-	private MenuEntry _drawVoiceMenu(MenuEntry parent, VoiceConfigMenu tab, int index, MenuAction menuType) {
+	private MenuEntry _drawVoiceMenu(Menu subMenu, VoiceConfigMenu tab, int index, MenuAction menuType) {
 
 		String iconTag = drawIconTag(tab.icon, true);
 
 		String action = tab.actionName;
 
-		return client.createMenuEntry(index + 1)
+		return subMenu.createMenuEntry(index + 1)
 			.setOption(iconTag + action)
 			.setTarget(tab.targetName)
 			.setType(menuType)
-			.setParent(parent)
 			.onClick(e -> {
 				if (tab.entityID == null) return;
 				if (tab.configKey == null) return;
@@ -209,12 +211,14 @@ public class MenuEventHandler {
 						_drawMuteMenu(null, result, 0, MenuAction.RUNELITE);
 					}
 					else {
-						MenuEntry parent = _drawMuteMenu(null, result, 0, MenuAction.RUNELITE_SUBMENU);
+						MenuEntry parent = _drawMuteMenu(null, result, 0, MenuAction.RUNELITE);
+
+						Menu subMenu = parent.createSubMenu();
 
 						for (TabConfigMenu child : result.children) {
 							Preconditions.checkNotNull(child);
 
-							_drawMuteMenu(parent, child, 0, MenuAction.RUNELITE);
+							_drawMuteMenu(subMenu, child, 0, MenuAction.RUNELITE);
 						}
 					}
 				}
@@ -242,7 +246,7 @@ public class MenuEventHandler {
 		}
 	}
 
-	private MenuEntry _drawMuteMenu(MenuEntry parent, TabConfigMenu tab, int index, MenuAction menuType) {
+	private MenuEntry _drawMuteMenu(Menu subMenu, TabConfigMenu tab, int index, MenuAction menuType) {
 		final boolean state = Arrays.stream(tab.configKeys)
 			.anyMatch(key -> configManager.getConfiguration(CONFIG_GROUP, key, boolean.class));
 
@@ -250,11 +254,10 @@ public class MenuEventHandler {
 
 		String action = state ? tab.falseAction : tab.trueAction;
 
-		return client.createMenuEntry(index + 1)
+		return subMenu.createMenuEntry(index + 1)
 			.setOption(iconTag + action)
 			.setTarget(tab.name)
 			.setType(menuType)
-			.setParent(parent)
 			.onClick(e -> Arrays.stream(tab.configKeys)
 				.forEach(key -> configManager.setConfiguration(CONFIG_GROUP, key, !state))
 			);
@@ -347,62 +350,58 @@ public class MenuEventHandler {
 		MenuEntry parent = client.createMenuEntry(index + 1)
 			.setOption(status + "Voice")
 			.setTarget(target)
-			.setType(MenuAction.RUNELITE_SUBMENU);
+			.setType(MenuAction.RUNELITE);
+
+		Menu subMenu = parent.createSubMenu();
 
 		{
 			final String value = voiceID.toVoiceIDString();
-			MenuEntry configVoiceEntry = client.createMenuEntry(1)
+			subMenu.createMenuEntry(0)
 				.setOption("Configure")
 				.setType(MenuAction.RUNELITE)
 				.onClick(e -> voiceConfigChatboxTextInputProvider.get()
 					.entityID(entityID)
 					.value(value)
 					.build());
-			configVoiceEntry.setParent(parent);
 		}
 		if (muteManager.isListenMode()) {
-			MenuEntry stopListenEntry = client.createMenuEntry(1)
+			subMenu.createMenuEntry(0)
 				.setOption("Stop Listen Mode")
 				.setType(MenuAction.RUNELITE)
 				.onClick(e -> {
 					muteManager.setListenMode(false);
 					muteManager.clearListens();
 				});
-			stopListenEntry.setParent(parent);
 		}
 		else {
 			if (!isUnmuted) {
-				MenuEntry muteEntry = client.createMenuEntry(1)
+				subMenu.createMenuEntry(0)
 					.setOption("Mute")
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						muteManager.mute(entityID);
 						speechManager.silence(name -> name.equals(String.valueOf(entityID.hashCode())));
 					});
-				muteEntry.setParent(parent);
-
 			}
 			else {
-				MenuEntry unmuteEntry = client.createMenuEntry(1)
+				subMenu.createMenuEntry(0)
 					.setOption("Unmute")
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> muteManager.unmute(entityID));
-				unmuteEntry.setParent(parent);
 			}
 		}
 
 		if (isListened) {
-			MenuEntry unlistenEntry = client.createMenuEntry(0)
+			subMenu.createMenuEntry(0)
 				.setOption("Unlisten")
 				.setType(MenuAction.RUNELITE)
 				.onClick(e -> {
 					muteManager.unlisten(entityID);
 					speechManager.silenceAll();
 				});
-			unlistenEntry.setParent(parent);
 		}
 		else {
-			MenuEntry listenEntry = client.createMenuEntry(0)
+			subMenu.createMenuEntry(0)
 				.setOption("Listen")
 				.setType(MenuAction.RUNELITE)
 				.onClick(e -> {
@@ -410,7 +409,6 @@ public class MenuEventHandler {
 					muteManager.setListenMode(true);
 					speechManager.silenceAll();
 				});
-			listenEntry.setParent(parent);
 		}
 	}
 
