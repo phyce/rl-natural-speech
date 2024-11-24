@@ -322,7 +322,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		// Instructions Link
 		JLabel instructionsLink =
-			new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
+			new JLabel("<html>For instructions, click <a style=\"color:#dc8a00\"  href='#'>here</a></html>", JLabel.CENTER);
 
 		instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		instructionsLink.addMouseListener(new MouseAdapter() {
@@ -337,6 +337,25 @@ public class MainSettingsPanel extends PluginPanel {
 		});
 		instructionsLink.setBorder(new EmptyBorder(0, 0, 5, 0));
 		mainContentPanel.add(instructionsLink);
+
+		// Discord Link
+		JLabel discordLink =
+			new JLabel("<html>Ask for help on our <a style=\"color:#7289da\" \" href='#'>Discord</a></html>", JLabel.CENTER);
+
+		discordLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		discordLink.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				try {
+					Desktop.getDesktop().browse(new URI("https://discord.gg/smhQRcyXVU"));
+				} catch (Exception ex) {
+					log.error("Error opening instruction link.", ex);
+				}
+			}
+		});
+		discordLink.setBorder(new EmptyBorder(0, 0, 5, 0));
+		mainContentPanel.add(discordLink);
+
 
 		{
 			warningStopped = new JPanel();
