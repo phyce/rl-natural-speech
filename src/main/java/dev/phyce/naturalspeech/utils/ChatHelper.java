@@ -36,7 +36,7 @@ public class ChatHelper {
 	private final Client client;
 	private final ClientHelper clientHelper;
 	private final SpamDetection spamDetection;
-	private final NaturalSpeechConfig config;
+	private static final NaturalSpeechConfig config;
 	private final MuteManager muteManager;
 	private final VolumeManager volumeManager;
 
@@ -126,7 +126,6 @@ public class ChatHelper {
 			case LOGINLOGOUTNOTIFICATION:
 			case BROADCAST:
 			case IGNORENOTIFICATION:
-			case CLAN_MESSAGE:
 			case CONSOLE:
 			case TRADE:
 			case PLAYERRELATED:
@@ -138,9 +137,10 @@ public class ChatHelper {
 			case GAMEMESSAGE:
 			case MESBOX:
 				return true;
-			default:
-				return false;
+			case CLAN_MESSAGE:
+				if (config.clanChatEnabled()) return true;
 		}
+		return false;
 	}
 
 	private static boolean isInnerVoice(@NonNull ChatMessageType messageType) {
@@ -270,6 +270,7 @@ public class ChatHelper {
 			case LOGINLOGOUTNOTIFICATION:
 			case GAMEMESSAGE:
 			case CLAN_MESSAGE:
+				if (!config.clanChatEnabled()) return true;
 			case CLAN_GIM_MESSAGE:
 			case CLAN_GUEST_MESSAGE:
 				if (!config.systemMesagesEnabled()) return true;

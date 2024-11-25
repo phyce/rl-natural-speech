@@ -70,7 +70,7 @@ public class SpeechEventHandler {
 	}
 
 	/**
-	 * Used for all player chats
+	 * Used for all messages
 	 */
 	@Subscribe(priority=-100)
 	@VisibleForTesting
