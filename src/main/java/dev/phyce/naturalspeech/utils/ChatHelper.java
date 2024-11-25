@@ -15,6 +15,8 @@ import static dev.phyce.naturalspeech.utils.Locations.inGrandExchange;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.inject.Inject;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -318,6 +320,7 @@ public class ChatHelper {
 		String text = message.getMessage();
 		if (chatType == ChatType.System) {
 			text = Text.removeFormattingTags(text);
+			text = removeNumericCommas(text);
 		}
 
 		text = renderReplacements(text);
@@ -349,6 +352,22 @@ public class ChatHelper {
 		}
 
 		return text;
+	}
+
+	public static String removeNumericCommas(String input) {
+		Pattern pattern = Pattern.compile("\\d{1,3}(,\\d{3})+");
+		Matcher matcher = pattern.matcher(input);
+
+		StringBuilder result = new StringBuilder();
+
+		while (matcher.find()) {
+			String numberWithoutCommas = matcher.group().replace(",", "");
+			matcher.appendReplacement(result, numberWithoutCommas);
+		}
+
+		matcher.appendTail(result);
+
+		return result.toString();
 	}
 
 	/**
