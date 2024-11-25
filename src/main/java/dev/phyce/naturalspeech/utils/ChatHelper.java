@@ -36,7 +36,7 @@ public class ChatHelper {
 	private final Client client;
 	private final ClientHelper clientHelper;
 	private final SpamDetection spamDetection;
-	private static final NaturalSpeechConfig config;
+	private static NaturalSpeechConfig config;
 	private final MuteManager muteManager;
 	private final VolumeManager volumeManager;
 
@@ -72,7 +72,7 @@ public class ChatHelper {
 		this.client = client;
 		this.clientHelper = clientHelper;
 		this.spamDetection = spamDetection;
-		this.config = config;
+		ChatHelper.config = config;
 		this.muteManager = muteManager;
 		this.volumeManager = volumeManager;
 
