@@ -75,6 +75,7 @@ public class SpeechEventHandler {
 	@Subscribe(priority=-100)
 	@VisibleForTesting
 	void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
+		System.out.println(message.getSender() + " - " + message.getType() + " - " + message.getName() + ": " + message.getMessage());
 		if (!speechManager.isStarted()) return;
 
 		if (chatHelper.isMuted(message)) return;
