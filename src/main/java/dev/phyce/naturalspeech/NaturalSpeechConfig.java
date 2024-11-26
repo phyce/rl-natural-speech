@@ -64,12 +64,24 @@ public interface NaturalSpeechConfig extends Config {
 	String generalSettingsSection = "generalSettingsSection";
 
 	@ConfigItem(
+			position=4,
+			keyName=ConfigKeys.MASTER_MUTE,
+			name="Mute Natural Speech",
+			description="Entirely Mute all of Natural Speech",
+			section=generalSettingsSection,
+			hidden = true
+	)
+	default boolean masterMute() {
+		return false;
+	}
+
+	@ConfigItem(
 		position=4,
 		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Volume",
 		description="Volume percentage",
-		section=generalSettingsSection
-
+		section=generalSettingsSection,
+		hidden = true
 	)
 	@Range(max=100)
 	@Units(Units.PERCENT)
@@ -274,13 +286,13 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=2,
-		keyName=ConfigKeys.MUTE_OTHERS,
-		name="Others",
+		keyName=ConfigKeys.MUTE_OTHER_PLAYERS,
+		name="Other Players",
 		description="Do not generate text-to-speech for messages from other players",
 		section=muteOptionsSection
 
 	)
-	default boolean muteOthers() {
+	default boolean muteOtherPlayers() {
 		return false;
 	}
 
@@ -398,5 +410,15 @@ public interface NaturalSpeechConfig extends Config {
 		return false;
 	}
 
+	@ConfigItem(
+			section = developerSection,
+			name = "Reset Tutorial Hints",
+			warning="Resets Menu Hints/Tutorial",
+			keyName = ConfigKeys.DEVELOPER_RESET_HINTS,
+			description = "Resets Menu Hints/Tutorial"
+	)
+	default boolean developerResetHints() {
+		return false;
+	}
 	// endregion
 }

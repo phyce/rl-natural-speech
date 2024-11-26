@@ -9,9 +9,10 @@ import net.runelite.client.game.ChatIconManager;
 @PluginSingleton
 public class ChatIcons {
 
-	public final ChatIcon mute;
-	public final ChatIcon unmute;
+	public final ChatIcon muted;
+	public final ChatIcon unmuted;
 	public final ChatIcon logo;
+	public final ChatIcon logo_disabled;
 	public final ChatIcon checkbox;
 	public final ChatIcon checkboxChecked;
 	public final ChatIcon checkmark;
@@ -20,9 +21,10 @@ public class ChatIcons {
 	@Inject
 	public ChatIcons(ChatIconManager chatIconManager) {
 
-		mute = new ChatIcon(chatIconManager, INGAME_MUTE_ICON);
-		unmute = new ChatIcon(chatIconManager, INGAME_UNMUTE_ICON);
+		muted = new ChatIcon(chatIconManager, INGAME_MUTE_ICON);
+		unmuted = new ChatIcon(chatIconManager, INGAME_UNMUTE_ICON);
 		logo = new ChatIcon(chatIconManager, INGAME_NATURAL_SPEECH_SMALL_ICON);
+		logo_disabled = new ChatIcon(chatIconManager, INGAME_NATURAL_SPEECH_SMALL_ICON_DISABLED);
 		checkbox = new ChatIcon(chatIconManager, INGAME_CHECKBOX);
 		checkboxChecked = new ChatIcon(chatIconManager, INGAME_CHECKBOX_CHECKED);
 		checkmark = new ChatIcon(chatIconManager, INGAME_CHECKMARK);
@@ -43,5 +45,6 @@ public class ChatIcons {
 			int index = iconManager.chatIconIndex(id);
 			return "<img=" + index + ">";
 		}
+
 	}
 }

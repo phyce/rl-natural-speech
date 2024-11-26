@@ -3,8 +3,8 @@ package dev.phyce.naturalspeech.userinterface.voicehub;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.texttospeech.SpeechManager;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
+import dev.phyce.naturalspeech.texttospeech.engine.MacSpeechEngine;
 import java.awt.Dimension;
 import javax.swing.GroupLayout;
 import javax.swing.JLabel;
@@ -67,12 +67,12 @@ public class MacModelItem extends JPanel {
 		toggleButton.addActionListener(
 			l -> {
 				speechManagerConfig.setEnable(engine, toggleButton.isSelected());
-				if (speechManager.isStarted()) {
+				if (speechManager.isAlive()) {
 					if (toggleButton.isSelected()) {
-						speechManager.startEngine(engine);
+						speechManager.startupEngine(engine);
 					}
 					else {
-						speechManager.stopEngine(engine);
+						speechManager.shutdownEngine(engine);
 					}
 				}
 			});

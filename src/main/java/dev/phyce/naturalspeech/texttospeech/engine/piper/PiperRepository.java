@@ -11,9 +11,8 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
-import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.texttospeech.Gender;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.network.DownloadTask;
@@ -83,11 +82,11 @@ public class PiperRepository {
 		}
 	}
 
-	public Stream<PiperModelURL> urls() {
+	public Stream<PiperModelURL> getUrls() {
 		return urls.stream();
 	}
 
-	public Stream<PiperModel> models() {
+	public Stream<PiperModel> getModels() {
 		return urls.stream()
 			.filter(this::isLocal)
 			.map(modelUrl -> {
@@ -111,9 +110,6 @@ public class PiperRepository {
 	}
 
 	public boolean isLocal(PiperModelURL modelURL) {
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS || NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE) {
-			return false;
-		}
 
 		final String modelName = modelURL.getModelName();
 
@@ -287,7 +283,7 @@ public class PiperRepository {
 		transient String modelName;
 
 		public VoiceID toVoiceID() {
-			return new VoiceID(modelName, Integer.toString(piperVoiceID));
+			return VoiceID.of(modelName, Integer.toString(piperVoiceID));
 		}
 	}
 

@@ -2,8 +2,8 @@ package dev.phyce.naturalspeech.utils;
 
 import com.google.common.base.Optional;
 import dev.phyce.naturalspeech.entity.EntityID;
-import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
+import dev.phyce.naturalspeech.texttospeech.Gender;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

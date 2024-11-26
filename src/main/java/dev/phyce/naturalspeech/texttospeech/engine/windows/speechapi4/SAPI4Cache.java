@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4;
 
 import com.google.common.collect.ImmutableBiMap;
-import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.texttospeech.Gender;
 import javax.annotation.CheckForNull;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;

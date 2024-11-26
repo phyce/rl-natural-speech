@@ -1,13 +1,16 @@
 package dev.phyce.naturalspeech.userinterface.voicehub;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import dev.phyce.naturalspeech.configs.PiperConfig;
+import dev.phyce.naturalspeech.configs.RuntimePathConfig;
+import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.texttospeech.SpeechManager;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
+import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository.PiperModel;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -16,6 +19,8 @@ import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.util.Objects;
+import java.util.Optional;
 import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -39,9 +44,10 @@ public class PiperModelItem extends JPanel {
 
 	private final PluginExecutorService pluginExecutorService;
 	private final SpeechManager speechManager;
-	private final PiperEngine piperEngine;
 	private final PiperRepository piperRepository;
 	private final PiperConfig piperConfig;
+	private final RuntimePathConfig runtimePathConfig;
+	private final PiperEngine.Factory piperModelEngineFactory;
 
 	private final PiperRepository.PiperModelURL modelUrl;
 
@@ -58,16 +64,18 @@ public class PiperModelItem extends JPanel {
 	public PiperModelItem(
 		PluginExecutorService pluginExecutorService,
 		SpeechManager speechManager,
-		PiperEngine piperEngine,
 		PiperConfig piperConfig,
 		PiperRepository piperRepository,
+		RuntimePathConfig runtimePathConfig,
+		PiperEngine.Factory piperModelEngineFactory,
 		@Assisted PiperRepository.PiperModelURL modelUrl
 	) {
 		this.pluginExecutorService = pluginExecutorService;
 		this.speechManager = speechManager;
-		this.piperEngine = piperEngine;
 		this.piperRepository = piperRepository;
 		this.piperConfig = piperConfig;
+		this.runtimePathConfig = runtimePathConfig;
+		this.piperModelEngineFactory = piperModelEngineFactory;
 		this.modelUrl = modelUrl;
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -105,7 +113,7 @@ public class PiperModelItem extends JPanel {
 			this.setToolTipText("Right click for other settings.");
 
 			JMenuItem removeMenu = new JMenuItem("Remove");
-			removeMenu.addActionListener(ev -> onRemove());
+			removeMenu.addActionListener(ev -> onRemoveButton());
 
 			JMenuItem setProcessCountMenu = new JMenuItem("Set Process Count");
 			setProcessCountMenu.addActionListener(ev -> onSetProcessCount());
@@ -166,7 +174,7 @@ public class PiperModelItem extends JPanel {
 		JButton downloadButton;
 		downloadButton = new JButton();
 		downloadButton.setText("Download");
-		if (!piperEngine.isPiperPathValid()) {
+		if (!runtimePathConfig.isPiperPathValid()) {
 			downloadButton.setEnabled(false);
 			downloadButton.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
 			downloadButton.setBorder(new LineBorder(downloadButton.getBackground().darker()));
@@ -176,7 +184,7 @@ public class PiperModelItem extends JPanel {
 			this.setVisible(true);
 			downloadButton.setBackground(new Color(0x28BE28));
 			downloadButton.setBorder(new LineBorder(downloadButton.getBackground().darker()));
-			downloadButton.addActionListener(l -> onDownload(downloadButton));
+			downloadButton.addActionListener(l -> onDownloadButton(downloadButton));
 		}
 		return downloadButton;
 	}
@@ -211,9 +219,9 @@ public class PiperModelItem extends JPanel {
 			piperConfig.setProcessCount(modelUrl.getModelName(), result);
 
 			// TODO(Louis) lazy hack, just reboot all processes with new configuration
-			if (speechManager.isStarted()) {
-				speechManager.stop();
-				speechManager.start();
+			if (speechManager.isAlive()) {
+				speechManager.shutDown();
+				speechManager.startUp();
 			}
 		}
 		else {
@@ -221,43 +229,53 @@ public class PiperModelItem extends JPanel {
 		}
 	}
 
-	private void onRemove() {
+	private void onRemoveButton() {
 		try {
-			PiperRepository.PiperModel piperModel = piperRepository.get(modelUrl);
+			PiperModel piperModel = piperRepository.get(modelUrl);
 
-			piperEngine.unload(piperModel);
-			piperConfig.unset(modelUrl.getModelName());
+			Optional<PiperEngine> result = speechManager.getEngines()
+				.filter(engine -> engine instanceof PiperEngine)
+				.map(engine -> (PiperEngine) engine)
+				.filter(engine -> Objects.equals(engine.getModel(), piperModel))
+				.findFirst();
+
+			Preconditions.checkState(result.isPresent(),
+				"Removing Model Engine, but not found %s", modelUrl.getModelName());
+			PiperEngine engine = result.get();
+
+			speechManager.unloadEngine(engine);
+			piperConfig.unset(piperModel.getModelName());
 			piperRepository.delete(piperModel);
-
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private void onDownload(JButton downloadButton) {
+	private void onDownloadButton(JButton downloadButton) {
 		downloadButton.setText("Downloading");
 		downloadButton.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
 		downloadButton.setBorder(new LineBorder(downloadButton.getBackground().darker()));
 		downloadButton.setEnabled(false);
 
-		pluginExecutorService.execute(() -> {
-			try {
-				piperConfig.unset(modelUrl.getModelName());
-				piperRepository.get(modelUrl);
-				piperConfig.setEnabled(modelUrl.getModelName(), true);
-			} catch (IOException ignored) {
-				SwingUtilities.invokeLater(this::rebuild);
-			}
-		});
+		try {
+			PiperModel model = piperRepository.get(modelUrl);
+			piperConfig.unset(model.getModelName());
+			piperConfig.setEnabled(model.getModelName(), true);
+			PiperEngine engine = piperModelEngineFactory.create(model);
+			speechManager.loadEngine(engine);
+			speechManager.startupEngine(engine);
+		} catch (IOException ignored) {
+			SwingUtilities.invokeLater(this::rebuild);
+		}
 	}
 
 	private void onToggle(boolean selected) {
 		log.debug("Toggling {} into {}", modelUrl.getModelName(), selected);
 		piperConfig.setEnabled(modelUrl.getModelName(), selected);
 
-		if (!speechManager.isStarted()) return;
+		if (!speechManager.isAlive()) return;
 
-		PiperRepository.PiperModel piperModel;
+		PiperModel piperModel;
 		try {
 			piperModel = piperRepository.get(modelUrl);
 		} catch (IOException e) {
@@ -265,11 +283,22 @@ public class PiperModelItem extends JPanel {
 			return;
 		}
 
+		Optional<PiperEngine> result = speechManager.getEngines()
+			.filter(engine -> engine instanceof PiperEngine)
+			.map(engine -> (PiperEngine) engine)
+			.filter(engine -> Objects.equals(engine.getModel(), piperModel))
+			.findFirst();
+
+		Preconditions.checkState(result.isPresent(),
+			"Toggling Model Engine, but not found %s", modelUrl.getModelName());
+		PiperEngine engine = result.get();
+
 		if (selected) {
-			piperEngine.load(piperModel).start();
+			// FIXME
+			speechManager.startupEngine(engine);
 		}
 		else {
-			piperEngine.unload(piperModel);
+			speechManager.shutdownEngine(engine);
 		}
 	}
 

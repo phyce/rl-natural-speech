@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.spamdetection;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.io.BufferedReader;
 import java.io.File;
@@ -33,7 +34,7 @@ import net.runelite.client.plugins.PluginManager;
 // Hub rules disallows reflection, so Natural Speech re-implements the code, but uses Spam Filters' user configs.
 @Slf4j
 @PluginSingleton
-public class SpamFilterPluglet {
+public class SpamFilterPluglet implements PluginModule {
 
 	private final PluginManager pluginManager;
 	private final ConfigManager configManager;

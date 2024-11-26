@@ -9,6 +9,7 @@ public interface ConfigKeys {
 	String AUTO_START = "autoStart";
 	String DISTANCE_FADE = "distanceFade";
 	String MASTER_VOLUME = "masterVolume";
+	String MASTER_MUTE = "masterMute";
 	String SPEECH_GENERATION = "Speech generation";
 	String PUBLIC_CHAT = "publicChat";
 	String PRIVATE_CHAT = "privateChat";
@@ -24,7 +25,7 @@ public interface ConfigKeys {
 	String SYSTEM_MESSAGES = "systemMessages";
 	String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 	String MUTE_SELF = "muteSelf";
-	String MUTE_OTHERS = "muteOthers";
+	String MUTE_OTHER_PLAYERS = "muteOthers";
 	String MUTE_LEVEL_THRESHOLD = "muteLevelThreshold";
 	String MUTE_CROWDS = "muteCrowds";
 	String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
@@ -43,14 +44,28 @@ public interface ConfigKeys {
 	// endregion
 
 	// named ttsEngine because it was the only engine supported at the time
-	@SuppressWarnings("DeprecatedIsStillUsed")
-	@Deprecated(
-		since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
 	String DEPRECATED_PIPER_PATH = "ttsEngine";
 
 	// Voice
 	String VOICE_CONFIG_KEY = "speaker_config.json";
 	String VOICE_BLACKLIST_KEY = "voiceBlacklist";
+
+	// Hint Memory
+	String DEVELOPER_RESET_HINTS = "developerResetHints";
+
+	interface Hints {
+		String HINTED_INGAME_VOLUME_MENU_TO_MUTE = "hintedInGameMenuVolumeMute";
+		String HINTED_INGAME_ENTITY_MENU_TO_MUTE = "hintedInGameEntityVoiceMute";
+		String HINTED_INGAME_ENTITY_MENU_SET_VOICE = "hintedInGameEntityVoiceSet";
+		String HINTED_DIALOG_BUTTON = "hintedDialogButton";
+
+		String[] ALL = {
+				HINTED_INGAME_VOLUME_MENU_TO_MUTE,
+				HINTED_INGAME_ENTITY_MENU_TO_MUTE,
+				HINTED_INGAME_ENTITY_MENU_SET_VOICE,
+				HINTED_DIALOG_BUTTON
+		};
+	}
 
 	// region Mute and listen
 	String LISTEN_MODE = "listenMode";

@@ -2,22 +2,25 @@ package dev.phyce.naturalspeech.playground;
 
 import com.google.common.primitives.Ints;
 import com.sun.jna.Pointer;
+import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioBuffer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioCommonFormat;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioFormat;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio.AVAudioPCMBuffer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesisVoice;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesisVoiceGender;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesizer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechSynthesizerBufferCallback;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation.AVSpeechUtterance;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.javautil.NSAutoRelease;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.Block;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
+import dev.phyce.naturalspeech.eventbus.PluginEventBus;
+import dev.phyce.naturalspeech.executor.PluginExecutorService;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioBuffer;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioCommonFormat;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioFormat;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio.AVAudioPCMBuffer;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesisVoice;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesisVoiceGender;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesizer;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechSynthesizerBufferCallback;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation.AVSpeechUtterance;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSString;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.javautil.NSAutoRelease;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.Block;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
 import java.io.ByteArrayInputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
@@ -26,10 +29,15 @@ import java.util.Comparator;
 import java.util.Vector;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
+import net.runelite.client.config.ConfigManager;
+import org.junit.runner.RunWith;
+import static org.mockito.Mockito.mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class MacTest {
 
-//	@Test
+	//	@Test
 	public void testJNA() {
 		ID hello = NSString.alloc("Hello, ");
 
@@ -55,7 +63,7 @@ public class MacTest {
 		NSObject.release(helloworld);
 	}
 
-//	@Test
+	//	@Test
 	public void testAVSpeechSynthesisVoice() {
 		ID[] voices = AVSpeechSynthesisVoice.getSpeechVoices();
 		Arrays.sort(voices, Comparator.comparing(AVSpeechSynthesisVoice::getName));
@@ -68,7 +76,7 @@ public class MacTest {
 		}
 	}
 
-//	@Test
+	//	@Test
 	public void testAVSpeechUtterance() {
 		ID utterance = AVSpeechUtterance.getSpeechUtteranceWithString("Hello, Natural Speech!");
 		NSAutoRelease.register(utterance);
@@ -90,20 +98,23 @@ public class MacTest {
 		}
 	}
 
-//	@Test
+	//	@Test
 	public void testAVSpeechUtteranceCallback() {
-
-		AudioEngine audioEngine = new AudioEngine();
+		PluginExecutorService pluginExecutorService = mock(PluginExecutorService.class);
+		NaturalSpeechConfig config = mock(NaturalSpeechConfig.class);
+		PluginEventBus pluginEventBus = mock(PluginEventBus.class);
+		ConfigManager configManager = mock(ConfigManager.class);
+		AudioEngine audioEngine = new AudioEngine(pluginExecutorService, config, configManager, pluginEventBus);
 
 		final AudioFormat AUDIO_FORMAT =
-			new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
-				22050.0F, // Sample Rate (per second)
-				16, // Sample Size (bits)
-				1, // Channels
-				2, // Frame Size (bytes)
-				22050.0F, // Frame Rate (same as sample rate because PCM is 1 sample per 1 frame)
-				false
-			);
+				new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
+						22050.0F, // Sample Rate (per second)
+						16, // Sample Size (bits)
+						1, // Channels
+						2, // Frame Size (bytes)
+						22050.0F, // Frame Rate (same as sample rate because PCM is 1 sample per 1 frame)
+						false
+				);
 
 		ID utterance = AVSpeechUtterance.getSpeechUtteranceWithString("Hello Natural Speech!");
 		NSAutoRelease.register(utterance);
@@ -136,15 +147,17 @@ public class MacTest {
 				if (frameLength == 0) {
 					// done
 
-					byte[] byteArray = audioData.stream().reduce(new byte[0], (a, b) -> {
-						byte[] result = new byte[a.length + b.length];
-						System.arraycopy(a, 0, result, 0, a.length);
-						System.arraycopy(b, 0, result, a.length, b.length);
-						return result;
-					});
+					int len = audioData.stream().mapToInt(a -> a.length).reduce(0, Integer::sum);
+					byte[] byteArray = new byte[len];
+
+					int offset = 0;
+					for (byte[] bytes : audioData) {
+						System.arraycopy(bytes, 0, byteArray, offset, bytes.length);
+						offset += bytes.length;
+					}
 
 					AudioInputStream stream =
-						new AudioInputStream(new ByteArrayInputStream(byteArray), AUDIO_FORMAT, byteArray.length);
+							new AudioInputStream(new ByteArrayInputStream(byteArray), AUDIO_FORMAT, byteArray.length);
 					audioEngine.play(voiceName, stream, () -> 0f);
 					return;
 				}
@@ -156,13 +169,13 @@ public class MacTest {
 				double sampleRate = AVAudioFormat.getSampleRate(avFormat);
 				int channelCount = Ints.checkedCast(AVAudioFormat.getChannelCount(avFormat));
 				System.out.printf("AVAudioFormat: format(%s) standard(%s) sampleRate(%f) channelCount(%s)\n", format,
-					standard, sampleRate, channelCount);
+						standard, sampleRate, channelCount);
 
 				// Get the buffer
 				Pointer int16ChannelData = AVAudioPCMBuffer.getInt16ChannelData(avAudioBuffer).getPointer(0);
 
 				System.out.printf("Frame Length: %d, Frame Capacity: %d, Stride: %d\n", frameLength, frameCapacity,
-					stride);
+						stride);
 
 				byte[] byteArray = int16ChannelData.getByteArray(0L, (int) frameLength * 2);
 				System.out.println("Int16 Channel Data: " + new String(byteArray, StandardCharsets.UTF_16LE));
@@ -182,7 +195,7 @@ public class MacTest {
 		}
 	}
 
-//	@Test
+	//	@Test
 	public void testAutoReleaseSEGFAULT() {
 		WeakReference<Pair> helloWeak = testAutoReleaseSUGFAULT_aux();
 
@@ -240,7 +253,7 @@ public class MacTest {
 
 	}
 
-//	@Test
+	//	@Test
 	public void testAutoReleaseSEGFAULT2() {
 		WeakReference<Pair> weakRefs = testAutoReleaseSEGFAULT2_AUX();
 

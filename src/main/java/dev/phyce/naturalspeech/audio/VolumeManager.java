@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.audio;
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.utils.ChatHelper;
@@ -10,12 +11,14 @@ import dev.phyce.naturalspeech.utils.ClientHelper;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
+import net.runelite.api.WorldView;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.NpcSpawned;
@@ -25,16 +28,9 @@ import net.runelite.client.eventbus.Subscribe;
 
 @Slf4j
 @PluginSingleton
-public class VolumeManager {
+public class VolumeManager implements PluginModule {
 
 	public final static Supplier<Float> ZERO_GAIN = () -> 0f;
-
-	private final Client client;
-	private final ClientHelper clientHelper;
-	private final NaturalSpeechConfig config;
-
-	private final Set<Actor> spawnedActors = new HashSet<>();
-
 	public static final float NOISE_FLOOR = -60f;
 	public static final float CHAT_FLOOR = -50f;
 	public static final float FRIEND_FLOOR = -20f;
@@ -43,18 +39,28 @@ public class VolumeManager {
 	public static final float CHAT_MAX_DISTANCE = 15f;
 	public static final float NPC_MAX_DISTANCE = 15f;
 
+	private final Client client;
+	private final ClientHelper clientHelper;
+	private final NaturalSpeechConfig config;
+	private final Set<Actor> spawnedActors = new HashSet<>();
+
+
 	@Inject
 	public VolumeManager(
-		Client client,
-		ClientHelper clientHelper,
-		NaturalSpeechConfig config
+			Client client,
+			ClientHelper clientHelper,
+			NaturalSpeechConfig config
 	) {
 		this.client = client;
 		this.clientHelper = clientHelper;
 		this.config = config;
 
-		spawnedActors.addAll(client.getNpcs());
-		spawnedActors.addAll(client.getPlayers());
+		WorldView topLevelWorldView = client.getTopLevelWorldView();
+		if (topLevelWorldView != null) {
+			spawnedActors.addAll(topLevelWorldView.npcs().stream().collect(Collectors.toList()));
+			spawnedActors.addAll(topLevelWorldView.players().stream().collect(Collectors.toList()));
+		}
+
 	}
 
 	@NonNull
@@ -69,7 +75,9 @@ public class VolumeManager {
 				float distance = distance(listenerLocation, sourceLocation);
 				return Math.max(CHAT_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, CHAT_FLOOR));
 			}
-			else return NOISE_FLOOR; // actor has despawned, silence
+			else {
+				return NOISE_FLOOR; // actor has despawned, silence
+			}
 		};
 	}
 
@@ -84,7 +92,9 @@ public class VolumeManager {
 				float distance = distance(listenerLocation, sourceLocation);
 				return Math.max(NPC_FLOOR, attenuation(distance, NPC_MAX_DISTANCE, NPC_FLOOR));
 			}
-			else return NOISE_FLOOR; // actor has despawned, silence
+			else {
+				return NOISE_FLOOR; // actor has despawned, silence
+			}
 		};
 	}
 
@@ -99,7 +109,9 @@ public class VolumeManager {
 				float distance = distance(sourceLoc, listenLoc);
 				return Math.max(FRIEND_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, FRIEND_FLOOR));
 			}
-			else return NOISE_FLOOR; // actor has despawned, silence
+			else {
+				return NOISE_FLOOR; // actor has despawned, silence
+			}
 		};
 	}
 
@@ -188,20 +200,4 @@ public class VolumeManager {
 		spawnedActors.remove(event.getActor());
 	}
 
-	public static float volumeToGain(int volume100) {
-		// range[-80, 0]
-		float gainDB;
-
-		// Graph of the function
-		// https://www.desmos.com/calculator/wdhsfbxgeo
-
-		// clamp to 0-100
-		float volume = Math.min(100, volume100);
-		// convert linear volume 0-100 to log control
-		if (volume <= 0.1) gainDB = NOISE_FLOOR;
-		else gainDB = (float) (10 * (Math.log(volume / 100)));
-
-		log.info("returning volume {} -> {}db", volume100, gainDB);
-		return gainDB;
-	}
 }

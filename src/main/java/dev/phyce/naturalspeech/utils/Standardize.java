@@ -14,7 +14,7 @@ public final class Standardize {
 
 	@NonNull
 	public static String standardName(@NonNull String name) {
-		return Texts.removeLevelFromTargetName(Text.standardize(Text.removeTags(name)));
+		return TextUtil.removeLevelFromTargetName(Text.standardize(Text.removeTags(name)));
 	}
 
 	public static String standardNPCName(@NonNull NPC npc) {

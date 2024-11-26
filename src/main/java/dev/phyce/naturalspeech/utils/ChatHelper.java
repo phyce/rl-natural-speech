@@ -4,17 +4,22 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.audio.VolumeManager;
-import dev.phyce.naturalspeech.configs.json.ReplacementsJSON;
+import dev.phyce.naturalspeech.configs.ReplacementsJSON;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.SpamDetection;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
-import static dev.phyce.naturalspeech.utils.Locations.inGrandExchange;
+import static dev.phyce.naturalspeech.utils.LocationUtil.inGrandExchange;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -24,14 +29,17 @@ import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.WorldView;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.util.Text;
 
 @Slf4j
 @PluginSingleton
-public class ChatHelper {
+public class ChatHelper implements PluginModule {
 
 	private final Client client;
 	private final ClientHelper clientHelper;
@@ -62,12 +70,12 @@ public class ChatHelper {
 
 	@Inject
 	public ChatHelper(
-		Client client,
-		ClientHelper clientHelper,
-		SpamDetection spamDetection,
-		NaturalSpeechConfig config,
-		MuteManager muteManager,
-		VolumeManager volumeManager
+			Client client,
+			ClientHelper clientHelper,
+			SpamDetection spamDetection,
+			NaturalSpeechConfig config,
+			MuteManager muteManager,
+			VolumeManager volumeManager
 	) {
 		this.client = client;
 		this.clientHelper = clientHelper;
@@ -79,12 +87,31 @@ public class ChatHelper {
 		loadBuiltInReplacement(PluginResources.BUILT_IN_REPLACEMENTS);
 	}
 
+	@Override
+	public void startUp() {
+		loadCustomReplacements();
+	}
+
+//	@Override
+//	public void shutDown() {
+//	}
+
+	@Subscribe
+	private void onConfigChanged(ConfigChanged event) {
+		if (!event.getGroup().equals(CONFIG_GROUP)) return;
+
+		if (event.getKey().equals(ConfigKeys.CUSTOM_TEXT_REPLACEMENTS)) {
+			log.trace("Detected abbreviation changes, reloading into TextToSpeech");
+			loadCustomReplacements();
+		}
+	}
+
 	public EntityID getEntityID(ChatMessage message) {
 		final ChatType chatType = getChatType(message);
 		final EntityID eid;
 		switch (chatType) {
 			case User:
-				eid = EntityID.USER;
+				eid = EntityID.LOCAL_PLAYER;
 				break;
 			case OtherPlayers:
 				eid = EntityID.name(message.getName());
@@ -177,7 +204,7 @@ public class ChatHelper {
 		EntityID eid = getEntityID(message);
 
 		// example: "::::::))))))" (no alpha numeric, muted)
-		if (!Texts.containAlphaNumeric(message.getMessage())) {
+		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
 			log.trace("Muting message. No alpha numeric characters. Message:{}", message);
 			return true;
 		}
@@ -204,7 +231,7 @@ public class ChatHelper {
 			return true;
 		}
 
-		if (config.muteOthers() && chatType == ChatType.OtherPlayers) {
+		if (config.muteOtherPlayers() && chatType == ChatType.OtherPlayers) {
 			log.trace("Muting message. Muting others. Message:{}", message);
 			return true;
 		}
@@ -220,7 +247,7 @@ public class ChatHelper {
 		}
 
 		if (message.getType() == ChatMessageType.PUBLICCHAT &&
-			spamDetection.isSpam(message.getName(), message.getMessage())) {
+				spamDetection.isSpam(message.getName(), message.getMessage())) {
 			log.trace("Muting message. Spam detected. Message:{}", message);
 			return true;
 		}
@@ -281,6 +308,7 @@ public class ChatHelper {
 				if (!config.requestsEnabled()) return true;
 				break;
 			case CONSOLE: //
+			case MESBOX: // Used for UI text
 				return true;
 		}
 		return false;
@@ -290,13 +318,15 @@ public class ChatHelper {
 	private boolean isTooCrowded() {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;
+		@Nullable WorldView topLevelWorldView = client.getTopLevelWorldView();
+		if (topLevelWorldView == null) return false;
 
-		int count = (int) client.getPlayers().stream()
-			// Exclude the local player themselves
-			.filter(player -> player != localPlayer)
-			// For example, within 15 tiles
-			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <= 15)
-			.count();
+		int count = (int) topLevelWorldView.players().stream()
+				// Exclude the local player themselves
+				.filter(player -> !Objects.equals(player, localPlayer))
+				// For example, within 15 tiles
+				.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <= 15)
+				.count();
 
 		return config.muteCrowds() > 0 && config.muteCrowds() < count;
 	}
@@ -317,7 +347,7 @@ public class ChatHelper {
 		}
 
 		text = renderReplacements(text);
-		text = Texts.renderLargeNumbers(text);
+		text = TextUtil.renderLargeNumbers(text);
 		return text;
 	}
 
@@ -380,7 +410,7 @@ public class ChatHelper {
 		builtinReplacements.clear();
 		try {
 			Arrays.stream(builtInReplacements)
-				.forEach(entry -> builtinReplacements.add(new Replacement(entry.acronym, entry.sentence)));
+					.forEach(entry -> builtinReplacements.add(new Replacement(entry.acronym, entry.sentence)));
 		} catch (JsonSyntaxException e) {
 			log.error("Failed to parse built-in abbreviations from Resources.", e);
 		}
@@ -408,10 +438,11 @@ public class ChatHelper {
 
 				int tail = head + entry.match.length();
 				if ((head == 0 || text.charAt(head - 1) == ' ') && // rule 1
-					(tail == text.length() || VALID_MATCH_TAILS.contains(text.charAt(tail))) // rule 2
+						(tail == text.length() || VALID_MATCH_TAILS.contains(text.charAt(tail))) // rule 2
 				) {
 					result.append(entry.replacement);
-				} else {
+				}
+				else {
 					result.append(entry.match);
 				}
 

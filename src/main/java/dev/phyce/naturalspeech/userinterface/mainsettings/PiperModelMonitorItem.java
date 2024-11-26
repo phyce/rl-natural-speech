@@ -2,10 +2,11 @@ package dev.phyce.naturalspeech.userinterface.mainsettings;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
-import dev.phyce.naturalspeech.eventbus.SubscribeWeak;
-import dev.phyce.naturalspeech.events.PiperModelEngineEvent;
+import dev.phyce.naturalspeech.eventbus.PluginSubscribe;
 import dev.phyce.naturalspeech.events.PiperProcessEvent;
+import dev.phyce.naturalspeech.events.SpeechEngineEvent;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperProcess;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import java.awt.BorderLayout;
@@ -27,8 +28,7 @@ public class PiperModelMonitorItem extends JPanel {
 		PiperModelMonitorItem create(@NonNull PiperRepository.PiperModel modelEngine);
 	}
 
-	private PiperRepository.PiperModel piperModel;
-	private final PluginEventBus pluginEventBus;
+	private final PiperRepository.PiperModel piperModel;
 	private final JPanel processListPanel;
 	public final Map<PiperProcess, JLabel> labelMap = new HashMap<>();
 
@@ -37,7 +37,9 @@ public class PiperModelMonitorItem extends JPanel {
 		PluginEventBus pluginEventBus,
 		@Assisted PiperRepository.PiperModel piperModel
 	) {
-		this.pluginEventBus = pluginEventBus;
+		this.piperModel = piperModel;
+
+		pluginEventBus.registerWeak(this);
 
 		this.setLayout(new BorderLayout());
 
@@ -53,9 +55,12 @@ public class PiperModelMonitorItem extends JPanel {
 
 	}
 
-	@SubscribeWeak
-	public void on(PiperModelEngineEvent event) {
-		if (!Objects.equals(event.getModel(), piperModel)) return;
+	@PluginSubscribe
+	public void on(SpeechEngineEvent event) {
+		if (!(event.getSpeechEngine() instanceof PiperEngine)) return;
+		PiperEngine engine = (PiperEngine) event.getSpeechEngine();
+
+		if (!Objects.equals(engine.getModel(), piperModel)) return;
 
 		switch (event.getEvent()) {
 			case STARTED:
@@ -67,9 +72,9 @@ public class PiperModelMonitorItem extends JPanel {
 		}
 	}
 
-	@SubscribeWeak
+	@PluginSubscribe
 	public void on(PiperProcessEvent event) {
-		if (!Objects.equals(event.getModelEngine().getModel(), piperModel)) {return;}
+		if (!Objects.equals(event.getModel(), piperModel)) return;
 
 		switch (event.getEvent()) {
 			case SPAWNED:
@@ -111,10 +116,10 @@ public class PiperModelMonitorItem extends JPanel {
 		processListPanel.revalidate();
 	}
 
-	//	private class ItemPiperProcessLifeTimeListener implements PiperModelEngine.PiperProcessLifetimeListener {
+	//	private class ItemPiperProcessLifeTimeListener implements PiperEngine.PiperProcessLifetimeListener {
 	//
 	//
-	//		public ItemPiperProcessLifeTimeListener(PiperModelEngine piper) {
+	//		public ItemPiperProcessLifeTimeListener(PiperEngine piper) {
 	//			piper.getProcesses().forEach((pid, process) -> {
 	//				AddProcess(process);
 	//			});

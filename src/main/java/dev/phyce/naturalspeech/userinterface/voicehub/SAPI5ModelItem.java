@@ -3,8 +3,8 @@ package dev.phyce.naturalspeech.userinterface.voicehub;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.texttospeech.SpeechManager;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
+import dev.phyce.naturalspeech.texttospeech.engine.SAPI5Engine;
 import java.awt.Dimension;
 import javax.swing.GroupLayout;
 import javax.swing.JLabel;
@@ -65,9 +65,9 @@ public class SAPI5ModelItem extends JPanel {
 		toggleButton.addActionListener(
 			l -> {
 				speechManagerConfig.setEnable(engine, toggleButton.isSelected());
-				if (speechManager.isStarted()) {
-					if (toggleButton.isSelected()) speechManager.startEngine(engine);
-					else speechManager.stopEngine(engine);
+				if (speechManager.isAlive()) {
+					if (toggleButton.isSelected()) speechManager.startupEngine(engine);
+					else speechManager.shutdownEngine(engine);
 				}
 			});
 

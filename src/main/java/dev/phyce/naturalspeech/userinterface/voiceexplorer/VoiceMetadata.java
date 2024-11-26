@@ -1,6 +1,6 @@
 package dev.phyce.naturalspeech.userinterface.voiceexplorer;
 
-import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.texttospeech.Gender;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import lombok.AllArgsConstructor;

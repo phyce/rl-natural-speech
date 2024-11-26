@@ -1,34 +1,18 @@
 package dev.phyce.naturalspeech.userinterface.mainsettings;
 
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.configs.RuntimePathConfig;
-import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
-import dev.phyce.naturalspeech.eventbus.SubscribeWeak;
-import dev.phyce.naturalspeech.events.PiperModelEngineEvent;
+import dev.phyce.naturalspeech.eventbus.PluginSubscribe;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.events.PiperProcessEvent;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
-import dev.phyce.naturalspeech.events.SpeechEngineSkippedEngine;
-import dev.phyce.naturalspeech.events.SpeechEngineStarted;
-import dev.phyce.naturalspeech.events.SpeechEngineStopped;
-import dev.phyce.naturalspeech.events.SpeechManagerFailedStart;
-import dev.phyce.naturalspeech.events.SpeechManagerStarted;
-import dev.phyce.naturalspeech.events.SpeechManagerStarting;
-import dev.phyce.naturalspeech.events.SpeechManagerStopped;
-import dev.phyce.naturalspeech.executor.PluginExecutorService;
+import dev.phyce.naturalspeech.events.SpeechEngineEvent;
+import dev.phyce.naturalspeech.events.SpeechManagerEvent;
 import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperEngine;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
-import dev.phyce.naturalspeech.userinterface.voicehub.PiperModelItem;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
-import dev.phyce.naturalspeech.utils.Platforms;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -40,89 +24,74 @@ import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URI;
-import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import lombok.Data;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.SwingUtil;
+import org.checkerframework.common.aliasing.qual.NonLeaked;
 
 @Slf4j
 public class MainSettingsPanel extends PluginPanel {
-	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
+	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(0, 5, 0, 5);
 	//	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
-	private final PiperRepository piperRepository;
-	private final SAPI4Repository sapi4Repository;
-	private final SAPI5Engine sapi5Engine;
-	private final PiperEngine piperEngine;
 	private final SpeechManager speechManager;
-	private final RuntimePathConfig runtimeConfig;
-	private final PluginExecutorService pluginExecutorService;
-	private final PiperModelMonitorItem.Factory monitorFactory;
-
+//	private final PiperModelMonitorItem.Factory monitorFactory;
 	private final FixedWidthPanel mainContentPanel;
 
-	private final Map<String, PiperModelItem> piperModelMap = new HashMap<>();
-	private final Map<PiperRepository.PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
+//	private final Map<PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Set<Warning> warnings = new HashSet<>();
 
 	private JLabel statusLabel;
 	private JPanel statusPanel;
-	private JPanel piperMonitorPanel;
+//	private JPanel piperMonitorPanel;
 	private JPanel warningStopped;
 	private JPanel warningNoEngine;
 	private JPanel warningCrash;
-
-	private boolean isMinimumMode;
 	private JPanel warningMinimumMode;
-
 	private JLabel crashLabel;
+
+	@Data
+	private static class State {
+		boolean anyNoRuntime = false;
+		boolean anyNoModel = false;
+		boolean anyDisabled = false;
+		boolean anyCrashed = false;
+		boolean anyExternal = false;
+	}
+
+	@NonNull
+	@NonLeaked
+	private State state = new State();
 
 	@Inject
 	public MainSettingsPanel(
-		PiperRepository piperRepository,
-		SAPI4Repository sapi4Repository,
-		SAPI4Engine sapi4Engine,
 		SpeechManager speechManager,
-		PiperEngine piperEngine,
-		RuntimePathConfig runtimeConfig,
-		PluginEventBus pluginEventBus,
-		SAPI5Engine sapi5Engine,
-		PluginExecutorService pluginExecutorService,
-		SpeechManagerConfig speechManagerConfig,
-		PiperModelMonitorItem.Factory monitorFactory
+		PluginEventBus pluginEventBus
 	) {
 		super(false);
-		this.sapi4Repository = sapi4Repository;
 		this.speechManager = speechManager;
-		this.piperRepository = piperRepository;
-		this.piperEngine = piperEngine;
-		this.runtimeConfig = runtimeConfig;
-		this.sapi5Engine = sapi5Engine;
-		this.pluginExecutorService = pluginExecutorService;
-		this.monitorFactory = monitorFactory;
+//		this.monitorFactory = monitorFactory;
 
-		pluginEventBus.register(this);
+		pluginEventBus.registerWeak(this);
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -147,127 +116,123 @@ public class MainSettingsPanel extends PluginPanel {
 		this.add(scrollPane);
 
 		buildHeaderSegment();
-		buildTextToSpeechStatusSegment();
-		buildAdvancedSegment();
+//		buildTextToSpeechStatusSegment();
 
 		this.revalidate();
 	}
 
-	@SubscribeWeak
-	public void on(SpeechEngineSkippedEngine event) {
-		if (event.getEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
-			isMinimumMode = false;
-		}
-	}
-
-	@SubscribeWeak
-	public void on(SpeechManagerStarting event) {
-		isMinimumMode = true;
-
-		statusLabel.setText("Starting...");
-		statusLabel.setBackground(Color.GREEN.darker().darker().darker());
-		statusLabel.setForeground(Color.WHITE.darker());
-		statusPanel.setToolTipText("Text to speech is running.");
-
-		clearWarning();
-		revalidate();
-	}
-
-	@SubscribeWeak
-	public void on(SpeechManagerStarted event) {
-		statusLabel.setText("Running");
-		statusLabel.setBackground(Color.GREEN.darker());
-		statusLabel.setForeground(Color.WHITE);
-		statusPanel.setToolTipText("Text to speech is running.");
-
-		if (isMinimumMode) addWarning(Warning.MINIMUM_MODE);
-
-		updateWarningsUI();
-	}
-
-	@SubscribeWeak
-	public void on(SpeechManagerStopped event) {
-		statusLabel.setText("Not running");
-		statusLabel.setBackground(Color.DARK_GRAY);
-		statusLabel.setForeground(null);
-		statusPanel.setToolTipText("Press start to begin text to speech.");
-
-		addWarning(Warning.STOPPED);
-		updateWarningsUI();
-	}
-
-	@SubscribeWeak
-	public void on(SpeechManagerFailedStart event) {
-		switch (event.getReason()) {
-			case NOT_INSTALLED:
-				statusLabel.setText("No Engine");
-				statusLabel.setBackground(Color.DARK_GRAY);
-				statusLabel.setForeground(null);
-				statusPanel.setToolTipText("No available text-to-speech engines detected.");
-				addWarning(Warning.NO_ENGINE);
-				updateWarningsUI();
-				break;
-			case ALL_DISABLED:
-				statusLabel.setText("All Voices Disabled");
-				statusLabel.setBackground(Color.DARK_GRAY);
-				statusLabel.setForeground(null);
-				statusPanel.setToolTipText("Enable some of the voices to start Text-To-Speech!");
-				addWarning(Warning.CRASHED);
-				crashLabel.setText("<html>Please enable a voice in the Voice Pack settings.</html>");
-				updateWarningsUI();
-				break;
-			case ALL_FAILED:
-				statusLabel.setText("Engine Failed");
-				statusLabel.setBackground(Color.DARK_GRAY);
-				statusLabel.setForeground(null);
-				statusPanel.setToolTipText("There might be an issue with the engine. Please check the logs.");
-				addWarning(Warning.CRASHED);
-				crashLabel.setText("<html>There was an issue starting the engine. Please check the logs.</html>");
-				updateWarningsUI();
-				break;
-		}
-	}
-
-	@SubscribeWeak
-	public void on(SpeechEngineStarted event) {
-		if (event.getSpeechEngine() instanceof PiperEngine) {
-			piperMonitorPanel.setVisible(true);
-		}
-
-		if (event.getSpeechEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
-			isMinimumMode = false;
-		}
-	}
-
-	@SubscribeWeak
-	public void on(SpeechEngineStopped event) {
-		if (event.getSpeechEngine() instanceof PiperEngine) {
-			piperMonitorPanel.setVisible(false);
-		}
-	}
-
-	@SubscribeWeak
-	public void on(PiperModelEngineEvent event) {
-		PiperRepository.PiperModel piperModel = event.getModel();
-
+	@PluginSubscribe
+	public void on(SpeechEngineEvent event) {
 		switch (event.getEvent()) {
-			case STARTED:
-				PiperModelMonitorItem monitorItem = monitorFactory.create(piperModel);
-				piperModelMonitorMap.put(piperModel, monitorItem);
-				piperMonitorPanel.add(monitorItem);
-				piperMonitorPanel.revalidate();
+			case STARTING:
+//				if (event.getSpeechEngine() instanceof PiperEngine) {
+//					//					piperMonitorPanel.setVisible(true);
+//					PiperModel model = ((PiperEngine) event.getSpeechEngine()).getModel();
+//					PiperModelMonitorItem monitorItem = monitorFactory.create(model);
+//					piperModelMonitorMap.put(model, monitorItem);
+//					piperMonitorPanel.add(monitorItem);
+//					piperMonitorPanel.revalidate();
+//				}
 				break;
-			case STOPPED:
-				PiperModelMonitorItem remove = piperModelMonitorMap.remove(piperModel);
-				if (remove != null) {
-					piperMonitorPanel.remove(remove);
-					piperMonitorPanel.revalidate();
+			case START_NO_RUNTIME:
+				state.anyNoRuntime = true;
+				break;
+			case START_NO_MODEL:
+				state.anyNoModel = true;
+				break;
+			case START_DISABLED:
+				state.anyDisabled = true;
+				break;
+			case START_CRASHED:
+				state.anyCrashed = true;
+				break;
+			case STARTED:
+				if (event.getSpeechEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
+					state.anyExternal = true;
 				}
 				break;
+			case CRASHED:
+				break;
+			case STOPPED:
+//				if (event.getSpeechEngine() instanceof PiperEngine) {
+//					//					piperMonitorPanel.setVisible(false);
+//					PiperModel model = ((PiperEngine) event.getSpeechEngine()).getModel();
+//					PiperModelMonitorItem remove = piperModelMonitorMap.remove(model);
+//					if (remove != null) {
+//						piperMonitorPanel.remove(remove);
+//						piperMonitorPanel.revalidate();
+//					}
+//				}
+				break;
 		}
+
 	}
 
-	@SubscribeWeak
+	@PluginSubscribe
+	public void on(SpeechManagerEvent event) {
+//		switch (event.getEvent()) {
+//			case STARTING:
+//				state = new State();
+//
+//				statusLabel.setText("Starting...");
+//				statusLabel.setBackground(Color.GREEN.darker().darker().darker());
+//				statusLabel.setForeground(Color.WHITE.darker());
+//				statusPanel.setToolTipText("Text to speech is running.");
+//
+//				clearWarning();
+//				revalidate();
+//				break;
+//			case STARTED:
+//
+//				if (speechManager.isAlive()) {
+//					statusLabel.setText("Running");
+//					statusLabel.setBackground(Color.GREEN.darker());
+//					statusLabel.setForeground(Color.WHITE);
+//					statusPanel.setToolTipText("Text to speech is running.");
+//				}
+//				else if (state.anyCrashed) {
+//					statusLabel.setText("Crashed");
+//					statusLabel.setBackground(Color.RED.darker());
+//					statusLabel.setForeground(Color.WHITE);
+//					statusPanel.setToolTipText("Text to speech is failed to start.");
+//				}
+//				else if (state.anyDisabled) {
+//					statusLabel.setText("Engines Disabled");
+//					statusLabel.setBackground(Color.RED.darker());
+//					statusLabel.setForeground(Color.WHITE);
+//					statusPanel.setToolTipText("Text to speech is failed to start.");
+//				}
+//				else if (state.anyNoModel) {
+//					// TODO Runtime installed but models missing, for example piper repo empty or Mac has no voices installed
+//					statusLabel.setText("Missing Models");
+//					statusLabel.setBackground(Color.RED.darker());
+//					statusLabel.setForeground(Color.WHITE);
+//					statusPanel.setToolTipText("Text to speech is failed to start.");
+//				}
+//				else if (state.anyNoRuntime) {
+//					statusLabel.setText("Not Installed");
+//					statusLabel.setBackground(Color.RED.darker());
+//					statusLabel.setForeground(Color.WHITE);
+//					statusPanel.setToolTipText("Text to speech is failed to start.");
+//				}
+//
+//				if (!state.anyExternal) addWarning(Warning.MINIMUM_MODE);
+//
+//				updateWarningsUI();
+//				break;
+//			case STOPPED:
+//				statusLabel.setText("Not running");
+//				statusLabel.setBackground(Color.DARK_GRAY);
+//				statusLabel.setForeground(null);
+//				statusPanel.setToolTipText("Press start to begin text to speech.");
+//
+//				addWarning(Warning.STOPPED);
+//				updateWarningsUI();
+//				break;
+//		}
+	}
+
+	@PluginSubscribe
 	public void on(PiperProcessEvent event) {
 		if (event.getEvent() != PiperProcessEvent.Events.CRASHED) return;
 
@@ -281,27 +246,13 @@ public class MainSettingsPanel extends PluginPanel {
 
 
 	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, no more path changes.")
-	@SubscribeWeak
+	@PluginSubscribe
 	public void on(PiperPathChanged event) {
-		log.debug("Repository refresh. Rebuilding");
-		for (PiperModelItem listItem : piperModelMap.values()) {
-			listItem.rebuild();
-		}
-		SwingUtilities.invokeLater(this::revalidate);
 		updateWarningsUI();
 	}
 
-	@SubscribeWeak
+	@PluginSubscribe
 	public void on(PiperRepositoryChanged event) {
-		PiperModelItem modelItem = piperModelMap.get(event.getModelName());
-		if (modelItem != null) {
-			modelItem.rebuild();
-		}
-		else {
-			log.error(
-				"No UI item for {}, MainSettingsPanel currently assumes PiperRepository retain same ModelURLs during runtime.",
-				event.getModelName());
-		}
 		updateWarningsUI();
 	}
 
@@ -314,7 +265,7 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	private void updateWarningsUI() {
-		warningStopped.setVisible(!warnings.contains(Warning.NO_ENGINE) && !speechManager.isStarted());
+		warningStopped.setVisible(!warnings.contains(Warning.NO_ENGINE) && !speechManager.isAlive());
 		warningNoEngine.setVisible(warnings.contains(Warning.NO_ENGINE));
 		warningCrash.setVisible(warnings.contains(Warning.CRASHED));
 		warningMinimumMode.setVisible(warnings.contains(Warning.MINIMUM_MODE));
@@ -323,28 +274,28 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	public void buildHeaderSegment() {
-		JLabel titleLabel = new JLabel("Natural Speech", JLabel.CENTER);
-		titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
-		titleLabel.setBorder(new EmptyBorder(1, 0, 1, 0));
-		mainContentPanel.add(titleLabel);
+//		JLabel titleLabel = new JLabel("Natural Speech", JLabel.CENTER);
+//		titleLabel.setFont(new Font("Sans", Font.BOLD, 24));
+//		titleLabel.setBorder(new EmptyBorder(1, 0, 1, 0));
+//		mainContentPanel.add(titleLabel);
 
 		// Instructions Link
-		JLabel instructionsLink =
-			new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
-
-		instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
-		instructionsLink.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-			try {
-				Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
-			} catch (Exception ex) {
-				log.error("ErrorResult opening instruction link.", ex);
-			}
-			}
-		});
-		instructionsLink.setBorder(new EmptyBorder(0, 0, 5, 0));
-		mainContentPanel.add(instructionsLink);
+//		JLabel instructionsLink =
+//			new JLabel("<html>For instructions, click <a href='#'>here</a>.</html>", JLabel.CENTER);
+//
+//		instructionsLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+//		instructionsLink.addMouseListener(new MouseAdapter() {
+//			@Override
+//			public void mouseClicked(MouseEvent e) {
+//				try {
+//					Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech"));
+//				} catch (Exception ex) {
+//					log.error("ErrorResult opening instruction link.", ex);
+//				}
+//			}
+//		});
+//		instructionsLink.setBorder(new EmptyBorder(0, 0, 5, 0));
+//		mainContentPanel.add(instructionsLink);
 
 		{
 			warningStopped = new JPanel();
@@ -445,6 +396,7 @@ public class MainSettingsPanel extends PluginPanel {
 			explainLabel.setFont(FontManager.getRunescapeFont());
 			explainLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 			explainLabel.setOpaque(false);
+			explainLabel.setVisible(false);
 
 			JLabel websiteLinkLabel =
 				new JLabel("<html><a href='#'>https://naturalspeech.dev</a></html>", SwingConstants.CENTER);
@@ -452,17 +404,37 @@ public class MainSettingsPanel extends PluginPanel {
 			websiteLinkLabel.addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent e) {
-				try {
-					Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
-				} catch (Exception ex) {
-					log.error("ErrorResult opening website link.", ex);
-				}
+					try {
+						Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
+					} catch (Exception ex) {
+						log.error("ErrorResult opening website link.", ex);
+					}
 				}
 			});
+			websiteLinkLabel.setVisible(false);
 
 			warningMinimumMode.add(warningLabel, BorderLayout.NORTH);
 			warningMinimumMode.add(explainLabel, BorderLayout.CENTER);
 			warningMinimumMode.add(websiteLinkLabel, BorderLayout.SOUTH);
+
+			warningLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+			warningLabel.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					explainLabel.setVisible(!explainLabel.isVisible());
+					websiteLinkLabel.setVisible(!websiteLinkLabel.isVisible());
+				}
+
+				@Override
+				public void mouseEntered(MouseEvent e) {
+					setBackground(new Color(0xFFBB33).brighter());
+				}
+
+				@Override
+				public void mouseExited(MouseEvent e) {
+					setBackground(new Color(0xFFBB33));
+				}
+			});
 		}
 
 		mainContentPanel.add(warningCrash);
@@ -530,19 +502,19 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionContent.add(statusPanel);
 	}
 
-	private JPanel buildPiperProcessMonitorPanel() {
-		piperMonitorPanel = new JPanel();
-		piperMonitorPanel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
-		piperMonitorPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
-		piperMonitorPanel.setVisible(false);
-
-		JLabel header = new JLabel("Piper Process Monitor");
-		header.setForeground(Color.WHITE);
-
-		piperMonitorPanel.add(header);
-
-		return piperMonitorPanel;
-	}
+//	private JPanel buildPiperProcessMonitorPanel() {
+//		piperMonitorPanel = new JPanel();
+//		piperMonitorPanel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
+//		piperMonitorPanel.setBorder(new EmptyBorder(5, 0, 0, 0));
+//		piperMonitorPanel.setVisible(false);
+//
+//		JLabel header = new JLabel("Piper Process Monitor");
+//		header.setForeground(Color.WHITE);
+//
+//		piperMonitorPanel.add(header);
+//
+//		return piperMonitorPanel;
+//	}
 
 	private JPanel buildTextToSpeechControlsPanel() {
 		statusPanel = new JPanel();
@@ -565,8 +537,8 @@ public class MainSettingsPanel extends PluginPanel {
 		JButton playButton = createButton(PluginResources.START_TEXT_TO_SPEECH_ICON, "Start");
 		JButton stopButton = createButton(PluginResources.STOP_TEXT_TO_SPEECH_ICON, "Stop");
 
-		playButton.addActionListener(e -> speechManager.start());
-		stopButton.addActionListener(e -> speechManager.stop());
+		playButton.addActionListener(e -> speechManager.startUp());
+		stopButton.addActionListener(e -> speechManager.shutDown());
 
 		buttonPanel.add(playButton);
 		buttonPanel.add(stopButton);
@@ -574,111 +546,6 @@ public class MainSettingsPanel extends PluginPanel {
 		return statusPanel;
 	}
 
-	private void buildAdvancedSegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(PluginResources.SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final String name = "Advanced";
-		final String description = "";
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
-
-		toggleSection(sectionToggle, sectionContent);
-
-		JPanel piperFileChoosePanel = buildPiperFileChoose();
-		sectionContent.add(piperFileChoosePanel);
-
-		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
-		sectionContent.add(piperProcessMonitorPanel);
-	}
-
-	@SuppressWarnings("deprecation")
-	private JPanel buildPiperFileChoose() {
-		JLabel header = new JLabel("Piper Location");
-		header.setForeground(Color.WHITE);
-
-		JTextField filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
-		filePathField.setToolTipText(
-			"If you manually downloaded piper, you can set it's location here. Otherwise, use our installer!");
-		filePathField.setEditable(false);
-
-		JButton browseButton = new JButton("Browse");
-		browseButton.setToolTipText("Requires manual download, please read instructions.");
-		browseButton.addActionListener(e -> {
-			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
-			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-			int returnValue = fileChooser.showOpenDialog(MainSettingsPanel.this);
-			if (returnValue == JFileChooser.APPROVE_OPTION) {
-				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
-
-				// if the user accidentally set the piper folder and not the executable, automatically correct
-				if (newPath.toFile().isDirectory()) {
-					if (Platforms.IS_WINDOWS) {
-						newPath = newPath.resolve("piper.exe");
-					}
-					else { // assume unix based
-						newPath = newPath.resolve("piper");
-					}
-				}
-
-				filePathField.setText(newPath.toString());
-				runtimeConfig.savePiperPath(newPath);
-
-				// if text to speech is running, restart
-				if (speechManager.isStarted()) speechManager.stop();
-			}
-		});
-
-		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
-		fileBrowsePanel.setBorder(new EmptyBorder(5, 0, 0, 0));
-		fileBrowsePanel.add(header, BorderLayout.NORTH);
-		fileBrowsePanel.add(filePathField, BorderLayout.CENTER);
-		fileBrowsePanel.add(browseButton, BorderLayout.SOUTH);
-		return fileBrowsePanel;
-	}
 
 	private void toggleSection(JButton toggleButton, JPanel sectionContent) {
 		boolean newState = !sectionContent.isVisible();
@@ -694,24 +561,13 @@ public class MainSettingsPanel extends PluginPanel {
 		return button;
 	}
 
-	public void shutdown() {
-		//		this.removeAll();
-		//		for (PiperRepository.ModelRepositoryListener listener : this.modelRepositoryListeners) {
-		//			piperRepository.removeRepositoryChangedListener(listener);
-		//		}
-	}
-
 	@Override
 	public void onActivate() {
-		super.onActivate();
-
 		this.setVisible(true);
 	}
 
 	@Override
 	public void onDeactivate() {
-		super.onDeactivate();
-
 		this.setVisible(false);
 	}
 

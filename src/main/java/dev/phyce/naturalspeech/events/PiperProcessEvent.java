@@ -1,54 +1,54 @@
 package dev.phyce.naturalspeech.events;
 
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperModelEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperProcess;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
+import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository.PiperModel;
 import lombok.Value;
 
 // region events
 @Value(staticConstructor="of")
 public class PiperProcessEvent {
 	Events event;
-	PiperModelEngine modelEngine;
+	PiperEngine modelEngine;
 	PiperProcess process;
-	PiperRepository.PiperModel model;
+	PiperModel model;
 
 	public static PiperProcessEvent SPAWNED(
-		PiperModelEngine modelEngine,
+		PiperEngine modelEngine,
 		PiperProcess process,
-		PiperRepository.PiperModel model
+		PiperModel model
 	) {
 		return of(Events.SPAWNED, modelEngine, process, model);
 	}
 
 	public static PiperProcessEvent DIED(
-		PiperModelEngine modelEngine,
+		PiperEngine modelEngine,
 		PiperProcess process,
-		PiperRepository.PiperModel model
+		PiperModel model
 	) {
 		return of(Events.DIED, modelEngine, process, model);
 	}
 
 	public static PiperProcessEvent CRASHED(
-		PiperModelEngine modelEngine,
+		PiperEngine modelEngine,
 		PiperProcess process,
-		PiperRepository.PiperModel model
+		PiperModel model
 	) {
 		return of(Events.CRASHED, modelEngine, process, model);
 	}
 
 	public static PiperProcessEvent BUSY(
-		PiperModelEngine modelEngine,
+		PiperEngine modelEngine,
 		PiperProcess process,
-		PiperRepository.PiperModel model
+		PiperModel model
 	) {
 		return of(Events.BUSY, modelEngine, process, model);
 	}
 
 	public static PiperProcessEvent DONE(
-		PiperModelEngine modelEngine,
+		PiperEngine modelEngine,
 		PiperProcess process,
-		PiperRepository.PiperModel model
+		PiperModel model
 	) {
 		return of(Events.DONE, modelEngine, process, model);
 	}

@@ -3,33 +3,31 @@ package dev.phyce.naturalspeech.userinterface.voiceexplorer;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.texttospeech.Gender;
+import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
-import dev.phyce.naturalspeech.eventbus.SubscribeWeak;
-import dev.phyce.naturalspeech.events.PiperModelEngineEvent;
+import dev.phyce.naturalspeech.eventbus.PluginSubscribe;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
-import dev.phyce.naturalspeech.events.SpeechEngineStarted;
-import dev.phyce.naturalspeech.events.SpeechEngineStopped;
-import dev.phyce.naturalspeech.events.SpeechManagerFailedStart;
-import dev.phyce.naturalspeech.events.SpeechManagerStarted;
-import dev.phyce.naturalspeech.events.SpeechManagerStopped;
+import dev.phyce.naturalspeech.events.SpeechEngineEvent;
+import dev.phyce.naturalspeech.events.SpeechManagerEvent;
 import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.texttospeech.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.MacSpeechEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.MacSpeechEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.SAPI4Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.SAPI5Engine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Alias;
-import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Engine;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5.SAPI5Process;
 import dev.phyce.naturalspeech.userinterface.components.EditorPanel;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
 import dev.phyce.naturalspeech.userinterface.components.IconTextField;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
-import dev.phyce.naturalspeech.utils.ChatHelper;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -59,11 +57,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import lombok.Data;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.util.SwingUtil;
+import org.checkerframework.common.aliasing.qual.NonLeaked;
 
 @Slf4j
 public class VoiceExplorerPanel extends EditorPanel {
@@ -73,7 +74,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final SAPI5Engine sapi5Engine;
 	private final MacSpeechEngine macSpeechEngine;
 	private final SpeechManager speechManager;
-	private final ChatHelper chatHelper;
 	private final VoiceListItem.Factory voiceListItemFactory;
 
 	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
@@ -91,6 +91,16 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private JPanel centerNoEngineWarning;
 	private JPanel centerCopyHint;
 
+	@Data
+	private static class State {
+		boolean anyDisabled = false;
+		boolean anyFailed = false;
+	}
+
+	@NonNull
+	@NonLeaked
+	private State state = new State();
+
 	@Inject
 	public VoiceExplorerPanel(
 		PiperRepository piperRepository,
@@ -100,7 +110,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SpeechManager speechManager,
 		PluginEventBus pluginEventBus,
 		MacSpeechEngine macSpeechEngine,
-		ChatHelper chatHelper,
 		VoiceListItem.Factory voiceListItemFactory
 	) {
 		this.piperRepository = piperRepository;
@@ -109,10 +118,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 		this.sapi5Engine = sapi5Engine;
 		this.speechManager = speechManager;
 		this.macSpeechEngine = macSpeechEngine;
-		this.chatHelper = chatHelper;
 		this.voiceListItemFactory = voiceListItemFactory;
 
-		pluginEventBus.register(this);
+		pluginEventBus.registerWeak(this);
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -139,8 +147,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		// Float Top/North Wrapper Panel, for search and speech text bar.
 		JPanel topPanel = new JPanel();
-		topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
-		topPanel.setLayout(new GridLayout(0, 1, 0, BORDER_OFFSET));
+		topPanel.setBorder(new EmptyBorder(0, 5, 10, 5));
+		topPanel.setLayout(new GridLayout(0, 1, 0, 5));
 		topPanel.add(searchBar);
 		topPanel.add(speechText);
 		this.add(topPanel, BorderLayout.NORTH);
@@ -166,91 +174,97 @@ public class VoiceExplorerPanel extends EditorPanel {
 		buildSpeakerList();
 	}
 
-	@SubscribeWeak
-	public void on(PiperModelEngineEvent event) {
-		String modelName = event.getModel().getModelName();
-		JPanel section = Preconditions.checkNotNull(modelSections.get(modelName));
+	@PluginSubscribe
+	public void on(SpeechEngineEvent event) {
+		final SpeechEngine engine = event.getSpeechEngine();
 		switch (event.getEvent()) {
+			case STARTING:
+				break;
+			case START_NO_RUNTIME:
+				break;
+			case START_DISABLED:
+				state.anyDisabled = true;
+				break;
+			case START_CRASHED:
+				state.anyFailed = true;
+				break;
 			case STARTED:
-				section.setVisible(true);
-				SwingUtilities.invokeLater(sectionListPanel::revalidate);
+				if (engine instanceof SAPI4Engine || engine instanceof SAPI5Engine) {
+					microsoftSegment.setVisible(true);
+				}
+				else if (engine instanceof MacSpeechEngine) {
+					macSegment.setVisible(true);
+				}
+				else if (engine instanceof PiperEngine) {
+					PiperRepository.PiperModel model = ((PiperEngine) engine).getModel();
+					JPanel section = Preconditions.checkNotNull(modelSections.get(model.getModelName()));
+					section.setVisible(true);
+				}
+				break;
+			case CRASHED:
+			case STOPPED:
+				if (engine instanceof SAPI4Engine || engine instanceof SAPI5Engine) {
+					if (!sapi4Engine.isAlive() && !sapi5Engine.isAlive()) {
+						microsoftSegment.setVisible(false);
+					}
+				}
+				else if (engine instanceof MacSpeechEngine) {
+					macSegment.setVisible(false);
+				}
+				else if (engine instanceof PiperEngine) {
+					PiperRepository.PiperModel model = ((PiperEngine) engine).getModel();
+					JPanel section = Preconditions.checkNotNull(modelSections.get(model.getModelName()));
+					section.setVisible(false);
+				}
+				break;
+			default:
+				break;
+		}
+
+		updateVoiceListItems();
+		updateWarnings();
+		SwingUtilities.invokeLater(sectionListPanel::revalidate);
+	}
+
+	@PluginSubscribe
+	public void on(SpeechManagerEvent event) {
+		switch (event.getEvent()) {
+			case STARTING:
+				state = new State();
+				centerStoppedWarning.setVisible(false);
+				break;
+			case STARTED:
+				if (event.getSpeechManager().isAlive()) {
+					centerCopyHint.setVisible(true);
+				}
+				else if (state.anyDisabled){
+						centerNoEngineWarning.setVisible(true);
+				}
 				break;
 			case STOPPED:
-				section.setVisible(false);
-				SwingUtilities.invokeLater(sectionListPanel::revalidate);
+				centerNoEngineWarning.setVisible(false);
+				centerStoppedWarning.setVisible(true);
+				centerCopyHint.setVisible(false);
 				break;
 		}
-		updateWarnings();
-	}
 
-	@SubscribeWeak
-	public void on(SpeechEngineStarted event) {
-		if (event.getSpeechEngine() == sapi4Engine || event.getSpeechEngine() == sapi5Engine) {
-			if (sapi4Engine.isStarted() || sapi5Engine.isStarted()) {
-				microsoftSegment.setVisible(true);
-				SwingUtilities.invokeLater(sectionListPanel::revalidate);
-			}
-		}
-
-		if (event.getSpeechEngine() == macSpeechEngine) {
-			macSegment.setVisible(true);
-			SwingUtilities.invokeLater(sectionListPanel::revalidate);
-		}
-
-		updateVoiceListItems();
-		updateWarnings();
-	}
-
-	@SubscribeWeak
-	public void on(SpeechEngineStopped event) {
-		if (event.getSpeechEngine() == sapi4Engine || event.getSpeechEngine() == sapi5Engine) {
-			if (!sapi4Engine.isStarted() && !sapi5Engine.isStarted()) {
-				microsoftSegment.setVisible(false);
-				SwingUtilities.invokeLater(sectionListPanel::revalidate);
-			}
-		}
-		updateVoiceListItems();
-		updateWarnings();
-	}
-
-	@SubscribeWeak
-	public void on(SpeechManagerFailedStart event) {
-		if (event.getReason() == SpeechManagerFailedStart.Reason.ALL_FAILED) {
-			centerNoEngineWarning.setVisible(true);
-			centerStoppedWarning.setVisible(false);
-			centerCopyHint.setVisible(false);
-		}
-		else {
-			centerNoEngineWarning.setVisible(false);
-			centerStoppedWarning.setVisible(true);
-			centerCopyHint.setVisible(false);
-		}
-	}
-
-	@SubscribeWeak
-	public void on(SpeechManagerStarted event) {
-		updateWarnings();
-	}
-
-	@SubscribeWeak
-	public void on(SpeechManagerStopped event) {
 		updateWarnings();
 	}
 
 	@Deprecated(
 		since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
-	@SubscribeWeak
+	@PluginSubscribe
 	public void on(PiperPathChanged event) {
 		SwingUtilities.invokeLater(this::buildSpeakerList);
 	}
 
-	@SubscribeWeak
+	@PluginSubscribe
 	public void on(PiperRepositoryChanged event) {
 		SwingUtilities.invokeLater(this::buildSpeakerList);
 	}
 
 	private void updateWarnings() {
-		boolean showWarning = !speechManager.isStarted();
+		boolean showWarning = !speechManager.isAlive();
 		centerStoppedWarning.setVisible(showWarning);
 		centerCopyHint.setVisible(!showWarning);
 		revalidate();
@@ -258,7 +272,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	private void updateVoiceListItems() {
 		for (VoiceListItem voiceListItem : voiceListItems) {
-			voiceListItem.setVisible(speechManager.contains(voiceListItem.getVoiceMetadata().getVoiceId()));
+			voiceListItem.setVisible(speechManager.canSpeak(voiceListItem.getVoiceMetadata().getVoiceId()));
 		}
 		revalidate();
 	}
@@ -304,8 +318,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionListPanel.add(centerCopyHint);
 
 		List<String> sapi4Models = sapi4Repository.getVoices();
-		List<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getAvailableSAPI5s();
-		List<PiperRepository.PiperModelURL> piperModelURLS = piperRepository.urls().collect(Collectors.toList());
+		ImmutableSet<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getNativeVoices();
+		List<PiperRepository.PiperModelURL> piperModelURLS = piperRepository.getUrls().collect(Collectors.toList());
 		Set<VoiceID> macVoices = macSpeechEngine.getNativeVoices().keySet();
 
 		buildMacModelSegment(macVoices);
@@ -430,7 +444,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		modelSections.put("mac", macSegment);
 	}
 
-	private void buildMicrosoftModelSegment(List<String> sapi4Models, List<SAPI5Process.SAPI5Voice> sapi5Models) {
+	private void buildMicrosoftModelSegment(List<String> sapi4Models, ImmutableSet<SAPI5Process.SAPI5Voice> sapi5Models) {
 		microsoftSegment = new JPanel();
 		microsoftSegment.setLayout(new BoxLayout(microsoftSegment, BoxLayout.Y_AXIS));
 		microsoftSegment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
@@ -487,7 +501,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 			.sorted()
 			.forEach((modelName) -> {
 				VoiceMetadata metadata =
-					new VoiceMetadata("", Gender.MALE, new VoiceID(SAPI4Engine.SAPI4_MODEL_NAME, modelName));
+					new VoiceMetadata("", Gender.MALE, VoiceID.of(SAPI4Engine.SAPI4_MODEL_NAME, modelName));
 				VoiceListItem speakerItem = voiceListItemFactory.create(speechText, metadata);
 				voiceListItems.add(speakerItem);
 				sectionContent.add(speakerItem);
@@ -500,7 +514,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 				// The ID is the model name, no need to display the full name
 				VoiceMetadata metadata = new VoiceMetadata("", voice.getGender(),
-					new VoiceID(SAPI5Engine.SAPI5_MODEL_NAME, modelName)
+					VoiceID.of(SAPI5Engine.SAPI5_MODEL_NAME, modelName)
 				);
 
 				VoiceListItem speakerItem = voiceListItemFactory.create(speechText, metadata);
@@ -624,22 +638,14 @@ public class VoiceExplorerPanel extends EditorPanel {
 		}
 	}
 
-	public void shutdown() {
-		this.removeAll();
-	}
-
 	@Override
 	public void onActivate() {
-		super.onActivate();
-
-		SwingUtilities.invokeLater(() -> setVisible(true));
+		setVisible(true);
 	}
 
 	@Override
 	public void onDeactivate() {
-		super.onDeactivate();
-
-		SwingUtilities.invokeLater(() -> setVisible(false));
+		setVisible(false);
 	}
 
 	private class SearchBarListener implements DocumentListener {

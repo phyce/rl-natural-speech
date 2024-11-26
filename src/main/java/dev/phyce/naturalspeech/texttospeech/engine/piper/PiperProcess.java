@@ -3,9 +3,9 @@ package dev.phyce.naturalspeech.texttospeech.engine.piper;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import dev.phyce.naturalspeech.utils.Result;
-import static dev.phyce.naturalspeech.utils.Result.Results.Error;
-import static dev.phyce.naturalspeech.utils.Result.Results.Ok;
-import dev.phyce.naturalspeech.utils.Texts;
+import static dev.phyce.naturalspeech.utils.Result.Error;
+import static dev.phyce.naturalspeech.utils.Result.Ok;
+import dev.phyce.naturalspeech.utils.TextUtil;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -71,7 +71,7 @@ public class PiperProcess {
 		stdErrThread = new StdErrThread();
 		stdErrThread.start();
 
-		log.info("{}", processBuilder.command().stream().reduce((a, b) -> a + " " + b).orElse(""));
+		log.trace("{}", processBuilder.command().stream().reduce((a, b) -> a + " " + b).orElse(""));
 	}
 
 	@Synchronized
@@ -81,7 +81,7 @@ public class PiperProcess {
 
 			stdOut.reset();
 
-			stdIn.write(Texts.generateJson(text, piperVoiceID));
+			stdIn.write(TextUtil.generateJson(text, piperVoiceID));
 			stdIn.newLine();
 			stdIn.flush();
 
@@ -98,7 +98,9 @@ public class PiperProcess {
 
 	private class StdOutThread extends Thread {
 
-		private StdOutThread() {super(String.format("[%s] processStdIn Thread", PiperProcess.this));}
+		private StdOutThread() {
+			super(String.format("[%s] processStdIn Thread", PiperProcess.this));
+		}
 
 		@Override
 		public void run() {
@@ -143,7 +145,7 @@ public class PiperProcess {
 		return process.isAlive();
 	}
 
-	void destroy() {
+	public void destroy() {
 		destroying = true;
 		stdErrThread.interrupt();
 		stdOutThread.interrupt();
@@ -166,10 +168,10 @@ public class PiperProcess {
 	@Override
 	public String toString() {
 		if (process.isAlive()) {return String.format("pid:%s model:%s", process.pid(), modelPath.getFileName());}
-		else {return String.format("pid:dead model:%s", modelPath.getFileName());}
+		else {return String.format("pid:%s(dead) model:%s", process.pid(), modelPath.getFileName());}
 	}
 
-	ListenableFuture<PiperProcess> onCrash() {
+	public ListenableFuture<PiperProcess> onCrash() {
 		SettableFuture<PiperProcess> crash = SettableFuture.create();
 		process.onExit().thenAccept((p) -> {
 			if (!this.destroying) {
@@ -182,7 +184,7 @@ public class PiperProcess {
 		return crash;
 	}
 
-	ListenableFuture<PiperProcess> onExit() {
+	public ListenableFuture<PiperProcess> onExit() {
 		SettableFuture<PiperProcess> exit = SettableFuture.create();
 		process.onExit().thenAccept((p) -> {
 			if (this.destroying) {

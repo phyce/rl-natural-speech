@@ -10,6 +10,7 @@ import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -22,11 +23,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ClientShutdown;
 import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
 @PluginSingleton
-public class PiperConfig {
+public class PiperConfig implements PluginModule {
 	private static final String CONFIG_KEY_MODEL_CONFIG = "ttsConfig";
 	private static final boolean DEFAULT_ENABLED = false;
 	private static final int DEFAULT_PROCESS_COUNT = 1;
@@ -39,6 +42,20 @@ public class PiperConfig {
 	public PiperConfig(ConfigManager configManager) {
 		this.configManager = configManager;
 		load();
+	}
+
+	@Override
+	public void startUp() {
+	}
+
+	@Override
+	public void shutDown() {
+		save();
+	}
+
+	@Subscribe
+	private void onClientShutdown(ClientShutdown event) {
+		save();
 	}
 
 	public void setEnabled(String modelName, boolean enabled) {

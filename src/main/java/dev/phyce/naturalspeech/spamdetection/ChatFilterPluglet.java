@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.spamdetection;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,7 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 // Hub rules disallows reflection, so Natural Speech re-implements the code, but uses ChatFilters' user configs.
 @Slf4j
 @PluginSingleton
-public class ChatFilterPluglet {
+public class ChatFilterPluglet implements PluginModule {
 
 	private static final Splitter NEWLINE_SPLITTER = Splitter
 		.on("\n")
@@ -228,7 +229,7 @@ public class ChatFilterPluglet {
 		}
 	}
 
-	@Subscribe(priority=-1) // run before SpeechEventHandler
+	@Subscribe(priority=-1) // run before SpeechModule
 	public void onChatMessage(ChatMessage chatMessage) {
 		if (!isChatFilterEnabled) return;
 

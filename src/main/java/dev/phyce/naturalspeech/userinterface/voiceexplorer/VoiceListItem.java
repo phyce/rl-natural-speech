@@ -2,9 +2,9 @@ package dev.phyce.naturalspeech.userinterface.voiceexplorer;
 
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
-import dev.phyce.naturalspeech.statics.Names;
+import dev.phyce.naturalspeech.statics.MagicNames;
 import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.texttospeech.SpeechManager;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.components.IconTextField;
 import dev.phyce.naturalspeech.utils.ChatHelper;
@@ -39,7 +39,6 @@ import net.runelite.client.util.SwingUtil;
 public class VoiceListItem extends JPanel {
 
 	private final SpeechManager speechManager;
-	private final ChatHelper chatHelper;
 	@Getter
 	private final VoiceMetadata voiceMetadata;
 	private final VoiceManager voiceManager;
@@ -64,7 +63,6 @@ public class VoiceListItem extends JPanel {
 		@Assisted VoiceMetadata voiceMetadata
 	) {
 		this.speechManager = speechManager;
-		this.chatHelper = chatHelper;
 		this.voiceManager = voiceManager;
 		this.voiceMetadata = voiceMetadata;
 		this.speakTextField = speakTextField;
@@ -124,12 +122,12 @@ public class VoiceListItem extends JPanel {
 			new Dimension(PluginResources.PLAY_BUTTON_DISABLED_ICON.getIconWidth(),
 				PluginResources.PLAY_BUTTON_DISABLED_ICON.getIconHeight()));
 		playButton.addActionListener(event -> {
-				speechManager.silence((lineName) -> lineName.equals(Names.VOICE_EXPLORER));
+				speechManager.silence((lineName) -> lineName.equals(MagicNames.VOICE_EXPLORER));
 				speechManager.speak(
 					voiceMetadata.voiceId,
 					chatHelper.renderReplacements(speakTextField.getText()),
 					() -> 0f,
-					Names.VOICE_EXPLORER
+					MagicNames.VOICE_EXPLORER
 				);
 			}
 		);
@@ -153,7 +151,7 @@ public class VoiceListItem extends JPanel {
 					hintPanel.setVisible(true);
 
 					// copy voiceid to clipboard
-					copyVoice(voiceMetadata);
+					setClipboardVoice(voiceMetadata);
 
 					Timer timer = new Timer(1500, event -> {
 						hintPanel.setVisible(false);
@@ -199,7 +197,7 @@ public class VoiceListItem extends JPanel {
 			blacklistMenu.setText(getBlacklistText());
 		});
 		JMenuItem copyMenu = new JMenuItem("Copy Voice ID");
-		copyMenu.addActionListener(e -> copyVoice(voiceMetadata));
+		copyMenu.addActionListener(e -> setClipboardVoice(voiceMetadata));
 		buildContextMenu(contentPanel, blacklistMenu, copyMenu);
 
 
@@ -249,7 +247,7 @@ public class VoiceListItem extends JPanel {
 		return isBlacklisted ? "Whitelist" : "Blacklist";
 	}
 
-	private static void copyVoice(VoiceMetadata voiceMetadata) {
+	private static void setClipboardVoice(VoiceMetadata voiceMetadata) {
 		StringSelection contents = new StringSelection(voiceMetadata.voiceId.toVoiceIDString());
 		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(contents, null);
 	}

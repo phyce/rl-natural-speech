@@ -4,11 +4,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
-import dev.phyce.naturalspeech.collections.GenderedVoiceMap;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.configs.VoiceSettings;
 import dev.phyce.naturalspeech.entity.EntityID;
-import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginResources;
@@ -24,6 +24,9 @@ import java.util.Set;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ClientShutdown;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.http.api.RuneLiteAPI;
 
 
@@ -35,33 +38,24 @@ import net.runelite.http.api.RuneLiteAPI;
  */
 @Slf4j
 @PluginSingleton
-public class VoiceManager {
+public class VoiceManager implements PluginModule {
 
 	private final ConfigManager configManager;
 	private final ClientHelper clientHelper;
-	private final Map<EntityID, VoiceID> settings = Collections.synchronizedMap(new HashMap<>());
+	private final NaturalSpeechConfig config;
 
-	/**
-	 * Gendered Voice Map contains the voices registered with the VoiceManager,
-	 * able to query by gender.
-	 */
+	private final Map<EntityID, VoiceID> settings = Collections.synchronizedMap(new HashMap<>());
 	private final GenderedVoiceMap genderCache = new GenderedVoiceMap();
 
-	/**
-	 * Active Voice Map contains the active voices that are registered with the VoiceManager.
-	 *
-	 * @see #register(VoiceID, Gender)
-	 * @see #unregister(VoiceID)
-	 */
-	//	private final Set<VoiceID> actives = Collections.synchronizedSet(new HashSet<>());
 	private final Set<VoiceID> blacklist = Collections.synchronizedSet(new HashSet<>());
 	private final Map<VoiceID, Gender> disallowed = Collections.synchronizedMap(new HashMap<>());
 	private final Map<VoiceID, Gender> allowed = Collections.synchronizedMap(new HashMap<>());
 
 	@Inject
-	public VoiceManager(ConfigManager configManager, ClientHelper clientHelper) {
+	public VoiceManager(ConfigManager configManager, ClientHelper clientHelper, NaturalSpeechConfig config) {
 		this.configManager = configManager;
 		this.clientHelper = clientHelper;
+		this.config = config;
 
 		// try to load from existing json in configManager
 		{
@@ -96,6 +90,74 @@ public class VoiceManager {
 		}
 	}
 
+	@Override
+	public void startUp() {
+		pullConfigVoices(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
+		pullConfigVoices(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice());
+		pullConfigVoices(ConfigKeys.SYSTEM_VOICE, config.systemVoice());
+	}
+
+	@Override
+	public void shutDown() {
+		save();
+	}
+
+	@Subscribe
+	private void onConfigChanged(ConfigChanged event) {
+		if (!event.getGroup().equals(CONFIG_GROUP)) return;
+
+		switch (event.getKey()) {
+			case ConfigKeys.PERSONAL_VOICE:
+			case ConfigKeys.GLOBAL_NPC_VOICE:
+			case ConfigKeys.SYSTEM_VOICE:
+				log.trace("Detected voice changes from config, loading in new voices");
+				pullConfigVoices(event.getKey(), event.getNewValue());
+				break;
+		}
+	}
+
+	@Subscribe
+	private void onClientShutdown(ClientShutdown event) {
+		save();
+	}
+
+	private void pullConfigVoices(String configKey, String voiceString) {
+		Optional<VoiceID> voiceID = VoiceID.fromIDString(voiceString);
+
+		switch (configKey) {
+			case ConfigKeys.PERSONAL_VOICE:
+				if (voiceID.isPresent()) {
+					log.debug("Setting personal voice to {}", voiceID.get());
+					set(EntityID.LOCAL_PLAYER, voiceID.get());
+				}
+				else {
+					log.debug("Invalid personal voice {}, resetting.", voiceString);
+					unset(EntityID.LOCAL_PLAYER);
+				}
+				break;
+			case ConfigKeys.GLOBAL_NPC_VOICE:
+				if (voiceID.isPresent()) {
+					log.debug("Setting global npc voice to {}", voiceID.get());
+					set(EntityID.GLOBAL_NPC, voiceID.get());
+				}
+				else {
+					log.debug("Invalid global npc voice to {}, resetting.", voiceString);
+					unset(EntityID.GLOBAL_NPC);
+				}
+				break;
+			case ConfigKeys.SYSTEM_VOICE:
+				if (voiceID.isPresent()) {
+					log.debug("Setting system voice to {}", voiceID.get());
+					set(EntityID.SYSTEM, voiceID.get());
+				}
+				else {
+					log.debug("Invalid system voice {}, resetting.", voiceString);
+					unset(EntityID.SYSTEM);
+				}
+				break;
+		}
+	}
+
 	public void save() {
 		configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.VOICE_CONFIG_KEY,
 			VoiceSettings.toJSON(settings));
@@ -107,63 +169,51 @@ public class VoiceManager {
 	 * Registered voices must be ready to speak.
 	 * <b>Unregister the voice when no longer speakable by the engine.</b>
 	 *
-	 * @param voiceID Voice
-	 * @param gender  Gender
-	 *
 	 * @see #unregister(VoiceID)
 	 */
-	public void register(@NonNull VoiceID voiceID, @NonNull Gender gender) {
+	public void register(@NonNull Voice voice) {
+		log.trace("Registered VoiceID: {}", voice);
+		VoiceID voiceID = voice.getId();
+		Gender gender = voice.getGender();
+
 		if (blacklist.contains(voiceID)) {
 			disallowed.put(voiceID, gender);
 		}
 		else {
 			allowed.put(voiceID, gender);
-			genderCache.add(voiceID, gender);
+			genderCache.put(voiceID, gender);
 		}
-		log.trace("Registered VoiceID: {}", voiceID);
 	}
 
 	/**
 	 * When the voice is no longer speakable, unregister the voice.
 	 *
-	 * @param voiceID Voice
-	 *
-	 * @see #register(VoiceID, Gender)
+	 * @see #register(Voice)
 	 */
 	public void unregister(@NonNull VoiceID voiceID) {
-		Gender removedDisallow = disallowed.remove(voiceID);
-		Gender removedAllow = allowed.remove(voiceID);
-		if (!(removedDisallow != null || removedAllow != null)) {
-			log.error("Attempting to unregister VoiceID that was not registered: {}", voiceID);
-		}
-
-		genderCache.remove(voiceID);
 		log.trace("Unregistered VoiceID: {}", voiceID);
+		disallowed.remove(voiceID);
+		allowed.remove(voiceID);
+		genderCache.remove(voiceID);
 	}
 
 	public void blacklist(@NonNull VoiceID voiceID) {
-		Preconditions.checkState(!blacklist.contains(voiceID), "VoiceID already blacklisted: %s", voiceID);
-
+		log.trace("Blacklisted VoiceID: {}", voiceID);
 		blacklist.add(voiceID);
 		Gender gender = allowed.remove(voiceID);
 		if (gender != null) {
 			genderCache.remove(voiceID);
 			disallowed.put(voiceID, gender);
-		} else {
-			log.error("VoiceID was is not registered: {}", voiceID);
 		}
 	}
 
 	public void unblacklist(@NonNull VoiceID voiceID) {
-		Preconditions.checkState(blacklist.contains(voiceID), "VoiceID not blacklisted: %s", voiceID);
-
+		log.trace("Unblacklisted VoiceID: {}", voiceID);
 		blacklist.remove(voiceID);
 		Gender gender = disallowed.remove(voiceID);
 		if (gender != null) {
 			allowed.put(voiceID, gender);
-			genderCache.add(voiceID, gender);
-		} else {
-			log.error("VoiceID was is not registered: {}", voiceID);
+			genderCache.put(voiceID, gender);
 		}
 	}
 

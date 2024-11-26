@@ -1,84 +1,86 @@
 package dev.phyce.naturalspeech.utils;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Mom: We have Rust at home<br>
  * Rust at home: {@link Result}
  */
-public interface Result<V, E extends Throwable> {
+@NonNull
+public interface Result<@NonNull V, @NonNull E extends Throwable> {
+
+	@NonNull
+	static <V, E extends Throwable> Result<V, E> Ok(V value) {
+		return new OkResult<>(value);
+	}
+
+	@NonNull
+	static <E extends Throwable> Result<Void, E> Ok() {
+		return new OkResult<>(null);
+	}
+
+	@NonNull
+	static <V, E extends Throwable> Result<V, E> Error(@NonNull E exception) {
+		return new ErrorResult<>(exception);
+	}
+
+
 
 	boolean isOk();
 
 	boolean isError();
 
-	@NonNull
-	Result<V, E> ifOk(@NonNull Consumer<V> then);
+	void ifOk(@NonNull Consumer<? super V> then);
+
+	void ifOk(@NonNull Runnable then);
+
+	void ifError(@NonNull Consumer<? super E> then);
+
+	<V2> Result<V2, E> map(@NonNull Function<? super V, V2> mapper);
+
+	<E2 extends Throwable> Result<V, E2> mapError(@NonNull Function<? super E, E2> mapper);
+
+	Optional<V> toOptional();
 
 	@NonNull
-	Result<V, E> ifError(@NonNull Consumer<E> then);
+	V unwrap() throws IllegalUnwrapException;
 
 	@NonNull
-	V unwrap() throws E;
+	E unwrapError() throws IllegalUnwrapException;
+
 
 	@NonNull
-	E unwrapError() throws IllegalStateException;
-
-	@Value
-	@AllArgsConstructor(access=AccessLevel.PRIVATE)
-	class ErrorResult<V, E extends Throwable> implements Result<V, E> {
-		@NonNull
-		E exception;
-
-		public static <T, E extends Throwable> ErrorResult<T, E> Error(@NonNull E exception) {
-			return new ErrorResult<>(exception);
-		}
-
-		@Override
-		public boolean isOk() {return false;}
-
-		@Override
-		public boolean isError() {return true;}
-
-		@Override
-		public @NonNull Result<V, E> ifOk(@NonNull Consumer<V> then) {
-			return this;
-		}
-
-		@Override
-		public @NonNull Result<V, E> ifError(@NonNull Consumer<E> then) {
-			then.accept(exception);
-			return this;
-		}
-
-		@Override
-		public @NonNull V unwrap() throws E {
-			throw exception;
-		}
-
-		@Override
-		public @NonNull E unwrapError() throws IllegalStateException {
-			return exception;
+	static <V> Result<V, NoSuchElementException> fromNullable(@Nullable V value) {
+		if (value == null) {
+			return Error(new NoSuchElementException("Value is null"));
+		} else {
+			return Ok(value);
 		}
 	}
 
-	@Value
-	@AllArgsConstructor(access=AccessLevel.PRIVATE)
-	class OkResult<V, E extends Throwable> implements Result<V, E> {
-		V value;
-
-		public static <T, E extends Throwable> @NonNull OkResult<T, E> Ok(@NonNull T value) {
-			return new OkResult<>(value);
+	@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+	@NonNull
+	static <V> Result<V, NoSuchElementException> fromOptional(Optional<V> value) {
+		if (value.isEmpty()) {
+			return Error(new NoSuchElementException("Value is null"));
+		} else {
+			return Ok(value.get());
 		}
+	}
 
-		public static <Void, E extends Throwable> @NonNull OkResult<Void, E> Ok() {
-			return new OkResult<>(null);
-		}
+	@AllArgsConstructor(access=AccessLevel.PUBLIC)
+	class OkResult<@NonNull V, E extends Throwable> implements Result<V, E> {
+		private final V value;
 
 		@Override
 		public boolean isOk() {return true;}
@@ -87,14 +89,31 @@ public interface Result<V, E extends Throwable> {
 		public boolean isError() {return false;}
 
 		@Override
-		public @NonNull Result<V, E> ifOk(@NonNull Consumer<V> then) {
+		public void ifOk(@NonNull Consumer<? super V> then) {
 			then.accept(value);
-			return this;
 		}
 
 		@Override
-		public @NonNull Result<V, E> ifError(@NonNull Consumer<E> then) {
-			return this;
+		public void ifOk(@NonNull Runnable then) {
+			then.run();
+		}
+
+		@Override
+		public void ifError(@NonNull Consumer<? super E> then) {}
+
+		@Override
+		public <V2> Result<V2, E> map(@NonNull Function<? super V, V2> mapper) {
+			return new OkResult<>(mapper.apply(value));
+		}
+
+		@Override
+		public <E2 extends Throwable> Result<V, E2> mapError(@NonNull Function<? super E, E2> mapper) {
+			return new OkResult<>(value);
+		}
+
+		@Override
+		public Optional<V> toOptional() {
+			return Optional.of(value);
 		}
 
 		@Override
@@ -103,24 +122,81 @@ public interface Result<V, E extends Throwable> {
 		}
 
 		@Override
-		public @NonNull E unwrapError() throws IllegalStateException {
-			throw new IllegalStateException("Cannot unwrap error from Ok result");
+		public @NonNull E unwrapError() throws IllegalUnwrapException {
+			throw new IllegalUnwrapException("Cannot unwrap error from Ok result");
 		}
 
 	}
 
-	@NoArgsConstructor(access=AccessLevel.PRIVATE)
-	class Results {
-		public static <T, E extends Throwable> Result<T, E> Ok(T value) {
-			return OkResult.Ok(value);
+	@Slf4j
+	@AllArgsConstructor(access=AccessLevel.PRIVATE)
+	class ErrorResult<V, @NonNull E extends Throwable> implements Result<V, E> {
+		private final E exception;
+
+		@Override
+		public boolean isOk() {return false;}
+
+		@Override
+		public boolean isError() {return true;}
+
+		@Override
+		public void ifOk(@NonNull Consumer<? super V> then) {}
+
+		@Override
+		public void ifOk(@NonNull Runnable then) {}
+
+		@Override
+		public void ifError(@NonNull Consumer<? super E> then) {
+			then.accept(exception);
 		}
 
-		public static <Void, E extends Throwable> Result<Void, E> Ok() {
-			return OkResult.Ok();
+		@Override
+		public <V2> Result<V2, E> map(@NonNull Function<? super V, V2> mapper) {
+			return new ErrorResult<>(exception);
 		}
 
-		public static <T, E extends Throwable> Result<T, E> Error(@NonNull E exception) {
-			return ErrorResult.Error(exception);
+		@Override
+		public <E2 extends Throwable> Result<V, E2> mapError(@NonNull Function<? super E, E2> mapper) {
+			return new ErrorResult<>(mapper.apply(exception));
 		}
+
+		@Override
+		public Optional<V> toOptional() {
+			return Optional.empty();
+		}
+
+		@Override
+		public @NonNull V unwrap() throws IllegalStateException {
+			throw new IllegalUnwrapException("Cannot unwrap value from Error result");
+		}
+
+		@Override
+		public @NonNull E unwrapError() {
+			return exception;
+		}
+	}
+
+	class IllegalUnwrapException extends IllegalStateException {
+		public IllegalUnwrapException(String message) {
+			super(message);
+		}
+	}
+
+	class ResultFutures {
+		@NonNull
+		public static <V,E extends Throwable> ListenableFuture<Result<V,E>> immediateError(@NonNull E exception) {
+			return Futures.immediateFuture(Error(exception));
+		}
+
+		@NonNull
+		public static <V,E extends Throwable> ListenableFuture<Result<V,E>> immediateOk(@NonNull V value) {
+			return Futures.immediateFuture(Ok(value));
+		}
+
+		@NonNull
+		public static <E extends Throwable> ListenableFuture<Result<Void,E>> immediateOk() {
+			return Futures.immediateFuture(Ok());
+		}
+
 	}
 }

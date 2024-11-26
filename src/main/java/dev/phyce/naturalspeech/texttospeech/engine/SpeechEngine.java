@@ -1,63 +1,29 @@
 package dev.phyce.naturalspeech.texttospeech.engine;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import dev.phyce.naturalspeech.texttospeech.SpeechManager;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import dev.phyce.naturalspeech.texttospeech.Voice;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import dev.phyce.naturalspeech.utils.Result;
+import dev.phyce.naturalspeech.utils.StreamableFuture;
+import java.util.List;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+import lombok.Value;
 
 public interface SpeechEngine {
 
-	enum SpeakStatus {
-		ACCEPT,
-		REJECT,
-	}
-
-	enum StartResult {
-		SUCCESS,
-		FAILED,
-		NOT_INSTALLED,
-		DISABLED
-	}
-
-	enum EngineType {
-		BUILTIN_PLUGIN,
-		BUILTIN_OS,
-		EXTERNAL_DEPENDENCY,
-		// NETWORKED (some day in the future?)
-	}
-
-	/**
-	 * {@link SpeechManager} will call speak for in-coming VoiceID,
-	 * if the engine can speak the voiceID, speak and return true.
-	 * Otherwise, returning false will allow TextToSpeech to find other engines to speak.
-	 *
-	 * @param voiceID      the voiceID to speak
-	 * @param text         the text to speak
-	 * @param gainSupplier a supplier that provides the dynamic gain value for the speech
-	 * @param lineName     the name of the AudioEngine line to speak on
-	 *
-	 * @return {@link SpeakStatus#ACCEPT} if speak was successful, {@link SpeakStatus#REJECT} if the engine cannot speak this VoiceID.
-	 */
 	@NonNull
-	SpeechEngine.SpeakStatus speak(VoiceID voiceID, String text, Supplier<Float> gainSupplier, String lineName);
+	Result<@NonNull StreamableFuture<Audio>, @NonNull Rejection> generate(
+		@NonNull VoiceID voiceID,
+		@NonNull String text
+	);
 
-	ListenableFuture<StartResult> start();
+	boolean isAlive();
 
-	void stop();
+	ImmutableSet<Voice> getVoices();
 
-	boolean isStarted();
-
-	boolean contains(VoiceID voiceID);
-
-	/**
-	 * Cancels queued and processing speak tasks. Cancel should not try to silence ongoing AudioEngine lines.
-	 * For silencing + canceling, use {@link SpeechManager#silence(Predicate)}
-	 */
-	void silence(Predicate<String> lineCondition);
-
-	void silenceAll();
+	ImmutableSet<VoiceID> getVoiceIDs();
 
 	@NonNull
 	EngineType getEngineType();
@@ -65,4 +31,54 @@ public interface SpeechEngine {
 	@NonNull
 	String getEngineName();
 
+	@EqualsAndHashCode(callSuper=true)
+	@Value
+	class Rejection extends Throwable {
+
+		public enum Reason {
+			MULTIPLE,
+			REJECT,
+			DEAD;
+		}
+
+		@NonNull
+		public SpeechEngine engine;
+		@NonNull
+		public Reason reason;
+
+		@NonNull
+		public ImmutableList<Rejection> childs;
+
+		public <T extends SpeechEngine> Rejection(@NonNull T engine, @NonNull Reason reason) {
+			super("");
+			this.engine = engine;
+			this.reason = reason;
+			this.childs = ImmutableList.of();
+		}
+
+		public <T extends SpeechEngine> Rejection(@NonNull T engine, @NonNull List<Rejection> rejections) {
+			super("");
+			this.engine = engine;
+			this.reason = Reason.MULTIPLE;
+			this.childs = ImmutableList.copyOf(rejections);
+
+		}
+
+		public static Rejection MULTIPLE(@NonNull SpeechEngine engine, @NonNull List<Rejection> rejections) {
+			return new Rejection(engine, rejections);
+		}
+
+		public static Rejection REJECT(@NonNull SpeechEngine engine) {
+			return new Rejection(engine, Reason.REJECT);
+		}
+
+		public static Rejection DEAD(@NonNull SpeechEngine engine) {
+			return new Rejection(engine, Reason.DEAD);
+		}
+	}
+
+	enum EngineType {
+		MANAGER, BUILTIN_OS, EXTERNAL_DEPENDENCY,
+		// NETWORKED (some day in the future?)
+	}
 }

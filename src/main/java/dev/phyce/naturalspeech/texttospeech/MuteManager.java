@@ -4,6 +4,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
@@ -15,12 +16,14 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ClientShutdown;
 import net.runelite.client.util.Text;
 import net.runelite.http.api.RuneLiteAPI;
 
 @Slf4j
 @PluginSingleton
-public class MuteManager {
+public class MuteManager implements PluginModule {
 
 	private final Set<EntityID> listenList = new HashSet<>();
 	private final Set<EntityID> muteList = new HashSet<>();
@@ -36,6 +39,21 @@ public class MuteManager {
 		this.configManager = configManager;
 
 		load();
+	}
+
+	@Override
+	public void startUp() {
+
+	}
+
+	@Override
+	public void shutDown() {
+		save();
+	}
+
+	@Subscribe
+	private void onClientShutdown(ClientShutdown event) {
+		save();
 	}
 
 	public boolean isAllowed(@NonNull EntityID eid) {
