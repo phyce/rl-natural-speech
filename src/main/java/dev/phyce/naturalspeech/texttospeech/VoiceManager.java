@@ -125,7 +125,7 @@ public class VoiceManager {
 	public VoiceID resolve(@NonNull EntityID entityID) {
 		Preconditions.checkState(!activeVoiceMap.isEmpty(), "No active voices.");
 
-		// if there is setting for this entity, use that
+
 		VoiceID voiceID = settings.get(entityID);
 
 		if (voiceID != null && !activeVoiceMap.contains(voiceID)) {
@@ -133,7 +133,14 @@ public class VoiceManager {
 			voiceID = null;
 		}
 
-		// no settings, randomize
+		if (entityID.id != null && settings.containsKey(EntityID.GLOBAL_NPC)) {
+			VoiceID globalVoice = settings.get(EntityID.GLOBAL_NPC);
+			if (globalVoice != null && activeVoiceMap.contains(globalVoice)) {
+				log.trace("Using global NPC voice for {}: {}", entityID, globalVoice);
+				return globalVoice;
+			}
+		}
+
 		if (voiceID == null) {
 			log.trace("No voice setting for {}. Randomizing voice.", entityID);
 			voiceID = random(entityID);
