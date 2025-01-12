@@ -186,7 +186,7 @@ public class SpeechEventHandler {
 			log.trace("Player dialog textWidget detected:{}", textWidget.getText());
 
 			String text = chatHelper.standardizeWidgetText(textWidget);
-			VoiceID voiceID = voiceManager.resolve(EntityID.USER);
+			VoiceID voiceID = voiceManager.resolve(EntityID.LOCAL_PLAYER);
 
 			speechManager.speak(voiceID, text, volumeManager.dialog(), Names.DIALOG);
 		});

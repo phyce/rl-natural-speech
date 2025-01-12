@@ -25,7 +25,7 @@ public interface ConfigKeys {
 	String SYSTEM_MESSAGES = "systemMessages";
 	String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 	String MUTE_SELF = "muteSelf";
-	String MUTE_OTHERS = "muteOthers";
+	String MUTE_OTHER_PLAYERS = "muteOthers";
 	String MUTE_LEVEL_THRESHOLD = "muteLevelThreshold";
 	String MUTE_CROWDS = "muteCrowds";
 	String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
@@ -51,6 +51,7 @@ public interface ConfigKeys {
 
 	// Voice
 	String VOICE_CONFIG_KEY = "speaker_config.json";
+	String VOICE_BLACKLIST_KEY = "voiceBlacklist";
 
 	// region Mute and listen
 	String LISTEN_MODE = "listenMode";

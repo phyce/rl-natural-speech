@@ -228,7 +228,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					module.speechManager.silence((otherLineName) -> otherLineName.equals(Names.USER));
 					break;
 
-				case ConfigKeys.MUTE_OTHERS:
+				case ConfigKeys.MUTE_OTHER_PLAYERS:
 					log.trace("Detected mute-others toggle, clearing audio queue.");
 					module.speechManager.silence((otherLineName) -> !otherLineName.equals(Names.USER));
 					break;
@@ -305,11 +305,11 @@ public class NaturalSpeechPlugin extends Plugin {
 			case ConfigKeys.PERSONAL_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting personal voice to {}", voiceID);
-					module.voiceManager.set(EntityID.USER, voiceID);
+					module.voiceManager.set(EntityID.LOCAL_PLAYER, voiceID);
 				}
 				else {
 					log.debug("Invalid personal voice {}, resetting.", voiceString);
-					module.voiceManager.unset(EntityID.USER);
+					module.voiceManager.unset(EntityID.LOCAL_PLAYER);
 				}
 				break;
 

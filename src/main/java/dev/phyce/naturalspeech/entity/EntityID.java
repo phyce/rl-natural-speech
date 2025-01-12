@@ -9,7 +9,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.JsonAdapter;
-import dev.phyce.naturalspeech.statics.Names;
+import dev.phyce.naturalspeech.statics.MagicNames;
 import dev.phyce.naturalspeech.utils.Standardize;
 import java.lang.reflect.Type;
 import java.util.Objects;
@@ -23,9 +23,9 @@ import net.runelite.api.Player;
 @Slf4j
 @JsonAdapter(EntityID.JSONAdaptor.class)
 public final class EntityID {
-	public static final EntityID USER = name(Names.USER);
-	public static final EntityID SYSTEM = name(Names.SYSTEM);
-	public static final EntityID GLOBAL_NPC = name(Names.GLOBAL_NPC);
+	public static final EntityID LOCAL_PLAYER = name(MagicNames.LOCAL_PLAYER);
+	public static final EntityID SYSTEM = name(MagicNames.SYSTEM);
+	public static final EntityID GLOBAL_NPC = name(MagicNames.GLOBAL_NPC);
 	/**
 	 * The JSON schema version
 	 */
@@ -66,13 +66,23 @@ public final class EntityID {
 	@Override
 	public boolean equals(Object other) {
 		if (other == null) return false;
+		if (!(other instanceof EntityID)) return false;
 
-		if (other instanceof EntityID) return this.hashCode() == other.hashCode();
-		else return false;
+		EntityID otherEntity = (EntityID) other;
+
+		if (this.id != null && otherEntity.id != null) {
+			return this.id.equals(otherEntity.id);
+		}
+
+		if (this.name != null && otherEntity.name != null) {
+			return this.name.equals(otherEntity.name);
+		}
+
+		return false;
 	}
 
 	public boolean isUser() {
-		return this.equals(USER);
+		return this.equals(LOCAL_PLAYER);
 	}
 
 	public boolean isNPC(@NonNull NPC npc) {

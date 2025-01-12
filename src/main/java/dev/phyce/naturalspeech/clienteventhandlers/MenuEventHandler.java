@@ -426,7 +426,7 @@ enum MenuIconSet {
 enum VoiceConfigMenu {
 	YOUR_VOICE(
 		ConfigKeys.PERSONAL_VOICE,
-		EntityID.USER,
+		EntityID.LOCAL_PLAYER,
 		"",
 		"Yourself",
 		null,
@@ -635,7 +635,7 @@ enum TabConfigMenu {
 	),
 
 	_MUTE_OTHERS(
-		new String[] {ConfigKeys.MUTE_OTHERS},
+		new String[] {ConfigKeys.MUTE_OTHER_PLAYERS},
 		"Others",
 		null,
 		null,

@@ -4,19 +4,24 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.gson.JsonSyntaxException;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.audio.VolumeManager;
 import dev.phyce.naturalspeech.configs.json.ReplacementsJSON;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.SpamDetection;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
 import static dev.phyce.naturalspeech.utils.Locations.inGrandExchange;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -26,28 +31,29 @@ import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.WorldView;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.OverheadTextChanged;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.util.Text;
 
 @Slf4j
 @PluginSingleton
-public class ChatHelper {
+public class ChatHelper implements PluginModule {
 
 	private final Client client;
 	private final ClientHelper clientHelper;
 	private final SpamDetection spamDetection;
-	private static NaturalSpeechConfig config;
+	private final NaturalSpeechConfig config;
 	private final MuteManager muteManager;
 	private final VolumeManager volumeManager;
 
 	public enum ChatType {
 		User,
-		Npc,
 		OtherPlayers,
 		System,
-		Dialog,
 		Unknown;
 	}
 
@@ -76,11 +82,30 @@ public class ChatHelper {
 		this.client = client;
 		this.clientHelper = clientHelper;
 		this.spamDetection = spamDetection;
-		ChatHelper.config = config;
+		this.config = config;
 		this.muteManager = muteManager;
 		this.volumeManager = volumeManager;
 
 		loadBuiltInReplacement(PluginResources.BUILT_IN_REPLACEMENTS);
+	}
+
+	@Override
+	public void startUp() {
+		loadCustomReplacements();
+	}
+
+//	@Override
+//	public void shutDown() {
+//	}
+
+	@Subscribe
+	private void onConfigChanged(ConfigChanged event) {
+		if (!event.getGroup().equals(CONFIG_GROUP)) return;
+
+		if (event.getKey().equals(ConfigKeys.CUSTOM_TEXT_REPLACEMENTS)) {
+			log.trace("Detected abbreviation changes, reloading into TextToSpeech");
+			loadCustomReplacements();
+		}
 	}
 
 	public EntityID getEntityID(ChatMessage message) {
@@ -88,16 +113,13 @@ public class ChatHelper {
 		final EntityID eid;
 		switch (chatType) {
 			case User:
-				eid = EntityID.USER;
+				eid = EntityID.LOCAL_PLAYER;
 				break;
 			case OtherPlayers:
 				eid = EntityID.name(message.getName());
 				break;
 			case System:
 				eid = EntityID.SYSTEM;
-				break;
-			case Npc:
-				eid = EntityID.GLOBAL_NPC;
 				break;
 			case Unknown:
 			default:
@@ -147,10 +169,11 @@ public class ChatHelper {
 			case GAMEMESSAGE:
 			case MESBOX:
 				return true;
-			case CLAN_MESSAGE:
-				if (config.clanChatEnabled()) return true;
+			default:
+				return false;
+//			case CLAN_MESSAGE:
+//				if (config.clanChatEnabled()) return true;
 		}
-		return false;
 	}
 
 	private static boolean isInnerVoice(@NonNull ChatMessageType messageType) {
@@ -192,7 +215,8 @@ public class ChatHelper {
 			log.trace("Muting message. No alpha numeric characters. Message:{}", message);
 			return true;
 		}
-
+		System.out.println("chatType");
+		System.out.println(chatType);
 		if (chatType == ChatType.Unknown) return true;
 
 		if (eid.isUser()) {
@@ -215,7 +239,7 @@ public class ChatHelper {
 			return true;
 		}
 
-		if (config.muteOthers() && chatType == ChatType.OtherPlayers) {
+		if (config.muteOtherPlayers() && chatType == ChatType.OtherPlayers) {
 			log.trace("Muting message. Muting others. Message:{}", message);
 			return true;
 		}
@@ -254,17 +278,17 @@ public class ChatHelper {
 	private boolean isMessageDisabled(@NonNull ChatMessageType messageType) {
 		switch (messageType) {
 			case PUBLICCHAT:
+			case MODCHAT:
 				if (!config.publicChatEnabled()) return true;
 				break;
 			case PRIVATECHAT:
+			case MODPRIVATECHAT:
+			case FRIENDSCHAT:
 				if (!config.privateChatEnabled()) return true;
 				break;
 			case PRIVATECHATOUT:
 				if (!config.privateOutChatEnabled()) return true;
 				break;
-			//			case FRIENDSCHAT:
-			//				if (!config.friendsChatEnabled()) return true;
-			//				break;
 			case CLAN_CHAT:
 				if (!config.clanChatEnabled()) return true;
 				break;
@@ -279,13 +303,16 @@ public class ChatHelper {
 			case NPC_EXAMINE:
 				if (!config.examineChatEnabled()) return true;
 				break;
-			case WELCOME:
-			case LOGINLOGOUTNOTIFICATION:
-			case GAMEMESSAGE:
+
 			case CLAN_MESSAGE:
-				if (!config.clanChatEnabled()) return true;
 			case CLAN_GIM_MESSAGE:
 			case CLAN_GUEST_MESSAGE:
+				if (!config.clanChatEnabled()) return true;
+
+			case GAMEMESSAGE:
+			case LOGINLOGOUTNOTIFICATION:
+			case WELCOME:
+			case ENGINE:
 				if (!config.systemMesagesEnabled()) return true;
 				break;
 			case TRADEREQ:
@@ -295,6 +322,7 @@ public class ChatHelper {
 				if (!config.requestsEnabled()) return true;
 				break;
 			case CONSOLE: //
+			case MESBOX: // Used for UI text
 				return true;
 		}
 		return false;
@@ -304,13 +332,15 @@ public class ChatHelper {
 	private boolean isTooCrowded() {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;
+		@Nullable WorldView topLevelWorldView = client.getTopLevelWorldView();
+		if (topLevelWorldView == null) return false;
 
-		int count = (int) client.getPlayers().stream()
-			// Exclude the local player themselves
-			.filter(player -> player != localPlayer)
-			// For example, within 15 tiles
-			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <= 15)
-			.count();
+		int count = (int) topLevelWorldView.players().stream()
+				// Exclude the local player themselves
+				.filter(player -> !Objects.equals(player, localPlayer))
+				// For example, within 15 tiles
+				.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <= 15)
+				.count();
 
 		return config.muteCrowds() > 0 && config.muteCrowds() < count;
 	}

@@ -286,13 +286,13 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=2,
-		keyName=ConfigKeys.MUTE_OTHERS,
-		name="Others",
+		keyName=ConfigKeys.MUTE_OTHER_PLAYERS,
+		name="Other Players",
 		description="Do not generate text-to-speech for messages from other players",
 		section=muteOptionsSection
 
 	)
-	default boolean muteOthers() {
+	default boolean muteOtherPlayers() {
 		return false;
 	}
 
