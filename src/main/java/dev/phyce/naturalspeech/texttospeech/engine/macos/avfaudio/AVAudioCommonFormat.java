@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio;
 
 /*
  */

@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.objc;
 
 public final class BlockFlags {
 	public static final int BLOCK_REFCOUNT_MASK = (0xffff);

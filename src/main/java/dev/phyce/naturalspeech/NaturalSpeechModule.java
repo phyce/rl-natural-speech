@@ -1,5 +1,6 @@
 package dev.phyce.naturalspeech;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.audio.VolumeManager;
@@ -35,6 +36,8 @@ import dev.phyce.naturalspeech.utils.ClientHelper;
  */
 @PluginSingleton
 class NaturalSpeechModule {
+	final ImmutableSet<PluginModule> submodules;
+
 	final RuntimePathConfig runtimeConfig;
 	final VoiceManager voiceManager;
 	final MuteManager muteManager;
@@ -109,6 +112,10 @@ class NaturalSpeechModule {
 		this.clientHelper = clientHelper;
 		this.chatHelper = chatHelper;
 		this.macSpeechEngine = macSpeechEngine;
+
+		ImmutableSet.Builder<PluginModule> builder = ImmutableSet.builder();
+
+		this.submodules = builder.build();
 	}
 
 }

@@ -1,7 +1,7 @@
 package dev.phyce.naturalspeech.audio;
 
 import static com.google.common.base.Preconditions.checkState;
-import static dev.phyce.naturalspeech.utils.Threads.silentInterruptHandler;
+import static dev.phyce.naturalspeech.utils.ThreadUtil.silentInterruptHandler;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;

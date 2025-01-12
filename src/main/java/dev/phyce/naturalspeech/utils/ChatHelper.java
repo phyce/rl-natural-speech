@@ -44,8 +44,10 @@ public class ChatHelper {
 
 	public enum ChatType {
 		User,
+		Npc,
 		OtherPlayers,
 		System,
+		Dialog,
 		Unknown;
 	}
 
@@ -94,6 +96,9 @@ public class ChatHelper {
 			case System:
 				eid = EntityID.SYSTEM;
 				break;
+			case Npc:
+				eid = EntityID.GLOBAL_NPC;
+				break;
 			case Unknown:
 			default:
 				eid = EntityID.SYSTEM;
@@ -102,6 +107,9 @@ public class ChatHelper {
 	}
 
 	public ChatType getChatType(ChatMessage message) {
+		System.out.println(message.getMessage());
+		System.out.println(message.getType());
+		System.out.println("======================================");
 		final EntityID nameEID = EntityID.name(message.getName());
 		if (isChatSystemVoice(message.getType())) {
 			return ChatType.System;
@@ -180,7 +188,7 @@ public class ChatHelper {
 		EntityID eid = getEntityID(message);
 
 		// example: "::::::))))))" (no alpha numeric, muted)
-		if (!Texts.containAlphaNumeric(message.getMessage())) {
+		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
 			log.trace("Muting message. No alpha numeric characters. Message:{}", message);
 			return true;
 		}
@@ -324,7 +332,7 @@ public class ChatHelper {
 		}
 
 		text = renderReplacements(text);
-		text = Texts.renderLargeNumbers(text);
+		text = TextUtil.renderLargeNumbers(text);
 		return text;
 	}
 

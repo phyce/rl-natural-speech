@@ -1,10 +1,10 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.objc;
 
 import static com.google.common.base.Preconditions.checkState;
 import com.sun.jna.Function;
 import com.sun.jna.NativeLibrary;
 import com.sun.jna.Pointer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSString;
 
 /**
  * <h1>Objective-C Runtime Library</h1>

@@ -1,10 +1,10 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSString;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
 
 /**
  * @see <a href="https://developer.apple.com/documentation/avfaudio/avspeechutterance?language=objc">Apple Documentation</a>

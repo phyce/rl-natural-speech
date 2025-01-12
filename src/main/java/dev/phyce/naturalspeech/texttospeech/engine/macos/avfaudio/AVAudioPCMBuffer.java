@@ -1,9 +1,9 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfaudio;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.avfaudio;
 
 import com.sun.jna.Pointer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
 
 /**
  * @see <a href="https://developer.apple.com/documentation/avfaudio/avaudiopcmbuffer?language=objc">Apple Documentation</a>

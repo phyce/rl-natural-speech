@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.objc;
 
 import static com.google.common.base.Preconditions.checkState;
 import com.sun.jna.Callback;
@@ -6,8 +6,8 @@ import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-import static dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.BlockFlags.BLOCK_HAS_COPY_DISPOSE;
-import static dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.BlockFlags.BLOCK_NEEDS_FREE;
+import static dev.phyce.naturalspeech.texttospeech.engine.macos.objc.BlockFlags.BLOCK_HAS_COPY_DISPOSE;
+import static dev.phyce.naturalspeech.texttospeech.engine.macos.objc.BlockFlags.BLOCK_NEEDS_FREE;
 import java.util.Vector;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -100,6 +100,8 @@ public class Block extends Structure {
 	 * Allocates a new heap block with the given function pointer
 	 *
 	 * @param invoke The function pointer to the block invoke function
+	 * @memory ref-counted and Native::freed by the Objective-C Block Runtime, does not need manual free.
+	 * Use {@link #retain(Block)} and {@link #release(Block)} to manage the block's lifecycle.
 	 */
 	private Block(@NonNull Callback invoke) {
 		// Objective-C runtime ref-counts blocks, and free them when they are no longer needed.

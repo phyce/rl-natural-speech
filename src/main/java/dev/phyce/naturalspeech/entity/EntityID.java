@@ -31,7 +31,7 @@ public final class EntityID {
 	 */
 	static final int VERSION = 1;
 
-	final Integer id;
+	public final Integer id;
 	final String name;
 
 	private EntityID(@Nullable Integer id, @Nullable String name) {

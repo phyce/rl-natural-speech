@@ -9,6 +9,7 @@ public interface ConfigKeys {
 	String AUTO_START = "autoStart";
 	String DISTANCE_FADE = "distanceFade";
 	String MASTER_VOLUME = "masterVolume";
+	String MASTER_MUTE = "masterMute";
 	String SPEECH_GENERATION = "Speech generation";
 	String PUBLIC_CHAT = "publicChat";
 	String PRIVATE_CHAT = "privateChat";

@@ -1,4 +1,4 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.objc;
 
 import com.sun.jna.Callback;
 import com.sun.jna.NativeLong;

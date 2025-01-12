@@ -8,14 +8,16 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public final class Texts {
+public final class TextUtil {
+
+	private static final Pattern patternTargetWithLevel = Pattern.compile("(.+) {2}\\(level-\\d+\\)");
+	private static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-zÀ-ÖØ-öø-ÿ].*");
 
 	public static List<String> splitSentence(String text) {
 		// https://www.baeldung.com/java-split-string-keep-delimiters
 		// This regex splits: "Hello, NaturalSpeech?" Into ["Hello,", "NaturalSpeech?"]
 		// By using a positive-lookbehind delimiter matcher
-		String[] segments = text.split("((?<=[.,!?:;]))");
-		return Arrays.stream(segments)
+		return Arrays.stream(text.split("((?<=[.,!?:;]))"))
 			.map(String::trim)
 			.filter(s -> !s.isEmpty())
 			.collect(Collectors.toList());
@@ -35,8 +37,6 @@ public final class Texts {
 		text = text.replaceAll("(?i)(\\d+)\\s?t\\b", "$1 trillion");
 		return text;
 	}
-
-	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-zÀ-ÖØ-öø-ÿ].*");
 
 	public static boolean containAlphaNumeric(String text) {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
@@ -59,8 +59,6 @@ public final class Texts {
 		else return String.format("{\"text\":\"%s\", \"speaker_id\":%d}", text, voiceId);
 	}
 
-	private static final Pattern patternTargetWithLevel = Pattern.compile("(.+)  \\(level-\\d+\\)");
-
 	/*
 	 * For MenuEntry menuTarget name.
 	 * Keeps tag information, removes level information.
@@ -72,4 +70,5 @@ public final class Texts {
 		if (matcher.matches()) menuTarget = matcher.group(1);
 		return menuTarget;
 	}
+
 }

@@ -1,9 +1,9 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.javautil;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.javautil;
 
 import static com.google.common.base.Preconditions.checkState;
 import com.sun.jna.Pointer;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSObject;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSObject;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
 import java.lang.ref.Cleaner;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;

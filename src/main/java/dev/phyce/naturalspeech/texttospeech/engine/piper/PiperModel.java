@@ -9,8 +9,8 @@ import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.utils.SuccessCallback;
-import dev.phyce.naturalspeech.utils.Texts;
-import static dev.phyce.naturalspeech.utils.Threads.silentInterruptHandler;
+import dev.phyce.naturalspeech.utils.TextUtil;
+import static dev.phyce.naturalspeech.utils.ThreadUtil.silentInterruptHandler;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -115,13 +115,13 @@ public class PiperModel {
 
 		List<String> segments;
 		if (text.length() > 50) {
-			segments = Texts.splitSentence(text);
+			segments = TextUtil.splitSentence(text);
 		}
 		else {
 			segments = List.of(text);
 		}
 		if (segments.size() > 1) {
-			log.trace("Piper speech segmentation: {}", Texts.sentenceSegmentPrettyPrint(segments));
+			log.trace("Piper speech segmentation: {}", TextUtil.sentenceSegmentPrettyPrint(segments));
 
 			// build a linked list of tasks
 			PiperTask parent = null;

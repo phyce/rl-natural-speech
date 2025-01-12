@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
+import com.google.inject.ProvisionException;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.audio.VolumeManager;
 import dev.phyce.naturalspeech.entity.EntityID;
@@ -35,8 +36,16 @@ import org.slf4j.LoggerFactory;
 @Slf4j
 @PluginDescriptor(name=CONFIG_GROUP)
 public class NaturalSpeechPlugin extends Plugin {
-
+	public static final String VERSION = "2.0.0";
 	public static final String CONFIG_GROUP = "NaturalSpeech";
+
+	@Inject
+	private EventBus clientEventBus;
+
+	// Scope holds references to all the internal plugin singletons.
+	// provides them to guice for injection, then clears them out on shutdown
+	private final PluginSingletonScope pluginSingletonScope = new PluginSingletonScope();
+	private NaturalSpeechModule module;
 
 	static {
 		// Gets package level logger for modification (the parent to all plugin class loggers)
@@ -63,8 +72,6 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	// region: Fields
 	// Scope holds references to all the singletons, provides them to guice for injection
-	private PluginSingletonScope pluginSingletonScope;
-	private NaturalSpeechModule module;
 	private NavigationButton navButton;
 	private final Set<Object> clientEventBusSubscribers = new HashSet<>();
 	// endregion
@@ -80,7 +87,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	// region: Override Methods
 	@Override
 	public void configure(Binder binder) {
-		pluginSingletonScope = new PluginSingletonScope();
 		binder.bindScope(PluginSingleton.class, pluginSingletonScope);
 	}
 
@@ -95,6 +101,18 @@ public class NaturalSpeechPlugin extends Plugin {
 		// Objects marked with @PluginSingleton will enter this scope
 		// These objects will be GC-able after pluginSingletonScope.exit()
 		pluginSingletonScope.enter();
+
+		try {
+			// plugin fields are wrapped in a field object
+			module = injector.getInstance(NaturalSpeechModule.class);
+		} catch (ProvisionException e) {
+			e.getErrorMessages()
+				.forEach(message -> log.error("Provision ErrorResult:{}", message.getMessage(), message.getCause()));
+			throw new IllegalStateException("Failed to create NaturalSpeechModule");
+		}
+
+		module.submodules.forEach(clientEventBus::register);
+		module.submodules.forEach(PluginModule::startUp);
 
 		// For development, used to simulate when users don't have any TTS available
 		_SIMULATE_NO_TTS = config.simulateNoEngine();
@@ -151,19 +169,22 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	public void shutDown() {
-		// unregister eventBus so handlers do not run after shutdown.
-		unregisterClientEventBusAll();
+//		// unregister eventBus so handlers do not run after shutdown.
+//		unregisterClientEventBusAll();
+//
+//		module.topLevelPanel.shutdown();
+//
+//		clientToolbar.removeNavigation(navButton);
+//		navButton = null;
+//
+//		module.speechManager.stop();
+//
+//		saveConfigs();
+//
+//		module.pluginExecutorService.shutdown();
 
-		module.topLevelPanel.shutdown();
-
-		clientToolbar.removeNavigation(navButton);
-		navButton = null;
-
-		module.speechManager.stop();
-
-		saveConfigs();
-
-		module.pluginExecutorService.shutdown();
+		module.submodules.forEach(PluginModule::shutDown);
+		module.submodules.forEach(clientEventBus::unregister);
 
 		pluginSingletonScope.exit(); // objects in this scope will be garbage collected after scope exit
 		module = null;
@@ -175,7 +196,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	// FIXME(Louis): Apply optimal default setting on reset config
 	@Override
 	public void resetConfiguration() {
-		module.runtimeConfig.reset();
+		module.submodules.forEach(PluginModule::resetConfiguration);
 	}
 
 	// endregion
@@ -291,6 +312,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					module.voiceManager.unset(EntityID.USER);
 				}
 				break;
+
 			case ConfigKeys.GLOBAL_NPC_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting global npc voice to {}", voiceID);
@@ -301,6 +323,7 @@ public class NaturalSpeechPlugin extends Plugin {
 					module.voiceManager.unset(EntityID.GLOBAL_NPC);
 				}
 				break;
+
 			case ConfigKeys.SYSTEM_VOICE:
 				if (voiceID != null) {
 					log.debug("Setting system voice to {}", voiceID);

@@ -64,6 +64,18 @@ public interface NaturalSpeechConfig extends Config {
 	String generalSettingsSection = "generalSettingsSection";
 
 	@ConfigItem(
+			position=4,
+			keyName=ConfigKeys.MASTER_MUTE,
+			name="Mute Natural Speech",
+			description="Entirely Mute all of Natural Speech",
+			section=generalSettingsSection,
+			hidden = true
+	)
+	default boolean masterMute() {
+		return false;
+	}
+
+	@ConfigItem(
 		position=4,
 		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Volume",

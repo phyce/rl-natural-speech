@@ -1,8 +1,8 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.foundation;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
 
 public interface NSArray {
 

@@ -1,10 +1,10 @@
-package dev.phyce.naturalspeech.texttospeech.engine.macos.natives.avfoundation;
+package dev.phyce.naturalspeech.texttospeech.engine.macos.avfoundation;
 
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSArray;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.foundation.NSString;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.ID;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.LibObjC;
-import dev.phyce.naturalspeech.texttospeech.engine.macos.natives.objc.SEL;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSArray;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.foundation.NSString;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.ID;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.LibObjC;
+import dev.phyce.naturalspeech.texttospeech.engine.macos.objc.SEL;
 
 public interface AVSpeechSynthesisVoice {
 

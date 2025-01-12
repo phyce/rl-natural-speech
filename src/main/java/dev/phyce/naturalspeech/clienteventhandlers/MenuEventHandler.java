@@ -13,7 +13,7 @@ import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.userinterface.ingame.VoiceConfigChatboxTextInput;
 import dev.phyce.naturalspeech.utils.ChatIcons;
-import dev.phyce.naturalspeech.utils.Texts;
+import dev.phyce.naturalspeech.utils.TextUtil;
 import net.runelite.api.Menu;
 import static dev.phyce.naturalspeech.utils.Utils.inArray;
 import java.util.ArrayList;
@@ -338,7 +338,7 @@ public class MenuEventHandler {
 
 		VoiceID voiceID = voiceManager.resolve(entityID);
 		// reformat the target name
-		String target = Texts.removeLevelFromTargetName(entry.getTarget());
+		String target = TextUtil.removeLevelFromTargetName(entry.getTarget());
 		//		if (hasSetting) {
 		//			// re-colorize the target name with the voiceID
 		target = String.format("%s %s(%s)</col>", target, statusColorTag, voiceID);
