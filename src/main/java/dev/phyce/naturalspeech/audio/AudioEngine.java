@@ -2,10 +2,12 @@ package dev.phyce.naturalspeech.audio;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.utils.Result;
 import static dev.phyce.naturalspeech.utils.Result.Error;
 import static dev.phyce.naturalspeech.utils.Result.Ok;
@@ -26,6 +28,8 @@ import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 
 @Slf4j
 @PluginSingleton
@@ -86,6 +90,14 @@ public class AudioEngine implements PluginModule {
 
 	public void setMute(boolean mute) {
 		masterMute.set(mute);
+	}
+
+	@Subscribe
+	private void onConfigChanged(ConfigChanged event) {
+		switch (event.getKey()) {
+			case ConfigKeys.MASTER_VOLUME:
+				break;
+		}
 	}
 
 	public void setMasterVolume(int volume100) {

@@ -1,6 +1,8 @@
 package dev.phyce.naturalspeech.userinterface.mainsettings;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.eventbus.PluginSubscribe;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
@@ -8,6 +10,7 @@ import dev.phyce.naturalspeech.events.PiperProcessEvent;
 import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.events.SpeechEngineEvent;
 import dev.phyce.naturalspeech.events.SpeechManagerEvent;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
@@ -42,6 +45,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -51,6 +55,7 @@ import javax.swing.border.MatteBorder;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
@@ -64,6 +69,7 @@ public class MainSettingsPanel extends PluginPanel {
 	//	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 	private final SpeechManager speechManager;
+	private final ConfigManager configManager;
 	private PiperModelMonitorItem.Factory monitorFactory;
 	private final FixedWidthPanel mainContentPanel;
 
@@ -95,11 +101,12 @@ public class MainSettingsPanel extends PluginPanel {
 	@Inject
 	public MainSettingsPanel(
 		SpeechManager speechManager,
-		PluginEventBus pluginEventBus
+		PluginEventBus pluginEventBus,
+		ConfigManager configManager
 	) {
 		super(false);
+		this.configManager = configManager;
 		this.speechManager = speechManager;
-//		this.monitorFactory = monitorFactory;
 
 		pluginEventBus.registerWeak(this);
 
@@ -571,6 +578,8 @@ public class MainSettingsPanel extends PluginPanel {
 		return piperMonitorPanel;
 	}
 
+	private int volume;
+
 	private JPanel buildTextToSpeechControlsPanel() {
 		statusPanel = new JPanel();
 		statusPanel.setLayout(new BorderLayout());
@@ -586,18 +595,53 @@ public class MainSettingsPanel extends PluginPanel {
 		statusPanel.add(statusLabel, BorderLayout.NORTH);
 
 		// Button Panel
-		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
-
-		// Initialize buttons with icons
+		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		JButton playButton = createButton(PluginResources.START_TEXT_TO_SPEECH_ICON, "Start");
 		JButton stopButton = createButton(PluginResources.STOP_TEXT_TO_SPEECH_ICON, "Stop");
-
 		playButton.addActionListener(e -> speechManager.startUp());
 		stopButton.addActionListener(e -> speechManager.shutDown());
-
 		buttonPanel.add(playButton);
 		buttonPanel.add(stopButton);
+
+		// Volume Panel
+		JPanel volumePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		JLabel volumeLabel = new JLabel("Volume");
+		// Retrieve volume from configuration or use default if not set or invalid
+		int initialVolume = 50; // default value
+		String configVol = configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.MASTER_VOLUME);
+		if (configVol != null) {
+			try {
+				initialVolume = Integer.parseInt(configVol);
+			} catch(NumberFormatException ex) {
+				// Handle parsing error if necessary; we'll just fall back to default
+			}
+		}
+
+		// Create slider with initial value from configuration
+		JSlider volumeSlider = new JSlider(0, 100, initialVolume);
+		volumeSlider.setMajorTickSpacing(10);
+		volumeSlider.setPaintTicks(true);
+		volumeSlider.setPaintLabels(true);
+
+		// Update configuration when slider changes
+		volumeSlider.addChangeListener(e -> {
+			int newVolume = volumeSlider.getValue();
+			configManager.setConfiguration(
+				CONFIG_GROUP,
+				ConfigKeys.MASTER_VOLUME,
+				String.valueOf(newVolume)
+			);
+			System.out.println("setting new volume value");
+			System.out.println(newVolume);
+		});
+
+		volumePanel.add(volumeLabel);
+		volumePanel.add(volumeSlider);
+
+		// Add panels to statusPanel
 		statusPanel.add(buttonPanel, BorderLayout.CENTER);
+		statusPanel.add(volumePanel, BorderLayout.SOUTH);
+
 		return statusPanel;
 	}
 

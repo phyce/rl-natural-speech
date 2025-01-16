@@ -149,6 +149,7 @@ public class MenuModule implements PluginModule {
 				final String colorTag = "<col=" + colorScheme[colorIndex] + ">";
 				final String meter = colorIndex == currentVolumeIndex ? "> " : "- ";
 
+				//TODO make this actually change the config value
 				subMenu.createMenuEntry(0)
 					.setTarget(meter + colorTag + volume + "%")
 					.setType(MenuAction.RUNELITE)
