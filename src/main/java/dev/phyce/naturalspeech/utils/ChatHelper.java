@@ -7,14 +7,14 @@ import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.audio.VolumeManager;
-import dev.phyce.naturalspeech.configs.json.ReplacementsJSON;
+import dev.phyce.naturalspeech.configs.ReplacementsJSON;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.spamdetection.SpamDetection;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.MuteManager;
-import static dev.phyce.naturalspeech.utils.Locations.inGrandExchange;
+import static dev.phyce.naturalspeech.utils.LocationUtil.inGrandExchange;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -129,9 +129,6 @@ public class ChatHelper implements PluginModule {
 	}
 
 	public ChatType getChatType(ChatMessage message) {
-		System.out.println(message.getMessage());
-		System.out.println(message.getType());
-		System.out.println("======================================");
 		final EntityID nameEID = EntityID.name(message.getName());
 		if (isChatSystemVoice(message.getType())) {
 			return ChatType.System;
@@ -215,8 +212,7 @@ public class ChatHelper implements PluginModule {
 			log.trace("Muting message. No alpha numeric characters. Message:{}", message);
 			return true;
 		}
-		System.out.println("chatType");
-		System.out.println(chatType);
+
 		if (chatType == ChatType.Unknown) return true;
 
 		if (eid.isUser()) {
@@ -450,7 +446,7 @@ public class ChatHelper implements PluginModule {
 
 	private static String renderReplacements(String text, List<Replacement> replacements) {
 		// instead of tokenizing, we do a find-and-replace
-		// this supports space separated targets to be replaced, for example "multiple words"="OK"
+		// this supports space separated targets to be replaced, for example "multiple words"="OKResult"
 
 		// special characteristic:
 		// Rule 1. match head requires to either be start of line or preceded by ' ' space

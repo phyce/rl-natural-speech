@@ -42,7 +42,7 @@ public class MacUnquarantine {
 	 */
 	public static boolean Unquarantine(Path piperExePath) {
 		// check if OS is macOS
-		if (!Platforms.IS_MAC) {
+		if (!PlatformUtil.IS_MAC) {
 			log.error("Only MacOS requires un-quarantining.");
 			return true; // return true because it's "un-quarantined", as Windows/Linux never needed it.
 		}

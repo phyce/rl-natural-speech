@@ -1,9 +1,15 @@
 package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi5;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
-import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.texttospeech.Gender;
 import dev.phyce.naturalspeech.statics.PluginResources;
-import dev.phyce.naturalspeech.utils.Platforms;
+import dev.phyce.naturalspeech.texttospeech.engine.Audio;
+import dev.phyce.naturalspeech.utils.PlatformUtil;
+import dev.phyce.naturalspeech.utils.Result;
+import static dev.phyce.naturalspeech.utils.Result.Error;
+import static dev.phyce.naturalspeech.utils.Result.Ok;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -15,22 +21,21 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import javax.sound.sampled.AudioFormat;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
-import lombok.SneakyThrows;
-import lombok.Synchronized;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 /*
- Why?
+ PowerShell is bundled with Windows and has a built-in .NET 4.0
+ So we JIT compile C# into a runtime similar to Piper through PowerShell to access dotnet assembly System.Speech
+
+ The CSharp Source File is in Resources under the same package path, named WSAPI5.cs
 
  Our goal is to allow NaturalSpeech to have minimal TTS capabilities without external dependencies (minimal mode).
  Therefore, we need operating system TTS.
@@ -45,17 +50,23 @@ import lombok.extern.slf4j.Slf4j;
 
 	 2. Java/C# interop is not viable, Java cannot interface with dotnet managed assemblies, aka System.Speech.dll
 
- Solution:
-	 PowerShell is bundled with Windows and has a built-in .NET 4.0
-	 So we JIT compile C# into a runtime similar to Piper through PowerShell to access System.Speech
-
-	 The CS File is in Resources under the same package path, named WSAPI5.cs
-
 - Louis Hong 2024
 */
 
 @Slf4j
 public class SAPI5Process {
+	@Nullable
+	private static final String CSHARP_SOURCE_CODE;
+
+	static {
+		String content;
+		try {
+			content = Resources.toString(PluginResources.WSAPI5_CSHARP_RUNTIME, StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			content = null;
+		}
+		CSHARP_SOURCE_CODE = content;
+	}
 
 	private static final String CONTROL_END_OUT = "END_OUT";
 	private static final String CONTROL_ERROR = "EXCEPTION:";
@@ -71,9 +82,9 @@ public class SAPI5Process {
 		);
 
 	private final Process process;
-	private final ByteArrayOutputStream audioStreamCapture = new ByteArrayOutputStream();
+	private final ByteArrayOutputStream stdErrStream = new ByteArrayOutputStream();
 
-	private final BufferedWriter processStdIn;
+	private final BufferedWriter stdInStream;
 	private final Thread processStdInThread;
 	private final Thread processStdErrThread;
 
@@ -85,20 +96,31 @@ public class SAPI5Process {
 		Gender gender;
 	}
 
-	private final List<SAPI5Voice> availableVoices = new ArrayList<>();
+	@Getter
+	@NonNull
+	private final ImmutableSet<SAPI5Voice> voices;
 
-	public static SAPI5Process start() {
-		if (!Platforms.IS_WINDOWS) {
+	@NonNull
+	public static Result<SAPI5Process,Exception> start() {
+		if (!PlatformUtil.IS_WINDOWS) {
 			log.error("Attempting to starting CSharp Runtime on non-Windows.");
-			return null;
+			return Error(new UnsupportedOperationException("WSAPI5 is only available on Windows."));
+		}
+
+		if (CSHARP_SOURCE_CODE == null) {
+			return Error(new RuntimeException("WSAPI5 CSharp Source Code is missing from Resources."));
 		}
 
 		try {
-			return new SAPI5Process();
+			return Ok(new SAPI5Process());
 		} catch (IOException | RuntimeException e) {
 			log.error("CSharp Runtime failed to launch.", e);
-			return null;
+			return Error(e);
 		}
+	}
+
+	public boolean isAlive() {
+		return process.isAlive();
 	}
 
 	public void destroy() {
@@ -107,7 +129,7 @@ public class SAPI5Process {
 
 		if (process != null && process.isAlive()) {
 			try {
-				if (processStdIn != null) processStdIn.close();
+				if (stdInStream != null) stdInStream.close();
 			} catch (IOException exception) {
 				log.error("{} failed closing processStdIn on destroy.", this, exception);
 			}
@@ -116,6 +138,7 @@ public class SAPI5Process {
 	}
 
 	private SAPI5Process() throws IOException {
+		Preconditions.checkNotNull(CSHARP_SOURCE_CODE);
 
 		final File wsapi5CSharp = extractWSAPI5CSharpFile();
 
@@ -158,6 +181,7 @@ public class SAPI5Process {
 				wsapi5CSharp.getAbsolutePath(), new String(process.getErrorStream().readAllBytes())
 			);
 
+			voices = ImmutableSet.of();
 			log.error(err);
 			throw new RuntimeException(err);
 		}
@@ -168,10 +192,26 @@ public class SAPI5Process {
 		// Stdout also accepts !LIST, lists available voices in the format <name>\n<gender>\n
 
 		// Begin IO with WSAPI5.cs
-		processStdIn = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+		stdInStream = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
 
-		// blocking IO for !LIST to iterate available voices
-		fetchAvailableVoices();
+		// blocking IO for !LIST to fetch available voices
+		stdInStream.write("!LIST");
+		stdInStream.newLine();
+		stdInStream.flush();
+
+		// The input is formatted as
+		// <name>\n
+		// <gender>\n
+		// ... multiple entries ...
+		// END_OUT
+		ImmutableSet.Builder<SAPI5Voice> voicesBuilder = ImmutableSet.builder();
+		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+		String name;
+		while (!(name = reader.readLine()).equals(CONTROL_END_OUT)) {
+			Gender gender = Gender.parseString(reader.readLine());
+			voicesBuilder.add(new SAPI5Voice(name, gender));
+		}
+		voices = voicesBuilder.build();
 
 		processStdInThread =
 			new Thread(this::processStdIn, String.format("[%s] WSAPI5::processStdIn Thread", this));
@@ -187,16 +227,17 @@ public class SAPI5Process {
 	 * Copies WSAPI5.cs from Resources into System Temp
 	 */
 	private static File extractWSAPI5CSharpFile() throws IOException {
+		Preconditions.checkNotNull(CSHARP_SOURCE_CODE);
 
-		File tempFolder = Path.of(System.getProperty("java.io.tmpdir"), "NaturalSpeech").toFile();
+		final File tempFolder = Path.of(System.getProperty("java.io.tmpdir"), "NaturalSpeech").toFile();
 		boolean ignore = tempFolder.mkdir();
 
-		String fileName = "WSAPI5_" + UUID.randomUUID().getMostSignificantBits() + ".cs";
-		File tempFile = tempFolder.toPath().resolve(fileName).toFile();
+		final String fileName = "WSAPI5_" + UUID.randomUUID().getMostSignificantBits() + ".cs";
+		final File tempFile = tempFolder.toPath().resolve(fileName).toFile();
 		assert tempFile.createNewFile();
 
 		try (FileWriter file = new FileWriter(tempFile)) {
-			file.write(Resources.toString(PluginResources.WSAPI5_CSHARP_RUNTIME, StandardCharsets.UTF_8));
+			file.write(CSHARP_SOURCE_CODE);
 		} catch (IOException e) {
 			log.error("Failed to copy WSAPI5.cs to {}", tempFile);
 		}
@@ -208,75 +249,39 @@ public class SAPI5Process {
 		return tempFile;
 	}
 
-	public void generateAudio(String voiceName, String text, Consumer<byte[]> onComplete) {
-		new Thread(() -> {
-			try {
-				onComplete.accept(_blockingGenerateAudio(voiceName, text));
-			} catch (IOException e) {
-				log.error("Failed to generate audio", e);
-				onComplete.accept(null);
-			}
-		}).start();
-	}
-
-	@SneakyThrows(InterruptedException.class)
-	@Synchronized // a call can block the next until the first it finishes, in an ordered fashion
-	private byte[] _blockingGenerateAudio(String voiceName, String text) throws IOException {
+	public Result<Audio, Exception> generateAudio(String voiceName, String text) {
 		text = text.replace("\n", "").replace("\r", "");
 
-		synchronized (audioStreamCapture) {
-			try {
-				audioStreamCapture.reset();
+		try {
+			synchronized (stdErrStream) {
+				try {
+					stdErrStream.reset();
 
-				// <name>\n
-				processStdIn.write(voiceName);
-				processStdIn.newLine();
+					// <name>\n
+					stdInStream.write(voiceName);
+					stdInStream.newLine();
 
-				// <text>\n
-				processStdIn.write(text);
-				processStdIn.newLine();
+					// <text>\n
+					stdInStream.write(text);
+					stdInStream.newLine();
 
-				processStdIn.flush();
+					stdInStream.flush();
 
-				// wait for stderr control message END_OUT
-				audioStreamCapture.wait();
+					// wait for stderr control message END_OUT
+					stdErrStream.wait();
 
-				return audioStreamCapture.toByteArray();
-			} finally {
-				audioStreamCapture.reset();
+					byte[] bytes = stdErrStream.toByteArray();
+					Audio audio = Audio.of(bytes, AUDIO_FORMAT);
+					return Ok(audio);
+				} finally {
+					stdErrStream.reset();
+				}
 			}
+		} catch (IOException | InterruptedException e) {
+			log.error("{}: generateAudio threw", this, e);
+			return Error(e);
 		}
 	}
-
-	@NonNull
-	public List<SAPI5Voice> getAvailableVoices() {
-		return Collections.unmodifiableList(availableVoices);
-	}
-
-	/**
-	 * This function must only be called before audio streaming has begun.
-	 * It is blocking and synchronized.
-	 */
-	private void fetchAvailableVoices() throws IOException {
-		synchronized (processStdIn) {
-			processStdIn.write("!LIST");
-			processStdIn.newLine();
-			processStdIn.flush();
-		}
-
-		// The input is formatted as
-		// <name>\n
-		// <gender>\n
-		// ... multiple entries ...
-		// END_OUT
-		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		String name;
-		while (!(name = reader.readLine()).equals(CONTROL_END_OUT)) {
-			Gender gender = Gender.parseString(reader.readLine());
-			availableVoices.add(new SAPI5Voice(name, gender));
-		}
-	}
-
 
 	/**
 	 * StdIn captures audio output from the process
@@ -286,8 +291,8 @@ public class SAPI5Process {
 			byte[] data = new byte[1024];
 			int nRead;
 			while (!processStdInThread.isInterrupted() && (nRead = inputStream.read(data, 0, data.length)) != -1) {
-				synchronized (audioStreamCapture) {
-					audioStreamCapture.write(data, 0, nRead);
+				synchronized (stdErrStream) {
+					stdErrStream.write(data, 0, nRead);
 				}
 			}
 		} catch (IOException e) {
@@ -305,14 +310,14 @@ public class SAPI5Process {
 			while (!processStdErrThread.isInterrupted() && (line = reader.readLine()) != null) {
 				if (line.startsWith(CONTROL_ERROR)) {
 					log.error("[pid:{}-StdErr]:CSharp Exception: {}", process.pid(), line);
-					synchronized (audioStreamCapture) {
-						audioStreamCapture.notify(); // notify capture is complete
+					synchronized (stdErrStream) {
+						stdErrStream.notify(); // notify capture is complete
 					}
 				}
 
 				if (line.equals(CONTROL_END_OUT)) {
-					synchronized (audioStreamCapture) {
-						audioStreamCapture.notify(); // notify capture is complete
+					synchronized (stdErrStream) {
+						stdErrStream.notify(); // notify capture is complete
 					}
 				}
 

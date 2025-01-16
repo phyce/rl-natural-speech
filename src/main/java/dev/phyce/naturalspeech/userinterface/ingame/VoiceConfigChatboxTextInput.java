@@ -6,7 +6,9 @@ import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.texttospeech.VoiceManager;
 import dev.phyce.naturalspeech.utils.ChatIcons;
+import java.util.Optional;
 import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -27,22 +29,23 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 
 	private final ChatboxPanelManager chatboxPanelManager;
 
+	@Nullable
 	private EntityID entityID;
 
 	private Consumer<String> onInvalid = null;
 	private Consumer<String> onValid = null;
 
+	@Nullable
 	private String configKey = null;
 
 
 	@Inject
 	public VoiceConfigChatboxTextInput(
-		ChatboxPanelManager chatboxPanelManager,
-		ClientThread clientThread,
-		VoiceManager voiceManager,
-		ConfigManager configManager,
-		VoiceManager voiceManager1,
-		Client client, ChatIcons icons
+			ChatboxPanelManager chatboxPanelManager,
+			ClientThread clientThread,
+			VoiceManager voiceManager,
+			ConfigManager configManager,
+			Client client, ChatIcons icons
 	) {
 		super(chatboxPanelManager, clientThread);
 		this.chatboxPanelManager = chatboxPanelManager;
@@ -53,21 +56,22 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		onDone(string ->
 		{
 			if (string == null) return;
-			if (!string.isEmpty()) {
-				VoiceID voiceId = VoiceID.fromIDString(string);
 
-				if (voiceId != null && !voiceManager.isActive(voiceId)) {
-					clientThread.invoke(() ->
-						client.addChatMessage(
+			if (entityID == null && configKey == null) return;
+
+			if (!string.isEmpty()) {
+				Optional<VoiceID> voiceId = VoiceID.fromIDString(string);
+
+				if (voiceId.isPresent() && !voiceManager.speakable(voiceId.get())) {
+					clientThread.invoke(() -> client.addChatMessage(
 							ChatMessageType.CONSOLE,
 							"",
 							String.format(icons.logo.get() +
-									"<col=ff7878>" +
-									"Failed: Voice \"%s\"(" + icons.checkmark.get() + ")" +
-									" format is valid, " +
-									"but does not exist or the \"%s\" engine is disabled in settings." +
-									"</col>",
-								string, voiceId.modelName),
+											"<col=ff0000>" +
+											"Failed:</col> Voice \"%s\"(" + icons.checkmark.get() + ")" +
+											" format is valid, " +
+											"but does not exist or the \"%s\" engine is disabled in settings.",
+									string, voiceId.get().modelName),
 							"")
 					);
 
@@ -75,40 +79,41 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 						onInvalid.accept(string);
 					}
 				}
-				else if (voiceId != null) {
-					voiceManager.set(entityID, voiceId);
-					voiceManager.save();
+				else if (voiceId.isPresent()) {
 
 					if (configKey != null) {
 						configManager.setConfiguration(CONFIG_GROUP, configKey, string);
 					}
 
+					if (entityID != null) {
+						voiceManager.set(entityID, voiceId.get());
+						voiceManager.save();
+
+
+						clientThread.invoke(() -> client.addChatMessage(
+								ChatMessageType.CONSOLE,
+								"",
+								String.format(icons.logo.get() + "<col=00ff0f>Success:</col> %s voice set to %s",
+										entityID.toShortString(), string),
+								""));
+					}
+
 					if (onValid != null) {
 						onValid.accept(string);
 					}
-
-					clientThread.invoke(() ->
-						client.addChatMessage(
-							ChatMessageType.CONSOLE,
-							"",
-							String.format(icons.logo.get() + "<col=000000>Success: %s voice set to %s</col>",
-								entityID.toShortString(), string),
-							"")
-					);
-
 				}
 				else {
 					log.info("Attempting to set invalid voiceID with {}", string);
 					clientThread.invoke(() ->
-						client.addChatMessage(
-							ChatMessageType.CONSOLE,
-							"",
-							String.format(
-								icons.logo.get() +
-									"<col=ff1818>Failed: Invalid voice format \"%s\"(" + icons.xmark.get() + ").<br>" +
-									"<col=ff1818>Example format: \"libritts:123\"",
-								string),
-							"")
+							client.addChatMessage(
+									ChatMessageType.CONSOLE,
+									"",
+									String.format(
+											icons.logo.get() +
+													"<col=ff1818>Failed: Invalid voice format \"%s\"(" + icons.xmark.get() + ").<br>" +
+													"<col=ff1818>Example format: \"libritts:123\"",
+											string),
+									"")
 					);
 
 					if (onInvalid != null) {
@@ -117,28 +122,33 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 				}
 			}
 			else {
-				voiceManager.unset(entityID);
-
 				if (configKey != null) {
 					configManager.unsetConfiguration(CONFIG_GROUP, configKey);
 				}
-				if (onValid != null) {
-					onValid.accept(string);
-				}
-				clientThread.invoke(() ->
-					client.addChatMessage(
-						ChatMessageType.CONSOLE,
-						"",
-						String.format(icons.logo.get() + "<col=00000>Success: %s voice setting cleared.</col>",
-							entityID.toShortString()),
-						"")
-				);
-			}
 
+				if (entityID != null) {
+					voiceManager.unset(entityID);
+
+					if (onValid != null) onValid.accept(string);
+
+					clientThread.invoke(() ->
+							client.addChatMessage(
+									ChatMessageType.CONSOLE,
+									"",
+									String.format(icons.logo.get() + "<col=00000>Success: %s voice setting cleared.</col>",
+											entityID.toShortString()),
+									""));
+				}
+			}
 		});
 	}
 
-	public VoiceConfigChatboxTextInput configKey(String key) {
+	public VoiceConfigChatboxTextInput entityID(@Nullable EntityID entityID) {
+		this.entityID = entityID;
+		return this;
+	}
+
+	public VoiceConfigChatboxTextInput configKey(@Nullable String key) {
 		this.configKey = key;
 		return this;
 	}
@@ -184,10 +194,5 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		separator.setOriginalWidth(16);
 		separator.setWidthMode(WidgetSizeMode.MINUS);
 		separator.revalidate();
-	}
-
-	public VoiceConfigChatboxTextInput entityID(EntityID entityID) {
-		this.entityID = entityID;
-		return this;
 	}
 }

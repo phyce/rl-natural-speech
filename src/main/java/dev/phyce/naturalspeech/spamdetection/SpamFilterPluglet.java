@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.spamdetection;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import java.io.BufferedReader;
 import java.io.File;
@@ -33,7 +34,7 @@ import net.runelite.client.plugins.PluginManager;
 // Hub rules disallows reflection, so Natural Speech re-implements the code, but uses Spam Filters' user configs.
 @Slf4j
 @PluginSingleton
-public class SpamFilterPluglet {
+public class SpamFilterPluglet implements PluginModule {
 
 	private final PluginManager pluginManager;
 	private final ConfigManager configManager;
@@ -120,7 +121,7 @@ public class SpamFilterPluglet {
 		try {
 			threshold = Integer.parseInt(result);
 		} catch (NumberFormatException e) {
-			log.error("Error parsing threshold value from spam filters' config", e);
+			log.error("ErrorResult parsing threshold value from spam filters' config", e);
 		}
 	}
 
@@ -146,7 +147,7 @@ public class SpamFilterPluglet {
 				countTokens(badCounts, builtinBadCorpus);
 				countTokens(badCounts, userBadCorpus);
 			} catch (IOException e) {
-				log.error("Error reading {}", userBadCorpusFile);
+				log.error("ErrorResult reading {}", userBadCorpusFile);
 			}
 		}
 		else {
@@ -173,7 +174,7 @@ public class SpamFilterPluglet {
 				countTokens(goodCounts, builtinGoodCorpus);
 				countTokens(goodCounts, userGoodCorpus);
 			} catch (IOException e) {
-				log.error("Error reading {}", userGoodCorpusFile);
+				log.error("ErrorResult reading {}", userGoodCorpusFile);
 			}
 		}
 		else {
@@ -191,7 +192,7 @@ public class SpamFilterPluglet {
 			try {
 				goodCorpusReader.close();
 			} catch (IOException e) {
-				log.error("Error reading SpamFilter file from {}.", FILE_NAME_GOOD_CORPUS);
+				log.error("ErrorResult reading SpamFilter file from {}.", FILE_NAME_GOOD_CORPUS);
 			}
 		}
 
@@ -203,7 +204,7 @@ public class SpamFilterPluglet {
 			try {
 				badCorpusReader.close();
 			} catch (IOException e) {
-				log.error("Error reading SpamFilter file from {}.", FILE_NAME_BAD_CORPUS);
+				log.error("ErrorResult reading SpamFilter file from {}.", FILE_NAME_BAD_CORPUS);
 			}
 		}
 	}

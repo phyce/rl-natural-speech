@@ -2,8 +2,11 @@ package dev.phyce.naturalspeech.utils;
 
 import com.google.common.base.Optional;
 import dev.phyce.naturalspeech.entity.EntityID;
-import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
+import dev.phyce.naturalspeech.texttospeech.Gender;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -118,5 +121,25 @@ public final class ClientHelper {
 			.filter(id -> id != -1)
 			.findFirst()
 			.orElse(modelId);
+	}
+
+	private static String version;
+	public static String getVersion() {
+		if (version != null) {
+			return version;
+		}
+
+		try (BufferedReader reader = new BufferedReader(new FileReader("build.gradle"))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (line.trim().startsWith("version =")) {
+					version = line.split("=")[1].trim().replaceAll("'", "").replaceAll("\"", "");
+					break;
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return version;
 	}
 }

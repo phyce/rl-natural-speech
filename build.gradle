@@ -19,13 +19,15 @@ dependencies {
     // Overtakes transient JNA version from RuneLite client.
     implementation("net.java.dev.jna:jna:5.14.0")
 
+    implementation 'com.google.inject.extensions:guice-assistedinject:4.1.0'
+
+
     // API
     compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
 
-    // lombok
+    // Lombok
 	compileOnly 'org.projectlombok:lombok:1.18.30'
-	annotationProcessor 'org.projectlombok:lombok:1.18.30'
-    // lombok for test
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
     testCompileOnly 'org.projectlombok:lombok:1.18.30'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.30'
 

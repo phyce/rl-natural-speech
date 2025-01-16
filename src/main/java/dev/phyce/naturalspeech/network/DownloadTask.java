@@ -76,7 +76,7 @@ public class DownloadTask implements Supplier<File> {
 					downloading = false;
 				}
 			} catch (IOException e) {
-				log.error("Error downloading the file: {}", e.getMessage());
+				log.error("ErrorResult downloading the file: {}", e.getMessage());
 				progress = 0; // Reset progress if download fails
 				error = 1;
 				downloading = false;

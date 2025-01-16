@@ -9,15 +9,17 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.annotations.JsonAdapter;
 import java.lang.reflect.Type;
+import java.util.Optional;
 import javax.annotation.CheckForNull;
-import lombok.Data;
+import lombok.NonNull;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * VoiceID represents the model and id for a speak request. <br>
  * Similar to URLs for http, representing server and document.<br>
  */
-@Data
+@Value
 @JsonAdapter(VoiceID.VoiceIDSerializer.class)
 public class VoiceID {
 
@@ -26,7 +28,12 @@ public class VoiceID {
 	public String modelName;
 	public String id;
 
-	public VoiceID(String modelName, String id) {
+	@NonNull
+	public static VoiceID of(String modelName, String id) {
+		return new VoiceID(modelName, id);
+	}
+
+	private VoiceID(String modelName, String id) {
 		this.modelName = modelName;
 		this.id = id;
 	}
@@ -47,19 +54,19 @@ public class VoiceID {
 	 * @return null if format is invalid, ModelAndVoice otherwise.
 	 * Does not verify Model and Voice's actual existence.
 	 */
-	public static VoiceID fromIDString(String idString) {
+	public static Optional<VoiceID> fromIDString(String idString) {
 		String[] split = idString.split(":");
 
 		// incorrect format
-		if (split.length != 2) return null;
+		if (split.length != 2) return Optional.empty();
 
 		// verify model short name
-		if (split[0].isEmpty() || split[0].isBlank()) return null;
+		if (split[0].isEmpty() || split[0].isBlank()) return Optional.empty();
 
 		// verify id
-		if (split[1].isEmpty() || split[1].isBlank()) return null;
+		if (split[1].isEmpty() || split[1].isBlank()) return Optional.empty();
 
-		return new VoiceID(split[0], split[1]);
+		return Optional.of(new VoiceID(split[0], split[1]));
 	}
 
 	public String toVoiceIDString() {

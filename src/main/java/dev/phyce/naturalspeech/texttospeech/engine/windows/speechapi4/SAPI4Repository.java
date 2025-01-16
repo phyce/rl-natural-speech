@@ -1,16 +1,15 @@
 package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4;
 
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
-import dev.phyce.naturalspeech.utils.Platforms;
+import dev.phyce.naturalspeech.utils.PlatformUtil;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -23,17 +22,13 @@ public class SAPI4Repository {
 
 	@Getter
 	@NonNull
-	private final List<String> voices = new ArrayList<>();
+	private ImmutableList<String> voices = ImmutableList.of();
 
 	@Inject
 	public SAPI4Repository(RuntimePathConfig runtimeConfig) {
 		this.runtimeConfig = runtimeConfig;
 
-		if (NaturalSpeechPlugin._SIMULATE_NO_TTS || NaturalSpeechPlugin._SIMULATE_MINIMUM_MODE) {
-			return;
-		}
-
-		if (Platforms.IS_WINDOWS) {
+		if (PlatformUtil.IS_WINDOWS) {
 			reload();
 		}
 	}
@@ -43,9 +38,8 @@ public class SAPI4Repository {
 	 * available voices.
 	 */
 	private void reload() {
-		voices.clear();
 
-		Path sapi4Path = runtimeConfig.getSAPI4Path();
+		Path sapi4Path = RuntimePathConfig.SAPI4_PATH;
 		Path sapi4limits = sapi4Path.resolveSibling("sapi4limits.exe");
 
 		if (!sapi4limits.toFile().exists()) {
@@ -64,10 +58,13 @@ public class SAPI4Repository {
 		}
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+			ImmutableList.Builder<String> builder = ImmutableList.builder();
 			reader.lines()
 				.skip(2) // output header
 				.map((String key) -> SAPI4Cache.sapiToVoiceName.getOrDefault(key, key))
-				.forEach(voices::add);
+				.filter(Objects::nonNull)
+				.forEach(builder::add);
+			voices = builder.build();
 			log.debug("{}", voices);
 		} catch (IOException e) {
 			log.error("Failed to read SAPI4 limits", e);

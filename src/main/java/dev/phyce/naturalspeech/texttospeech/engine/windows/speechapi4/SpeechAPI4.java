@@ -1,20 +1,23 @@
 package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4;
 
 import static com.google.common.base.Preconditions.checkState;
-import dev.phyce.naturalspeech.audio.AudioEngine;
-import dev.phyce.naturalspeech.enums.Gender;
+import com.google.common.base.Strings;
+import dev.phyce.naturalspeech.texttospeech.Gender;
+import dev.phyce.naturalspeech.texttospeech.engine.Audio;
+import dev.phyce.naturalspeech.utils.Result;
+import static dev.phyce.naturalspeech.utils.Result.Error;
+import static dev.phyce.naturalspeech.utils.Result.Ok;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -31,11 +34,8 @@ public class SpeechAPI4 {
 
 	private final Path sapi4Path;
 	private final File outputFolder;
-	private final AudioEngine audioEngine;
-
 
 	private SpeechAPI4(
-		AudioEngine audioEngine,
 		String voiceName,
 		Path sapi4Path,
 		Path outputPath,
@@ -43,7 +43,6 @@ public class SpeechAPI4 {
 		int pitch,
 		Gender gender
 	) {
-		this.audioEngine = audioEngine;
 		this.voiceName = voiceName;
 		this.sapi4Path = sapi4Path;
 		this.speed = speed;
@@ -56,8 +55,8 @@ public class SpeechAPI4 {
 		}
 	}
 
-	@CheckForNull
-	public static SpeechAPI4 start(AudioEngine audioEngine, String voiceName, Path sapi4Path) {
+	@NonNull
+	public static Result<SpeechAPI4, Exception> build(@NonNull String voiceName, @NonNull Path sapi4Path) {
 
 		String sapiName = SAPI4Cache.voiceToSapiName.getOrDefault(voiceName, voiceName);
 		checkState(sapiName != null);
@@ -92,20 +91,20 @@ public class SpeechAPI4 {
 				log.trace("Starting {}", processBuilder.command());
 				process = processBuilder.start();
 			} catch (IOException e) {
-				log.error("Failed to start SAPI4 limits", e);
-				return null;
+				return Error(new RuntimeException("Failed to start SAPI4 limits", e));
 			}
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				var limits = reader.lines().collect(Collectors.toList());
 				// When the model was not found or installed, limit only prints 2 lines
 				if (limits.size() <= 2) {
 					if (limits.get(1).contains("(null)")) {
-						log.trace("Windows Speech API 4 is not installed, cannot launch {}", sapiName);
+						return Error(new RuntimeException(Strings.lenientFormat(
+							"Windows Speech API 4 is not installed, cannot launch %s", sapiName)));
 					}
 					else {
-						log.error("Non-existent WSAPI4 model:{}", sapiName);
+						return Error(new IllegalStateException(
+							Strings.lenientFormat("Non-existent WSAPI4 model:%s", sapiName)));
 					}
-					return null;
 				}
 				speed = Integer.parseInt(limits.get(3).split(" ")[0]);
 				int minSpeed = Integer.parseInt(limits.get(3).split(" ")[1]);
@@ -123,16 +122,15 @@ public class SpeechAPI4 {
 					minPitch,
 					maxPitch);
 			} catch (IOException e) {
-				log.error("Failed to read SAPI4 limits", e);
-				return null;
+				return Error(new RuntimeException("Failed to read SAPI4 limits", e));
 			}
 		}
 		Path outputPath = sapi4Path.getParent().resolve("output");
-		return new SpeechAPI4(audioEngine, sapiName, sapi4Path, outputPath, speed, pitch, gender);
+		return Ok(new SpeechAPI4(sapiName, sapi4Path, outputPath, speed, pitch, gender));
 	}
 
-
-	public void speak(String text, Supplier<Float> gainSupplier, String lineName) {
+	// blocking
+	public @NonNull Result<Audio, Exception> generate(@NonNull String text) {
 
 		// Security:
 		// A syscall to start process or a fork depending on JDK, no shell/cmd involved, no chance of injection.
@@ -148,33 +146,41 @@ public class SpeechAPI4 {
 		Process process;
 		try {
 			process = processBuilder.start();
-			new Thread(processStdOut(process, gainSupplier, lineName)).start();
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			return Error(e);
 		}
+
+		String filename;
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+			filename = reader.readLine(); // nullable
+		} catch (IOException e) {
+			return Error(e);
+		}
+
+		if (filename == null) {
+			return Error(new RuntimeException("SAPI4 failed to execute, likely due to missing SAPI4 installation."));
+		}
+
+		File file = outputFolder.toPath().resolve(filename).toFile();
+		if (!file.exists()) {
+			return Error(new RuntimeException(
+				Strings.lenientFormat("SAPI4 failed to generate audio file: %s", filename)));
+		}
+
+		try (AudioInputStream audioFileStream = AudioSystem.getAudioInputStream(file)) {
+			Audio audio = Audio.of(
+				audioFileStream.readAllBytes(),
+				audioFileStream.getFormat()
+			);
+			return Ok(audio);
+		} catch (IOException | UnsupportedAudioFileException e) {
+			return Error(e);
+		} finally {
+			boolean cleanup = file.delete();
+			checkState(cleanup, "Failed to delete SAPI4 speech wav file:" + file);
+		}
+
 	}
 
-	private Runnable processStdOut(Process process, Supplier<Float> gainSupplier, String lineName) {
-		return () -> {
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-				String filename = reader.readLine();
-				if (filename == null) {
-					log.error("SAPI4 failed to execute, likely due to missing SAPI4 installation.");
-					return;
-				}
-				File audioFile = outputFolder.toPath().resolve(filename).toFile();
-				try (AudioInputStream audioFileStream = AudioSystem.getAudioInputStream(audioFile)) {
-					audioEngine.play(lineName, audioFileStream, gainSupplier);
-				} catch (UnsupportedAudioFileException e) {
-					log.error("Unsupported audio file", e);
-					return; // keep the audioFile for inspection, don't delete.
-				}
-				checkState(audioFile.delete(), "Failed to delete SAPI4 speech wav file:" + audioFile);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		};
-
-	}
 
 }

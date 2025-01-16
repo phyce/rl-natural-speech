@@ -410,5 +410,15 @@ public interface NaturalSpeechConfig extends Config {
 		return false;
 	}
 
+	@ConfigItem(
+			section = developerSection,
+			name = "Reset Tutorial Hints",
+			warning="Resets Menu Hints/Tutorial",
+			keyName = ConfigKeys.DEVELOPER_RESET_HINTS,
+			description = "Resets Menu Hints/Tutorial"
+	)
+	default boolean developerResetHints() {
+		return false;
+	}
 	// endregion
 }

@@ -2,12 +2,14 @@ package dev.phyce.naturalspeech.configs;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginPaths;
-import dev.phyce.naturalspeech.utils.Platforms;
+import dev.phyce.naturalspeech.utils.PlatformUtil;
+import java.io.File;
 import java.nio.file.Path;
 import net.runelite.client.config.ConfigManager;
 
@@ -15,9 +17,12 @@ import net.runelite.client.config.ConfigManager;
  * Runtime Configs are serialized configurations invisible to the player but used at plugin runtime.
  */
 @PluginSingleton
-public class RuntimePathConfig {
+public class RuntimePathConfig implements PluginModule {
 	private final ConfigManager configManager;
 	private final PluginEventBus pluginEventBus;
+	public static final Path SAPI4_PATH = PluginPaths.NATURAL_SPEECH_PATH
+		.resolve("sapi4out")
+		.resolve("sapi4out.exe");
 
 	@Inject
 	private RuntimePathConfig(
@@ -28,7 +33,6 @@ public class RuntimePathConfig {
 		this.pluginEventBus = pluginEventBus;
 	}
 
-	@SuppressWarnings("deprecation")
 	public Path getPiperPath() {
 
 		String deprecatedPiperPath =
@@ -53,7 +57,7 @@ public class RuntimePathConfig {
 
 	private static Path getDefaultPath() {
 		Path path;
-		if (Platforms.IS_MAC || Platforms.IS_UNIX) {
+		if (PlatformUtil.IS_MAC || PlatformUtil.IS_UNIX) {
 			path = PluginPaths.NATURAL_SPEECH_PATH
 				.resolve("piper") // piper folder
 				.resolve("piper"); // piper executable;
@@ -66,24 +70,31 @@ public class RuntimePathConfig {
 		return path;
 	}
 
-	public Path getSAPI4Path() {
-		return PluginPaths.NATURAL_SPEECH_PATH
-			.resolve("sapi4out")
-			.resolve("sapi4out.exe");
-	}
-
 	@Deprecated(
-		since="1.3.0 We have an installer which installs to a standard location, transitioning old user configs.")
+		since="2.0.0 We have an installer which installs to a standard location, transitioning old user configs.")
 	public void savePiperPath(Path path) {
 		configManager.setConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH,
 			path.toString());
 		pluginEventBus.post(new PiperPathChanged(path));
 	}
 
-	@SuppressWarnings("deprecation")
 	public void reset() {
 		configManager.unsetConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
 	}
 
 
+	public boolean isPiperPathValid() {
+
+		File piper_file = getPiperPath().toFile();
+
+		if (PlatformUtil.IS_WINDOWS) {
+			String filename = piper_file.getName();
+			// naive canExecute check for windows, 99.99% of humans use .exe extension for executables on Windows
+			// File::canExecute returns true for all files on Windows.
+			return filename.endsWith(".exe") && piper_file.exists() && !piper_file.isDirectory();
+		}
+		else {
+			return piper_file.canExecute() && piper_file.exists() && !piper_file.isDirectory();
+		}
+	}
 }
