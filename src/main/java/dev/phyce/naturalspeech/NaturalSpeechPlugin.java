@@ -11,6 +11,7 @@ import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.singleton.PluginSingletonScope;
 import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
+import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.userinterface.mainsettings.PiperModelMonitorItem;
 import dev.phyce.naturalspeech.userinterface.voiceexplorer.VoiceListItem;
 import dev.phyce.naturalspeech.userinterface.voicehub.PiperModelItem;
@@ -33,6 +34,9 @@ import org.slf4j.LoggerFactory;
 public class NaturalSpeechPlugin extends Plugin {
 	public static final String VERSION = ClientHelper.getVersion();
 	public static final String CONFIG_GROUP = "NaturalSpeech";
+
+	@Inject
+	private NaturalSpeechConfig config;
 
 	@Inject
 	private EventBus clientEventBus;
@@ -82,8 +86,18 @@ public class NaturalSpeechPlugin extends Plugin {
 			throw new IllegalStateException("Failed to create NaturalSpeechModule");
 		}
 
-		module.submodules.forEach(clientEventBus::register);
-		module.submodules.forEach(PluginModule::startUp);
+
+
+		module.submodules.forEach(submodule -> {
+			clientEventBus.register(submodule);
+
+			if (submodule instanceof SpeechManager) {
+				if (!config.autoStart()) {
+					return;
+				}
+			}
+			submodule.startUp();
+		});
 
 		log.info("NaturalSpeech plugin has started");
 	}

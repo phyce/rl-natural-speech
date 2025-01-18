@@ -70,6 +70,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 	private final SpeechManager speechManager;
 	private final ConfigManager configManager;
+	private final NaturalSpeechConfig config;
 	private PiperModelMonitorItem.Factory monitorFactory;
 	private final FixedWidthPanel mainContentPanel;
 
@@ -102,10 +103,12 @@ public class MainSettingsPanel extends PluginPanel {
 	public MainSettingsPanel(
 		SpeechManager speechManager,
 		PluginEventBus pluginEventBus,
-		ConfigManager configManager
+		ConfigManager configManager,
+		NaturalSpeechConfig config
 	) {
 		super(false);
 		this.configManager = configManager;
+		this.config = config;
 		this.speechManager = speechManager;
 
 		pluginEventBus.registerWeak(this);
@@ -606,24 +609,14 @@ public class MainSettingsPanel extends PluginPanel {
 		// Volume Panel
 		JPanel volumePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		JLabel volumeLabel = new JLabel("Volume");
-		// Retrieve volume from configuration or use default if not set or invalid
-		int initialVolume = 50; // default value
-		String configVol = configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.MASTER_VOLUME);
-		if (configVol != null) {
-			try {
-				initialVolume = Integer.parseInt(configVol);
-			} catch(NumberFormatException ex) {
-				// Handle parsing error if necessary; we'll just fall back to default
-			}
-		}
+		int volume = config.masterVolume();
 
-		// Create slider with initial value from configuration
-		JSlider volumeSlider = new JSlider(0, 100, initialVolume);
+		//Volume Slider
+		JSlider volumeSlider = new JSlider(0, 100, volume);
 		volumeSlider.setMajorTickSpacing(10);
 		volumeSlider.setPaintTicks(true);
 		volumeSlider.setPaintLabels(true);
 
-		// Update configuration when slider changes
 		volumeSlider.addChangeListener(e -> {
 			int newVolume = volumeSlider.getValue();
 			configManager.setConfiguration(
@@ -631,14 +624,11 @@ public class MainSettingsPanel extends PluginPanel {
 				ConfigKeys.MASTER_VOLUME,
 				String.valueOf(newVolume)
 			);
-			System.out.println("setting new volume value");
-			System.out.println(newVolume);
 		});
 
 		volumePanel.add(volumeLabel);
 		volumePanel.add(volumeSlider);
 
-		// Add panels to statusPanel
 		statusPanel.add(buttonPanel, BorderLayout.CENTER);
 		statusPanel.add(volumePanel, BorderLayout.SOUTH);
 

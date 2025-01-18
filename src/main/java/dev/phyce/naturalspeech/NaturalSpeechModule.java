@@ -73,5 +73,4 @@ class NaturalSpeechModule {
 
 		this.submodules = builder.build();
 	}
-
 }
