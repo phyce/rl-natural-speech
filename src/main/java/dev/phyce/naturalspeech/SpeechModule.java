@@ -139,10 +139,9 @@ public class SpeechModule implements PluginModule {
 	@VisibleForTesting
 	void onOverheadTextChanged(OverheadTextChanged event) {
 		if (!(event.getActor() instanceof NPC)) return;
-
 		if (!speechManager.isAlive()) return;
-
 		if (!config.npcOverheadEnabled()) return;
+		if (chatHelper.isAreaDisabled()) return;
 
 		NPC npc = (NPC) event.getActor();
 		EntityID entityID = EntityID.npc(npc);

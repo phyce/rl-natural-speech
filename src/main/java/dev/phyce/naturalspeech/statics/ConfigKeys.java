@@ -29,7 +29,6 @@ public interface ConfigKeys {
 	String MUTE_LEVEL_THRESHOLD = "muteLevelThreshold";
 	String MUTE_CROWDS = "muteCrowds";
 	String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
-	String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
 	String FRIENDS_ONLY_MODE = "friendsOnlyMode";
 	String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 	String BUILTIN_REPLACEMENTS = "commonAbbreviations";

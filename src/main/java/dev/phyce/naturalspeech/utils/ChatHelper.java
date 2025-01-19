@@ -342,7 +342,7 @@ public class ChatHelper implements PluginModule {
 		return config.muteCrowds() > 0 && config.muteCrowds() < count;
 	}
 
-	private boolean isAreaDisabled() {
+	public boolean isAreaDisabled() {
 		if (client.getLocalPlayer() == null) return false;
 		//noinspection RedundantIfStatement
 		if (config.muteGrandExchange() && inGrandExchange(client.getLocalPlayer().getWorldLocation())) return true;

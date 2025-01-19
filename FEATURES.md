@@ -82,6 +82,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Duplicate system messages won't be played every time anymore
  - Fixed issue where certain dialogs were not working (eg Spirit Tree)
  - NPC Dialogs now have an individual queue for NPC + Player dialog messages
+ - `Mute Grand Exchange` now also mutes NPCs
 
 
 ## 1.2.4
