@@ -1,4 +1,4 @@
-# Natural Speech [![Plugin Installs](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/naturalspeech)](https://runelite.net/plugin-hub/show/naturalspeech) [![Plugin Rank](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/rank/plugin/naturalspeech)](https://runelite.net/plugin-hub)
+# Natural Speech [![Active Installs](http://img.shields.io/endpoint?url=https://api.runelite.net/pluginhub/shields/installs/plugin/naturalspeech)](https://runelite.net/plugin-hub/show/naturalspeech) [![Plugin Rank](http://img.shields.io/endpoint?url=https://api.runelite.net/pluginhub/shields/rank/plugin/naturalspeech)](https://runelite.net/plugin-hub)
 
 [![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/Zg5hMYMZ6E)
 

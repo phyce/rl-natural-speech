@@ -96,6 +96,7 @@ public class AudioEngine implements PluginModule {
 	private void onConfigChanged(ConfigChanged event) {
 		switch (event.getKey()) {
 			case ConfigKeys.MASTER_VOLUME:
+				setMasterVolume(config.masterVolume());
 				break;
 		}
 	}
@@ -227,26 +228,28 @@ public class AudioEngine implements PluginModule {
 		};
 	}
 
-	/**
-	 * lossy conversion from volume[0,100] -> Decibels
-	 */
-	public static float volumeToGain(int volume100) {
-		// range[NOISE_FLOOR, 0]
+
+	public static float volumeToGain(int volume) {
 		float gainDB;
 
-		// Graph of the function
-		// https://www.desmos.com/calculator/wdhsfbxgeo
+		float clampedVolume = Math.min(200, Math.max(0, volume));
 
-		// clamp to 0-100
-		float volume = Math.min(100, volume100);
-		// convert linear volume 0-100 to log control
-		if (volume <= 0.1) {
+		if (clampedVolume <= 0.1) {
 			gainDB = VolumeManager.NOISE_FLOOR;
 		}
 		else {
-			gainDB = (float) (10 * (Math.log(volume / 100)));
+			gainDB = (float) (10 * (Math.log(clampedVolume / 100)));
 		}
 
 		return gainDB;
+	}
+
+	public static float getDecibelBoost(int currentPercent, int boostPercent) {
+		if(boostPercent == 0) return currentPercent;
+
+		float boostedGain = volumeToGain(currentPercent + boostPercent);
+		float masterGain = volumeToGain(currentPercent);
+
+		return boostedGain - masterGain;
 	}
 }

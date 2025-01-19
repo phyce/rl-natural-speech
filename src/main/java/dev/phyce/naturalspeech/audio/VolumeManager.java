@@ -31,7 +31,7 @@ import net.runelite.client.eventbus.Subscribe;
 public class VolumeManager implements PluginModule {
 
 	public final static Supplier<Float> ZERO_GAIN = () -> 0f;
-	public static final float NOISE_FLOOR = -60f;
+	public static final float NOISE_FLOOR = -80f;
 	public static final float CHAT_FLOOR = -50f;
 	public static final float FRIEND_FLOOR = -20f;
 	public static final float NPC_FLOOR = -50f;
@@ -96,16 +96,20 @@ public class VolumeManager implements PluginModule {
 
 	public Supplier<Float> friend(Player player) {
 		return () -> {
-			if (!config.distanceFadeEnabled()) return 0f;
+			int basePercentage = config.masterVolume();
+			final int boostPercentage = config.friendsVolumeBoost();
 
-			if (this.spawnedActors.contains(player)) {
+			if (config.distanceFadeEnabled()) {
 				WorldPoint sourceLoc = player.getWorldLocation();
 				WorldPoint listenLoc = client.getLocalPlayer().getWorldLocation();
-
 				float distance = distance(sourceLoc, listenLoc);
-				return Math.max(FRIEND_FLOOR, attenuation(distance, CHAT_MAX_DISTANCE, FRIEND_FLOOR));
+
+				float attenuationFactor = easeInOutQuad(distance / CHAT_MAX_DISTANCE);
+
+				basePercentage = (int) (basePercentage * (1 + attenuationFactor));
 			}
-			else return NOISE_FLOOR; // actor has despawned, silence
+
+			return AudioEngine.getDecibelBoost(basePercentage, boostPercentage);
 		};
 	}
 
@@ -192,22 +196,5 @@ public class VolumeManager implements PluginModule {
 	@Subscribe
 	private void onNpcDespawned(NpcDespawned event) {
 		spawnedActors.remove(event.getActor());
-	}
-
-	public static float volumeToGain(int volume100) {
-		// range[-80, 0]
-		float gainDB;
-
-		// Graph of the function
-		// https://www.desmos.com/calculator/wdhsfbxgeo
-
-		// clamp to 0-100
-		float volume = Math.min(100, volume100);
-		// convert linear volume 0-100 to log control
-		if (volume <= 0.1) gainDB = NOISE_FLOOR;
-		else gainDB = (float) (10 * (Math.log(volume / 100)));
-
-		log.info("returning volume {} -> {}db", volume100, gainDB);
-		return gainDB;
 	}
 }

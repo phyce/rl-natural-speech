@@ -91,6 +91,20 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=5,
+		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
+		name="Friends Volume Boost",
+		description="Volume Percentage",
+		section=generalSettingsSection
+
+	)
+	@Range(max=100)
+	@Units(Units.PERCENT)
+	default int friendsVolumeBoost() {
+		return 0;
+	}
+
+	@ConfigItem(
+		position=6,
 		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads",
@@ -99,7 +113,7 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position=6,
+		position=7,
 		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter",
@@ -111,7 +125,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=7,
+		position=8,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",

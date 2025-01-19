@@ -652,7 +652,6 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Override
 	public void onActivate() {
-		piperMonitorPanel = buildPiperProcessMonitorPanel();
 		this.setVisible(true);
 	}
 

@@ -285,21 +285,22 @@ public class ChatHelper implements PluginModule {
 			case PRIVATECHATOUT:
 				if (!config.privateOutChatEnabled()) return true;
 				break;
-			case CLAN_CHAT:
-				if (!config.clanChatEnabled()) return true;
-				break;
-			case CLAN_GUEST_CHAT:
-				if (!config.clanGuestChatEnabled()) return true;
-				break;
-			case CLAN_GIM_CHAT:
-				if (!config.groupIronmanChatEnabled()) return true;
-				break;
+
 			case OBJECT_EXAMINE:
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 				if (!config.examineChatEnabled()) return true;
 				break;
 
+			case CLAN_GUEST_CHAT:
+				if (!config.clanGuestChatEnabled()) return true;
+				break;
+			case CLAN_GIM_CHAT:
+				if (!config.groupIronmanChatEnabled()) return true;
+				break;
+			case CLAN_CHAT:
+				if (!config.clanChatEnabled()) return true;
+				break;
 			case CLAN_MESSAGE:
 			case CLAN_GIM_MESSAGE:
 			case CLAN_GUEST_MESSAGE:
