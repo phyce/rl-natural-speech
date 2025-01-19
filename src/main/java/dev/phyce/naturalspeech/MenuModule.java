@@ -182,7 +182,7 @@ public class MenuModule implements PluginModule {
 						for (VoiceConfigMenu child : result.children) {
 							Preconditions.checkNotNull(child);
 
-							_drawVoiceMenu(subMenu, child, 1, MenuAction.RUNELITE);
+							_drawVoiceMenu(subMenu, child, 0, MenuAction.RUNELITE);
 						}
 					}
 				}
@@ -214,7 +214,7 @@ public class MenuModule implements PluginModule {
 						for (TabConfigMenu child : result.children) {
 							Preconditions.checkNotNull(child);
 
-							_drawMuteMenu(subMenu, child, 1, MenuAction.RUNELITE);
+							_drawMuteMenu(subMenu, child, 0, MenuAction.RUNELITE);
 						}
 					}
 				}
@@ -232,38 +232,8 @@ public class MenuModule implements PluginModule {
 
 		if (subMenu == null) {
 			currentMenuEntry = client.createMenuEntry(index);
-			//			return client.createMenuEntry(index)
-			//				.setOption(iconTag + action)
-			//				.setTarget(tab.targetName)
-			//				.setType(menuType)
-			//				.onClick(e -> {
-			//					if (tab.entityID == null) return;
-			//					if (tab.configKey == null) return;
-			//
-			//					String value = voiceManager.get(tab.entityID).map(VoiceID::toString).orElse("");
-			//					voiceConfigChatboxTextInputProvider.get()
-			//						.configKey(tab.configKey)
-			//						.entityID(tab.entityID)
-			//						.value(value)
-			//						.build();
-			//				});
 		} else {
 			currentMenuEntry = subMenu.createMenuEntry(index);
-			//			return subMenu.createMenuEntry(index)
-			//				.setOption(iconTag + action)
-			//				.setTarget(tab.targetName)
-			//				.setType(menuType)
-			//				.onClick(e -> {
-			//					if (tab.entityID == null) return;
-			//					if (tab.configKey == null) return;
-			//
-			//					String value = voiceManager.get(tab.entityID).map(VoiceID::toString).orElse("");
-			//					voiceConfigChatboxTextInputProvider.get()
-			//						.configKey(tab.configKey)
-			//						.entityID(tab.entityID)
-			//						.value(value)
-			//						.build();
-			//				});
 		}
 
 		return currentMenuEntry
@@ -445,8 +415,31 @@ public class MenuModule implements PluginModule {
 				});
 		}
 		Menu subMenu = parent.createSubMenu();
-		{
 
+		if (isListened) {
+			System.out.println("unlisten");
+			subMenu.createMenuEntry(0)
+				.setOption("Unlisten")
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> {
+					muteManager.unlisten(entityID);
+					speechManager.silenceAll();
+				});
+		}
+		else {
+			System.out.println("listen");
+			subMenu.createMenuEntry(0)
+				.setOption("Listen")
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> {
+					muteManager.listen(entityID);
+					muteManager.setListenMode(true);
+					speechManager.silenceAll();
+				});
+		}
+
+
+		{
 			boolean hasHinted = Boolean.parseBoolean(
 				configManager.getConfiguration(CONFIG_GROUP, ConfigKeys.Hints.HINTED_INGAME_ENTITY_MENU_SET_VOICE));
 
@@ -496,28 +489,7 @@ public class MenuModule implements PluginModule {
 					.onClick(e -> muteManager.unmute(entityID));
 			}
 		}
-
-		if (isListened) {
-			MenuEntry unlistenEntry = subMenu.createMenuEntry(0)
-				.setOption("Unlisten")
-				.setType(MenuAction.RUNELITE)
-				.onClick(e -> {
-					muteManager.unlisten(entityID);
-					speechManager.silenceAll();
-				});
-		}
-		else {
-			MenuEntry listenEntry = subMenu.createMenuEntry(0)
-				.setOption("Listen")
-				.setType(MenuAction.RUNELITE)
-				.onClick(e -> {
-					muteManager.listen(entityID);
-					muteManager.setListenMode(true);
-					speechManager.silenceAll();
-				});
-		}
 	}
-
 }
 
 enum MenuIconSet {

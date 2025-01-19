@@ -142,6 +142,7 @@ public class SpeechModule implements PluginModule {
 		if (!speechManager.isAlive()) return;
 		if (!config.npcOverheadEnabled()) return;
 		if (chatHelper.isAreaDisabled()) return;
+		if (chatHelper.isTooCrowded()) return;
 
 		NPC npc = (NPC) event.getActor();
 		EntityID entityID = EntityID.npc(npc);

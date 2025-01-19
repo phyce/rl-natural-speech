@@ -326,7 +326,7 @@ public class ChatHelper implements PluginModule {
 	}
 
 
-	private boolean isTooCrowded() {
+	public boolean isTooCrowded() {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;
 		@Nullable WorldView topLevelWorldView = client.getTopLevelWorldView();
