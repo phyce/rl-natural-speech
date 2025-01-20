@@ -130,13 +130,14 @@ public class VolumeManager implements PluginModule {
 
 	public Supplier<Float> chat(ChatHelper.ChatType chatType, EntityID entityID) {
 		Supplier<Float> volume;
+		Optional<Player> player;
 		switch (chatType) {
 			case User:
 				volume = localplayer();
 				break;
-			case OtherPlayers:
-				Optional<Player> player = clientHelper.getPlayer(entityID);
 
+			case LocalPlayers:
+				player = clientHelper.getPlayer(entityID);
 				if (!player.isPresent()) {
 					volume = localplayer();
 				}
@@ -147,6 +148,17 @@ public class VolumeManager implements PluginModule {
 					volume = overhead(player.get());
 				}
 				break;
+
+			case RemotePlayers:
+				player = clientHelper.getPlayer(entityID);
+				if(player.isPresent() && clientHelper.isFriend(entityID.toShortString())){
+					volume = friend(player.get());
+				} else {
+					volume = ZERO_GAIN;
+				}
+
+				break;
+
 			case System:
 				volume = system();
 				break;

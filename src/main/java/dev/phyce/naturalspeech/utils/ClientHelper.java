@@ -59,6 +59,12 @@ public final class ClientHelper {
 		return getFriends().contains(entityID);
 	}
 
+	public boolean isFriend(@NonNull String username) {
+		EntityID entityID = EntityID.name(username);
+
+		return getFriends().contains(entityID);
+	}
+
 	public boolean isLocalPlayer(@NonNull EntityID entityID) {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;
@@ -67,11 +73,21 @@ public final class ClientHelper {
 		return entityID.isName(localPlayer.getName());
 	}
 
-	public boolean isFriend(@NonNull String username) {
-		EntityID entityID = EntityID.name(username);
+	public boolean isUserNearby(String username) {
+		List<Player> players = client.getPlayers();
 
-		return getFriends().contains(entityID);
+		if (players != null) {
+			for (Player player : players) {
+				if (player != null && player.getName() != null
+					&& player.getName().equalsIgnoreCase(username)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
+
 
 	public int getLevel(@NonNull EntityID eid) {
 		Optional<Player> targetPlayer = getPlayer(eid);

@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 public final class TextUtil {
 
 	private static final Pattern patternTargetWithLevel = Pattern.compile("(.+) {2}\\(level-\\d+\\)");
-	private static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-zÀ-ÖØ-öø-ÿ].*");
+	private static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-z0-9À-ÖØ-öø-ÿ].*");
 
 	public static List<String> splitSentence(String text) {
 		// https://www.baeldung.com/java-split-string-keep-delimiters

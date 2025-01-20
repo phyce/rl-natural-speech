@@ -52,7 +52,8 @@ public class ChatHelper implements PluginModule {
 
 	public enum ChatType {
 		User,
-		OtherPlayers,
+		LocalPlayers,
+		RemotePlayers,
 		System,
 		Unknown;
 	}
@@ -115,7 +116,8 @@ public class ChatHelper implements PluginModule {
 			case User:
 				eid = EntityID.LOCAL_PLAYER;
 				break;
-			case OtherPlayers:
+			case LocalPlayers:
+			case RemotePlayers:
 				eid = EntityID.name(message.getName());
 				break;
 			case System:
@@ -138,7 +140,11 @@ public class ChatHelper implements PluginModule {
 				return ChatType.User;
 			}
 			else {
-				return ChatType.OtherPlayers;
+				if (clientHelper.isUserNearby(Text.standardize(message.getName()))) {
+					return ChatType.LocalPlayers;
+				}
+
+				return ChatType.RemotePlayers;
 			}
 		}
 		else if (isInnerVoice(message.getType())) {
@@ -219,7 +225,9 @@ public class ChatHelper implements PluginModule {
 			return config.muteSelf();
 		}
 
-		if (config.friendsOnlyMode() && chatType == ChatType.OtherPlayers && !clientHelper.isFriend(eid)) {
+		if (config.friendsOnlyMode() &&
+			Utils.inArray(chatType, new ChatType[]{ChatType.LocalPlayers, ChatType.RemotePlayers}) &&
+			!clientHelper.isFriend(eid)) {
 			return true;
 		}
 
@@ -230,12 +238,13 @@ public class ChatHelper implements PluginModule {
 
 		if (isTooCrowded()) return true;
 
-		if (chatType == ChatType.OtherPlayers && isAreaDisabled()) {
+		if (chatType == ChatType.LocalPlayers && isAreaDisabled()) {
 			log.trace("Muting message. Area is disabled. Message:{}", message);
 			return true;
 		}
 
-		if (config.muteOtherPlayers() && chatType == ChatType.OtherPlayers) {
+		if (config.muteOtherPlayers() &&
+			Utils.inArray(chatType, new ChatType[]{ChatType.LocalPlayers, ChatType.RemotePlayers})) {
 			log.trace("Muting message. Muting others. Message:{}", message);
 			return true;
 		}
@@ -324,7 +333,6 @@ public class ChatHelper implements PluginModule {
 		}
 		return false;
 	}
-
 
 	public boolean isTooCrowded() {
 		Player localPlayer = client.getLocalPlayer();
