@@ -5,6 +5,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.texttospeech.Gender;
 import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
@@ -75,6 +76,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final MacSpeechEngine macSpeechEngine;
 	private final SpeechManager speechManager;
 	private final VoiceListItem.Factory voiceListItemFactory;
+	private final SpeechManagerConfig speechManagerConfig;
 
 	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
 
@@ -86,7 +88,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final HashMultimap<String, VoiceListItem> searchToItemBiMap = HashMultimap.create();
 	private final Map<String, JPanel> modelSections = new HashMap<>();
 	private JPanel macSegment;
-	private JPanel microsoftSegment;
+	private JPanel microsoftSapi4Segment;
+	private JPanel microsoftSapi5Segment;
 	private JPanel centerStoppedWarning;
 	private JPanel centerNoEngineWarning;
 	private JPanel centerCopyHint;
@@ -110,7 +113,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SpeechManager speechManager,
 		PluginEventBus pluginEventBus,
 		MacSpeechEngine macSpeechEngine,
-		VoiceListItem.Factory voiceListItemFactory
+		VoiceListItem.Factory voiceListItemFactory,
+		SpeechManagerConfig speechManagerConfig
 	) {
 		this.piperRepository = piperRepository;
 		this.sapi4Repository = sapi4Repository;
@@ -119,6 +123,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		this.speechManager = speechManager;
 		this.macSpeechEngine = macSpeechEngine;
 		this.voiceListItemFactory = voiceListItemFactory;
+		this.speechManagerConfig = speechManagerConfig;
 
 		pluginEventBus.registerWeak(this);
 
@@ -189,8 +194,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 				state.anyFailed = true;
 				break;
 			case STARTED:
-				if (engine instanceof SAPI4Engine || engine instanceof SAPI5Engine) {
-					microsoftSegment.setVisible(true);
+				if (engine instanceof SAPI4Engine) {
+					microsoftSapi4Segment.setVisible(true);
+				}
+				if (engine instanceof SAPI5Engine) {
+					microsoftSapi5Segment.setVisible(true);
 				}
 				else if (engine instanceof MacSpeechEngine) {
 					macSegment.setVisible(true);
@@ -203,10 +211,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 				break;
 			case CRASHED:
 			case STOPPED:
-				if (engine instanceof SAPI4Engine || engine instanceof SAPI5Engine) {
-					if (!sapi4Engine.isAlive() && !sapi5Engine.isAlive()) {
-						microsoftSegment.setVisible(false);
-					}
+				if ((engine instanceof SAPI4Engine && !sapi4Engine.isAlive()) || !speechManagerConfig.isEnabled(sapi4Engine)) {
+					microsoftSapi4Segment.setVisible(false);
+				}
+				if (engine instanceof SAPI5Engine && !sapi5Engine.isAlive()) {
+					microsoftSapi5Segment.setVisible(false);
 				}
 				else if (engine instanceof MacSpeechEngine) {
 					macSegment.setVisible(false);
@@ -238,7 +247,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 					centerCopyHint.setVisible(true);
 				}
 				else if (state.anyDisabled){
-						centerNoEngineWarning.setVisible(true);
+					centerNoEngineWarning.setVisible(true);
 				}
 				break;
 			case STOPPED:
@@ -323,7 +332,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 		Set<VoiceID> macVoices = macSpeechEngine.getNativeVoices().keySet();
 
 		buildMacModelSegment(macVoices);
-		buildMicrosoftModelSegment(sapi4Models, sapi5Models);
+		buildMicrosoftSapi4ModelSegment(sapi4Models);
+		buildMicrosoftSapi5ModelSegment(sapi5Models);
 
 		for (PiperRepository.PiperModelURL modelURL : piperModelURLS) {
 			if (piperRepository.isLocal(modelURL)) {
@@ -444,11 +454,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 		modelSections.put("mac", macSegment);
 	}
 
-	private void buildMicrosoftModelSegment(List<String> sapi4Models, ImmutableSet<SAPI5Process.SAPI5Voice> sapi5Models) {
-		microsoftSegment = new JPanel();
-		microsoftSegment.setLayout(new BoxLayout(microsoftSegment, BoxLayout.Y_AXIS));
-		microsoftSegment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		microsoftSegment.setVisible(false);
+	private void buildMicrosoftSapi4ModelSegment(List<String> sapi4Models) {
+		microsoftSapi4Segment = new JPanel();
+		microsoftSapi4Segment.setLayout(new BoxLayout(microsoftSapi4Segment, BoxLayout.Y_AXIS));
+		microsoftSapi4Segment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		microsoftSapi4Segment.setVisible(false);
 
 		final JPanel sectionHeader = new JPanel();
 		sectionHeader.setLayout(new BorderLayout());
@@ -458,7 +468,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionHeader.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
 			new EmptyBorder(0, 0, 3, 1)));
-		microsoftSegment.add(sectionHeader);
+		microsoftSapi4Segment.add(sectionHeader);
 
 		final JButton sectionToggle = new JButton(PluginResources.SECTION_RETRACT_ICON);
 		sectionToggle.setPreferredSize(new Dimension(18, 0));
@@ -467,7 +477,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final String name = "microsoft";
+		final String name = "microsoft sapi4";
 		final String description = name;
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
@@ -478,11 +488,11 @@ public class VoiceExplorerPanel extends EditorPanel {
 		final JPanel sectionContent = new JPanel();
 		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		microsoftSegment.setBorder(new CompoundBorder(
+		microsoftSapi4Segment.setBorder(new CompoundBorder(
 			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
 			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
 		));
-		microsoftSegment.add(sectionContent, BorderLayout.SOUTH);
+		microsoftSapi4Segment.add(sectionContent, BorderLayout.SOUTH);
 
 		// Add listeners to each part of the header so that it's easier to toggle them
 		final MouseAdapter adapter = new MouseAdapter() {
@@ -507,6 +517,63 @@ public class VoiceExplorerPanel extends EditorPanel {
 				sectionContent.add(speakerItem);
 			});
 
+		sectionListPanel.add(microsoftSapi4Segment);
+		modelSections.put("microsoft", microsoftSapi4Segment);
+	}
+
+	private void buildMicrosoftSapi5ModelSegment(ImmutableSet<SAPI5Process.SAPI5Voice> sapi5Models) {
+		microsoftSapi5Segment = new JPanel();
+		microsoftSapi5Segment.setLayout(new BoxLayout(microsoftSapi5Segment, BoxLayout.Y_AXIS));
+		microsoftSapi5Segment.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		microsoftSapi5Segment.setVisible(false);
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		microsoftSapi5Segment.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(PluginResources.SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "microsoft sapi5";
+		final String description = name;
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		microsoftSapi5Segment.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		microsoftSapi5Segment.add(sectionContent, BorderLayout.SOUTH);
+
+		// Add listeners to each part of the header so that it's easier to toggle them
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSpeakerSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSpeakerSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
+		toggleSpeakerSection(sectionToggle, sectionContent);
+
 		sapi5Models.stream()
 			.sorted(Comparator.comparing(SAPI5Process.SAPI5Voice::getName))
 			.forEach((voice) -> {
@@ -522,8 +589,8 @@ public class VoiceExplorerPanel extends EditorPanel {
 				sectionContent.add(speakerItem);
 			});
 
-		sectionListPanel.add(microsoftSegment);
-		modelSections.put("microsoft", microsoftSegment);
+		sectionListPanel.add(microsoftSapi5Segment);
+		modelSections.put("microsoft", microsoftSapi5Segment);
 	}
 
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
