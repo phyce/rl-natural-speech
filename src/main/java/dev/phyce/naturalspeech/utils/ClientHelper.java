@@ -65,6 +65,13 @@ public final class ClientHelper {
 		return getFriends().contains(entityID);
 	}
 
+	public EntityID getFriend(@NonNull String username) {
+		return getFriends().stream()
+			.filter(friend -> friend.toShortString().equalsIgnoreCase(username))
+			.findFirst()
+			.orElse(null);
+	}
+
 	public boolean isLocalPlayer(@NonNull EntityID entityID) {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;

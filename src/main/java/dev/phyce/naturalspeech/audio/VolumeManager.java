@@ -113,6 +113,15 @@ public class VolumeManager implements PluginModule {
 		};
 	}
 
+	public Supplier<Float> friend(EntityID player) {
+		return () -> {
+			int basePercentage = config.masterVolume();
+			final int boostPercentage = config.friendsVolumeBoost();
+
+			return AudioEngine.getDecibelBoost(basePercentage, boostPercentage);
+		};
+	}
+
 	@NonNull
 	public Supplier<Float> dialog() {
 		return ZERO_GAIN;
@@ -150,13 +159,12 @@ public class VolumeManager implements PluginModule {
 				break;
 
 			case RemotePlayers:
-				player = clientHelper.getPlayer(entityID);
-				if(player.isPresent() && clientHelper.isFriend(entityID.toShortString())){
-					volume = friend(player.get());
+				EntityID friendEntity = clientHelper.getFriend(entityID.toShortString());
+				if(friendEntity != null) {
+					volume = friend(friendEntity);
 				} else {
 					volume = ZERO_GAIN;
 				}
-
 				break;
 
 			case System:
