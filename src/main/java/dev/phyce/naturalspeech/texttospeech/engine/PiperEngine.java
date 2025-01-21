@@ -280,8 +280,8 @@ public class PiperEngine extends ManagedSpeechEngine {
 	}
 
 	public String toUIString() {
-		return String.format("%s - process count:%d)",
-			getModel().getModelName(),
+		return String.format("%s (%d)",
+			getEngineName(),
 			processCount()
 		);
 	}

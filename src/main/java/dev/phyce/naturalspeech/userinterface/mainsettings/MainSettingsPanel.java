@@ -15,8 +15,6 @@ import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperProcess;
-import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
@@ -30,15 +28,11 @@ import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -46,16 +40,20 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
+import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.ChangeListener;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
@@ -69,13 +67,10 @@ public class MainSettingsPanel extends PluginPanel {
 	//	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 	private final SpeechManager speechManager;
-	private final ConfigManager configManager;
 	private final NaturalSpeechConfig config;
-	private PiperModelMonitorItem.Factory monitorFactory;
 	private final FixedWidthPanel mainContentPanel;
-
-	private final Map<PiperRepository.PiperModel, PiperModelMonitorItem> piperModelMonitorMap = new HashMap<>();
 	private final Set<Warning> warnings = new HashSet<>();
+
 
 	private JLabel statusLabel;
 	private JPanel statusPanel;
@@ -85,6 +80,11 @@ public class MainSettingsPanel extends PluginPanel {
 	private JPanel warningCrash;
 	private JPanel warningMinimumMode;
 	private JLabel crashLabel;
+	private JLabel piperProcessDisplay;
+
+	private ChangeListener volumeChangeListener;
+
+	private JSlider volumeSlider;
 
 	@Data
 	private static class State {
@@ -104,12 +104,26 @@ public class MainSettingsPanel extends PluginPanel {
 		SpeechManager speechManager,
 		PluginEventBus pluginEventBus,
 		ConfigManager configManager,
-		NaturalSpeechConfig config
+		NaturalSpeechConfig config,
+		PiperModelMonitorItem.Factory monitorFactory
 	) {
 		super(false);
 		this.configManager = configManager;
 		this.config = config;
 		this.speechManager = speechManager;
+		this.monitorFactory = monitorFactory;
+
+		piperProcessDisplay = new JLabel();
+
+
+		volumeChangeListener = e -> {
+			int newVolume = volumeSlider.getValue();
+			configManager.setConfiguration(
+				CONFIG_GROUP,
+				ConfigKeys.MASTER_VOLUME,
+				String.valueOf(newVolume)
+			);
+		};
 
 		pluginEventBus.registerWeak(this);
 
@@ -141,17 +155,24 @@ public class MainSettingsPanel extends PluginPanel {
 		this.revalidate();
 	}
 
+	@Subscribe
+	private void onConfigChanged(ConfigChanged event) {
+		System.out.println("event");
+		System.out.println(event);
+		switch (event.getKey()) {
+			case ConfigKeys.MASTER_VOLUME:
+				System.out.println("MASTER VOLUME CHANGED");
+				updateVolumeSlider(config.masterVolume());
+				break;
+		}
+	}
+
 	@PluginSubscribe
 	public void on(SpeechEngineEvent event) {
 		switch (event.getEvent()) {
 			case STARTING:
 				if (event.getSpeechEngine() instanceof PiperEngine) {
 					piperMonitorPanel.setVisible(true);
-					PiperRepository.PiperModel model = ((PiperEngine) event.getSpeechEngine()).getModel();
-					PiperModelMonitorItem monitorItem = monitorFactory.create(model);
-					piperModelMonitorMap.put(model, monitorItem);
-					piperMonitorPanel.add(monitorItem);
-					piperMonitorPanel.revalidate();
 				}
 				break;
 			case START_NO_RUNTIME:
@@ -170,18 +191,13 @@ public class MainSettingsPanel extends PluginPanel {
 				if (event.getSpeechEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
 					state.anyExternal = true;
 				}
+				updateActivePiperProcessCount();
 				break;
 			case CRASHED:
 				break;
 			case STOPPED:
 				if (event.getSpeechEngine() instanceof PiperEngine) {
 					piperMonitorPanel.setVisible(false);
-					PiperRepository.PiperModel model = ((PiperEngine) event.getSpeechEngine()).getModel();
-					PiperModelMonitorItem remove = piperModelMonitorMap.remove(model);
-					if (remove != null) {
-						piperMonitorPanel.remove(remove);
-						piperMonitorPanel.revalidate();
-					}
 				}
 				break;
 		}
@@ -262,16 +278,7 @@ public class MainSettingsPanel extends PluginPanel {
 				event.getModelEngine().getModel().getModelName())
 		);
 		updateWarningsUI();
-
-//		switch (event.getEvent()) {
-//			case SPAWNED:
-//			case DIED:
-//			case CRASHED:
-//				break;
-//		}
-
-		piperMonitorPanel = buildPiperProcessMonitorPanel();
-
+		piperMonitorPanel.revalidate();
 	}
 
 
@@ -565,23 +572,29 @@ public class MainSettingsPanel extends PluginPanel {
 
 		piperMonitorPanel.add(header, BorderLayout.CENTER);
 
-		Map<String, PiperEngine> instances = speechManager.getEngines()
-			.filter(engine -> engine instanceof PiperEngine)
-			.map(engine -> (PiperEngine) engine)
-			.collect(Collectors.toMap(
-				eng -> eng.getModel().getModelName(),
-				Function.identity()
-			));
-
-
-		for (PiperEngine engine : instances.values()) {
-			piperMonitorPanel.add(new JLabel(engine.toUIString()));
-		}
+		updateActivePiperProcessCount();
+		piperMonitorPanel.add(piperProcessDisplay, BorderLayout.CENTER);
 
 		return piperMonitorPanel;
 	}
 
-	private int volume;
+	private void updateActivePiperProcessCount() {
+		Map<String, PiperEngine> instances = speechManager.getEngines()
+			.filter(engine -> engine instanceof PiperEngine && ((PiperEngine) engine).processCount() > 0)
+			.map(engine -> (PiperEngine) engine)
+			.collect(Collectors.toMap(PiperEngine::getEngineName,
+				Function.identity()
+			));
+
+
+		StringBuilder piperProcessList = new StringBuilder("<html>");
+		for (PiperEngine engine : instances.values()) {
+			piperProcessList.append(engine.toUIString()).append("<br/>");
+		}
+		piperProcessList.append("</html>");
+		piperProcessDisplay.setText(piperProcessList.toString());
+		piperProcessDisplay.revalidate();
+	}
 
 	private JPanel buildTextToSpeechControlsPanel() {
 		statusPanel = new JPanel();
@@ -591,7 +604,7 @@ public class MainSettingsPanel extends PluginPanel {
 		statusLabel = new JLabel("Not Running", SwingConstants.CENTER);
 		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
 		statusLabel.setOpaque(true); // Needed to show background color
-		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50)); // Set preferred height
+		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50));
 		statusLabel.setBackground(Color.DARK_GRAY);
 		statusPanel.setToolTipText("Press start to begin text to speech.");
 
@@ -612,19 +625,11 @@ public class MainSettingsPanel extends PluginPanel {
 		int volume = config.masterVolume();
 
 		//Volume Slider
-		JSlider volumeSlider = new JSlider(0, 100, volume);
+		volumeSlider = new JSlider(0, 100, volume);
 		volumeSlider.setMajorTickSpacing(10);
 		volumeSlider.setPaintTicks(true);
 		volumeSlider.setPaintLabels(true);
-
-		volumeSlider.addChangeListener(e -> {
-			int newVolume = volumeSlider.getValue();
-			configManager.setConfiguration(
-				CONFIG_GROUP,
-				ConfigKeys.MASTER_VOLUME,
-				String.valueOf(newVolume)
-			);
-		});
+		volumeSlider.addChangeListener(volumeChangeListener);
 
 		volumePanel.add(volumeLabel);
 		volumePanel.add(volumeSlider);
@@ -635,6 +640,11 @@ public class MainSettingsPanel extends PluginPanel {
 		return statusPanel;
 	}
 
+	public void updateVolumeSlider(int newVolume) {
+		volumeSlider.removeChangeListener(volumeChangeListener);
+		volumeSlider.setValue(newVolume);
+		volumeSlider.addChangeListener(volumeChangeListener);
+	}
 
 	private void toggleSection(JButton toggleButton, JPanel sectionContent) {
 		boolean newState = !sectionContent.isVisible();

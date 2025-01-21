@@ -1,9 +1,11 @@
 package dev.phyce.naturalspeech.userinterface;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.audio.AudioEngine;
+import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import static dev.phyce.naturalspeech.statics.PluginResources.INGAME_NATURAL_SPEECH_SMALL_ICON;
 import dev.phyce.naturalspeech.userinterface.mainsettings.MainSettingsPanel;
@@ -23,6 +25,8 @@ import javax.swing.JPanel;
 import javax.swing.OverlayLayout;
 import javax.swing.border.EmptyBorder;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.PluginPanel;
@@ -40,6 +44,8 @@ public class TopLevelPanel extends PluginPanel implements PluginModule {
 	private PluginPanel current;
 	private boolean removeOnTabChange;
 	private NavigationButton panelNavButton;
+	private final NaturalSpeechConfig config;
+	private final MainSettingsPanel mainSettingsPanel;
 
 	@Inject
 	TopLevelPanel(
@@ -47,12 +53,13 @@ public class TopLevelPanel extends PluginPanel implements PluginModule {
 			MainSettingsPanel mainSettingsPanel,
 			VoiceExplorerPanel voiceExplorerPanel,
 			VoiceHubPanel voiceHubPanel,
-			ConfigManager configManager,
 			ClientToolbar clientToolbar,
-			AudioEngine audioEngine
+			NaturalSpeechConfig config
 	) {
 		super(false);
 		this.clientToolbar = clientToolbar;
+		this.config = config;
+		this.mainSettingsPanel = mainSettingsPanel;
 
 		JPanel header = new JPanel();
 		header.setLayout(new BorderLayout());
@@ -130,6 +137,14 @@ public class TopLevelPanel extends PluginPanel implements PluginModule {
 
 	}
 
+	@Subscribe
+	private void onConfigChanged(ConfigChanged event) {
+		switch (event.getKey()) {
+			case ConfigKeys.MASTER_VOLUME:
+				mainSettingsPanel.updateVolumeSlider(config.masterVolume());
+				break;
+		}
+	}
 
 	@Override
 	public void startUp() {
