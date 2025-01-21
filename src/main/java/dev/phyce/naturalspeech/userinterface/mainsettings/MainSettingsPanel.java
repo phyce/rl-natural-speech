@@ -108,10 +108,8 @@ public class MainSettingsPanel extends PluginPanel {
 		PiperModelMonitorItem.Factory monitorFactory
 	) {
 		super(false);
-		this.configManager = configManager;
 		this.config = config;
 		this.speechManager = speechManager;
-		this.monitorFactory = monitorFactory;
 
 		piperProcessDisplay = new JLabel();
 
