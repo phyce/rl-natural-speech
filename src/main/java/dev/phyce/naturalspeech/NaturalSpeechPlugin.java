@@ -30,7 +30,7 @@ import net.runelite.client.ui.overlay.OverlayMenuEntry;
 import org.slf4j.LoggerFactory;
 
 @Slf4j
-@PluginDescriptor(name=CONFIG_GROUP)
+@PluginDescriptor(name="Natural Speech")
 public class NaturalSpeechPlugin extends Plugin {
 	public static final String VERSION = ClientHelper.getVersion();
 	public static final String CONFIG_GROUP = "NaturalSpeech";

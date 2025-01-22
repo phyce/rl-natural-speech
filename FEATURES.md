@@ -71,11 +71,13 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Added ability to skip NPC dialogs **_#WIP_**
  - Added Voice Hub tab and moved all the voice packs to it
  - Added right click options to chat channel buttons
- - Added twitch plugin integration
+ - Added Twitch plugin integration
+ - Added more languages: Czech, Finnish, Danish, Welsh
  - `Global default NPC voice` is now `Global NPC voice` and will override any NPC voice regardless of pre-set voices
  - `Fade distant sound` option now has dynamic volume updating
  - `Shortened phrases` are now `Abbreviations`
  - `Abbreviations` field is now `Custom abbreviations`
+ - `Mute Grand Exchange` now also mutes NPCs
  - Reworked volume settings
  - Improved performance
  - Fixed issue where master volume was not being applied to all audio sources
@@ -83,7 +85,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Duplicate system messages won't be played every time anymore
  - Fixed issue where certain dialogs were not working (eg Spirit Tree)
  - NPC Dialogs now have an individual queue for NPC + Player dialog messages
- - `Mute Grand Exchange` now also mutes NPCs
+
 
 
 ## 1.2.4

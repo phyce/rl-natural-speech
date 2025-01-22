@@ -1,90 +1,122 @@
 [
   {
     "modelName": "libritts",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/libritts/high/en_US-libritts-high.onnx.json?download=true",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/libritts.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/libritts/libritts.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/libritts/libritts.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/libritts/libritts.metadata.json",
     "description": "North American Accents. 904 voices.",
-    "memorySize": "size:137MB"
+    "memorySize": "size: 137MB"
   },
   {
     "modelName": "vctk",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx.json?download=true",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/vctk.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/vctk/vctk.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/vctk/vctk.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/vctk/vctk.metadata.json",
     "description": "Various English accents from Great Britain. 108 voices.",
-    "memorySize": "size:77MB"
+    "memorySize": "size: 77MB"
   },
   {
     "modelName": "vivos",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/vi/vi_VN/vivos/x_low/vi_VN-vivos-x_low.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/vi/vi_VN/vivos/x_low/vi_VN-vivos-x_low.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/vivos.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/vivos/vivos.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/vivos/vivos.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/vivos/vivos.metadata.json",
     "description": "Vietnamese. 64 voices.",
-    "memorySize": "size:27MB"
+    "memorySize": "size: 27MB"
   },
   {
     "modelName": "thorstenemo",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten_emotional/medium/de_DE-thorsten_emotional-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/de/de_DE/thorsten_emotional/medium/de_DE-thorsten_emotional-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/thorstenemo.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/thorstenemo/thorstenemo.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/thorstenemo/thorstenemo.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/thorstenemo/thorstenemo.metadata.json",
     "description": "Thorsten Muller (German Emotional). 8 different emotions.",
-    "memorySize": "size:76MB"
+    "memorySize": "size: 76MB"
   },
   {
     "modelName": "sharvard",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/sharvard.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/sharvard/sharvard.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/sharvard/sharvard.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/sharvard/sharvard.metadata.json",
     "description": "Spanish. 2 voices.",
-    "memorySize": "size:76MB"
+    "memorySize": "size: 76MB"
   },
   {
     "modelName": "ruirina",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/ru/ru_RU/irina/medium/ru_RU-irina-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/ruirina.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/ruirina/ruirina.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/ruirina/ruirina.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/ruirina/ruirina.metadata.json",
     "description": "Russian. Female voice.",
-    "memorySize": "size:76MB"
+    "memorySize": "size: 76MB"
   },
   {
     "modelName": "rudmitri",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/rudimitri.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/rudimitri/rudmitri.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/rudimitri/rudmitri.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/rudimitri/rudmitri.metadata.json",
     "description": "Russian. Male voice.",
-    "memorySize": "size:76MB"
+    "memorySize": "size: 76MB"
   },
   {
     "modelName": "itriccardo",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/it/it_IT/riccardo/x_low/it_IT-riccardo-x_low.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/it/it_IT/riccardo/x_low/it_IT-riccardo-x_low.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/itriccardo.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/itriccardo/itriccardo.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/itriccardo/itriccardo.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/itriccardo/itriccardo.metadata.json",
     "description": "Italian. 1 voice.",
-    "memorySize": "size:28MB"
+    "memorySize": "size: 28MB"
   },
   {
     "modelName": "demls",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/mls/medium/de_DE-mls-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/de/de_DE/mls/medium/de_DE-mls-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/demls.metadata.json",
-    "description": "German. 236 voices. Experimental",
-    "memorySize": "size:77MB"
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/demls/demls.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/demls/demls.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/demls/demls.metadata.json",
+    "description": "German. 236 voices.",
+    "memorySize": "size: 77MB"
   },
   {
     "modelName": "frmls",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/frmls.metadata.json",
-    "description": "French. 125 Voices. Experimental",
-    "memorySize": "size:76MB"
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/frmls/frmls.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/frmls/frmls.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/frmls/frmls.metadata.json",
+    "description": "French. 125 Voices.",
+    "memorySize": "size: 76MB"
   },
   {
     "modelName": "nlmls",
-    "onnxURL": "https://huggingface.co/rhasspy/piper-voices/resolve/main/nl/nl_NL/mls/medium/nl_NL-mls-medium.onnx?download=true",
-    "onnxMetadataURL": "https://huggingface.co/rhasspy/piper-voices/raw/main/nl/nl_NL/mls/medium/nl_NL-mls-medium.onnx.json",
-    "metadataURL": "https://raw.githubusercontent.com/TheLouisHong/rl-natural-speech-metadata/main/model_metadata/nlmls.metadata.json",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/nlmls/nlmls.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/nlmls/nlmls.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/nlmls/nlmls.metadata.json",
     "description": "Dutch. 52 Voices.",
-    "memorySize": "size:76MB"
+    "memorySize": "size: 76MB"
+  },
+  {
+    "modelName": "czjirka",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/czjirka/czjirka.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/czjirka/czjirka.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/czjirka/czjirka.metadata.json",
+    "description": "Czech. Male Voice.",
+    "memorySize": "size: 62MB"
+  },
+  {
+    "modelName": "cygogleddol",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/cygogleddol/cygogleddol.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/cygogleddol/cygogleddol.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/cygogleddol/cygogleddol.metadata.json",
+    "description": "Welsh. Male Voice.",
+    "memorySize": "size: 62MB"
+  },
+  {
+    "modelName": "fiharri",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/fiharri/fiharri.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/fiharri/fiharri.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/fiharri/fiharri.metadata.json",
+    "description": "Finnish. Male Voice.",
+    "memorySize": "size: 62MB"
+  },
+  {
+    "modelName": "dktalesyntese",
+    "onnxURL": "https://github.com/phyce/PiperModels/releases/download/dktalesyntese/dktalesyntese.onnx",
+    "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/dktalesyntese/dktalesyntese.onnx.json",
+    "metadataURL": "https://github.com/phyce/PiperModels/releases/download/dktalesyntese/dktalesyntese.metadata.json",
+    "description": "Danish. Male Voice.",
+    "memorySize": "size: 62MB"
   }
 ]
