@@ -279,6 +279,17 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean systemMesagesEnabled() {
 		return false;
 	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.TWITCH_CHAT,
+		name="Twitch chat plugin",
+		description="Generate text-to-speech of the messages received from twitch viewers",
+		section=ttsOptionsSection,
+		position=100
+	)
+	default boolean twitchChatEnabled() {
+		return false;
+	}
 	// endregion
 
 	// region Mute Options

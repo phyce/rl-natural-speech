@@ -136,16 +136,16 @@ public class ChatHelper implements PluginModule {
 			return ChatType.System;
 		}
 		else if (isPlayerChat(message.getType())) {
+			if(message.getSender().equals("Twitch")) return ChatType.RemotePlayers;
+
 			if (clientHelper.isLocalPlayer(nameEID)) {
 				return ChatType.User;
 			}
-			else {
-				if (clientHelper.isUserNearby(Text.standardize(message.getName()))) {
-					return ChatType.LocalPlayers;
-				}
-
-				return ChatType.RemotePlayers;
+			else if (clientHelper.isUserNearby(Text.standardize(message.getName()))) {
+				return ChatType.LocalPlayers;
 			}
+
+			return ChatType.RemotePlayers;
 		}
 		else if (isInnerVoice(message.getType())) {
 			return ChatType.User;
@@ -209,6 +209,7 @@ public class ChatHelper implements PluginModule {
 	}
 
 	public boolean isMuted(@NonNull ChatMessage message) {
+		if (message.getSender() != null && message.getSender().equals("Twitch") && !config.twitchChatEnabled()) return true;
 
 		ChatType chatType = getChatType(message);
 		EntityID eid = getEntityID(message);
@@ -231,7 +232,7 @@ public class ChatHelper implements PluginModule {
 			return true;
 		}
 
-		if (isMessageDisabled(message.getType())) {
+		if (isMessageDisabled(message.getType(), message.getSender())) {
 			log.trace("Muting message. Disabled message type. Message:{}", message);
 			return true;
 		}
@@ -280,7 +281,7 @@ public class ChatHelper implements PluginModule {
 		return false;
 	}
 
-	private boolean isMessageDisabled(@NonNull ChatMessageType messageType) {
+	private boolean isMessageDisabled(@NonNull ChatMessageType messageType, String sender) {
 		switch (messageType) {
 			case PUBLICCHAT:
 			case MODCHAT:
@@ -288,9 +289,11 @@ public class ChatHelper implements PluginModule {
 				break;
 			case PRIVATECHAT:
 			case MODPRIVATECHAT:
-			case FRIENDSCHAT:
 				if (!config.privateChatEnabled()) return true;
 				break;
+			case FRIENDSCHAT:
+				if (sender.equals("Twitch") && !config.twitchChatEnabled()) return true;
+				else if (!config.privateChatEnabled()) return true;
 			case PRIVATECHATOUT:
 				if (!config.privateOutChatEnabled()) return true;
 				break;
@@ -364,6 +367,12 @@ public class ChatHelper implements PluginModule {
 		if (chatType == ChatType.System) {
 			text = Text.removeFormattingTags(text);
 			text = removeNumericCommas(text);
+		}
+
+		if (message.getSender() != null && message.getSender().equals("Twitch")) {
+			if (text.startsWith("<colNORMAL>")) {
+				text = text.replaceFirst("^<colNORMAL>", "");
+			}
 		}
 
 		text = renderReplacements(text);

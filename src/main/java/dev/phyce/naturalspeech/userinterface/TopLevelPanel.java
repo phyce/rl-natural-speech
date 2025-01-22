@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.userinterface;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.statics.ConfigKeys;
@@ -139,6 +140,7 @@ public class TopLevelPanel extends PluginPanel implements PluginModule {
 
 	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {
+		if (!event.getGroup().equals(CONFIG_GROUP)) return;
 		switch (event.getKey()) {
 			case ConfigKeys.MASTER_VOLUME:
 				mainSettingsPanel.updateVolumeSlider(config.masterVolume());

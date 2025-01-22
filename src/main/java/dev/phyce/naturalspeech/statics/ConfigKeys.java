@@ -35,6 +35,7 @@ public interface ConfigKeys {
 	String CUSTOM_TEXT_REPLACEMENTS = "customAbbreviations";
 	String ENABLE_DIALOG_TEXT_REPLACE = "customAbbreviationsNpc";
 	String OVERRIDE_CUSTOM_NPC_VOICES = "overrideCustomNpcVoices";
+	String TWITCH_CHAT = "twitchChat";
 	// endregion
 
 	// region Development

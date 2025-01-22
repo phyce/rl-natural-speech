@@ -71,6 +71,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Added ability to skip NPC dialogs **_#WIP_**
  - Added Voice Hub tab and moved all the voice packs to it
  - Added right click options to chat channel buttons
+ - Added twitch plugin integration
  - `Global default NPC voice` is now `Global NPC voice` and will override any NPC voice regardless of pre-set voices
  - `Fade distant sound` option now has dynamic volume updating
  - `Shortened phrases` are now `Abbreviations`
