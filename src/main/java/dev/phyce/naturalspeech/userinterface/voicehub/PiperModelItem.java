@@ -32,6 +32,8 @@ import javax.swing.JPopupMenu;
 import javax.swing.JToggleButton;
 import javax.swing.LayoutStyle;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,10 @@ public class PiperModelItem extends JPanel {
 	private final PiperConfig piperConfig;
 	private final RuntimePathConfig runtimePathConfig;
 	private final PiperEngine.Factory piperModelEngineFactory;
+
+	private static final String[] DOWNLOAD_STATES = {".", "..", "...", "...."};
+	private Timer downloadAnimationTimer;
+	private int currentDownloadAnimationState = 0;
 
 	private final PiperRepository.PiperModelURL modelUrl;
 
@@ -252,20 +258,57 @@ public class PiperModelItem extends JPanel {
 	}
 
 	private void onDownloadButton(JButton downloadButton) {
-		downloadButton.setText("Downloading");
 		downloadButton.setBackground(ColorScheme.MEDIUM_GRAY_COLOR);
 		downloadButton.setBorder(new LineBorder(downloadButton.getBackground().darker()));
 		downloadButton.setEnabled(false);
 
-		try {
-			PiperModel model = piperRepository.get(modelUrl);
-			piperConfig.unset(model.getModelName());
-			piperConfig.setEnabled(model.getModelName(), true);
-			PiperEngine engine = piperModelEngineFactory.create(model);
-			speechManager.loadEngine(engine);
-			speechManager.startupEngine(engine);
-		} catch (IOException ignored) {
-			SwingUtilities.invokeLater(this::rebuild);
+		// Start the animation timer
+		downloadAnimationTimer = new Timer(350, e -> {
+			downloadButton.setText(DOWNLOAD_STATES[currentDownloadAnimationState]);
+			currentDownloadAnimationState = (currentDownloadAnimationState + 1) % DOWNLOAD_STATES.length;
+		});
+		downloadAnimationTimer.start();
+
+		// Create and execute SwingWorker
+		SwingWorker<Void, Void> worker = new SwingWorker<>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				try {
+					PiperModel model = piperRepository.get(modelUrl);
+					piperConfig.unset(model.getModelName());
+					piperConfig.setEnabled(model.getModelName(), true);
+					PiperEngine engine = piperModelEngineFactory.create(model);
+					speechManager.loadEngine(engine);
+					speechManager.startupEngine(engine);
+					return null;
+				} catch (IOException e) {
+					throw e;
+				}
+			}
+
+			@Override
+			protected void done() {
+				downloadAnimationTimer.stop();
+				try {
+					get(); // This will throw the exception if one occurred
+					downloadButton.setText("Downloaded");
+				} catch (Exception e) {
+					downloadButton.setText("Failed");
+					SwingUtilities.invokeLater(() -> rebuild());
+				} finally {
+					downloadButton.setEnabled(true);
+				}
+			}
+		};
+
+		worker.execute();
+	}
+
+	// Don't forget to clean up the timer when the plugin is shut down
+	private void cleanUp() {
+		if (downloadAnimationTimer != null) {
+			downloadAnimationTimer.stop();
+			downloadAnimationTimer = null;
 		}
 	}
 
