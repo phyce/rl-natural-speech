@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import static com.google.common.util.concurrent.Futures.submit;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.Voice;
@@ -20,6 +21,7 @@ import static dev.phyce.naturalspeech.utils.Result.ResultFutures.immediateError;
 import static dev.phyce.naturalspeech.utils.Result.ResultFutures.immediateOk;
 import dev.phyce.naturalspeech.utils.StreamableFuture;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Predicate;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 	private final ReentrantLock lock = new ReentrantLock();
 
 	private final PluginExecutorService pluginExecutorService;
+	private final AudioEngine audioEngine;
 
 	@Getter
 	@NonNull
@@ -47,14 +50,19 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 	private SAPI5Process process = null;
 
 	@Inject
-	private SAPI5Engine(PluginExecutorService pluginExecutorService) {
+	private SAPI5Engine(
+		PluginExecutorService pluginExecutorService,
+		AudioEngine audioEngine
+	) {
 		this.pluginExecutorService = pluginExecutorService;
+		this.audioEngine = audioEngine;
 	}
 
 	@Override
 	public @NonNull Result<StreamableFuture<Audio>, Rejection> generate(
 		@NonNull VoiceID voiceID,
-		@NonNull String text
+		@NonNull String text,
+		@NonNull String line
 	) {
 
 		if (!isAlive()) return Error(Rejection.DEAD(this));
@@ -190,4 +198,13 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 		return "SAPI5Engine";
 	}
 
+	@Override
+	public void silence(Predicate<String> lineCondition) {
+		audioEngine.closeConditional(lineCondition);
+	}
+
+	@Override
+	public void silenceAll() {
+		audioEngine.closeAll();
+	}
 }

@@ -7,6 +7,7 @@ import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import dev.phyce.naturalspeech.utils.Result;
 import dev.phyce.naturalspeech.utils.StreamableFuture;
 import java.util.List;
+import java.util.function.Predicate;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
@@ -16,7 +17,8 @@ public interface SpeechEngine {
 	@NonNull
 	Result<@NonNull StreamableFuture<Audio>, @NonNull Rejection> generate(
 		@NonNull VoiceID voiceID,
-		@NonNull String text
+		@NonNull String text,
+		@NonNull String line
 	);
 
 	boolean isAlive();
@@ -30,6 +32,14 @@ public interface SpeechEngine {
 
 	@NonNull
 	String getEngineName();
+
+	/**
+	 * Cancels queued and processing speak tasks. Cancel should not try to silence ongoing AudioEngine lines.
+	 * For silencing + canceling, use {@link SpeechManager#silence(Predicate)}
+	 */
+	void silence(Predicate<String> lineCondition);
+
+	void silenceAll();
 
 	@EqualsAndHashCode(callSuper=true)
 	@Value

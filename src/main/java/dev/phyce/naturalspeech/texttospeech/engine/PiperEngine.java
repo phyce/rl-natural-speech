@@ -8,6 +8,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.PiperConfig;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
@@ -44,6 +45,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
+import java.util.function.Predicate;
 
 // Renamed from TTSModel
 @Slf4j
@@ -68,6 +70,7 @@ public class PiperEngine extends ManagedSpeechEngine {
 	private final PiperConfig piperConfig;
 	private final PluginExecutorService pluginExecutorService;
 	private final PluginEventBus pluginEventBus;
+	private final AudioEngine audioEngine;
 
 	private final ConcurrentHashMap<Long, PiperProcess> processes = new ConcurrentHashMap<>();
 	private final BlockingQueue<PiperProcess> idleProcesses = Queues.newLinkedBlockingQueue();
@@ -87,13 +90,15 @@ public class PiperEngine extends ManagedSpeechEngine {
 		PiperConfig piperConfig,
 		PluginExecutorService pluginExecutorService,
 		PluginEventBus pluginEventBus,
-		@Assisted PiperModel model
+		@Assisted PiperModel model,
+		AudioEngine audioEngine
 	) {
 		this.runtimePathConfig = runtimePathConfig;
 		this.piperConfig = piperConfig;
 		this.pluginExecutorService = pluginExecutorService;
 		this.pluginEventBus = pluginEventBus;
 		this.model = model;
+		this.audioEngine = audioEngine;
 
 		voices = voices(model);
 		voiceIDs = voiceIDs(model);
@@ -102,7 +107,8 @@ public class PiperEngine extends ManagedSpeechEngine {
 	@Override
 	public @NonNull Result<StreamableFuture<Audio>, Rejection> generate(
 		@NonNull VoiceID voiceID,
-		@NonNull String text
+		@NonNull String text,
+		@NonNull String line
 	) {
 		if (!isAlive()) return Error(Rejection.DEAD(this));
 		if (!voiceIDs.contains(voiceID)) return Error(Rejection.REJECT(this));
@@ -284,6 +290,16 @@ public class PiperEngine extends ManagedSpeechEngine {
 			getEngineName(),
 			processCount()
 		);
+	}
+
+	@Override
+	public void silence(Predicate<String> lineCondition) {
+		audioEngine.closeConditional(lineCondition);
+	}
+
+	@Override
+	public void silenceAll() {
+		audioEngine.closeAll();
 	}
 }
 

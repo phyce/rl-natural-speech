@@ -197,7 +197,6 @@ public class PiperProcess {
 		return exit;
 	}
 
-
 	private static String stripPiperLogPrefix(String piperLog) {
 		// [2024-03-08 16:07:17.781] [piper] [info] Real-time factor: 0.45758559656250003 (infer=0.6640698 sec, audio=1.4512471655328798 sec)
 		// ->
@@ -210,5 +209,4 @@ public class PiperProcess {
 			return piperLog;
 		}
 	}
-
 }

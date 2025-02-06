@@ -8,6 +8,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.google.inject.Inject;
 import com.sun.jna.Pointer;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.texttospeech.Gender;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.texttospeech.Voice;
@@ -35,6 +36,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
 import java.util.Vector;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.sound.sampled.AudioFormat;
 import lombok.Getter;
@@ -49,6 +51,7 @@ public class MacSpeechEngine extends ManagedSpeechEngine {
 	public static final String MACOS_MODEL_NAME = "mac";
 
 	private final NaturalSpeechConfig config;
+	private final AudioEngine audioEngine;
 
 	@Nullable
 	private final ID avSynthesizer = avSynthesizer(this);
@@ -66,14 +69,19 @@ public class MacSpeechEngine extends ManagedSpeechEngine {
 	private final ImmutableSet<Voice> voices = voices(nativeVoices);
 
 	@Inject
-	public MacSpeechEngine(NaturalSpeechConfig config) {
+	public MacSpeechEngine(
+		NaturalSpeechConfig config,
+		AudioEngine audioEngine
+	) {
 		this.config = config;
+		this.audioEngine = audioEngine;
 	}
 
 	@Override
 	public @NonNull Result<StreamableFuture<Audio>, Rejection> generate(
 			@NonNull VoiceID voiceID,
-			@NonNull String text
+			@NonNull String text,
+			@NonNull String line
 	) {
 		if (!isAlive()) return Error(Rejection.DEAD(this));
 		if (!voiceIDs.contains(voiceID)) return Error(Rejection.REJECT(this));
@@ -177,6 +185,16 @@ public class MacSpeechEngine extends ManagedSpeechEngine {
 	@Override
 	public @NonNull String getEngineName() {
 		return "mac";
+	}
+
+	@Override
+	public void silence(Predicate<String> lineCondition) {
+		audioEngine.closeConditional(lineCondition);
+	}
+
+	@Override
+	public void silenceAll() {
+		audioEngine.closeAll();
 	}
 
 	private static class BufferCallback implements AVSpeechSynthesizerBufferCallback {
@@ -321,7 +339,6 @@ public class MacSpeechEngine extends ManagedSpeechEngine {
 					}
 
 					log.trace("Completed Callback, total byte size: {}", audioData.length);
-
 					onComplete.set(Audio.of(audioData, detectedFormat));
 				}
 			} catch (Exception e) {

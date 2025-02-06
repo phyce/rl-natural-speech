@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -51,6 +53,11 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 	private final PluginExecutorService pluginExecutorService;
 	private final SpeechManagerConfig speechManagerConfig;
 	private ImmutableList<ManagedSpeechEngine> engines = ImmutableList.of();
+
+
+
+	private final AtomicInteger dialogSession = new AtomicInteger(0);
+	private final ConcurrentHashMap<Integer, List<StreamableFuture<Audio>>> pendingFutures = new ConcurrentHashMap<>();
 
 	@Inject
 	private SpeechManager(
@@ -122,12 +129,13 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 	@Override
 	public @NonNull Result<StreamableFuture<Audio>, Rejection> generate(
 		@NonNull VoiceID voiceID,
-		@NonNull String text
+		@NonNull String text,
+		@NonNull String line
 	) {
 
 		List<Rejection> rejections = new ArrayList<>(engines.size());
 		for (SpeechEngine engine : engines) {
-			var result = engine.generate(voiceID, text);
+			var result = engine.generate(voiceID, text, line);
 			if (result.isOk()) {
 				return result;
 			}
@@ -146,9 +154,20 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 		@NonNull Supplier<Float> gainSupplier,
 		@NonNull String line
 	) {
-		Result<StreamableFuture<Audio>, Rejection> result = generate(voiceID, text);
+		int currentSession;
+		if(line.equals(MagicNames.DIALOG)) currentSession = dialogSession.incrementAndGet();
+		else currentSession = 0;
+
+		Result<StreamableFuture<Audio>, Rejection> result = generate(voiceID, text, line);
+
 		result.ifOk(future -> {
+			if(line.equals(MagicNames.DIALOG)) pendingFutures.computeIfAbsent(currentSession, k -> new ArrayList<>()).add(future);
+
 			future.addStreamListener(audio -> {
+				if (audio == null) return;
+
+				if (line.equals(MagicNames.DIALOG) && currentSession != dialogSession.get()) return;
+
 				Preconditions.checkNotNull(audio);
 
 				try (AudioInputStream stream = audio.toInputStream()) {
@@ -273,11 +292,30 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 	}
 
 	public void silenceAll() {
-		// FIXME SILENCE
+		skipDialog();
+		for (SpeechEngine activeEngine : engines) {
+			activeEngine.silenceAll();
+		}
 	}
 
-	public void silence(@NonNull Predicate<String> linePredicate) {
-		// FIXME SILENCE
+	@Override
+	public void silence(Predicate<String> lineCondition) {
+		if (lineCondition.test(MagicNames.DIALOG)) skipDialog();
+
+		for (SpeechEngine activeEngine : engines) activeEngine.silence(lineCondition);
+	}
+
+	protected void skipDialog() {
+		int newSession = dialogSession.incrementAndGet();
+
+		pendingFutures.forEach((sessionId, futures) -> {
+			if (sessionId != newSession) {
+				for (StreamableFuture<Audio> future : futures) {
+					future.cancel(true);
+				}
+				pendingFutures.remove(sessionId);
+			}
+		});
 	}
 
 	@Override
@@ -320,5 +358,4 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 	public Stream<? extends SpeechEngine> getEngines() {
 		return engines.stream();
 	}
-
 }

@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableSet;
 import static com.google.common.util.concurrent.Futures.submit;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
@@ -21,6 +22,7 @@ import static dev.phyce.naturalspeech.utils.Result.Ok;
 import static dev.phyce.naturalspeech.utils.Result.ResultFutures.immediateError;
 import static dev.phyce.naturalspeech.utils.Result.ResultFutures.immediateOk;
 import dev.phyce.naturalspeech.utils.StreamableFuture;
+import java.util.function.Predicate;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Synchronized;
@@ -37,6 +39,7 @@ public class SAPI4Engine extends ManagedSpeechEngine {
 	public static final String SAPI4_MODEL_NAME = "microsoft";
 
 	private final PluginExecutorService pluginExecutorService;
+	private final AudioEngine audioEngine;
 
 	@NonNull
 	private final ImmutableMap<String, SpeechAPI4> nativeVoices;
@@ -50,8 +53,13 @@ public class SAPI4Engine extends ManagedSpeechEngine {
 	private final ImmutableSet<Voice> voices;
 
 	@Inject
-	public SAPI4Engine(SAPI4Repository sapi4Repository, PluginExecutorService pluginExecutorService) {
+	public SAPI4Engine(
+		SAPI4Repository sapi4Repository,
+		PluginExecutorService pluginExecutorService,
+		AudioEngine audioEngine
+	) {
 		this.pluginExecutorService = pluginExecutorService;
+		this.audioEngine = audioEngine;
 
 		nativeVoices = nativeVoices(sapi4Repository);
 		voices = voices(nativeVoices);
@@ -62,16 +70,18 @@ public class SAPI4Engine extends ManagedSpeechEngine {
 	@Override
 	public @NonNull Result<StreamableFuture<Audio>, Rejection> generate(
 		@NonNull VoiceID voiceID,
-		@NonNull String text
+		@NonNull String text,
+		@NonNull String line
 	) {
 		if (!isAlive()) return Error(Rejection.DEAD(this));
 		if (!voiceIDs.contains(voiceID)) return Error(Rejection.REJECT(this));
 
 		SpeechAPI4 sapi = Preconditions.checkNotNull(nativeVoices.get(voiceID.id));
 
-
 		ListenableFuture<Audio> future = submit(() -> {
+
 			var result = sapi.generate(text);
+
 			return result.unwrap();
 		}, pluginExecutorService);
 
@@ -153,5 +163,15 @@ public class SAPI4Engine extends ManagedSpeechEngine {
 	@Override
 	public @NonNull String getEngineName() {
 		return "SAPI4Engine";
+	}
+
+	@Override
+	public void silence(Predicate<String> lineCondition) {
+		audioEngine.closeConditional(lineCondition);
+	}
+
+	@Override
+	public void silenceAll() {
+		audioEngine.closeAll();
 	}
 }
