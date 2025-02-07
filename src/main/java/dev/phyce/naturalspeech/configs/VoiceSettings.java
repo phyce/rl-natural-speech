@@ -10,6 +10,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.JsonArray;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import java.lang.reflect.Type;
@@ -18,6 +19,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -38,10 +41,84 @@ public class VoiceSettings {
 
 	public static Map<EntityID, VoiceID> fromJSON(String json) {
 		try {
+			if (isOldConfig(json)) json = convertOldConfig(json);
+
 			VoiceSettings settings = RuneLiteAPI.GSON.fromJson(json, VoiceSettings.class);
 			return settings.settings;
 		} catch (JsonSyntaxException e) {
 			return Collections.synchronizedMap(new HashMap<>());
+		}
+	}
+
+	private static boolean isOldConfig(String json) {
+		try {
+			JsonObject jsonObject = RuneLiteAPI.GSON.fromJson(json, JsonObject.class);
+			return !jsonObject.has("version") && jsonObject.has("playerNameVoiceConfigData");
+		} catch (Exception e) {
+			log.error("Error parsing JSON in isOldConfig: {}", e.getMessage());
+			return false;
+		}
+	}
+
+	private static String convertOldConfig(String oldJson) {
+		try {
+			JsonObject oldStructure = RuneLiteAPI.GSON.fromJson(oldJson, JsonObject.class);
+			JsonObject result = new JsonObject();
+			JsonArray settings = new JsonArray();
+
+			BiConsumer<JsonObject, Consumer<JsonObject>> processVoiceEntry = (entry, entityConfigurer) -> {
+				JsonArray voiceIDs = entry.getAsJsonArray("voiceIDs");
+				if (voiceIDs != null && voiceIDs.size() > 0) {
+					JsonObject voice = voiceIDs.get(0).getAsJsonObject();
+					if (voice.has("piperVoiceID") && !voice.get("piperVoiceID").isJsonNull()) {
+						JsonObject convertedVoice = new JsonObject();
+
+						JsonObject entityID = new JsonObject();
+						entityID.addProperty("version", 1);
+						entityConfigurer.accept(entityID);
+						convertedVoice.add("entityID", entityID);
+
+						JsonObject voiceID = new JsonObject();
+						voiceID.addProperty("modelName", voice.get("modelName").getAsString());
+						voiceID.addProperty("id", String.valueOf(voice.get("piperVoiceID").getAsInt()));
+						voiceID.addProperty("version", 1);
+						convertedVoice.add("voiceID", voiceID);
+
+						settings.add(convertedVoice);
+					} else {
+						log.error("Invalid voice id for entry: {}", entry);
+					}
+				}
+			};
+
+			if (oldStructure.has("playerNameVoiceConfigData")) {
+				JsonArray playersConfig = oldStructure.getAsJsonArray("playerNameVoiceConfigData");
+				for (JsonElement playerConfig : playersConfig) {
+					JsonObject playerEntry = playerConfig.getAsJsonObject();
+					processVoiceEntry.accept(playerEntry, entity ->
+						entity.addProperty("name", playerEntry.get("playerName").getAsString())
+					);
+				}
+			}
+
+			if (oldStructure.has("npcIDVoiceConfigData")) {
+				JsonArray npcsConfig = oldStructure.getAsJsonArray("npcIDVoiceConfigData");
+				for (JsonElement npcConfig : npcsConfig) {
+					JsonObject npcEntry = npcConfig.getAsJsonObject();
+					processVoiceEntry.accept(npcEntry, entity ->
+						entity.addProperty("id", npcEntry.get("npcId").getAsInt())
+					);
+				}
+			}
+
+			result.add("settings", settings);
+			result.addProperty("version", 1);
+
+			return RuneLiteAPI.GSON.toJson(result);
+		} catch (Exception e) {
+			log.error("Error converting old config: {}", e.getMessage());
+			// Fallback: return the original JSON if conversion fails
+			return oldJson;
 		}
 	}
 
