@@ -52,7 +52,7 @@ public class VoiceHubPanel extends PluginPanel {
 	private final SAPI5Engine sapi5Engine;
 	private final MacSpeechEngine macSpeechEngine;
 	private final SpeechManager speechManager;
-	private final RuntimePathConfig runtimeConfig;
+
 
 	private final FixedWidthPanel mainContentPanel;
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(0, 5, 0, 5);
@@ -71,7 +71,6 @@ public class VoiceHubPanel extends PluginPanel {
 		SAPI5Engine sapi5Engine,
 		MacSpeechEngine macSpeechEngine,
 		SpeechManager speechManager,
-		RuntimePathConfig runtimeConfig,
 		Provider<SAPI4ModelItem> sapi4ListItemProvider,
 		Provider<SAPI5ModelItem> sapi5ListItemProvider,
 		Provider<MacModelItem> macListItemProvider,
@@ -84,7 +83,7 @@ public class VoiceHubPanel extends PluginPanel {
 		this.sapi5Engine = sapi5Engine;
 		this.macSpeechEngine = macSpeechEngine;
 		this.speechManager = speechManager;
-		this.runtimeConfig = runtimeConfig;
+
 		this.sapi4ListItemProvider = sapi4ListItemProvider;
 		this.sapi5ListItemProvider = sapi5ListItemProvider;
 		this.macListItemProvider = macListItemProvider;
@@ -116,7 +115,6 @@ public class VoiceHubPanel extends PluginPanel {
 		this.add(scrollPane);
 
 		buildVoiceRepositorySegment();
-		buildAdvancedSegment();
 
 		this.revalidate();
 	}
@@ -194,109 +192,6 @@ public class VoiceHubPanel extends PluginPanel {
 		if (!sapi4Models.isEmpty()) {
 			sectionContent.add(sapi4ListItemProvider.get(), 0);
 		}
-	}
-
-	private void buildAdvancedSegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(PluginResources.SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final String name = "Advanced";
-		final String description = "";
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
-
-		JPanel piperFileChoosePanel = buildPiperFileChoose();
-		sectionContent.add(piperFileChoosePanel);
-
-//		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
-//		sectionContent.add(piperProcessMonitorPanel);
-	}
-	@SuppressWarnings("deprecation")
-	private JPanel buildPiperFileChoose() {
-		JLabel header = new JLabel("Piper Location");
-		header.setForeground(Color.WHITE);
-
-		JTextField filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
-		filePathField.setToolTipText(
-			"If you manually downloaded piper, you can set it's location here. Otherwise, use our installer!");
-		filePathField.setEditable(false);
-
-		JButton browseButton = new JButton("Browse");
-		browseButton.setToolTipText("Requires manual download, please read instructions.");
-		browseButton.addActionListener(e -> {
-			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
-			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-			int returnValue = fileChooser.showOpenDialog(this);
-			if (returnValue == JFileChooser.APPROVE_OPTION) {
-				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
-
-				// if the user accidentally set the piper folder and not the executable, automatically correct
-				if (newPath.toFile().isDirectory()) {
-					if (PlatformUtil.IS_WINDOWS) {
-						newPath = newPath.resolve("piper.exe");
-					}
-					else { // assume unix based
-						newPath = newPath.resolve("piper");
-					}
-				}
-
-				filePathField.setText(newPath.toString());
-				runtimeConfig.savePiperPath(newPath);
-
-				// if text to speech is running, restart
-				if (speechManager.isAlive()) speechManager.shutDown();
-			}
-		});
-
-		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
-		fileBrowsePanel.setBorder(new EmptyBorder(5, 0, 0, 0));
-		fileBrowsePanel.add(header, BorderLayout.NORTH);
-		fileBrowsePanel.add(filePathField, BorderLayout.CENTER);
-		fileBrowsePanel.add(browseButton, BorderLayout.SOUTH);
-		return fileBrowsePanel;
 	}
 
 	@Deprecated(since="1.3.0 We have an installer which installs to a standard location, no more path changes.")

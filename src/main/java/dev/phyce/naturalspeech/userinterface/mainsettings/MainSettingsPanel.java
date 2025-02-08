@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.userinterface.mainsettings;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
+import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.eventbus.PluginSubscribe;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
@@ -17,6 +18,7 @@ import dev.phyce.naturalspeech.texttospeech.engine.SpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
+import dev.phyce.naturalspeech.utils.PlatformUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -28,6 +30,7 @@ import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,11 +39,13 @@ import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -70,6 +75,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final NaturalSpeechConfig config;
 	private final FixedWidthPanel mainContentPanel;
 	private final Set<Warning> warnings = new HashSet<>();
+	private final RuntimePathConfig runtimeConfig;
 
 
 	private JLabel statusLabel;
@@ -105,11 +111,12 @@ public class MainSettingsPanel extends PluginPanel {
 		PluginEventBus pluginEventBus,
 		ConfigManager configManager,
 		NaturalSpeechConfig config,
-		PiperModelMonitorItem.Factory monitorFactory
+		RuntimePathConfig runtimeConfig
 	) {
 		super(false);
 		this.config = config;
 		this.speechManager = speechManager;
+		this.runtimeConfig = runtimeConfig;
 
 		piperProcessDisplay = new JLabel();
 
@@ -149,6 +156,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		buildHeaderSegment();
 		buildTextToSpeechStatusSegment();
+		buildAdvancedSegment();
 
 		this.revalidate();
 	}
@@ -368,48 +376,45 @@ public class MainSettingsPanel extends PluginPanel {
 			warningStopped.add(label, BorderLayout.CENTER);
 		}
 
+		JLabel explainLabel =
+			new JLabel(
+				"<html>Basic text-to-speech provided by your operating system is available out of the box; " +
+					"however, there are additional voice options available.<br><br> " +
+					"<a style=\"color:#dc8a00\" href='#'>Click here fore more information</a></html>" +
+					"</html>",
+				SwingConstants.CENTER);
+		explainLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
+		explainLabel.setFont(FontManager.getRunescapeFont());
+		explainLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+		explainLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+		explainLabel.setOpaque(false);
+		explainLabel.setVisible(false);
+		explainLabel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				try {
+					Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech/INSTALLING.md"));
+				} catch (Exception ex) {
+					log.error("ErrorResult opening website link.", ex);
+				}
+			}
+		});
+
 		{
 			warningNoEngine = new JPanel();
 			warningNoEngine.setVisible(false);
 			warningNoEngine.setLayout(new BorderLayout());
 
 			JLabel warningLabel =
-				new JLabel("<html>There are no available voices installed</html>", SwingConstants.CENTER);
+				new JLabel("<html>There are no available voices installed &#9888;</html>", SwingConstants.CENTER);
 			warningLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
 			warningLabel.setFont(FontManager.getRunescapeFont());
 			warningLabel.setForeground(Color.BLACK);
 			warningLabel.setBackground(new Color(0xFFBB33));
 			warningLabel.setOpaque(true);
 
-			JLabel explainLabel =
-				new JLabel(
-					"<html>We try to support text-to-speech out of the box; " +
-						"however, a native option was not detected.<br><br>" +
-						"Additional text-to-speech options are available for download on our website.<br><br>" +
-						"- Phyce, Louis Hong</html>",
-					SwingConstants.CENTER);
-			explainLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
-			explainLabel.setFont(FontManager.getRunescapeFont());
-			explainLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-			explainLabel.setOpaque(false);
-
-			JLabel websiteLinkLabel =
-				new JLabel("<html><a href='#'>https://naturalspeech.dev</a></html>", SwingConstants.CENTER);
-			websiteLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-			websiteLinkLabel.addMouseListener(new MouseAdapter() {
-				@Override
-				public void mouseClicked(MouseEvent e) {
-					try {
-						Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
-					} catch (Exception ex) {
-						log.error("ErrorResult opening website link.", ex);
-					}
-				}
-			});
-
 			warningNoEngine.add(warningLabel, BorderLayout.NORTH);
 			warningNoEngine.add(explainLabel, BorderLayout.CENTER);
-			warningNoEngine.add(websiteLinkLabel, BorderLayout.SOUTH);
 		}
 
 		{
@@ -432,51 +437,21 @@ public class MainSettingsPanel extends PluginPanel {
 			warningMinimumMode.setLayout(new BorderLayout());
 
 			JLabel warningLabel =
-				new JLabel("<html>Minimum Mode</html>", SwingConstants.CENTER);
+				new JLabel("<html>Minimum Mode &#9888;</html>", SwingConstants.CENTER);
 			warningLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
 			warningLabel.setFont(FontManager.getRunescapeFont());
 			warningLabel.setForeground(Color.BLACK);
 			warningLabel.setBackground(new Color(0xFFBB33));
 			warningLabel.setOpaque(true);
 
-			JLabel explainLabel =
-				new JLabel(
-					"<html>We support text-to-speech out of the box; " +
-						"however, there are additional high-quality voice " +
-						"options available for download on our website.<br><br>" +
-						"- Phyce, Louis Hong</html>",
-					SwingConstants.CENTER);
-			explainLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
-			explainLabel.setFont(FontManager.getRunescapeFont());
-			explainLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-			explainLabel.setOpaque(false);
-			explainLabel.setVisible(false);
-
-			JLabel websiteLinkLabel =
-				new JLabel("<html><a href='#'>https://naturalspeech.dev</a></html>", SwingConstants.CENTER);
-			websiteLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-			websiteLinkLabel.addMouseListener(new MouseAdapter() {
-				@Override
-				public void mouseClicked(MouseEvent e) {
-					try {
-						Desktop.getDesktop().browse(new URI("https://naturalspeech.dev"));
-					} catch (Exception ex) {
-						log.error("ErrorResult opening website link.", ex);
-					}
-				}
-			});
-			websiteLinkLabel.setVisible(false);
-
 			warningMinimumMode.add(warningLabel, BorderLayout.NORTH);
 			warningMinimumMode.add(explainLabel, BorderLayout.CENTER);
-			warningMinimumMode.add(websiteLinkLabel, BorderLayout.SOUTH);
 
 			warningLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 			warningLabel.addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent e) {
 					explainLabel.setVisible(!explainLabel.isVisible());
-					websiteLinkLabel.setVisible(!websiteLinkLabel.isVisible());
 				}
 
 				@Override
@@ -499,6 +474,106 @@ public class MainSettingsPanel extends PluginPanel {
 		updateWarningsUI();
 	}
 
+	private void buildAdvancedSegment() {
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(PluginResources.SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "Advanced";
+		final String description = "";
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		mainContentPanel.add(section);
+
+		// Toggle section action listeners
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
+		JPanel piperFileChoosePanel = buildPiperFileChoose();
+		sectionContent.add(piperFileChoosePanel);
+	}
+
+	@SuppressWarnings("deprecation")
+	private JPanel buildPiperFileChoose() {
+		JLabel header = new JLabel("Piper Location");
+		header.setForeground(Color.WHITE);
+
+		JTextField filePathField = new JTextField(runtimeConfig.getPiperPath().toString());
+		filePathField.setToolTipText(
+			"If you manually downloaded piper, you can set it's location here. Otherwise, use our installer!");
+		filePathField.setEditable(false);
+
+		JButton browseButton = new JButton("Browse");
+		browseButton.setToolTipText("Requires manual download, please read instructions.");
+		browseButton.addActionListener(e -> {
+			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
+			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			int returnValue = fileChooser.showOpenDialog(this);
+			if (returnValue == JFileChooser.APPROVE_OPTION) {
+				Path newPath = Path.of(fileChooser.getSelectedFile().getPath());
+
+				// if the user accidentally set the piper folder and not the executable, automatically correct
+				if (newPath.toFile().isDirectory()) {
+					if (PlatformUtil.IS_WINDOWS) {
+						newPath = newPath.resolve("piper.exe");
+					}
+					else { // assume unix based
+						newPath = newPath.resolve("piper");
+					}
+				}
+
+				filePathField.setText(newPath.toString());
+				runtimeConfig.savePiperPath(newPath);
+
+				// if text to speech is running, restart
+				if (speechManager.isAlive()) speechManager.shutDown();
+			}
+		});
+
+		JPanel fileBrowsePanel = new JPanel(new BorderLayout());
+		fileBrowsePanel.setBorder(new EmptyBorder(5, 0, 0, 0));
+		fileBrowsePanel.add(header, BorderLayout.NORTH);
+		fileBrowsePanel.add(filePathField, BorderLayout.CENTER);
+		fileBrowsePanel.add(browseButton, BorderLayout.SOUTH);
+		return fileBrowsePanel;
+	}
 
 	public void buildTextToSpeechStatusSegment() {
 		final JPanel section = new JPanel();

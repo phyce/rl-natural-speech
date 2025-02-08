@@ -78,7 +78,7 @@ public class TopLevelPanel extends PluginPanel implements PluginModule {
 				helpButton.setIcon(PluginResources.HELP_ICON);
 				helpButton.setRolloverIcon(PluginResources.HELP_ICON_HOVER);
 				helpButton.setToolTipText("Visit Help Link");
-				helpButton.addActionListener(ev -> LinkBrowser.browse("https://naturalspeech.dev"));
+				helpButton.addActionListener(ev -> LinkBrowser.browse("https://github.com/phyce/rl-natural-speech/"));
 
 				JButton configButton = new JButton();
 				SwingUtil.removeButtonDecorations(configButton);
