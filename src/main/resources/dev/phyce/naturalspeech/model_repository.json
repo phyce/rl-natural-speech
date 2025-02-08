@@ -60,7 +60,7 @@
     "onnxURL": "https://github.com/phyce/PiperModels/releases/download/itriccardo/itriccardo.onnx",
     "onnxMetadataURL": "https://github.com/phyce/PiperModels/releases/download/itriccardo/itriccardo.onnx.json",
     "metadataURL": "https://github.com/phyce/PiperModels/releases/download/itriccardo/itriccardo.metadata.json",
-    "description": "Italian. 1 voice.",
+    "description": "Italian. Male voice.",
     "memorySize": "size: 28MB"
   },
   {

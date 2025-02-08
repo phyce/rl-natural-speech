@@ -280,10 +280,12 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	private void updateVoiceListItems() {
-		for (VoiceListItem voiceListItem : voiceListItems) {
-			voiceListItem.setVisible(speechManager.canSpeak(voiceListItem.getVoiceMetadata().getVoiceId()));
-		}
-		revalidate();
+		SwingUtilities.invokeLater(() -> {
+			for (VoiceListItem voiceListItem : voiceListItems) {
+				voiceListItem.setVisible(speechManager.canSpeak(voiceListItem.getVoiceMetadata().getVoiceId()));
+			}
+			revalidate();
+		});
 	}
 
 	private void buildSpeakerList() {

@@ -44,6 +44,7 @@ public class VoiceSettings {
 			if (isOldConfig(json)) json = convertOldConfig(json);
 
 			VoiceSettings settings = RuneLiteAPI.GSON.fromJson(json, VoiceSettings.class);
+
 			return settings.settings;
 		} catch (JsonSyntaxException e) {
 			return Collections.synchronizedMap(new HashMap<>());
