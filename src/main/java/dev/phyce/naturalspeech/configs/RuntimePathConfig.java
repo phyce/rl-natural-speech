@@ -10,7 +10,10 @@ import dev.phyce.naturalspeech.statics.ConfigKeys;
 import dev.phyce.naturalspeech.statics.PluginPaths;
 import dev.phyce.naturalspeech.utils.PlatformUtil;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import net.runelite.client.config.ConfigManager;
 
 /**
@@ -42,6 +45,9 @@ public class RuntimePathConfig implements PluginModule {
 
 		// If the user has installed Natural Speech, favor the installed piper and return the path
 		if (path.toFile().exists()) {
+			if(deprecatedPiperPath != null) {
+				moveModelsToNewPath();
+			}
 			return path;
 		}
 		else if (deprecatedPiperPath != null) {
@@ -53,6 +59,34 @@ public class RuntimePathConfig implements PluginModule {
 			// We just return the default path and let the user know they need to install Natural Speech
 			return path;
 		}
+	}
+
+	private void moveModelsToNewPath() {
+		String deprecatedPiperPath = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
+
+		if (deprecatedPiperPath == null) return;
+
+
+		Path deprecatedPiperDir = Path.of(deprecatedPiperPath).getParent();
+		if (deprecatedPiperDir == null) {
+			System.err.println("Invalid deprecated Piper path: " + deprecatedPiperPath);
+			return;
+		}
+
+		Path oldModelsPath = deprecatedPiperDir.resolve("models");
+		Path newModelsPath = getDefaultPath().getParent().resolve("models");
+
+		try {
+			if (Files.exists(oldModelsPath)) {
+				Files.createDirectories(newModelsPath.getParent());
+				Files.move(oldModelsPath, newModelsPath, StandardCopyOption.REPLACE_EXISTING);
+			}
+		} catch (IOException e) {
+			System.err.println("Failed to move models/ folder: " + e.getMessage());
+			e.printStackTrace();
+		}
+
+		configManager.unsetConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
 	}
 
 	private static Path getDefaultPath() {
