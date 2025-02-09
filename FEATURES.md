@@ -13,7 +13,9 @@ Use the Included voice explorer to preview a voice:<br/>
 
 ### Party options
 You can make your friends messages sound louder by adjusting the `Friends volume boost`, or you can listen to them exclusively by using `Friends only mode`. Set a limit of how many people there is around you before the plugin stops generating audio clips. 
-## **show friends volume boost -------------------**
+
+## Friends volume boost
+You can boost the volume of your friends to make them sound louder than the rest of the players.
 
 
 ### Gary Gilbert
