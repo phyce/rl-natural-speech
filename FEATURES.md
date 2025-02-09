@@ -64,11 +64,11 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Added MacOS Text-to-speech (Built-in MacOS)
  - Added Microsoft Speech Api 4 (Windows)
  - Added `Friends only` mode
- - Added `Friend volume boost` option **_#WIP_**
+ - Added `Friend volume boost` option
  - Added numerical abbreviations (k, m, b, t)
  - Added `Use common abbreviations` option
  - Added `Use for dialogs` option to enable abbreviations for NPC dialogs
- - Added ability to skip NPC dialogs **_#WIP_**
+ - Added ability to skip NPC dialogs
  - Added Voice Hub tab and moved all the voice packs to it
  - Added right click options to chat channel buttons
  - Added Twitch plugin integration
