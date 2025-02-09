@@ -21,7 +21,7 @@ Added for real-time local machine-learning text-to-speech.
 
 - 🛠️External runtime, user manual installation
 - ⛓️Interprocess communication using standard I/O streams
-- 🛜Networked ML model download (reason for our PluginHub warning)
+- 🛜Networked ML model download from github
 
 ## Windows Speech API 4 (WSAPI4)
 `texttospeech/engine/windows/speechapi4/SpeechAPI4.java`
