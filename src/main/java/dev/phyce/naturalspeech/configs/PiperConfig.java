@@ -96,16 +96,19 @@ public class PiperConfig implements PluginModule {
 		String json = configManager.getConfiguration(CONFIG_GROUP, CONFIG_KEY_MODEL_CONFIG);
 		if (json != null) {
 			ConfigJson configJson = RuneLiteAPI.GSON.fromJson(json, ConfigJson.class);
-			configJson.modelConfigs.forEach(c -> configs.put(c.getModelName(), c));
+
+			configJson.piperConfigData.forEach(configEntry -> {
+				configs.put(configEntry.getModelName(), configEntry);
+			});
 		}
 	}
 
 	@JsonAdapter(ConfigJson.JSONAdaptor.class)
 	private static class ConfigJson {
-		final List<ModelConfig> modelConfigs = new ArrayList<>();
+		final List<ModelConfig> piperConfigData = new ArrayList<>();
 
-		ConfigJson(Collection<ModelConfig> modelConfigs) {
-			this.modelConfigs.addAll(modelConfigs);
+		ConfigJson(Collection<ModelConfig> piperConfigData) {
+			this.piperConfigData.addAll(piperConfigData);
 		}
 
 		ConfigJson() {}
@@ -121,13 +124,13 @@ public class PiperConfig implements PluginModule {
 				JsonObject jsonObj = jsonElement.getAsJsonObject();
 				if (jsonObj == null) return new ConfigJson();
 
-				JsonArray modelConfigsArray = jsonObj.getAsJsonArray("piperConfigData");
-				if (modelConfigsArray == null) return new ConfigJson();
+				JsonArray piperConfigDataArray = jsonObj.getAsJsonArray("piperConfigData");
+				if (piperConfigDataArray == null) return new ConfigJson();
 
 				Type listType = new TypeToken<List<ModelConfig>>() {}.getType();
-				List<ModelConfig> modelConfigs = context.deserialize(modelConfigsArray, listType);
+				List<ModelConfig> piperConfigData = context.deserialize(piperConfigDataArray, listType);
 
-				return new ConfigJson(modelConfigs);
+				return new ConfigJson(piperConfigData);
 			}
 		}
 	}

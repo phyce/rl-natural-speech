@@ -132,27 +132,20 @@ public class ChatHelper implements PluginModule {
 
 	public ChatType getChatType(ChatMessage message) {
 		final EntityID nameEID = EntityID.name(message.getName());
-		if (isChatSystemVoice(message.getType())) {
-			return ChatType.System;
-		}
+		if (isChatSystemVoice(message.getType())) return ChatType.System;
 		else if (isPlayerChat(message.getType())) {
-			if(message.getSender().equals("Twitch")) return ChatType.RemotePlayers;
+			String sender = message.getSender();
 
-			if (clientHelper.isLocalPlayer(nameEID)) {
-				return ChatType.User;
-			}
-			else if (clientHelper.isUserNearby(Text.standardize(message.getName()))) {
-				return ChatType.LocalPlayers;
-			}
+			if(sender != null && message.getSender().equals("Twitch")) return ChatType.RemotePlayers;
+
+			if (clientHelper.isLocalPlayer(nameEID)) return ChatType.User;
+			else if (clientHelper.isUserNearby(Text.standardize(message.getName()))) return ChatType.LocalPlayers;
 
 			return ChatType.RemotePlayers;
 		}
-		else if (isInnerVoice(message.getType())) {
-			return ChatType.User;
-		}
-		else {
-			return ChatType.Unknown;
-		}
+		else if (isInnerVoice(message.getType())) return ChatType.User;
+
+		return ChatType.Unknown;
 	}
 
 	private static boolean isChatSystemVoice(@NonNull ChatMessageType messageType) {
