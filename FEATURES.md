@@ -13,7 +13,9 @@ Use the Included voice explorer to preview a voice:<br/>
 
 ### Party options
 You can make your friends messages sound louder by adjusting the `Friends volume boost`, or you can listen to them exclusively by using `Friends only mode`. Set a limit of how many people there is around you before the plugin stops generating audio clips. 
-## **show friends volume boost -------------------**
+
+## Friends volume boost
+You can boost the volume of your friends to make them sound louder than the rest of the players.
 
 
 ### Gary Gilbert
@@ -28,7 +30,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
 ![](https://mechanic.ink/img/osrs/natural-speech/features/right-click.png)
 
-You can also right-click on the chat channel buttons to toggle the individual channel TTS options. Right-clicking on **All** allows you to quickly change various settings.
+You can also right-click on the chat channel buttons to toggle the individual channel TTS options. Right-clicking on **All** allows you to quickly change various settings.<br/>
 ![](https://mechanic.ink/img/osrs/natural-speech/features/right-click-volume.png)
 ![](https://mechanic.ink/img/osrs/natural-speech/features/right-click-options.png)
 
@@ -64,11 +66,11 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Added MacOS Text-to-speech (Built-in MacOS)
  - Added Microsoft Speech Api 4 (Windows)
  - Added `Friends only` mode
- - Added `Friend volume boost` option **_#WIP_**
+ - Added `Friend volume boost` option
  - Added numerical abbreviations (k, m, b, t)
  - Added `Use common abbreviations` option
  - Added `Use for dialogs` option to enable abbreviations for NPC dialogs
- - Added ability to skip NPC dialogs **_#WIP_**
+ - Added ability to skip NPC dialogs
  - Added Voice Hub tab and moved all the voice packs to it
  - Added right click options to chat channel buttons
  - Added Twitch plugin integration
