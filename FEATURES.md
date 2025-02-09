@@ -28,7 +28,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
 ![](https://mechanic.ink/img/osrs/natural-speech/features/right-click.png)
 
-You can also right-click on the chat channel buttons to toggle the individual channel TTS options. Right-clicking on **All** allows you to quickly change various settings.
+You can also right-click on the chat channel buttons to toggle the individual channel TTS options. Right-clicking on **All** allows you to quickly change various settings.<br/>
 ![](https://mechanic.ink/img/osrs/natural-speech/features/right-click-volume.png)
 ![](https://mechanic.ink/img/osrs/natural-speech/features/right-click-options.png)
 
