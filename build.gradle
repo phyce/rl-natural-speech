@@ -50,28 +50,28 @@ tasks.withType(JavaCompile) {
 //    options.compilerArgs << '-Xlint:deprecation'
 }
 
-tasks.register('shadowJar', Jar) {
-    dependsOn configurations.testRuntimeClasspath
-    manifest {
-        attributes('Main-Class': 'dev.phyce.naturalspeech.NaturalSpeechPluginTest', 'Multi-Release': true)
-    }
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from sourceSets.main.output
-    from sourceSets.test.output
-    from {
-        configurations.testRuntimeClasspath.collect { file ->
-            file.isDirectory() ? file : zipTree(file)
-        }
-    }
-
-    exclude 'META-INF/INDEX.LIST'
-    exclude 'META-INF/*.SF'
-    exclude 'META-INF/*.DSA'
-    exclude 'META-INF/*.RSA'
-    exclude '**/module-info.class'
-
-    group = BasePlugin.BUILD_GROUP
-    archiveClassifier.set('shadow')
-    archiveFileName.set("${rootProject.name}-${project.version}-all.jar")
-}
+//tasks.register('shadowJar', Jar) {
+//    dependsOn configurations.testRuntimeClasspath
+//    manifest {
+//        attributes('Main-Class': 'dev.phyce.naturalspeech.NaturalSpeechPluginTest', 'Multi-Release': true)
+//    }
+//
+//    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+//    from sourceSets.main.output
+//    from sourceSets.test.output
+//    from {
+//        configurations.testRuntimeClasspath.collect { file ->
+//            file.isDirectory() ? file : zipTree(file)
+//        }
+//    }
+//
+//    exclude 'META-INF/INDEX.LIST'
+//    exclude 'META-INF/*.SF'
+//    exclude 'META-INF/*.DSA'
+//    exclude 'META-INF/*.RSA'
+//    exclude '**/module-info.class'
+//
+//    group = BasePlugin.BUILD_GROUP
+//    archiveClassifier.set('shadow')
+//    archiveFileName.set("${rootProject.name}-${project.version}-all.jar")
+//}
