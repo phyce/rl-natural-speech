@@ -44,7 +44,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
@@ -163,11 +162,8 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@Subscribe
 	private void onConfigChanged(ConfigChanged event) {
-		System.out.println("event");
-		System.out.println(event);
 		switch (event.getKey()) {
 			case ConfigKeys.MASTER_VOLUME:
-				System.out.println("MASTER VOLUME CHANGED");
 				updateVolumeSlider(config.masterVolume());
 				break;
 		}
@@ -175,39 +171,49 @@ public class MainSettingsPanel extends PluginPanel {
 
 	@PluginSubscribe
 	public void on(SpeechEngineEvent event) {
+		clearWarning();
 		switch (event.getEvent()) {
 			case STARTING:
 				if (event.getSpeechEngine() instanceof PiperEngine) {
 					piperMonitorPanel.setVisible(true);
 				}
 				break;
+
 			case START_NO_RUNTIME:
 				state.anyNoRuntime = true;
 				break;
+
 			case START_NO_MODEL:
 				state.anyNoModel = true;
 				break;
+
 			case START_DISABLED:
 				state.anyDisabled = true;
 				break;
+
 			case START_CRASHED:
 				state.anyCrashed = true;
 				break;
+
 			case STARTED:
 				if (event.getSpeechEngine().getEngineType() == SpeechEngine.EngineType.EXTERNAL_DEPENDENCY) {
 					state.anyExternal = true;
+
 				}
-				updateActivePiperProcessCount();
 				break;
+
 			case CRASHED:
 				break;
+
 			case STOPPED:
 				if (event.getSpeechEngine() instanceof PiperEngine) {
 					piperMonitorPanel.setVisible(false);
 				}
 				break;
 		}
-
+		updateActivePiperProcessCount();
+		updateStatusUI();
+		updateWarningsUI();
 	}
 
 	@PluginSubscribe
@@ -216,52 +222,27 @@ public class MainSettingsPanel extends PluginPanel {
 			case STARTING:
 				state = new State();
 
-				statusLabel.setText("Starting...");
-				statusLabel.setBackground(Color.GREEN.darker().darker().darker());
-				statusLabel.setForeground(Color.WHITE.darker());
-				statusPanel.setToolTipText("Text to speech is running.");
+				if(speechManager.enabledVoicePackCount() < 1) {
+					statusLabel.setText("No models enabled");
+					statusLabel.setBackground(Color.GREEN.darker());
+					statusLabel.setForeground(Color.WHITE);
+					statusPanel.setToolTipText("Please enable at least one model in the voice hub.");
+				} else {
+					statusLabel.setText("Starting...");
+					statusLabel.setBackground(Color.GREEN.darker().darker().darker());
+					statusLabel.setForeground(Color.WHITE.darker());
+					statusPanel.setToolTipText("Text to speech is running.");
+				}
 
 				clearWarning();
 				revalidate();
 				break;
+
 			case STARTED:
-
-				if (speechManager.isAlive()) {
-					statusLabel.setText("Running");
-					statusLabel.setBackground(Color.GREEN.darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Text to speech is running.");
-				}
-				else if (state.anyCrashed) {
-					statusLabel.setText("Crashed");
-					statusLabel.setBackground(Color.RED.darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Text to speech is failed to start.");
-				}
-				else if (state.anyDisabled) {
-					statusLabel.setText("Engines Disabled");
-					statusLabel.setBackground(Color.RED.darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Text to speech is failed to start.");
-				}
-				else if (state.anyNoModel) {
-					// TODO Runtime installed but models missing, for example piper repo empty or Mac has no voices installed
-					statusLabel.setText("Missing Models");
-					statusLabel.setBackground(Color.RED.darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Text to speech is failed to start.");
-				}
-				else if (state.anyNoRuntime) {
-					statusLabel.setText("Not Installed");
-					statusLabel.setBackground(Color.RED.darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Text to speech is failed to start.");
-				}
-
-				if (!state.anyExternal) addWarning(Warning.MINIMUM_MODE);
-
+				updateStatusUI();
 				updateWarningsUI();
 				break;
+
 			case STOPPED:
 				statusLabel.setText("Not running");
 				statusLabel.setBackground(Color.DARK_GRAY);
@@ -308,12 +289,53 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	private void updateWarningsUI() {
+		if (!state.anyExternal) addWarning(Warning.MINIMUM_MODE);
+
 		warningStopped.setVisible(!warnings.contains(Warning.NO_ENGINE) && !speechManager.isAlive());
 		warningNoEngine.setVisible(warnings.contains(Warning.NO_ENGINE));
 		warningCrash.setVisible(warnings.contains(Warning.CRASHED));
 		warningMinimumMode.setVisible(warnings.contains(Warning.MINIMUM_MODE));
 
 		mainContentPanel.revalidate();
+	}
+
+	private void updateStatusUI() {
+		if(speechManager.enabledVoicePackCount() < 1) {
+			statusLabel.setText("No models enabled");
+			statusLabel.setBackground(Color.RED.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Please enable at least one model in the voice hub.");
+		} else if (speechManager.isAlive()) {
+			statusLabel.setText("Running");
+			statusLabel.setBackground(Color.GREEN.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Text to speech is running.");
+		}
+		else if (state.anyCrashed) {
+			statusLabel.setText("Crashed");
+			statusLabel.setBackground(Color.RED.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Text to speech is failed to start.");
+		}
+		else if (state.anyDisabled) {
+			statusLabel.setText("Engines Disabled");
+			statusLabel.setBackground(Color.RED.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Text to speech is failed to start.");
+		}
+		else if (state.anyNoModel) {
+			// TODO Runtime installed but models missing, for example piper repo empty or Mac has no voices installed
+			statusLabel.setText("Missing Models");
+			statusLabel.setBackground(Color.RED.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Text to speech is failed to start.");
+		}
+		else if (state.anyNoRuntime) {
+			statusLabel.setText("Not Installed");
+			statusLabel.setBackground(Color.RED.darker());
+			statusLabel.setForeground(Color.WHITE);
+			statusPanel.setToolTipText("Text to speech is failed to start.");
+		}
 	}
 
 	public void buildHeaderSegment() {

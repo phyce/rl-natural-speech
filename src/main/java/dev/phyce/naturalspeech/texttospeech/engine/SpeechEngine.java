@@ -88,7 +88,6 @@ public interface SpeechEngine {
 	}
 
 	enum EngineType {
-		MANAGER, BUILTIN_OS, EXTERNAL_DEPENDENCY,
-		// NETWORKED (some day in the future?)
+		MANAGER, BUILTIN_OS, EXTERNAL_DEPENDENCY
 	}
 }

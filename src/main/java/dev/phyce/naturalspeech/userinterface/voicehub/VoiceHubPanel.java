@@ -2,7 +2,6 @@ package dev.phyce.naturalspeech.userinterface.voicehub;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.eventbus.PluginSubscribe;
 import dev.phyce.naturalspeech.events.PiperPathChanged;
@@ -10,29 +9,23 @@ import dev.phyce.naturalspeech.events.PiperRepositoryChanged;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.engine.MacSpeechEngine;
 import dev.phyce.naturalspeech.texttospeech.engine.SAPI5Engine;
-import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
 import dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4.SAPI4Repository;
 import dev.phyce.naturalspeech.userinterface.components.FixedWidthPanel;
 import dev.phyce.naturalspeech.userinterface.layouts.OnlyVisibleGridLayout;
-import dev.phyce.naturalspeech.utils.PlatformUtil;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
@@ -40,7 +33,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.SwingUtil;
@@ -51,7 +43,6 @@ public class VoiceHubPanel extends PluginPanel {
 	private final SAPI4Repository sapi4Repository;
 	private final SAPI5Engine sapi5Engine;
 	private final MacSpeechEngine macSpeechEngine;
-	private final SpeechManager speechManager;
 
 
 	private final FixedWidthPanel mainContentPanel;
@@ -70,7 +61,6 @@ public class VoiceHubPanel extends PluginPanel {
 		SAPI4Repository sapi4Repository,
 		SAPI5Engine sapi5Engine,
 		MacSpeechEngine macSpeechEngine,
-		SpeechManager speechManager,
 		Provider<SAPI4ModelItem> sapi4ListItemProvider,
 		Provider<SAPI5ModelItem> sapi5ListItemProvider,
 		Provider<MacModelItem> macListItemProvider,
@@ -82,7 +72,6 @@ public class VoiceHubPanel extends PluginPanel {
 		this.sapi4Repository = sapi4Repository;
 		this.sapi5Engine = sapi5Engine;
 		this.macSpeechEngine = macSpeechEngine;
-		this.speechManager = speechManager;
 
 		this.sapi4ListItemProvider = sapi4ListItemProvider;
 		this.sapi5ListItemProvider = sapi5ListItemProvider;

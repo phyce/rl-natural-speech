@@ -6,7 +6,6 @@ import com.google.inject.assistedinject.Assisted;
 import dev.phyce.naturalspeech.configs.PiperConfig;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
 import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
-import dev.phyce.naturalspeech.executor.PluginExecutorService;
 import dev.phyce.naturalspeech.statics.PluginResources;
 import dev.phyce.naturalspeech.texttospeech.engine.SpeechManager;
 import dev.phyce.naturalspeech.texttospeech.engine.piper.PiperRepository;
@@ -44,7 +43,6 @@ import net.runelite.client.util.SwingUtil;
 @Slf4j
 public class PiperModelItem extends JPanel {
 
-	private final PluginExecutorService pluginExecutorService;
 	private final SpeechManager speechManager;
 	private final PiperRepository piperRepository;
 	private final PiperConfig piperConfig;
@@ -68,7 +66,6 @@ public class PiperModelItem extends JPanel {
 
 	@Inject
 	public PiperModelItem(
-		PluginExecutorService pluginExecutorService,
 		SpeechManager speechManager,
 		PiperConfig piperConfig,
 		PiperRepository piperRepository,
@@ -76,7 +73,6 @@ public class PiperModelItem extends JPanel {
 		PiperEngine.Factory piperModelEngineFactory,
 		@Assisted PiperRepository.PiperModelURL modelUrl
 	) {
-		this.pluginExecutorService = pluginExecutorService;
 		this.speechManager = speechManager;
 		this.piperRepository = piperRepository;
 		this.piperConfig = piperConfig;
@@ -92,10 +88,8 @@ public class PiperModelItem extends JPanel {
 	}
 
 	public void rebuild() {
-
 		this.removeAll();
 		this.removeMouseListener(this.contextMenuMouseListener);
-
 
 		JLabel name = new JLabel(modelUrl.getModelName());
 		name.setFont(FontManager.getRunescapeBoldFont());

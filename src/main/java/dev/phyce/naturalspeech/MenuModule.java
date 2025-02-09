@@ -417,7 +417,6 @@ public class MenuModule implements PluginModule {
 		Menu subMenu = parent.createSubMenu();
 
 		if (isListened) {
-			System.out.println("unlisten");
 			subMenu.createMenuEntry(0)
 				.setOption("Unlisten")
 				.setType(MenuAction.RUNELITE)
@@ -427,7 +426,6 @@ public class MenuModule implements PluginModule {
 				});
 		}
 		else {
-			System.out.println("listen");
 			subMenu.createMenuEntry(0)
 				.setOption("Listen")
 				.setType(MenuAction.RUNELITE)

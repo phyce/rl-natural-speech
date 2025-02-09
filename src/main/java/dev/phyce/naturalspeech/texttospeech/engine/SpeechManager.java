@@ -9,6 +9,7 @@ import com.google.inject.Inject;
 import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.PluginModule;
 import dev.phyce.naturalspeech.audio.AudioEngine;
+import dev.phyce.naturalspeech.configs.PiperConfig;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.events.SpeechEngineEvent;
@@ -53,6 +54,7 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 	private final PluginExecutorService pluginExecutorService;
 	private final SpeechManagerConfig speechManagerConfig;
 	private ImmutableList<ManagedSpeechEngine> engines = ImmutableList.of();
+	private final PiperConfig piperConfig;
 
 
 
@@ -70,13 +72,15 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 		MacSpeechEngine macEngine,
 		SAPI4Engine sapi4Engine,
 		SAPI5Engine sapi5Engine,
-		PiperEngine.Factory modelEngineFactory
+		PiperEngine.Factory modelEngineFactory,
+		PiperConfig piperConfig
 	) {
 		this.audioEngine = audioEngine;
 		this.pluginEventBus = pluginEventBus;
 		this.pluginExecutorService = pluginExecutorService;
 		this.speechManagerConfig = speechManagerConfig;
 		this.voiceManager = voiceManager;
+		this.piperConfig = piperConfig;
 
 		piperRepository.getModels()
 			.map(modelEngineFactory::create)
@@ -321,6 +325,18 @@ public class SpeechManager implements SpeechEngine, PluginModule {
 	@Override
 	public boolean isAlive() {
 		return engines.stream().anyMatch(SpeechEngine::isAlive);
+	}
+
+	public int enabledVoicePackCount() {
+		int result = 0;
+		for (SpeechEngine engine: engines) {
+			if(engine instanceof PiperEngine){
+				if(piperConfig.isEnabled(engine.getEngineName())) result++;
+			} else {
+				if(speechManagerConfig.isEnabled(engine)) result++;
+			}
+		}
+		return result;
 	}
 
 	public boolean canSpeak(@NonNull VoiceID voiceID) {
