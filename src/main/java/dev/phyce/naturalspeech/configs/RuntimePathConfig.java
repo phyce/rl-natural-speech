@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
+import java.util.stream.Stream;
 import net.runelite.client.config.ConfigManager;
 
 /**
@@ -46,7 +48,7 @@ public class RuntimePathConfig implements PluginModule {
 		// If the user has installed Natural Speech, favor the installed piper and return the path
 		if (path.toFile().exists()) {
 			if(deprecatedPiperPath != null) {
-				moveModelsToNewPath();
+				migrateModels();
 			}
 			return path;
 		}
@@ -61,14 +63,17 @@ public class RuntimePathConfig implements PluginModule {
 		}
 	}
 
-	private void moveModelsToNewPath() {
-		String deprecatedPiperPath = configManager.getConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
-
+	private void migrateModels()
+	{
+		String deprecatedPiperPath = configManager.getConfiguration(
+			NaturalSpeechPlugin.CONFIG_GROUP,
+			ConfigKeys.DEPRECATED_PIPER_PATH
+		);
 		if (deprecatedPiperPath == null) return;
 
-
 		Path deprecatedPiperDir = Path.of(deprecatedPiperPath).getParent();
-		if (deprecatedPiperDir == null) {
+		if (deprecatedPiperDir == null)
+		{
 			System.err.println("Invalid deprecated Piper path: " + deprecatedPiperPath);
 			return;
 		}
@@ -76,18 +81,61 @@ public class RuntimePathConfig implements PluginModule {
 		Path oldModelsPath = deprecatedPiperDir.resolve("models");
 		Path newModelsPath = getDefaultPath().getParent().resolve("models");
 
-		try {
-			if (Files.exists(oldModelsPath)) {
-				Files.createDirectories(newModelsPath.getParent());
-				Files.move(oldModelsPath, newModelsPath, StandardCopyOption.REPLACE_EXISTING);
+		try
+		{
+			if (!Files.exists(oldModelsPath)) return;
+
+			if (oldModelsPath.equals(newModelsPath))
+			{
+				configManager.unsetConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
+				return;
 			}
-		} catch (IOException e) {
-			System.err.println("Failed to move models/ folder: " + e.getMessage());
+
+			Files.createDirectories(newModelsPath);
+
+			try (Stream<Path> files = Files.walk(oldModelsPath))
+			{
+				files.forEach(source -> {
+					try
+					{
+						Path relativePath = oldModelsPath.relativize(source);
+						Path destination = newModelsPath.resolve(relativePath);
+
+						if (Files.isDirectory(source)) Files.createDirectories(destination);
+						else Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
+					}
+					catch (IOException e)
+					{
+						System.err.println("Failed to move: " + source + " -> " + e.getMessage());
+					}
+				});
+			}
+
+			configManager.unsetConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
+
+			try (Stream<Path> paths = Files.walk(oldModelsPath))
+			{
+				paths
+					.sorted(Comparator.reverseOrder())
+					.forEach(path -> {
+						try
+						{
+							Files.delete(path);
+						}
+						catch (IOException e)
+						{
+							System.err.println("Failed to delete: " + path + " -> " + e.getMessage());
+						}
+					});
+			}
+		}
+		catch (IOException e)
+		{
+			System.err.println("Failed to migrate models folder: " + e.getMessage());
 			e.printStackTrace();
 		}
-
-		configManager.unsetConfiguration(NaturalSpeechPlugin.CONFIG_GROUP, ConfigKeys.DEPRECATED_PIPER_PATH);
 	}
+
 
 	private static Path getDefaultPath() {
 		Path path;

@@ -121,7 +121,7 @@ public class PiperConfig implements PluginModule {
 				JsonObject jsonObj = jsonElement.getAsJsonObject();
 				if (jsonObj == null) return new ConfigJson();
 
-				JsonArray modelConfigsArray = jsonObj.getAsJsonArray("modelConfigs");
+				JsonArray modelConfigsArray = jsonObj.getAsJsonArray("piperConfigData");
 				if (modelConfigsArray == null) return new ConfigJson();
 
 				Type listType = new TypeToken<List<ModelConfig>>() {}.getType();
