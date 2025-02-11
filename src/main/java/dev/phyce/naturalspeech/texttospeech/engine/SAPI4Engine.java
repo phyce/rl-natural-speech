@@ -4,8 +4,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import static com.google.common.util.concurrent.Futures.submit;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.configs.RuntimePathConfig;
@@ -38,7 +39,7 @@ public class SAPI4Engine extends ManagedSpeechEngine {
 	// A more generalized approach can be done at a later time.
 	public static final String SAPI4_MODEL_NAME = "microsoft";
 
-	private final PluginExecutorService pluginExecutorService;
+	private final ListeningExecutorService pluginExecutorService;
 	private final AudioEngine audioEngine;
 
 	@NonNull
@@ -58,7 +59,12 @@ public class SAPI4Engine extends ManagedSpeechEngine {
 		PluginExecutorService pluginExecutorService,
 		AudioEngine audioEngine
 	) {
-		this.pluginExecutorService = pluginExecutorService;
+		// Downgrade Guava from v33 to v23
+		// feature since v28.1, Futures.submit
+		// submit directly submits and returns a ListenableFuture<T>,
+		//
+		// Instead we decorate our plugin executor service, which gives us back the similar ListeningExecutorService.submit()
+		this.pluginExecutorService = MoreExecutors.listeningDecorator(pluginExecutorService);
 		this.audioEngine = audioEngine;
 
 		nativeVoices = nativeVoices(sapi4Repository);
@@ -78,13 +84,11 @@ public class SAPI4Engine extends ManagedSpeechEngine {
 
 		SpeechAPI4 sapi = Preconditions.checkNotNull(nativeVoices.get(voiceID.id));
 
-		ListenableFuture<Audio> future = submit(() -> {
-
-			var result = sapi.generate(text);
-
+		ListenableFuture<Audio> future = pluginExecutorService.submit(() ->
+		{
+			Result<Audio, Exception> result = sapi.generate(text);
 			return result.unwrap();
-		}, pluginExecutorService);
-
+		});
 
 		return Ok(StreamableFuture.singular(future));
 	}

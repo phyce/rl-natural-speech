@@ -2,8 +2,9 @@ package dev.phyce.naturalspeech.texttospeech.engine;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import static com.google.common.util.concurrent.Futures.submit;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.audio.AudioEngine;
 import dev.phyce.naturalspeech.executor.PluginExecutorService;
@@ -22,10 +23,10 @@ import static dev.phyce.naturalspeech.utils.Result.ResultFutures.immediateOk;
 import dev.phyce.naturalspeech.utils.StreamableFuture;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 @Slf4j
 @PluginSingleton
@@ -33,7 +34,7 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 	public static final String SAPI5_MODEL_NAME = "microsoft";
 	private final ReentrantLock lock = new ReentrantLock();
 
-	private final PluginExecutorService pluginExecutorService;
+	private final ListeningExecutorService pluginExecutorService;
 	private final AudioEngine audioEngine;
 
 	@Getter
@@ -54,7 +55,12 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 		PluginExecutorService pluginExecutorService,
 		AudioEngine audioEngine
 	) {
-		this.pluginExecutorService = pluginExecutorService;
+		// Downgrade Guava from v33 to v23
+		// feature since v28.1, Futures.submit
+		// submit directly submits and returns a ListenableFuture<T>,
+		//
+		// Instead we decorate our plugin executor service, which gives us back the similar ListeningExecutorService.submit()
+		this.pluginExecutorService = MoreExecutors.listeningDecorator(pluginExecutorService);
 		this.audioEngine = audioEngine;
 	}
 
@@ -70,13 +76,13 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 
 		String sapiName = SAPI5Alias.modelToSapiName.getOrDefault(voiceID.id, voiceID.id);
 
-		ListenableFuture<Audio> future = submit(() -> {
+		ListenableFuture<Audio> future = pluginExecutorService.submit(() -> {
 			Preconditions.checkNotNull(process);
 			Preconditions.checkState(process.isAlive());
 
 			Result<Audio, Exception> result = process.generateAudio(sapiName, text);
 			return result.unwrap();
-		}, pluginExecutorService);
+		});
 
 		StreamableFuture<Audio> stream = StreamableFuture.singular(future);
 
@@ -102,7 +108,7 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 			}
 
 
-			return submit(() -> {
+			return pluginExecutorService.submit(() -> {
 				try {
 					lock.lock();
 					Result<SAPI5Process, Exception> result = SAPI5Process.start();
@@ -119,7 +125,7 @@ public class SAPI5Engine extends ManagedSpeechEngine {
 				} finally {
 					lock.unlock();
 				}
-			}, pluginExecutorService);
+			});
 		} finally {
 			lock.unlock();
 		}

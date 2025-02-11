@@ -15,7 +15,7 @@ def runeLiteVersion = 'latest.release'
 
 dependencies {
     // Overtakes transient guava version from RuneLite client.
-    implementation("com.google.guava:guava:33.1.0-jre")
+//    implementation("com.google.guava:guava:33.1.0-jre")
     // Overtakes transient JNA version from RuneLite client.
     implementation("net.java.dev.jna:jna:5.14.0")
 

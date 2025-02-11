@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.configs;
 
 import com.google.common.reflect.TypeToken;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -10,7 +11,6 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.JsonAdapter;
-import com.google.gson.JsonArray;
 import dev.phyce.naturalspeech.entity.EntityID;
 import dev.phyce.naturalspeech.texttospeech.VoiceID;
 import java.lang.reflect.Type;
@@ -23,9 +23,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.http.api.RuneLiteAPI;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 @Slf4j
 @JsonAdapter(VoiceSettings.JSONAdaptor.class)

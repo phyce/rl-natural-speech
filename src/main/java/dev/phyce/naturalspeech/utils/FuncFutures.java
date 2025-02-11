@@ -6,7 +6,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import java.util.concurrent.Executor;
 import lombok.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,14 +19,15 @@ public class FuncFutures {
 		future.addListener(then, directExecutor());
 	}
 
-	public static <V extends @Nullable Object> void onSuccess(
+	// lost Nullable checkerframework @Nullable
+	public static <V> void onSuccess(
 		ListenableFuture<V> future,
 		SuccessCallback<? super V> then
 	) {
 		Futures.addCallback(future, then, directExecutor());
 	}
 
-	public static <V extends @Nullable Object> void onException(
+	public static <V> void onException(
 		ListenableFuture<V> future,
 		ExceptionCallback<? super V> then
 	) {
@@ -48,7 +48,7 @@ public class FuncFutures {
 		future.addListener(then, executor);
 	}
 
-	public static <V extends @Nullable Object> void onSuccess(
+	public static <V> void onSuccess(
 		final ListenableFuture<V> future,
 		final SuccessCallback<? super V> then,
 		final Executor executor
@@ -56,7 +56,7 @@ public class FuncFutures {
 		Futures.addCallback(future, then, executor);
 	}
 
-	public static <V extends @Nullable Object> void onException(
+	public static <V> void onException(
 		final ListenableFuture<V> future,
 		final ExceptionCallback<? super V> then,
 		final Executor executor

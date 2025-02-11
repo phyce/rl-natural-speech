@@ -1,7 +1,6 @@
 package dev.phyce.naturalspeech.texttospeech.engine.windows.speechapi4;
 
 import static com.google.common.base.Preconditions.checkState;
-import com.google.common.base.Strings;
 import dev.phyce.naturalspeech.texttospeech.Gender;
 import dev.phyce.naturalspeech.texttospeech.engine.Audio;
 import dev.phyce.naturalspeech.utils.Result;
@@ -98,12 +97,14 @@ public class SpeechAPI4 {
 				// When the model was not found or installed, limit only prints 2 lines
 				if (limits.size() <= 2) {
 					if (limits.get(1).contains("(null)")) {
-						return Error(new RuntimeException(Strings.lenientFormat(
+						// lost guava v25.1 Strings.lenientFormat downgrading to v23
+						return Error(new RuntimeException(String.format(
 							"Windows Speech API 4 is not installed, cannot launch %s", sapiName)));
 					}
 					else {
 						return Error(new IllegalStateException(
-							Strings.lenientFormat("Non-existent WSAPI4 model:%s", sapiName)));
+								// lost guava v25.1 Strings.lenientFormat downgrading to v23
+							String.format("Non-existent WSAPI4 model:%s", sapiName)));
 					}
 				}
 				speed = Integer.parseInt(limits.get(3).split(" ")[0]);
@@ -164,7 +165,8 @@ public class SpeechAPI4 {
 		File file = outputFolder.toPath().resolve(filename).toFile();
 		if (!file.exists()) {
 			return Error(new RuntimeException(
-				Strings.lenientFormat("SAPI4 failed to generate audio file: %s", filename)));
+					// Guava downgrade v33 to v23 -> lost guava v25.1 Strings.lenientFormat downgrading to v23
+				String.format("SAPI4 failed to generate audio file: %s", filename)));
 		}
 
 		try (AudioInputStream audioFileStream = AudioSystem.getAudioInputStream(file)) {

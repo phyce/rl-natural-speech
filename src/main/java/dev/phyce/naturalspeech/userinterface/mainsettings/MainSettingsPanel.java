@@ -63,7 +63,6 @@ import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.SwingUtil;
-import org.checkerframework.common.aliasing.qual.NonLeaked;
 
 @Slf4j
 public class MainSettingsPanel extends PluginPanel {
@@ -101,7 +100,6 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	@NonNull
-	@NonLeaked
 	private State state = new State();
 
 	@Inject

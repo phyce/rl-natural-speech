@@ -4,8 +4,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Queues;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import dev.phyce.naturalspeech.audio.AudioEngine;
@@ -38,6 +39,7 @@ import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import javax.annotation.CheckReturnValue;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioFormat.Encoding;
@@ -45,7 +47,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
-import java.util.function.Predicate;
 
 // Renamed from TTSModel
 @Slf4j
@@ -68,7 +69,7 @@ public class PiperEngine extends ManagedSpeechEngine {
 
 	private final RuntimePathConfig runtimePathConfig;
 	private final PiperConfig piperConfig;
-	private final PluginExecutorService pluginExecutorService;
+	private final ListeningExecutorService pluginExecutorService;
 	private final PluginEventBus pluginEventBus;
 	private final AudioEngine audioEngine;
 
@@ -95,7 +96,12 @@ public class PiperEngine extends ManagedSpeechEngine {
 	) {
 		this.runtimePathConfig = runtimePathConfig;
 		this.piperConfig = piperConfig;
-		this.pluginExecutorService = pluginExecutorService;
+		// Downgrade Guava from v33 to v23
+		// feature since v28.1, Futures.submit
+		// submit directly submits and returns a ListenableFuture<T>,
+		//
+		// Instead we decorate our plugin executor service, which gives us back the similar ListeningExecutorService.submit()
+		this.pluginExecutorService = MoreExecutors.listeningDecorator(pluginExecutorService);
 		this.pluginEventBus = pluginEventBus;
 		this.model = model;
 		this.audioEngine = audioEngine;
@@ -121,7 +127,7 @@ public class PiperEngine extends ManagedSpeechEngine {
 
 		ImmutableList<ListenableFuture<Audio>> futures = segments.stream()
 			.map(segment -> _generate(piperId, segment))
-			.map(generate -> Futures.submit(generate, pluginExecutorService))
+			.map(generate -> pluginExecutorService.submit(generate))
 			.collect(ImmutableList.toImmutableList());
 
 		StreamableFuture<Audio> future = new StreamableFuture<>(futures, Audio::join);

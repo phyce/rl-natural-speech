@@ -6,17 +6,16 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Mom: We have Rust at home<br>
  * Rust at home: {@link Result}
  */
-@NonNull
 public interface Result<@NonNull V, @NonNull E extends Throwable> {
 
 	@NonNull
