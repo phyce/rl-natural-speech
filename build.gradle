@@ -14,13 +14,13 @@ repositories {
 def runeLiteVersion = 'latest.release'
 
 dependencies {
-    // Overtakes transient guava version from RuneLite client.
-//    implementation("com.google.guava:guava:33.1.0-jre")
-    // Overtakes transient JNA version from RuneLite client.
-    implementation("net.java.dev.jna:jna:5.14.0")
 
+    // For @Assisted variant injection
+    // Allows offering context specific construction of injected objects
+    // via a factory interface.
+    // These factories are binded to the class in Guice's module config method.
+    // For us, that's NaturalSpeechPlugin.java
     implementation 'com.google.inject.extensions:guice-assistedinject:4.1.0'
-
 
     // API
     compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
