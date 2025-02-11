@@ -64,9 +64,13 @@ public class MacSpeechEngine extends ManagedSpeechEngine {
 	@NonNull
 	private final ImmutableSet<VoiceID> voiceIDs = voiceIDs(nativeVoices);
 
-	@Getter // @Override
 	@NonNull
 	private final ImmutableSet<Voice> voices = voices(nativeVoices);
+
+	@Override
+	public ImmutableSet<Voice> getVoices() {
+		return voices;
+	}
 
 	@Inject
 	public MacSpeechEngine(
@@ -147,10 +151,19 @@ public class MacSpeechEngine extends ManagedSpeechEngine {
 
 		ID[] result = AVSpeechSynthesisVoice.getSpeechVoices();
 		var builder = ImmutableMap.<VoiceID, ID>builder();
+		int dedup_number = 1;
 		for (ID voice : result) {
-			String name = StringUtils.stripAccents(AVSpeechSynthesisVoice.getName(voice))
-					.toLowerCase()
-					.replace(" ", "");
+//			String name = StringUtils.stripAccents(AVSpeechSynthesisVoice.getName(voice))
+//					.toLowerCase()
+//					.replace(" ", "")
+//					+ dedup_number++;
+			String name = AVSpeechSynthesisVoice.getIdentifier(voice)
+					.replace("com.apple.", "")
+					.replace("eloquence.", "")
+					.replace("ttsbundle.", "")
+					.replace("voice.compact.", "")
+					.replace("speech.synthesis.voice.", "");
+
 			VoiceID voiceID = VoiceID.of(MACOS_MODEL_NAME, name);
 			builder.put(voiceID, voice);
 		}

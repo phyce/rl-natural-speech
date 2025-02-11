@@ -88,7 +88,7 @@ public class VoiceListItem extends JPanel {
 				break;
 			case OTHER:
 			default:
-				genderString = "(?)";
+				genderString = "(Other)";
 				break;
 		}
 

@@ -7,7 +7,6 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.google.inject.ProvisionException;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
-import static dev.phyce.naturalspeech.NaturalSpeechPlugin.CONFIG_GROUP;
 import dev.phyce.naturalspeech.singleton.PluginSingleton;
 import dev.phyce.naturalspeech.singleton.PluginSingletonScope;
 import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;

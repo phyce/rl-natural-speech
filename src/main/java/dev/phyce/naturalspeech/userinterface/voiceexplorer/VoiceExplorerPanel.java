@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.SpeechManagerConfig;
 import dev.phyce.naturalspeech.texttospeech.Gender;
+import dev.phyce.naturalspeech.texttospeech.Voice;
 import dev.phyce.naturalspeech.texttospeech.engine.PiperEngine;
 import dev.phyce.naturalspeech.eventbus.PluginEventBus;
 import dev.phyce.naturalspeech.eventbus.PluginSubscribe;
@@ -329,7 +330,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		List<String> sapi4Models = sapi4Repository.getVoices();
 		ImmutableSet<SAPI5Process.SAPI5Voice> sapi5Models = sapi5Engine.getNativeVoices();
 		List<PiperRepository.PiperModelURL> piperModelURLS = piperRepository.getUrls().collect(Collectors.toList());
-		Set<VoiceID> macVoices = macSpeechEngine.getNativeVoices().keySet();
+		Set<Voice> macVoices = macSpeechEngine.getVoices();
 
 		buildMacModelSegment(macVoices);
 		buildMicrosoftSapi4ModelSegment(sapi4Models);
@@ -389,7 +390,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		}
 	}
 
-	private void buildMacModelSegment(Set<VoiceID> macVoices) {
+	private void buildMacModelSegment(Set<Voice> macVoices) {
 
 		macSegment = new JPanel();
 		macSegment.setLayout(new BoxLayout(macSegment, BoxLayout.Y_AXIS));
@@ -443,9 +444,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		toggleSpeakerSection(sectionToggle, sectionContent);
 
-		macVoices.forEach((voiceId) -> {
+		macVoices.forEach((voice) -> {
 			VoiceMetadata metadata =
-				new VoiceMetadata("", Gender.MALE, voiceId);
+				new VoiceMetadata("", voice.getGender(), voice.getId());
 			VoiceListItem speakerItem = voiceListItemFactory.create(speechText, metadata);
 			voiceListItems.add(speakerItem);
 			sectionContent.add(speakerItem);
