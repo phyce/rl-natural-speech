@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.Friend;
+import net.runelite.api.IndexedObjectSet;
 import net.runelite.api.NPC;
 import net.runelite.api.Player;
 
@@ -81,17 +82,13 @@ public final class ClientHelper {
 	}
 
 	public boolean isUserNearby(String username) {
-		List<Player> players = client.getPlayers();
-
-		if (players != null) {
-			for (Player player : players) {
-				if (player != null && player.getName() != null
-					&& player.getName().equalsIgnoreCase(username)) {
-					return true;
-				}
+		IndexedObjectSet<? extends Player> players = client.getTopLevelWorldView().players();
+		for (Player player : players) {
+			if (player != null && player.getName() != null &&
+				player.getName().equalsIgnoreCase(username)) {
+				return true;
 			}
 		}
-
 		return false;
 	}
 
