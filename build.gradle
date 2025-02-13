@@ -13,6 +13,12 @@ repositories {
 
 def runeLiteVersion = 'latest.release'
 
+configurations.configureEach {
+    resolutionStrategy {
+        force 'com.google.code.findbugs:jsr305:3.0.2'
+    }
+}
+
 dependencies {
 
     // For @Assisted variant injection
