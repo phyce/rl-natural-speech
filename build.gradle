@@ -35,10 +35,14 @@ dependencies {
     // mock and unit testing
 	testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-core:5.12.0'
-    testImplementation 'com.google.inject.extensions:guice-testlib:4.1.0'
+    testImplementation("com.google.inject.extensions:guice-testlib:4.1.0") {
+        exclude group: "com.google.inject", module: "guice"
+    }
 
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
+
+
 }
 
 group = 'dev.phyce.naturalspeech'
