@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -36,11 +37,14 @@ public final class ClientHelper {
 
 		if (eid.isUser()) return Optional.of(client.getLocalPlayer());
 
-		return Optional.fromJavaUtil(Arrays.stream(client.getCachedPlayers())
-			.filter(Objects::nonNull)
-			.filter(player -> player.getName() != null)
-			.filter(eid::isPlayer)
-			.findFirst());
+		return Optional.fromJavaUtil(
+			StreamSupport.stream(client.getTopLevelWorldView().players().spliterator(), false)
+				.map(player -> (Player) player)
+				.filter(Objects::nonNull)
+				.filter(player -> player.getName() != null)
+				.filter(eid::isPlayer)
+				.findFirst()
+		);
 	}
 
 	@NonNull
