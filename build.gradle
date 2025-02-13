@@ -21,7 +21,9 @@ dependencies {
     // These factories are binded to the class in Guice's module config method.
     // For us, that's NaturalSpeechPlugin.java
     implementation "com.google.guava:guava:23.2-jre"
-    implementation 'com.google.inject.extensions:guice-assistedinject:4.1.0'
+    implementation('com.google.inject.extensions:guice-assistedinject:4.1.0') {
+        exclude group: "com.google.inject", module: "guice"
+    }
 
     // API
     compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
