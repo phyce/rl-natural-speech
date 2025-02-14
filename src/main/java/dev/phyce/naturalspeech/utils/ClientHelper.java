@@ -162,7 +162,7 @@ public final class ClientHelper {
 				}
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return version;
 	}

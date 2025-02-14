@@ -17,12 +17,15 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.stream.Stream;
 import net.runelite.client.config.ConfigManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Runtime Configs are serialized configurations invisible to the player but used at plugin runtime.
  */
 @PluginSingleton
 public class RuntimePathConfig implements PluginModule {
+	private static final Logger log = LoggerFactory.getLogger(RuntimePathConfig.class);
 	private final ConfigManager configManager;
 	private final PluginEventBus pluginEventBus;
 	public static final Path SAPI4_PATH = PluginPaths.NATURAL_SPEECH_PATH
@@ -74,7 +77,7 @@ public class RuntimePathConfig implements PluginModule {
 		Path deprecatedPiperDir = Path.of(deprecatedPiperPath).getParent();
 		if (deprecatedPiperDir == null)
 		{
-			System.err.println("Invalid deprecated Piper path: " + deprecatedPiperPath);
+			log.error("Invalid deprecated Piper path: " + deprecatedPiperPath);
 			return;
 		}
 
@@ -106,7 +109,7 @@ public class RuntimePathConfig implements PluginModule {
 					}
 					catch (IOException e)
 					{
-						System.err.println("Failed to move: " + source + " -> " + e.getMessage());
+						log.error("Failed to move: " + source + " -> " + e.getMessage());
 					}
 				});
 			}
@@ -124,15 +127,15 @@ public class RuntimePathConfig implements PluginModule {
 						}
 						catch (IOException e)
 						{
-							System.err.println("Failed to delete: " + path + " -> " + e.getMessage());
+							log.error("Failed to delete: " + path + " -> " + e.getMessage());
 						}
 					});
 			}
 		}
 		catch (IOException e)
 		{
-			System.err.println("Failed to migrate models folder: " + e.getMessage());
-			e.printStackTrace();
+			log.error("Failed to migrate models folder: " + e.getMessage());
+			//e.printStackTrace();
 		}
 	}
 
