@@ -59,7 +59,7 @@ public final class PluginHelper {
 
 	public static Player findPlayerWithUsername(@NonNull String username) {
 		username = Text.standardize(username);
-		for (Player player : instance.client.getCachedPlayers()) {
+		for (Player player : instance.client.getTopLevelWorldView().players()) {
 			if (player != null && player.getName() != null && Text.standardize(player.getName()).equals(username)) {
 				return player;
 			}
