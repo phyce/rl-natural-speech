@@ -47,6 +47,7 @@ import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
+import net.runelite.client.util.LinkBrowser;
 import net.runelite.client.util.SwingUtil;
 
 @Slf4j
@@ -187,7 +188,7 @@ public class MainSettingsPanel extends PluginPanel {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				try {
-					Desktop.getDesktop().browse(new URI("https://github.com/phyce/rl-natural-speech/tree/master-1.2"));
+					LinkBrowser.browse("https://github.com/phyce/rl-natural-speech/tree/master-1.2");
 				} catch (Exception ex) {
 					log.error("Error opening instruction link.", ex);
 				}
