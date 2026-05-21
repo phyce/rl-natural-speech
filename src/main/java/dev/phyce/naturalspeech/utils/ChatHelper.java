@@ -147,6 +147,7 @@ public class ChatHelper {
 		switch (messageType) {
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
+			case ITEM_EXAMINE:
 				return true;
 			default:
 				return false;
@@ -264,6 +265,8 @@ public class ChatHelper {
 				if (!config.groupIronmanChatEnabled()) return true;
 				break;
 			case OBJECT_EXAMINE:
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
 				if (!config.examineChatEnabled()) return true;
 				break;
 			case WELCOME:
