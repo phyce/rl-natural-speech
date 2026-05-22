@@ -20,6 +20,7 @@ public interface ConfigKeys {
 	String EXAMINE_CHAT = "examineChat";
 	String NPC_OVERHEAD = "npcOverhead";
 	String DIALOG = "dialog";
+	String PLAYER_DIALOG = "playerDialog";
 	String REQUESTS = "requests";
 	String SYSTEM_MESSAGES = "systemMessages";
 	String MUTE_GRAND_EXCHANGE = "muteGrandExchange";

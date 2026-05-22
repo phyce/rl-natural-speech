@@ -105,7 +105,10 @@ public class SpeechEventHandler {
 		if (!config.dialogEnabled()) return;
 		if (!speechManager.isStarted()) return;
 
-		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) _speakDialogPlayer();
+		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
+			if (!config.playerDialogEnabled()) return;
+			_speakDialogPlayer();
+		}
 		else if (event.getGroupId() == InterfaceID.DIALOG_NPC) _speakDialogNPC();
 	}
 

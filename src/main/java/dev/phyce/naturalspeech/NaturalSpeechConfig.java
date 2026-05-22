@@ -233,6 +233,17 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
+		keyName=ConfigKeys.PLAYER_DIALOG,
+		name="Player dialogs",
+		description="Enable text-to-speech for your own dialog lines (disable to spam through quest dialog while still hearing NPCs)",
+		section=ttsOptionsSection,
+		position=81
+	)
+	default boolean playerDialogEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
 		keyName=ConfigKeys.REQUESTS,
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests",
