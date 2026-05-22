@@ -26,6 +26,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String FRIENDS_CHAT = "friendsChat";
 		public static final String CLAN_CHAT = "clanChat";
 		public static final String CLAN_GUEST_CHAT = "clanGuestChat";
+		public static final String GIM_CHAT = "groupIronmanChat";
 		public static final String EXAMINE_CHAT = "examineChat";
 		public static final String NPC_OVERHEAD = "npcOverhead";
 		public static final String DIALOG = "dialog";
@@ -216,6 +217,17 @@ public interface NaturalSpeechConfig extends Config {
 		position=6
 	)
 	default boolean clanGuestChatEnabled() {
+		return false;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.GIM_CHAT,
+		name="Group Ironman chat",
+		description="Enable text-to-speech to the group ironman chat messages.",
+		section=ttsOptionsSection,
+		position=6
+	)
+	default boolean groupIronmanChatEnabled() {
 		return false;
 	}
 

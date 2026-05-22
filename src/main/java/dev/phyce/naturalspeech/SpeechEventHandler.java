@@ -219,6 +219,7 @@ public class SpeechEventHandler {
 			case FRIENDSCHAT:
 			case CLAN_CHAT:
 			case CLAN_GUEST_CHAT:
+			case CLAN_GIM_CHAT:
 				//			case TRADEREQ:
 				return true;
 			default:
@@ -233,6 +234,7 @@ public class SpeechEventHandler {
 			case BROADCAST:
 			case IGNORENOTIFICATION:
 			case CLAN_MESSAGE:
+			case CLAN_GIM_MESSAGE:
 			case CONSOLE:
 			case TRADE:
 			case PLAYERRELATED:
@@ -349,6 +351,13 @@ public class SpeechEventHandler {
 			case CLAN_GUEST_CHAT:
 				if (!config.clanGuestChatEnabled()) return true;
 				break;
+			case CLAN_GIM_CHAT:
+				if (!config.groupIronmanChatEnabled()) return true;
+				break;
+			case CLAN_GIM_MESSAGE:
+				if (!config.groupIronmanChatEnabled()) return true;
+				if (!config.systemMesagesEnabled()) return true;
+				break;
 			case OBJECT_EXAMINE:
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
@@ -387,6 +396,7 @@ public class SpeechEventHandler {
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
 		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
 		if (message.getType() == ChatMessageType.CLAN_GUEST_CHAT) return false;
+		if (message.getType() == ChatMessageType.CLAN_GIM_CHAT) return false;
 		//noinspection RedundantIfStatement
 		if (getLevel(message.getName()) < config.muteLevelThreshold()) return true;
 
