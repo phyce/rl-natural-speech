@@ -54,7 +54,7 @@ public class VolumeManager {
 		this.config = config;
 
 		spawnedActors.addAll(client.getNpcs());
-		spawnedActors.addAll(client.getPlayers());
+		client.getTopLevelWorldView().players().forEach(spawnedActors::add);
 	}
 
 	@NonNull
