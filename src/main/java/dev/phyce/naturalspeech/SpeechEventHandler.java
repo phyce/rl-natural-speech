@@ -13,7 +13,9 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.utils.TextUtil;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -21,6 +23,7 @@ import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.OverheadTextChanged;
+import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
@@ -40,6 +43,10 @@ public class SpeechEventHandler {
 	private final SpamDetection spamDetection;
 
 	private final ClientThread clientThread;
+
+	// NPC names that have spoken in the current dialog (tag-stripped, lowercased).
+	// Multi-NPC dialogs append; cleared when no dialog widget remains. Client thread only.
+	private final Set<String> currentDialogNpcNames = new HashSet<>();
 
 	@Inject
 	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
@@ -155,6 +162,22 @@ public class SpeechEventHandler {
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
+			// Add the NPC synchronously so the very first OverheadTextChanged in this tick
+			// is suppressed. The name widget isn't filled in yet, but the player's interaction
+			// target was set the moment they clicked "Talk-to".
+			Player local = client.getLocalPlayer();
+			if (local != null && local.getInteracting() instanceof NPC) {
+				String n = ((NPC) local.getInteracting()).getName();
+				if (n != null) currentDialogNpcNames.add(Text.removeTags(n).toLowerCase());
+			}
+			// Backup: read the dialog name widget at tick end, in case interacting wasn't this NPC
+			// (e.g. multi-NPC scripted conversation where the talking NPC changes).
+			clientThread.invokeAtTickEnd(() -> {
+				Widget nw = client.getWidget(ComponentID.DIALOG_NPC_NAME);
+				if (nw != null && nw.getText() != null) {
+					currentDialogNpcNames.add(Text.removeTags(nw.getText()).toLowerCase());
+				}
+			});
 			if (!config.npcDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
@@ -205,6 +228,7 @@ public class SpeechEventHandler {
 			if (!config.npcOverheadEnabled()) return;
 			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
+			if (config.suppressOverheadDuringDialog() && isInDialogWith(npc)) return;
 			if (!muteManager.isNpcAllowed(npc)) return;
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
@@ -456,6 +480,28 @@ public class SpeechEventHandler {
 		return false;
 	}
 
+
+	private boolean isInDialogWith(NPC npc) {
+		if (currentDialogNpcNames.isEmpty()) return false;
+		String npcName = npc.getName();
+		if (npcName == null) return false;
+		return currentDialogNpcNames.contains(Text.removeTags(npcName).toLowerCase());
+	}
+
+	@Subscribe
+	private void onWidgetClosed(WidgetClosed event) {
+		int group = event.getGroupId();
+		if (group != InterfaceID.DIALOG_NPC && group != InterfaceID.DIALOG_PLAYER) return;
+		// A pane closing may just be a transition to the other pane (NPC line ↔ player reply);
+		// defer to tick end so the new pane has had a chance to load before we decide.
+		clientThread.invokeAtTickEnd(() -> {
+			Widget npcText = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
+			Widget playerText = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
+			boolean stillOpen = (npcText != null && !npcText.isHidden())
+				|| (playerText != null && !playerText.isHidden());
+			if (!stillOpen) currentDialogNpcNames.clear();
+		});
+	}
 
 	private static int getGroupId(int component) {
 		return component >> 16;

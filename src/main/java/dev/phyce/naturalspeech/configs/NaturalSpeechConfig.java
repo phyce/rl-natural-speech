@@ -46,6 +46,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
 		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
+		public static final String SUPPRESS_OVERHEAD_DURING_DIALOG = "suppressOverheadDuringDialog";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -157,6 +158,17 @@ public interface NaturalSpeechConfig extends Config {
 	)
 	default boolean holdShiftRightClickMenu() {
 		return false;
+	}
+
+	@ConfigItem(
+		position=10,
+		keyName=ConfigKeys.SUPPRESS_OVERHEAD_DURING_DIALOG,
+		name="Mute overhead text during dialogs",
+		description="Silence overhead chatter when dialog is open",
+		section=generalSettingsSection
+	)
+	default boolean suppressOverheadDuringDialog() {
+		return true;
 	}
 
 	//	@ConfigItem(
