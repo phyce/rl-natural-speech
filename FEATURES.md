@@ -39,6 +39,9 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.3.0
+- `Mute Grand Exchange` now also mutes NPC overhead text in the GE
+
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
 
