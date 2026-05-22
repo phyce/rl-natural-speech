@@ -39,6 +39,9 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.3.0
+- NPC and player dialog now share a single audio queue so lines play in order instead of overlapping
+
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
 
