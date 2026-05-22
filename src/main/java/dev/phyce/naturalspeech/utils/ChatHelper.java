@@ -311,7 +311,11 @@ public class ChatHelper {
 
 	@NonNull
 	public String standardizeChatMessageText(@NonNull ChatMessage message) {
-		String text = renderReplacements(message.getMessage());
+		String text = message.getMessage();
+		if (getChatType(message) == ChatType.System) {
+			text = Text.removeFormattingTags(text);
+		}
+		text = renderReplacements(text);
 		text = Texts.renderLargeNumbers(text);
 		return text;
 	}
