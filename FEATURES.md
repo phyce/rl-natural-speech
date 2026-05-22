@@ -39,6 +39,9 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.3.0
+- `Global NPC voice` now properly overrides per-NPC voice settings
+
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
 
