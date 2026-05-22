@@ -212,7 +212,8 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		switch (event.getKey()) {
 			case ConfigKeys.SHORTENED_PHRASES:
-				log.trace("Detected short phrase changes, reloading into TextToSpeech");
+			case ConfigKeys.COMMON_ABBREVIATIONS:
+				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
 				textToSpeech.loadShortenedPhrases();
 				break;
 
