@@ -39,6 +39,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
+		public static final String SUPPRESS_OVERHEAD_DURING_DIALOG = "suppressOverheadDuringDialog";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -264,11 +265,22 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
+		keyName=ConfigKeys.SUPPRESS_OVERHEAD_DURING_DIALOG,
+		name="Suppress overhead during NPC dialog",
+		description="When an NPC dialog is open, ignore that NPC's overhead chatter to avoid duplicate speech.",
+		section=ttsOptionsSection,
+		position=11
+	)
+	default boolean suppressOverheadDuringDialog() {
+		return true;
+	}
+
+	@ConfigItem(
 		keyName=ConfigKeys.REQUESTS,
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests.",
 		section=ttsOptionsSection,
-		position=11
+		position=12
 	)
 	default boolean requestsEnabled() {
 		return false;
@@ -279,7 +291,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="System messages",
 		description="Generate text-to-speech to game's messages",
 		section=ttsOptionsSection,
-		position=12
+		position=13
 	)
 	default boolean systemMesagesEnabled() {
 		return true;
