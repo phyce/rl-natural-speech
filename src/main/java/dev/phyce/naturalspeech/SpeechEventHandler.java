@@ -310,7 +310,8 @@ public class SpeechEventHandler {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;
 
-		int count = (int) client.getPlayers().stream()
+		long count = java.util.stream.StreamSupport.stream(
+				client.getTopLevelWorldView().players().spliterator(), false)
 			.filter(player -> player != localPlayer) // Exclude the local player themselves
 			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <=
 				15) // For example, within 15 tiles
