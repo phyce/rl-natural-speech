@@ -66,6 +66,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Duplicate system messages won't be played every time anymore
  - Fixed issue where certain dialogs were not working (eg Spirit Tree)
  - NPC Dialogs now have an individual queue for NPC + Player dialog messages
+ - Recognise Latin-1 diacritics (ä, é, ñ, …) as alphanumeric so accented messages no longer get muted
 
 
 ## 1.2.4
