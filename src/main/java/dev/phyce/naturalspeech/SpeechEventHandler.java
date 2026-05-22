@@ -107,7 +107,8 @@ public class SpeechEventHandler {
 			return;
 		}
 
-		textToSpeech.speak(voiceId, text, distance, username);
+		String queueName = config.serializeChatPlayback() ? MagicUsernames.CHAT : username;
+		textToSpeech.speak(voiceId, text, distance, queueName);
 	}
 
 	@Subscribe(priority=-100)

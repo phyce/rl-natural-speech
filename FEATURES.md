@@ -39,6 +39,9 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.3.0
+- Added `Serialize chat playback` toggle so chat messages play in turn instead of overlapping
+
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
 

@@ -39,6 +39,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
+		public static final String SERIALIZE_CHAT_PLAYBACK = "serializeChatPlayback";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -126,6 +127,17 @@ public interface NaturalSpeechConfig extends Config {
 		section=generalSettingsSection
 	)
 	default boolean holdShiftRightClickMenu() {
+		return false;
+	}
+
+	@ConfigItem(
+		position=8,
+		keyName=ConfigKeys.SERIALIZE_CHAT_PLAYBACK,
+		name="Serialize chat playback",
+		description="Play chat messages in turn rather than overlapping. Each chatter currently has their own queue; turning this on routes all chat through a single queue.",
+		section=generalSettingsSection
+	)
+	default boolean serializeChatPlayback() {
 		return false;
 	}
 
