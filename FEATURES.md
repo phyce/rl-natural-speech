@@ -66,6 +66,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
  - Duplicate system messages won't be played every time anymore
  - Fixed issue where certain dialogs were not working (eg Spirit Tree)
  - NPC Dialogs now have an individual queue for NPC + Player dialog messages
+ - `Global NPC voice` now properly overrides per-NPC voice settings again
 
 
 ## 1.2.4
