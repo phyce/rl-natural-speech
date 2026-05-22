@@ -47,6 +47,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
 		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 		public static final String CUT_OFF_DIALOG_ON_SKIP = "cutOffDialogOnSkip";
+		public static final String MESSAGE_DUPLICATE_SUPPRESSOR = "messageDuplicateSuppressor";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -169,6 +170,17 @@ public interface NaturalSpeechConfig extends Config {
 	)
 	default boolean cutOffDialogOnSkip() {
 		return false;
+	}
+
+	@ConfigItem(
+		position=11,
+		keyName=ConfigKeys.MESSAGE_DUPLICATE_SUPPRESSOR,
+		name="Silence duplicate messages",
+		description="Prevents the same message from being constantly spammed",
+		section=generalSettingsSection
+	)
+	default boolean messageDuplicateSuppressorEnabled() {
+		return true;
 	}
 
 	//	@ConfigItem(

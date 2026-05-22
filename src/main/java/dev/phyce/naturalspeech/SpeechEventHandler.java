@@ -7,6 +7,7 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
+import dev.phyce.naturalspeech.spamdetection.MessageDuplicateSuppressor;
 import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
@@ -39,18 +40,21 @@ public class SpeechEventHandler {
 	private final VoiceManager voiceManager;
 	private final MuteManager muteManager;
 	private final SpamDetection spamDetection;
+	private final MessageDuplicateSuppressor duplicateSuppressor;
 
 	private final ClientThread clientThread;
 
 	@Inject
 	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
-							  VoiceManager voiceManager, MuteManager muteManager, SpamDetection spamDetection, ClientThread clientThread) {
+							  VoiceManager voiceManager, MuteManager muteManager, SpamDetection spamDetection,
+							  MessageDuplicateSuppressor duplicateSuppressor, ClientThread clientThread) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
 		this.spamDetection = spamDetection;
+		this.duplicateSuppressor = duplicateSuppressor;
 
 		this.clientThread = clientThread;
 	}
@@ -222,6 +226,7 @@ public class SpeechEventHandler {
 			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
 			if (!muteManager.isNpcAllowed(npc)) return;
+			if (duplicateSuppressor.shouldSuppress("npc:" + npc.getName(), event.getOverheadText())) return;
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
 
@@ -307,6 +312,19 @@ public class SpeechEventHandler {
 		return "Twitch".equals(message.getSender());
 	}
 
+	private static String duplicateSourceKey(ChatMessage message) {
+		switch (message.getType()) {
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
+			case OBJECT_EXAMINE:
+				return "&examine";
+			case TRADEREQ:
+				return "tradereq:" + Text.standardize(message.getName());
+			default:
+				return MagicUsernames.SYSTEM;
+		}
+	}
+
 	public boolean isChatMessageMuted(ChatMessage message) {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
@@ -363,9 +381,14 @@ public class SpeechEventHandler {
 			return true;
 		}
 
-		//noinspection RedundantIfStatement
 		if (spamDetection.isSpam(message.getName(), message.getMessage())) {
 			log.trace("Muting message. Spam detected. Message:{}", message.getMessage());
+			return true;
+		}
+
+		//noinspection RedundantIfStatement
+		if ((PluginHelper.isNPCChatMessage(message) || PluginHelper.isSystemMessage(message))
+			&& duplicateSuppressor.shouldSuppress(duplicateSourceKey(message), message.getMessage())) {
 			return true;
 		}
 
@@ -454,12 +477,12 @@ public class SpeechEventHandler {
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
-		if (isNPCChatMessage(message)) return false;
+		if (isNPCChatMessage(message) || isSystemMessage(message)) return false;
 		return config.muteOthers() && !message.getName().equals(PluginHelper.getLocalPlayerUsername());
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
-		if (isNPCChatMessage(message)) return false;
+		if (isNPCChatMessage(message) || isSystemMessage(message)) return false;
 		if (Objects.equals(MagicUsernames.LOCAL_USER, message.getName())) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;

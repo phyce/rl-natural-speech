@@ -57,6 +57,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 - `Shortened phrases` are now `Abbreviations`
 - `Abbreviations` field is now `Custom abbreviations`
 - Added ability to skip NPC dialogs
+- Added ability to silence duplicate messages
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
