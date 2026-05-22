@@ -248,10 +248,20 @@ public class SpeechEventHandler {
 		}
 	}
 
+	private boolean isFriend(ChatMessage message) {
+		String name = Text.standardize(message.getName());
+		return !name.isEmpty() && client.isFriended(name, false);
+	}
+
 	public boolean isChatMessageMuted(ChatMessage message) {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
+
+		if (config.friendsOnlyMode() && isChatOtherPlayerVoice(message) && !isFriend(message)) {
+			log.trace("Muting message. Friends-only mode and sender is not a friend. Message:{}", message.getMessage());
+			return true;
+		}
 
 		// example: "::::::))))))" (no alpha numeric, muted)
 		if (!TextUtil.containAlphaNumeric(message.getMessage())) {

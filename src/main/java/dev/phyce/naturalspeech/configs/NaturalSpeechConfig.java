@@ -26,6 +26,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String FRIENDS_CHAT = "friendsChat";
 		public static final String CLAN_CHAT = "clanChat";
 		public static final String CLAN_GUEST_CHAT = "clanGuestChat";
+		public static final String FRIENDS_ONLY_MODE = "friendsOnlyMode";
 		public static final String EXAMINE_CHAT = "examineChat";
 		public static final String NPC_OVERHEAD = "npcOverhead";
 		public static final String DIALOG = "dialog";
@@ -303,6 +304,17 @@ public interface NaturalSpeechConfig extends Config {
 
 	)
 	default boolean muteOthers() {
+		return false;
+	}
+
+	@ConfigItem(
+		position=1,
+		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
+		name="Friends only",
+		description="Only generate text-to-speech for friends.",
+		section=muteOptionsSection
+	)
+	default boolean friendsOnlyMode() {
 		return false;
 	}
 
