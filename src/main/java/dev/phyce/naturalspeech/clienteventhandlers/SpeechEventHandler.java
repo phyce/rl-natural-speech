@@ -122,6 +122,8 @@ public class SpeechEventHandler {
 
 		if (!config.npcOverheadEnabled()) return;
 
+		if (chatHelper.isAreaDisabled()) return;
+
 		NPC npc = (NPC) event.getActor();
 		EntityID entityID = EntityID.npc(npc);
 
