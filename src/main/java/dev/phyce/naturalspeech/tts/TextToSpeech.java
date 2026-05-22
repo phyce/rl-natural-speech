@@ -117,6 +117,11 @@ public class TextToSpeech {
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
+		speak(voiceID, text, distance, 0, audioQueueName);
+	}
+
+	public void speak(VoiceID voiceID, String text, int distance, int volumeBoostPercent, String audioQueueName)
+		throws ModelLocalUnavailableException, PiperNotActiveException {
 		assert distance >= 0;
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
@@ -132,7 +137,7 @@ public class TextToSpeech {
 
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				piper.speak(sentence, voiceID, getVolumeWithDistance(distance), audioQueueName);
+				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
@@ -153,6 +158,10 @@ public class TextToSpeech {
 //		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
 //	}
 	public float getVolumeWithDistance(int distance) {
+		return getVolumeWithDistance(distance, 0);
+	}
+
+	public float getVolumeWithDistance(int distance, int volumeBoostPercent) {
 		float volumeWithDistance;
 		if (distance <= 1) {
 			volumeWithDistance = 0;
@@ -161,15 +170,21 @@ public class TextToSpeech {
 		}
 
 		int masterVolumePercentage = PluginHelper.getConfig().masterVolume();
+		// Honor a hard mute even when boost is set - if the user explicitly
+		// dialed master to 0 they want silence.
 		if (masterVolumePercentage == 0) return -80;
 
-		float scaleFactor = masterVolumePercentage / 100.0f;
+		int effectivePercent = masterVolumePercentage + Math.max(0, volumeBoostPercent);
+		float scaleFactor = effectivePercent / 100.0f;
 
-		float maxVolume = 0;
 		float minVolume = -35;
+		// Allow output above 0 dB when boosted. 100% effective -> 0 dB ceiling
+		// (linear 1x), 200% -> +6 dB (linear 2x). Most Java audio lines
+		// support up to ~+6 dB on MASTER_GAIN; anything above is silently
+		// clamped by the line.
+		float maxVolume = (float) Math.max(0.0, 20.0 * Math.log10(scaleFactor));
 
 		float scaledVolume = minVolume + (volumeWithDistance - minVolume) * scaleFactor;
-
 		scaledVolume = Math.max(minVolume, Math.min(maxVolume, scaledVolume));
 
 		return scaledVolume;

@@ -43,6 +43,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
+		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -135,6 +136,18 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=8,
+		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
+		name="Friends volume boost",
+		description="Volume boost percentage",
+		section=generalSettingsSection
+	)
+	@Range(min=0, max=100)
+	default int friendsVolumeBoost() {
+		return 0;
+	}
+
+	@ConfigItem(
+		position=9,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",
