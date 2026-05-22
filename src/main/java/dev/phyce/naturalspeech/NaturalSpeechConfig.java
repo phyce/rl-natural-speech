@@ -253,6 +253,17 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean systemMesagesEnabled() {
 		return false;
 	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.TWITCH_CHAT,
+		name="Twitch chat plugin",
+		description="Generate text-to-speech of messages received via the RuneLite Twitch plugin",
+		section=ttsOptionsSection,
+		position=110
+	)
+	default boolean twitchChatEnabled() {
+		return false;
+	}
 	// endregion
 
 	// region Mute Options

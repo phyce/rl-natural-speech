@@ -22,6 +22,7 @@ public interface ConfigKeys {
 	String DIALOG = "dialog";
 	String REQUESTS = "requests";
 	String SYSTEM_MESSAGES = "systemMessages";
+	String TWITCH_CHAT = "twitchChat";
 	String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 	String MUTE_SELF = "muteSelf";
 	String MUTE_OTHERS = "muteOthers";

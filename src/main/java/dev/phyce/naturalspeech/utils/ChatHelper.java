@@ -173,6 +173,10 @@ public class ChatHelper {
 
 	public boolean isMuted(@NonNull ChatMessage message) {
 
+		if (isTwitchMessage(message) && !config.twitchChatEnabled()) {
+			return true;
+		}
+
 		ChatType chatType = getChatType(message);
 		EntityID eid = getEntityID(message);
 
@@ -311,9 +315,17 @@ public class ChatHelper {
 
 	@NonNull
 	public String standardizeChatMessageText(@NonNull ChatMessage message) {
-		String text = renderReplacements(message.getMessage());
+		String text = message.getMessage();
+		if (isTwitchMessage(message) && text.startsWith("<colNORMAL>")) {
+			text = text.replaceFirst("^<colNORMAL>", "");
+		}
+		text = renderReplacements(text);
 		text = Texts.renderLargeNumbers(text);
 		return text;
+	}
+
+	private static boolean isTwitchMessage(@NonNull ChatMessage message) {
+		return "Twitch".equals(message.getSender());
 	}
 
 	@NonNull
