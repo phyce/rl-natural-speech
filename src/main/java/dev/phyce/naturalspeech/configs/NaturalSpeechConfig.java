@@ -46,6 +46,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
 		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
+		public static final String CUT_OFF_DIALOG_ON_SKIP = "cutOffDialogOnSkip";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -156,6 +157,17 @@ public interface NaturalSpeechConfig extends Config {
 		section=generalSettingsSection
 	)
 	default boolean holdShiftRightClickMenu() {
+		return false;
+	}
+
+	@ConfigItem(
+		position=10,
+		keyName=ConfigKeys.CUT_OFF_DIALOG_ON_SKIP,
+		name="Interrupt dialog when skipping",
+		description="Immediately play the next audio clip upon dialog skip",
+		section=generalSettingsSection
+	)
+	default boolean cutOffDialogOnSkip() {
 		return false;
 	}
 
