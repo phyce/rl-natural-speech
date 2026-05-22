@@ -269,9 +269,18 @@ public class ChatHelper {
 			case WELCOME:
 			case LOGINLOGOUTNOTIFICATION:
 			case GAMEMESSAGE:
+				if (!config.systemMesagesEnabled()) return true;
+				break;
 			case CLAN_MESSAGE:
+				if (!config.clanChatEnabled()) return true;
+				if (!config.systemMesagesEnabled()) return true;
+				break;
 			case CLAN_GIM_MESSAGE:
+				if (!config.groupIronmanChatEnabled()) return true;
+				if (!config.systemMesagesEnabled()) return true;
+				break;
 			case CLAN_GUEST_MESSAGE:
+				if (!config.clanGuestChatEnabled()) return true;
 				if (!config.systemMesagesEnabled()) return true;
 				break;
 			case TRADEREQ:
