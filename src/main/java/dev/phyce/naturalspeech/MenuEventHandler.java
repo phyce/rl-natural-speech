@@ -187,34 +187,7 @@ public class MenuEventHandler {
 
 			Menu subMenu = parent.createSubMenu();
 
-			if (isListened) {
-				subMenu.createMenuEntry(0)
-					.setOption("Unlisten")
-					.setType(MenuAction.RUNELITE)
-					.onClick(e -> {
-						if (npc != null) {
-							muteManager.unlistenNpc(npc);
-						}
-						else {
-							muteManager.unlistenUsername(standardActorName);
-						}
-					});
-			}
-			else {
-				subMenu.createMenuEntry(0)
-					.setOption("Listen")
-					.setType(MenuAction.RUNELITE)
-					.onClick(e -> {
-						if (npc != null) {
-							muteManager.listenNpc(npc);
-						}
-						else {
-							muteManager.listenUsername(standardActorName);
-						}
-						muteManager.setListenMode(true);
-					});
-			}
-
+			// Configure is shown in both modes.
 			{
 				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
 				subMenu.createMenuEntry(1)
@@ -229,18 +202,39 @@ public class MenuEventHandler {
 					});
 			}
 
+			// The primary action is decided by the active mute mode. The mode
+			// itself is set from the plugin panel, never from the right-click.
 			if (muteManager.isListenMode()) {
-				subMenu.createMenuEntry(1)
-					.setOption("Stop Listen Mode")
-					.setType(MenuAction.RUNELITE)
-					.onClick(e -> {
-						muteManager.setListenMode(false);
-						muteManager.clearListens();
-					});
+				if (isListened) {
+					subMenu.createMenuEntry(0)
+						.setOption("Unlisten")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> {
+							if (npc != null) {
+								muteManager.unlistenNpc(npc);
+							}
+							else {
+								muteManager.unlistenUsername(standardActorName);
+							}
+						});
+				}
+				else {
+					subMenu.createMenuEntry(0)
+						.setOption("Listen")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> {
+							if (npc != null) {
+								muteManager.listenNpc(npc);
+							}
+							else {
+								muteManager.listenUsername(standardActorName);
+							}
+						});
+				}
 			}
 			else {
 				if (isUnmuted) {
-					subMenu.createMenuEntry(1)
+					subMenu.createMenuEntry(0)
 						.setOption("Mute")
 						.setType(MenuAction.RUNELITE)
 						.onClick(e -> {
@@ -251,10 +245,9 @@ public class MenuEventHandler {
 								muteManager.muteUsername(standardActorName);
 							}
 						});
-
 				}
 				else {
-					subMenu.createMenuEntry(1)
+					subMenu.createMenuEntry(0)
 						.setOption("Unmute")
 						.setType(MenuAction.RUNELITE)
 						.onClick(e -> {

@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.tts.ModelRepository;
+import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
@@ -73,6 +74,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final ModelRepository modelRepository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
+	private final MuteManager muteManager;
 	private final List<ModelRepository.ModelRepositoryListener> modelRepositoryListeners;
 
 	@Inject
@@ -82,13 +84,15 @@ public class MainSettingsPanel extends PluginPanel {
 		ConfigManager configManager,
 		Downloader downloader, ClientThread clientThread,
 		TextToSpeech textToSpeech,
-		NaturalSpeechRuntimeConfig runtimeConfig
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		MuteManager muteManager
 	) {
 		super(false);
 		this.textToSpeech = textToSpeech;
 		this.modelRepository = modelRepository;
 		this.clientThread = clientThread;
 		this.runtimeConfig = runtimeConfig;
+		this.muteManager = muteManager;
 		this.modelRepositoryListeners = new ArrayList<>();
 
 		this.setLayout(new BorderLayout());
@@ -115,6 +119,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		buildHeaderSegment();
 		buildPiperStatusSection();
+		buildMuteModeSegment();
 		buildVoiceRepositorySegment();
 //		buildVoiceHistorySegment();
 
@@ -197,6 +202,88 @@ public class MainSettingsPanel extends PluginPanel {
 		instructionsLink.setBorder(new EmptyBorder(0, 0, 5, 0));
 		mainContentPanel.add(instructionsLink);
 
+	}
+
+	public void buildMuteModeSegment() {
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "Mute Settings";
+		final String description =
+			"Choose between blocklist (mute the listed players/NPCs) and allowlist (only listen to the listed players/NPCs).";
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		mainContentPanel.add(section);
+
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
+
+		final JLabel modeLabel = new JLabel();
+		modeLabel.setBorder(new EmptyBorder(5, 5, 0, 5));
+
+		final JButton modeToggle = new JButton();
+		modeToggle.setFocusable(false);
+
+		final Runnable refresh = () -> {
+			if (muteManager.isListenMode()) {
+				modeLabel.setText(
+					"<html><b>Allowlist</b> mode — only listed players/NPCs are spoken.<br>" +
+					"Use right-click \"Listen\" / \"Unlisten\" to manage the list.</html>");
+				modeToggle.setText("Switch to Blocklist (Mute) mode");
+			}
+			else {
+				modeLabel.setText(
+					"<html><b>Blocklist</b> mode — everyone is spoken except listed players/NPCs.<br>" +
+					"Use right-click \"Mute\" / \"Unmute\" to manage the list.</html>");
+				modeToggle.setText("Switch to Allowlist (Listen) mode");
+			}
+		};
+		refresh.run();
+
+		modeToggle.addActionListener(e -> {
+			muteManager.setListenMode(!muteManager.isListenMode());
+			muteManager.saveConfig();
+			refresh.run();
+		});
+
+		sectionContent.add(modeLabel);
+		sectionContent.add(modeToggle);
 	}
 
 	public void buildVoiceRepositorySegment() {
