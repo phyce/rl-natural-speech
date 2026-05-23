@@ -41,6 +41,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 
 ## 1.3.0
 - Fixed numbers with commas in system messages not being read correctly
+- Audit of `ChatMessageType` coverage: previously-dropped message types (challenge requests, trade sent, friend list changes, etc.) now speak; all system message types respect the System messages toggle; new "Did you know?" and "Level up messages" toggles (both off by default)
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
