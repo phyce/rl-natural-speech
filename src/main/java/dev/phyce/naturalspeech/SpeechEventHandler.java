@@ -61,6 +61,7 @@ public class SpeechEventHandler {
 
 		String username;
 		int distance;
+		int volumeBoost = 0;
 		VoiceID voiceId;
 		username = Text.standardize(message.getName());
 		message.setName(username);
@@ -95,6 +96,9 @@ public class SpeechEventHandler {
 			}
 			else if (isChatOtherPlayerVoice(message)) {
 				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
+				if (config.friendsVolumeBoost() > 0 && PluginHelper.isFriend(username)) {
+					volumeBoost = config.friendsVolumeBoost();
+				}
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
 				text = TextUtil.renderLargeNumbers(text);
@@ -123,7 +127,7 @@ public class SpeechEventHandler {
 		}
 
 		text = TextUtil.removeNumericCommas(text);
-		textToSpeech.speak(voiceId, text, distance, username);
+		textToSpeech.speak(voiceId, text, distance, volumeBoost, username);
 	}
 
 	@Subscribe(priority=-100)

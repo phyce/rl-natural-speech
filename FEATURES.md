@@ -50,6 +50,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 - Clan / clan guest system messages now also respect the matching channel toggle
 - Renamed the `Dialogs` toggle to `NPC dialogs` and added `Player dialogs` toggle
 - Added integration with Twitch plugin
+- Added Friend volume boost option
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus

@@ -75,6 +75,11 @@ public final class PluginHelper {
 		return targetPlayer.getCombatLevel();
 	}
 
+	public static boolean isFriend(@NonNull String standardized_username) {
+		return !standardized_username.isEmpty()
+			&& instance.client.isFriended(standardized_username, false);
+	}
+
 	public static int getDistance(@NonNull String username) {
 		// For local player distance is 0
 		if (Objects.equals(getLocalPlayerUsername(), username)) return 0;
