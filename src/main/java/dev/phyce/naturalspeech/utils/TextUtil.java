@@ -89,9 +89,20 @@ public final class TextUtil {
 		return tokens;
 	}
 
-	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-zÀ-ÖØ-öø-ÿ].*");
+	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-z0-9À-ÖØ-öø-ÿ].*");
 	public static boolean containAlphaNumeric(String text) {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
+	}
+
+	private static final Pattern NUMERIC_COMMA_PATTERN = Pattern.compile("\\d{1,3}(,\\d{3})+");
+	public static String removeNumericCommas(String input) {
+		Matcher matcher = NUMERIC_COMMA_PATTERN.matcher(input);
+		StringBuilder result = new StringBuilder();
+		while (matcher.find()) {
+			matcher.appendReplacement(result, matcher.group().replace(",", ""));
+		}
+		matcher.appendTail(result);
+		return result.toString();
 	}
 
 	public static String escape(String text) {

@@ -107,6 +107,7 @@ public class SpeechEventHandler {
 			return;
 		}
 
+		text = TextUtil.removeNumericCommas(text);
 		textToSpeech.speak(voiceId, text, distance, username);
 	}
 
@@ -233,6 +234,7 @@ public class SpeechEventHandler {
 			case BROADCAST:
 			case IGNORENOTIFICATION:
 			case CLAN_MESSAGE:
+			case CLAN_GUEST_MESSAGE:
 			case CONSOLE:
 			case TRADE:
 			case PLAYERRELATED:
@@ -357,6 +359,14 @@ public class SpeechEventHandler {
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
+				if (!config.systemMesagesEnabled()) return true;
+				break;
+			case CLAN_MESSAGE:
+				if (!config.clanChatEnabled()) return true;
+				if (!config.systemMesagesEnabled()) return true;
+				break;
+			case CLAN_GUEST_MESSAGE:
+				if (!config.clanGuestChatEnabled()) return true;
 				if (!config.systemMesagesEnabled()) return true;
 				break;
 			case TRADEREQ:

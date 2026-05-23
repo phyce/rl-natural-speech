@@ -41,6 +41,8 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 
 ## 1.3.0
 - `Global NPC voice` now properly overrides per-NPC voice settings
+- Fixed numbers with commas in system messages not being read correctly
+- Clan / clan guest system messages now also respect the matching channel toggle
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
