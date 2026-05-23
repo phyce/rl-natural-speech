@@ -107,6 +107,7 @@ public class SpeechEventHandler {
 			return;
 		}
 
+		text = TextUtil.removeNumericCommas(text);
 		textToSpeech.speak(voiceId, text, distance, username);
 	}
 
