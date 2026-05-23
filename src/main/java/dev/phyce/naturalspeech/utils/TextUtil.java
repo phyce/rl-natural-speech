@@ -89,27 +89,28 @@ public final class TextUtil {
 		return tokens;
 	}
 
-	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-zÀ-ÖØ-öø-ÿ].*");
+	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-z0-9À-ÖØ-öø-ÿ].*");
 	public static boolean containAlphaNumeric(String text) {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
 	}
 
-	/**
-	 * Expand common numeric shorthand so TTS reads it as words:
-	 *   5k           -> 5 thousand
-	 *   2.5m         -> 2.5 million
-	 *   1b           -> 1 billion
-	 *   1t           -> 1 trillion
-	 * Comma stripping is intentionally not handled here — use
-	 * {@link #removeNumericCommas(String)} for that. Run it first if your
-	 * input may contain numbers like "1,000k".
-	 */
 	public static String renderLargeNumbers(String text) {
 		text = text.replaceAll("(?i)(\\d+)\\s?k\\b", "$1 thousand");
 		text = text.replaceAll("(?i)(\\d+)\\s?m\\b", "$1 million");
 		text = text.replaceAll("(?i)(\\d+)\\s?b\\b", "$1 billion");
 		text = text.replaceAll("(?i)(\\d+)\\s?t\\b", "$1 trillion");
 		return text;
+  }
+
+	private static final Pattern NUMERIC_COMMA_PATTERN = Pattern.compile("\\d{1,3}(,\\d{3})+");
+	public static String removeNumericCommas(String input) {
+		Matcher matcher = NUMERIC_COMMA_PATTERN.matcher(input);
+		StringBuilder result = new StringBuilder();
+		while (matcher.find()) {
+			matcher.appendReplacement(result, matcher.group().replace(",", ""));
+		}
+		matcher.appendTail(result);
+		return result.toString();
 	}
 
 	public static String escape(String text) {
