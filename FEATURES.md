@@ -40,6 +40,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 
 ## 1.3.0
+- Added `Friends only` mode
 - Numerical abbreviations (k, m, b, t)
 - Added a Discord help link to the main settings panel
 - Replaced deprecated `client.getPlayers()` usage with the world view API

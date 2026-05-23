@@ -267,6 +267,11 @@ public class SpeechEventHandler {
 		}
 	}
 
+	private boolean isFriend(ChatMessage message) {
+		String name = Text.standardize(message.getName());
+		return !name.isEmpty() && client.isFriended(name, false);
+	}
+
 	private static boolean isTwitchMessage(ChatMessage message) {
 		return "Twitch".equals(message.getSender());
 	}
@@ -275,6 +280,11 @@ public class SpeechEventHandler {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
+
+		if (config.friendsOnlyMode() && isChatOtherPlayerVoice(message) && !isFriend(message)) {
+			log.trace("Muting message. Friends-only mode and sender is not a friend. Message:{}", message.getMessage());
+			return true;
+		}
 
 		if (isTwitchMessage(message) && !config.twitchChatEnabled()) return true;
 
