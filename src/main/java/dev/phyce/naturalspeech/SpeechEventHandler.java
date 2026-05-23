@@ -72,9 +72,6 @@ public class SpeechEventHandler {
 
 		try {
 			if (isTwitchMessage(message)) {
-				// If twitchVoice is configured, route through the TWITCH magic
-				// username so all Twitch chat shares the override voice. Empty
-				// = keep per-chatter voices (existing behaviour).
 				if (!config.twitchVoice().isEmpty()) {
 					username = MagicUsernames.TWITCH;
 				}
