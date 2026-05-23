@@ -47,7 +47,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 - Fixed numbers with commas in system messages not being read correctly
 - Clan / clan guest system messages now also respect the matching channel toggle
 - Renamed the `Dialogs` toggle to `NPC dialogs` and added `Player dialogs` toggle
-- Added optional integration with the RuneLite Twitch plugin (toggle in TTS Options)
+- Added integration with Twitch plugin
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus
