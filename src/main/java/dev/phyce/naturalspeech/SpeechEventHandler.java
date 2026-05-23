@@ -89,6 +89,7 @@ public class SpeechEventHandler {
 				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
+				text = TextUtil.renderLargeNumbers(text);
 
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
@@ -96,6 +97,7 @@ public class SpeechEventHandler {
 				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
+				text = TextUtil.renderLargeNumbers(text);
 
 				log.debug("Player voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
@@ -104,6 +106,7 @@ public class SpeechEventHandler {
 				distance = 0;
 				text = Text.removeTags(text);
 				text = Text.standardize(text);
+				text = TextUtil.renderLargeNumbers(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);

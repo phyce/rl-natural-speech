@@ -94,6 +94,14 @@ public final class TextUtil {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
 	}
 
+	public static String renderLargeNumbers(String text) {
+		text = text.replaceAll("(?i)(\\d+)\\s?k\\b", "$1 thousand");
+		text = text.replaceAll("(?i)(\\d+)\\s?m\\b", "$1 million");
+		text = text.replaceAll("(?i)(\\d+)\\s?b\\b", "$1 billion");
+		text = text.replaceAll("(?i)(\\d+)\\s?t\\b", "$1 trillion");
+		return text;
+  }
+
 	private static final Pattern NUMERIC_COMMA_PATTERN = Pattern.compile("\\d{1,3}(,\\d{3})+");
 	public static String removeNumericCommas(String input) {
 		Matcher matcher = NUMERIC_COMMA_PATTERN.matcher(input);
