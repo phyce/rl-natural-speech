@@ -465,10 +465,12 @@ public class SpeechEventHandler {
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
 		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
 		if (message.getType() == ChatMessageType.CLAN_GUEST_CHAT) return false;
+
+		int level = getLevel(message.getName());
+		if (level == 0) return false;
+
 		//noinspection RedundantIfStatement
-		if (getLevel(message.getName()) < config.muteLevelThreshold()) return true;
-
-
+		if (level < config.muteLevelThreshold()) return true;
 		return false;
 	}
 
