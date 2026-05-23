@@ -91,7 +91,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=4,
 		keyName=ConfigKeys.TWITCH_VOICE,
 		name="Twitch chat voice",
-		description="Choose one of the voices for Twitch chat (overrides per-chatter voices). Leave empty to keep one voice per Twitch chatter.",
+		description="Choose one of the voices for Twitch chat, example: libritts:0",
 		section=generalSettingsSection
 	)
 	default String twitchVoice() {
