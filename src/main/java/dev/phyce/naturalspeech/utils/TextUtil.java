@@ -96,17 +96,15 @@ public final class TextUtil {
 
 	/**
 	 * Expand common numeric shorthand so TTS reads it as words:
-	 *   1,000        -> 1000      (single comma stripped)
 	 *   5k           -> 5 thousand
 	 *   2.5m         -> 2.5 million
 	 *   1b           -> 1 billion
 	 *   1t           -> 1 trillion
-	 * Multi-comma values like 1,000,000 should be passed through
-	 * removeNumericCommas first.
+	 * Comma stripping is intentionally not handled here — use
+	 * {@link #removeNumericCommas(String)} for that. Run it first if your
+	 * input may contain numbers like "1,000k".
 	 */
 	public static String renderLargeNumbers(String text) {
-		text = text.replaceAll("(?i)(\\d{1,3})(,)(\\d{3})", "$1$3");
-		text = text.replaceAll("(?i)(\\d)(,)(\\d{3})(\\.\\d+)?", "$1$3$4");
 		text = text.replaceAll("(?i)(\\d+)\\s?k\\b", "$1 thousand");
 		text = text.replaceAll("(?i)(\\d+)\\s?m\\b", "$1 million");
 		text = text.replaceAll("(?i)(\\d+)\\s?b\\b", "$1 billion");
