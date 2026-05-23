@@ -100,7 +100,7 @@ public final class TextUtil {
 		text = text.replaceAll("(?i)(\\d+)\\s?b\\b", "$1 billion");
 		text = text.replaceAll("(?i)(\\d+)\\s?t\\b", "$1 trillion");
 		return text;
-  }
+	}
 
 	private static final Pattern NUMERIC_COMMA_PATTERN = Pattern.compile("\\d{1,3}(,\\d{3})+");
 	public static String removeNumericCommas(String input) {
