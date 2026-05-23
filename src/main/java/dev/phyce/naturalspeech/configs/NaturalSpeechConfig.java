@@ -310,7 +310,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=1,
 		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
-		name="Friends only",
+		name="Friends only mode",
 		description="Only generate text-to-speech for friends.",
 		section=muteOptionsSection
 	)
