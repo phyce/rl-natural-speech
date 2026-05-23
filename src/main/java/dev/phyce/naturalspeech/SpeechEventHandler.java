@@ -68,11 +68,23 @@ public class SpeechEventHandler {
 			.replace("<lt>", "<")
 			.replace("<gt>", ">");
 
-
 		if (isChatMessageMuted(message)) return;
 
 		try {
-			if (isChatInnerVoice(message)) {
+			if (isTwitchMessage(message)) {
+				if (!config.twitchVoice().isEmpty()) {
+					username = MagicUsernames.TWITCH;
+				}
+				distance = 0;
+				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				if (text.startsWith("<colNORMAL>")) {
+					text = text.replaceFirst("^<colNORMAL>", "");
+				}
+				text = textToSpeech.expandShortenedPhrases(text);
+
+				log.debug("Twitch voice {} used for {}. ", voiceId, username);
+			}
+			else if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
@@ -252,10 +264,16 @@ public class SpeechEventHandler {
 		}
 	}
 
+	private static boolean isTwitchMessage(ChatMessage message) {
+		return "Twitch".equals(message.getSender());
+	}
+
 	public boolean isChatMessageMuted(ChatMessage message) {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
+
+		if (isTwitchMessage(message) && !config.twitchChatEnabled()) return true;
 
 		// example: "::::::))))))" (no alpha numeric, muted)
 		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
@@ -346,7 +364,10 @@ public class SpeechEventHandler {
 				if (!config.privateOutChatEnabled()) return true;
 				break;
 			case FRIENDSCHAT:
-				if (!config.friendsChatEnabled()) return true;
+				if (isTwitchMessage(message)) {
+					if (!config.twitchChatEnabled()) return true;
+				}
+				else if (!config.friendsChatEnabled()) return true;
 				break;
 			case CLAN_CHAT:
 				if (!config.clanChatEnabled()) return true;
