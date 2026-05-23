@@ -398,10 +398,17 @@ public class SpeechEventHandler {
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;
 		if (message.getType() == ChatMessageType.CLAN_CHAT) return false;
 		if (message.getType() == ChatMessageType.CLAN_GUEST_CHAT) return false;
+
+		// getLevel returns 0 when the player isn't in our local world view -
+		// i.e. friends-chat / public messages from players on other worlds
+		// or far away. Without a known level we can't make a threshold
+		// decision, so let the message through rather than silencing everyone
+		// off-screen.
+		int level = getLevel(message.getName());
+		if (level <= 0) return false;
+
 		//noinspection RedundantIfStatement
-		if (getLevel(message.getName()) < config.muteLevelThreshold()) return true;
-
-
+		if (level < config.muteLevelThreshold()) return true;
 		return false;
 	}
 
