@@ -40,6 +40,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 
 ## 1.3.0
+- Added a Discord help link to the main settings panel
 - Replaced deprecated `client.getPlayers()` usage with the world view API
 - `Mute Grand Exchange` now also mutes NPC overhead text in the GE
 - `Global NPC voice` now properly overrides per-NPC voice settings
