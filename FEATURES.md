@@ -40,6 +40,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 
 ## 1.3.0
+- `Mute Grand Exchange` now also mutes NPC overhead text in the GE
 - `Global NPC voice` now properly overrides per-NPC voice settings
 - Fixed numbers with commas in system messages not being read correctly
 - Clan / clan guest system messages now also respect the matching channel toggle

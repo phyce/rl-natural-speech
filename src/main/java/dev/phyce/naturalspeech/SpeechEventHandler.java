@@ -177,6 +177,7 @@ public class SpeechEventHandler {
 
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;
+			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
 			if (!muteManager.isNpcAllowed(npc)) return;
 
