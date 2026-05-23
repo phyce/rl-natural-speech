@@ -199,11 +199,11 @@ public class SpeechEventHandler {
 			case PUBLICCHAT:
 				return Objects.equals(Text.standardize(message.getName()), getLocalPlayerUsername());
 			case PRIVATECHATOUT:
-			case MODPRIVATECHAT:
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
 			case TRADEREQ:
+			case TRADE_SENT:
 				return true;
 			default:
 				return false;
@@ -233,6 +233,9 @@ public class SpeechEventHandler {
 			case LOGINLOGOUTNOTIFICATION:
 			case BROADCAST:
 			case IGNORENOTIFICATION:
+			case FRIENDNOTIFICATION:
+			case FRIENDSCHATNOTIFICATION:
+			case SNAPSHOTFEEDBACK:
 			case CLAN_MESSAGE:
 			case CONSOLE:
 			case TRADE:
@@ -243,6 +246,11 @@ public class SpeechEventHandler {
 			case CLAN_GIM_FORM_GROUP:
 			case CLAN_GIM_GROUP_WITH:
 			case GAMEMESSAGE:
+			case DIDYOUKNOW:
+			case LEVELUPMESSAGE:
+			case CHALREQ_TRADE:
+			case CHALREQ_FRIENDSCHAT:
+			case CHALREQ_CLANCHAT:
 				return true;
 			default:
 				return false;
@@ -250,7 +258,12 @@ public class SpeechEventHandler {
 	}
 
 	public boolean isChatMessageMuted(ChatMessage message) {
+		// AUTOTYPER and MODAUTOTYPER are always muted - they're the in-game
+		// "autotyper" mechanism we have no reason to voice. SPAM is content
+		// that the game (or our SpamFilter) has already flagged - don't speak it.
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
+		if (message.getType() == ChatMessageType.MODAUTOTYPER) return true;
+		if (message.getType() == ChatMessageType.SPAM) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
 
@@ -358,9 +371,35 @@ public class SpeechEventHandler {
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
+			case ENGINE:
+			case BROADCAST:
+			case IGNORENOTIFICATION:
+			case TRADE:
+			case PLAYERRELATED:
+			case TENSECTIMEOUT:
+			case SNAPSHOTFEEDBACK:
+			case CLAN_GIM_FORM_GROUP:
+			case CLAN_GIM_GROUP_WITH:
 				if (!config.systemMesagesEnabled()) return true;
 				break;
+			case LOGINLOGOUTNOTIFICATION:
+			case FRIENDNOTIFICATION:
+			case FRIENDSCHATNOTIFICATION:
+				if (!config.friendsChatEnabled()) return true;
+				if (!config.systemMesagesEnabled()) return true;
+				break;
+			case CLAN_CREATION_INVITATION:
+				if (!config.clanChatEnabled()) return true;
+				if (!config.systemMesagesEnabled()) return true;
+				break;
+			case DIDYOUKNOW:
+				if (!config.didYouKnowEnabled()) return true;
+				break;
+			case LEVELUPMESSAGE:
+				if (!config.levelUpMessagesEnabled()) return true;
+				break;
 			case TRADEREQ:
+			case TRADE_SENT:
 			case CHALREQ_CLANCHAT:
 			case CHALREQ_FRIENDSCHAT:
 			case CHALREQ_TRADE:

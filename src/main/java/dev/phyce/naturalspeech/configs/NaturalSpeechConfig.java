@@ -39,6 +39,8 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
+		public static final String DID_YOU_KNOW = "didYouKnow";
+		public static final String LEVEL_UP_MESSAGES = "levelUpMessages";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -283,6 +285,28 @@ public interface NaturalSpeechConfig extends Config {
 	)
 	default boolean systemMesagesEnabled() {
 		return true;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.DID_YOU_KNOW,
+		name="\"Did you know?\" tips",
+		description="Speak the periodic \"Did you know?\" tips the game shows.",
+		section=ttsOptionsSection,
+		position=13
+	)
+	default boolean didYouKnowEnabled() {
+		return false;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.LEVEL_UP_MESSAGES,
+		name="Level up messages",
+		description="Speak the \"Check the skill guide\" message that fires alongside the level-up jingle.",
+		section=ttsOptionsSection,
+		position=14
+	)
+	default boolean levelUpMessagesEnabled() {
+		return false;
 	}
 	//</editor-fold>
 
