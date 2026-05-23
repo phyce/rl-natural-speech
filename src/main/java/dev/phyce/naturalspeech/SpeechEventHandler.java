@@ -177,6 +177,7 @@ public class SpeechEventHandler {
 
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;
+			if (config.suppressOverheadDuringDialog() && isNpcDialogOpen()) return;
 			NPC npc = (NPC) event.getActor();
 			if (!muteManager.isNpcAllowed(npc)) return;
 
@@ -395,6 +396,11 @@ public class SpeechEventHandler {
 		return false;
 	}
 
+
+	private boolean isNpcDialogOpen() {
+		Widget npcDialogText = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
+		return npcDialogText != null && !npcDialogText.isHidden();
+	}
 
 	private static int getGroupId(int component) {
 		return component >> 16;
