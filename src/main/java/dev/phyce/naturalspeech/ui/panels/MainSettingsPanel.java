@@ -199,7 +199,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		// Discord Link
 		JLabel discordLink =
-			new JLabel("<html>Need help? Ask on our <a style="color:#7289da" href='#'>Discord</a></html>", JLabel.CENTER);
+			new JLabel("<html>Need help? Ask on our <a style=\"color:#7289da\" href='#'>Discord</a></html>", JLabel.CENTER);
 		discordLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		discordLink.addMouseListener(new MouseAdapter() {
 			@Override
