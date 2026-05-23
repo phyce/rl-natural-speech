@@ -113,8 +113,8 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onWidgetLoaded(WidgetLoaded event) {
-		if(!config.dialogEnabled())return;
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
+			if (!config.playerDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
@@ -133,6 +133,7 @@ public class SpeechEventHandler {
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.LOCAL_USER);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
+			if (!config.npcDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);

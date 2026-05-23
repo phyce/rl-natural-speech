@@ -29,6 +29,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String EXAMINE_CHAT = "examineChat";
 		public static final String NPC_OVERHEAD = "npcOverhead";
 		public static final String DIALOG = "dialog";
+		public static final String PLAYER_DIALOG = "playerDialog";
 		public static final String REQUESTS = "requests";
 		public static final String SYSTEM_MESSAGES = "systemMessages";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
@@ -254,12 +255,23 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		keyName=ConfigKeys.DIALOG,
-		name="Dialogs",
-		description="Enable text-to-speech to dialog text.",
+		name="NPC dialogs",
+		description="Enable text-to-speech for NPC dialog text.",
 		section=ttsOptionsSection,
 		position=10
 	)
-	default boolean dialogEnabled() {
+	default boolean npcDialogEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.PLAYER_DIALOG,
+		name="Player dialogs",
+		description="Enable text-to-speech for your own dialog lines.",
+		section=ttsOptionsSection,
+		position=11
+	)
+	default boolean playerDialogEnabled() {
 		return true;
 	}
 
@@ -268,7 +280,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests.",
 		section=ttsOptionsSection,
-		position=11
+		position=12
 	)
 	default boolean requestsEnabled() {
 		return false;
@@ -279,7 +291,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="System messages",
 		description="Generate text-to-speech to game's messages",
 		section=ttsOptionsSection,
-		position=12
+		position=13
 	)
 	default boolean systemMesagesEnabled() {
 		return true;
