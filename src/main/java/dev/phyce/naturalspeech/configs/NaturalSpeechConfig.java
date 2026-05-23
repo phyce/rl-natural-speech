@@ -16,6 +16,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String PERSONAL_VOICE = "personalVoice";
 		public static final String GLOBAL_NPC_VOICE = "globalNpcVoice";
 		public static final String SYSTEM_VOICE = "systemVoice";
+		public static final String TWITCH_VOICE = "twitchVoice";
 		public static final String AUTO_START = "autoStart";
 		public static final String DISTANCE_FADE = "distanceFade";
 		public static final String MASTER_VOLUME = "masterVolume";
@@ -30,8 +31,10 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String EXAMINE_CHAT = "examineChat";
 		public static final String NPC_OVERHEAD = "npcOverhead";
 		public static final String DIALOG = "dialog";
+		public static final String PLAYER_DIALOG = "playerDialog";
 		public static final String REQUESTS = "requests";
 		public static final String SYSTEM_MESSAGES = "systemMessages";
+		public static final String TWITCH_CHAT = "twitchChat";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 		public static final String MUTE_SELF = "muteSelf";
 		public static final String MUTE_OTHERS = "muteOthers";
@@ -87,6 +90,17 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=4,
+		keyName=ConfigKeys.TWITCH_VOICE,
+		name="Twitch chat voice",
+		description="Choose one of the voices for Twitch chat, example: libritts:0",
+		section=generalSettingsSection
+	)
+	default String twitchVoice() {
+		return "";
+	}
+
+	@ConfigItem(
+		position=5,
 		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
@@ -95,7 +109,7 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position=5,
+		position=6,
 		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter.",
@@ -107,7 +121,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=6,
+		position=7,
 		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Master volume control",
 		description="Volume percentage",
@@ -120,7 +134,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=7,
+		position=8,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",
@@ -266,12 +280,23 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		keyName=ConfigKeys.DIALOG,
-		name="Dialogs",
-		description="Enable text-to-speech to dialog text.",
+		name="NPC dialogs",
+		description="Enable text-to-speech for NPC dialog text.",
 		section=ttsOptionsSection,
 		position=10
 	)
-	default boolean dialogEnabled() {
+	default boolean npcDialogEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.PLAYER_DIALOG,
+		name="Player dialogs",
+		description="Enable text-to-speech for your own dialog lines.",
+		section=ttsOptionsSection,
+		position=11
+	)
+	default boolean playerDialogEnabled() {
 		return true;
 	}
 
@@ -280,7 +305,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests.",
 		section=ttsOptionsSection,
-		position=11
+		position=12
 	)
 	default boolean requestsEnabled() {
 		return false;
@@ -291,10 +316,21 @@ public interface NaturalSpeechConfig extends Config {
 		name="System messages",
 		description="Generate text-to-speech to game's messages",
 		section=ttsOptionsSection,
-		position=12
+		position=13
 	)
 	default boolean systemMesagesEnabled() {
 		return true;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.TWITCH_CHAT,
+		name="Twitch chat plugin",
+		description="Generate text-to-speech of messages received via the RuneLite Twitch plugin.",
+		section=ttsOptionsSection,
+		position=13
+	)
+	default boolean twitchChatEnabled() {
+		return false;
 	}
 	//</editor-fold>
 

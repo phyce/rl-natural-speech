@@ -68,11 +68,23 @@ public class SpeechEventHandler {
 			.replace("<lt>", "<")
 			.replace("<gt>", ">");
 
-
 		if (isChatMessageMuted(message)) return;
 
 		try {
-			if (isChatInnerVoice(message)) {
+			if (isTwitchMessage(message)) {
+				if (!config.twitchVoice().isEmpty()) {
+					username = MagicUsernames.TWITCH;
+				}
+				distance = 0;
+				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				if (text.startsWith("<colNORMAL>")) {
+					text = text.replaceFirst("^<colNORMAL>", "");
+				}
+				text = textToSpeech.expandShortenedPhrases(text);
+
+				log.debug("Twitch voice {} used for {}. ", voiceId, username);
+			}
+			else if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
@@ -107,13 +119,14 @@ public class SpeechEventHandler {
 			return;
 		}
 
+		text = TextUtil.removeNumericCommas(text);
 		textToSpeech.speak(voiceId, text, distance, username);
 	}
 
 	@Subscribe(priority=-100)
 	private void onWidgetLoaded(WidgetLoaded event) {
-		if(!config.dialogEnabled())return;
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
+			if (!config.playerDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
@@ -132,6 +145,7 @@ public class SpeechEventHandler {
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.LOCAL_USER);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
+			if (!config.npcDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
@@ -176,6 +190,7 @@ public class SpeechEventHandler {
 
 		if (event.getActor() instanceof NPC) {
 			if (!config.npcOverheadEnabled()) return;
+			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
 			if (!muteManager.isNpcAllowed(npc)) return;
 
@@ -235,6 +250,7 @@ public class SpeechEventHandler {
 			case IGNORENOTIFICATION:
 			case CLAN_MESSAGE:
 			case CLAN_GIM_MESSAGE:
+			case CLAN_GUEST_MESSAGE:
 			case CONSOLE:
 			case TRADE:
 			case PLAYERRELATED:
@@ -250,10 +266,16 @@ public class SpeechEventHandler {
 		}
 	}
 
+	private static boolean isTwitchMessage(ChatMessage message) {
+		return "Twitch".equals(message.getSender());
+	}
+
 	public boolean isChatMessageMuted(ChatMessage message) {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
+
+		if (isTwitchMessage(message) && !config.twitchChatEnabled()) return true;
 
 		// example: "::::::))))))" (no alpha numeric, muted)
 		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
@@ -312,7 +334,8 @@ public class SpeechEventHandler {
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) return false;
 
-		int count = (int) client.getPlayers().stream()
+		long count = java.util.stream.StreamSupport.stream(
+				client.getTopLevelWorldView().players().spliterator(), false)
 			.filter(player -> player != localPlayer) // Exclude the local player themselves
 			.filter(player -> player.getWorldLocation().distanceTo(localPlayer.getWorldLocation()) <=
 				15) // For example, within 15 tiles
@@ -343,7 +366,10 @@ public class SpeechEventHandler {
 				if (!config.privateOutChatEnabled()) return true;
 				break;
 			case FRIENDSCHAT:
-				if (!config.friendsChatEnabled()) return true;
+				if (isTwitchMessage(message)) {
+					if (!config.twitchChatEnabled()) return true;
+				}
+				else if (!config.friendsChatEnabled()) return true;
 				break;
 			case CLAN_CHAT:
 				if (!config.clanChatEnabled()) return true;
@@ -366,6 +392,14 @@ public class SpeechEventHandler {
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
+				if (!config.systemMesagesEnabled()) return true;
+				break;
+			case CLAN_MESSAGE:
+				if (!config.clanChatEnabled()) return true;
+				if (!config.systemMesagesEnabled()) return true;
+				break;
+			case CLAN_GUEST_MESSAGE:
+				if (!config.clanGuestChatEnabled()) return true;
 				if (!config.systemMesagesEnabled()) return true;
 				break;
 			case TRADEREQ:
