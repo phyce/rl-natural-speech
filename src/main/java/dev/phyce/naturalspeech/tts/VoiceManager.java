@@ -163,9 +163,22 @@ public class VoiceManager {
 	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) throws VoiceSelectionOutOfOption {
 		npcName = Text.standardize(npcName);
 
-		VoiceID result;
+		VoiceID result = null;
+
+		// 1. Global NPC voice overrides any per-NPC config when set + active.
 		{
-			// 1. Check NPC ID, takes priority over everything.
+			List<VoiceID> globalResults = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
+			if (globalResults != null) {
+				result = getFirstActiveVoice(globalResults);
+				if (result != null) {
+					log.debug("Global NPC voice overriding per-NPC config for NPC id:{} npcName:{}, using {}",
+						npcId, npcName, result);
+				}
+			}
+		}
+
+		if (result == null) {
+			// 2. Check NPC ID
 			List<VoiceID> results = voiceConfig.findNpcId(npcId);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
@@ -176,13 +189,12 @@ public class VoiceManager {
 						npcId, npcName, result);
 				}
 			} else {
-				result = null;
 				log.debug("No existing NPC ID voice was found for NPC id:{} npcName:{}", npcId, npcName);
 			}
 		}
 
 		if (result == null) {
-			// 2. Check NPC Name
+			// 3. Check NPC Name
 			List<VoiceID> results = voiceConfig.findNpcName(npcName);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
@@ -197,16 +209,7 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
-			// 3. Fallback to NPC Global (or random if NPC global isn't set).
-			log.debug("No NPC ID or NPC Name voice found, falling back to global NPC player username &globalnpc");
-			List<VoiceID> results = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
-			if (results != null) {
-				result = getFirstActiveVoice(results);
-			}
-		}
-
-		if (result == null) {
-			// 4. If no NPC Global is available, randomize using npc name
+			// 4. Randomize using npc name
 			result = randomVoiceFromActiveModels(npcName);
 		}
 
