@@ -75,6 +75,22 @@ public class SpeechEventHandler {
 			if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
+				// Examines are game-generated and can carry <col>/<img> tags
+				// from other plugins (price overlays etc). Strip them so the
+				// tag name isn't spoken aloud. The other inner-voice cases
+				// (PUBLICCHAT from local player, PRIVATECHATOUT, MODPRIVATECHAT,
+				// TRADEREQ) are user-typed or contain a username; their <lt>/<gt>
+				// decoded content shouldn't be tag-stripped or we'd eat literal
+				// "<word>" content.
+				switch (message.getType()) {
+					case ITEM_EXAMINE:
+					case NPC_EXAMINE:
+					case OBJECT_EXAMINE:
+						text = Text.removeTags(text);
+						break;
+					default:
+						break;
+				}
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
 
