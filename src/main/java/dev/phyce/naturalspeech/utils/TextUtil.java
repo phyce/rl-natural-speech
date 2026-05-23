@@ -89,7 +89,7 @@ public final class TextUtil {
 		return tokens;
 	}
 
-	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-zÀ-ÖØ-öø-ÿ].*");
+	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-z0-9À-ÖØ-öø-ÿ].*");
 	public static boolean containAlphaNumeric(String text) {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
 	}
