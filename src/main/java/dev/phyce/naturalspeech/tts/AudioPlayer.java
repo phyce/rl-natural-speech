@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.tts;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -16,6 +17,7 @@ import net.runelite.client.plugins.Plugin;
 @Slf4j
 public class AudioPlayer {
 	private final AudioFormat format;
+	private final ConcurrentHashMap<String, SourceDataLine> activeLines = new ConcurrentHashMap<>();
 
 	public AudioPlayer() {
 		format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
@@ -50,10 +52,34 @@ public class AudioPlayer {
 //	}
 
 	public void stop() {
+		activeLines.forEach((name, line) -> {
+			try {
+				line.stop();
+				line.flush();
+				line.close();
+			} catch (Exception ignored) {}
+		});
+		activeLines.clear();
+	}
+
+	public void stopQueue(String queueName) {
+		SourceDataLine line = activeLines.remove(queueName);
+		if (line == null) return;
+		try {
+			// close() unblocks the line.write/line.drain happening on the
+			// audio thread; stop() before close just delays that unblock.
+			line.close();
+		} catch (Exception e) {
+			log.debug("stopQueue: error while interrupting line for {}", queueName, e);
+		}
+	}
+
+	public void playClip(byte[] audioData, float volume) {
+		playClip(audioData, volume, null);
 	}
 
 	// decoupled audio system from plugin logic
-	public void playClip(byte[] audioData, float volume) {
+	public void playClip(byte[] audioData, float volume, String queueName) {
 		AudioInputStream audioInputStream = null;
 		SourceDataLine line = null;
 
@@ -69,18 +95,39 @@ public class AudioPlayer {
 			line.open(this.format);
 			line.start();
 
+			if (queueName != null) {
+				SourceDataLine previous = activeLines.put(queueName, line);
+				if (previous != null) {
+					try { previous.close(); } catch (Exception ignored) {}
+				}
+			}
+
 			setVolume(line, volume);
 
 			byte[] buffer = new byte[1024];
 			int bytesRead;
 
 			while ((bytesRead = audioInputStream.read(buffer)) != -1) {
-				line.write(buffer, 0, bytesRead);
+				if (!line.isOpen()) break;
+				try {
+					line.write(buffer, 0, bytesRead);
+				} catch (IllegalArgumentException | IllegalStateException e) {
+					// line closed externally via stopQueue
+					break;
+				}
 			}
-			line.drain();
+			try {
+				if (line.isOpen()) line.drain();
+			} catch (IllegalStateException e) {
+				// line closed mid-drain
+			}
 		} catch (IOException | LineUnavailableException e) {
 			log.error("Clip failed to play", e);
 		} finally {
+			if (queueName != null && line != null) {
+				// remove only if we're still the active line for this queue
+				activeLines.remove(queueName, line);
+			}
 			if (line != null) line.close();
 			if (audioInputStream != null) {
 				try {

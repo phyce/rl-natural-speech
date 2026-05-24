@@ -47,6 +47,9 @@ public class TextToSpeech {
 	private Map<String, String> shortenedPhrases;
 
 	private static final String COMMON_ABBREVIATIONS_RESOURCE = "common_abbreviations.txt";
+
+	// Bumped on dialog silenceQueue; synth tasks drop their clip if their captured gen no longer matches.
+	private final java.util.concurrent.atomic.AtomicInteger dialogGen = new java.util.concurrent.atomic.AtomicInteger(0);
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
@@ -138,9 +141,10 @@ public class TextToSpeech {
 			// Piper should be guaranteed to be present due to checks above
 			Piper piper = pipers.get(voiceID.modelName);
 
+			int generation = MagicUsernames.DIALOG.equals(audioQueueName) ? dialogGen.get() : -1;
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName);
+				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName, generation);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
@@ -191,6 +195,17 @@ public class TextToSpeech {
 		scaledVolume = Math.max(minVolume, Math.min(maxVolume, scaledVolume));
 
 		return scaledVolume;
+	}
+
+	public void silenceQueue(String queueName) {
+		if (MagicUsernames.DIALOG.equals(queueName)) {
+			// Bump first so any synth that completes after this point is
+			// recognised as stale and dropped before being queued for playback.
+			dialogGen.incrementAndGet();
+		}
+		for (Piper piper : pipers.values()) {
+			piper.silenceQueue(queueName);
+		}
 	}
 
 	public void clearAllAudioQueues() {
@@ -260,7 +275,8 @@ public class TextToSpeech {
 		Piper piper = Piper.start(
 			modelLocal,
 			runtimeConfig.getPiperPath(),
-			modelConfig.getModelProcessCount(modelLocal.getModelName())
+			modelConfig.getModelProcessCount(modelLocal.getModelName()),
+			dialogGen::get
 		);
 
 		// Careful, PiperProcess listeners are not called on the client thread

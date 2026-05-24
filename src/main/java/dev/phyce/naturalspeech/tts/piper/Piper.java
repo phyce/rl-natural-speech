@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.IntSupplier;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
@@ -44,12 +45,21 @@ public class Piper {
 	 */
 	public static Piper start(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount)
 		throws IOException {
-		return new Piper(modelLocal, piperPath, instanceCount);
+		return new Piper(modelLocal, piperPath, instanceCount, () -> -1);
 	}
 
-	private Piper(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount) throws IOException {
+	public static Piper start(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount,
+		IntSupplier dialogGenSupplier) throws IOException {
+		return new Piper(modelLocal, piperPath, instanceCount, dialogGenSupplier);
+	}
+
+	private final IntSupplier dialogGenSupplier;
+
+	private Piper(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount,
+		IntSupplier dialogGenSupplier) throws IOException {
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
+		this.dialogGenSupplier = dialogGenSupplier;
 
 		audioPlayer = new AudioPlayer();
 
@@ -131,6 +141,13 @@ public class Piper {
 						continue;
 					}
 					if (audioClip != null && audioClip.length > 0) {
+						// Drop stale audio whose generation has been bumped (e.g. user
+						// skipped past this dialog line while its synth was in flight).
+						if (task.generation >= 0 && task.generation != dialogGenSupplier.getAsInt()) {
+							log.trace("Dropping stale audio for {} (gen {} != current {})",
+								task.audioQueueName, task.generation, dialogGenSupplier.getAsInt());
+							break;
+						}
 						AudioQueue audioQueue =
 							namedAudioQueueMap.computeIfAbsent(task.audioQueueName, audioQueueName -> new AudioQueue());
 						audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getVolume()));
@@ -165,7 +182,7 @@ public class Piper {
 						try {
 							AudioQueue.AudioTask task;
 							while ((task = audioQueue.queue.poll()) != null) {
-								audioPlayer.playClip(task.getAudioClip(), task.getVolume());
+								audioPlayer.playClip(task.getAudioClip(), task.getVolume(), queueName);
 							}
 						} finally {
 							audioQueue.setPlaying(false);
@@ -177,8 +194,11 @@ public class Piper {
 		}
 	}
 
-	// Refactored to decouple from dependencies
 	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName) throws IOException {
+		speak(text, voiceID, volume, audioQueueName, -1);
+	}
+
+	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName, int generation) throws IOException {
 		if (countAlive() == 0) {
 			throw new IOException("No active PiperProcess instances running for " + voiceID.getModelName());
 		}
@@ -188,7 +208,7 @@ public class Piper {
 			clearQueue();
 		}
 
-		piperTaskQueue.add(new PiperTask(text, voiceID, volume, audioQueueName));
+		piperTaskQueue.add(new PiperTask(text, voiceID, volume, audioQueueName, generation));
 		synchronized (piperTaskQueue) {piperTaskQueue.notify();}
 	}
 
@@ -197,6 +217,15 @@ public class Piper {
 		namedAudioQueueMap.values().forEach(audioQueue -> {
 			audioQueue.queue.clear();
 		});
+	}
+
+	public void silenceQueue(String queueName) {
+		piperTaskQueue.removeIf(task -> queueName.equals(task.getAudioQueueName()));
+		AudioQueue audioQueue = namedAudioQueueMap.get(queueName);
+		if (audioQueue != null) {
+			audioQueue.queue.clear();
+		}
+		audioPlayer.stopQueue(queueName);
 	}
 
 	public int countAlive() {
@@ -276,6 +305,7 @@ public class Piper {
 		VoiceID voiceID;
 		float volume;
 		String audioQueueName;
+		int generation;
 	}
 
 	public interface PiperProcessLifetimeListener {

@@ -21,6 +21,7 @@ import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.OverheadTextChanged;
+import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
@@ -136,6 +137,9 @@ public class SpeechEventHandler {
 			if (!config.playerDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
+				if (config.cutOffDialogOnSkip()) {
+					textToSpeech.silenceQueue(MagicUsernames.DIALOG);
+				}
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
 				if (textWidget == null || textWidget.getText() == null) {
 					log.error("Player dialog textWidget or textWidget.getText() is null");
@@ -158,6 +162,9 @@ public class SpeechEventHandler {
 			if (!config.npcDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
+				if (config.cutOffDialogOnSkip()) {
+					textToSpeech.silenceQueue(MagicUsernames.DIALOG);
+				}
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
 				Widget headModelWidget = client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL);
 				Widget npcNameWidget = client.getWidget(ComponentID.DIALOG_NPC_NAME);
@@ -194,6 +201,15 @@ public class SpeechEventHandler {
 
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
+		}
+	}
+
+	@Subscribe
+	private void onWidgetClosed(WidgetClosed event) {
+		if (!config.cutOffDialogOnSkip()) return;
+		int group = event.getGroupId();
+		if (group == InterfaceID.DIALOG_NPC || group == InterfaceID.DIALOG_PLAYER) {
+			textToSpeech.silenceQueue(MagicUsernames.DIALOG);
 		}
 	}
 
