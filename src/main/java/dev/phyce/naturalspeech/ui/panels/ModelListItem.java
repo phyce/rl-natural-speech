@@ -136,8 +136,18 @@ public class ModelListItem extends JPanel {
 
 						modelRepository.loadModelLocal(modelUrl.getModelName());
 
-					} catch (IOException ignored) {
-						SwingUtilities.invokeLater(this::rebuild);
+					} catch (IOException e) {
+						log.error("Voice pack download failed: {}", modelUrl.getModelName(), e);
+						SwingUtilities.invokeLater(() -> {
+							JOptionPane.showMessageDialog(this,
+								"<html><body style='width:300px'>"
+									+ "Could not download <b>" + modelUrl.getModelName() + "</b>:<br><br>"
+									+ e.getMessage().replace("\n", "<br>")
+									+ "</body></html>",
+								"Voice pack download failed",
+								JOptionPane.ERROR_MESSAGE);
+							rebuild();
+						});
 					}
 				});
 			});

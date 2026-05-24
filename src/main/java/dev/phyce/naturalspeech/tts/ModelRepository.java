@@ -174,8 +174,8 @@ public class ModelRepository {
 			localVoiceValid = false;
 			// create the folder
 			if (!voiceFolder.toFile().mkdirs()) {
-				// if we fail to create the folder, just toss an error
-				throw new IOException("Failed to create voice folder.");
+				throw new IOException("Cannot create voice folder: " + voiceFolder
+					+ " (check folder permissions and that the path is writable)");
 			}
 		}
 
@@ -198,13 +198,23 @@ public class ModelRepository {
 				voiceFolder.resolve(modelName + METADATA_EXTENSION));
 
 			// thread blocking download
-			File onnx = onnxTask.get();
-			File onnxMetadata = onnxMetadataTask.get();
-			File speakers = speakersTask.get();
+			onnxTask.get();
+			onnxMetadataTask.get();
+			speakersTask.get();
 
-			if (!onnx.exists() || !onnxMetadata.exists() || !speakers.exists()) {
-				// if any of the files doesn't exist after validation, throw
-				throw new IOException("Voice files downloaded are missing.");
+			DownloadTask[] tasks = {onnxTask, onnxMetadataTask, speakersTask};
+			StringBuilder failures = new StringBuilder();
+			for (DownloadTask task : tasks) {
+				if (task.getErrorMessage() != null || !task.getDestination().toFile().exists()) {
+					String reason = task.getErrorMessage() != null
+						? task.getErrorMessage()
+						: "file missing after download";
+					if (failures.length() > 0) failures.append("\n");
+					failures.append(task.getDestination().getFileName()).append(": ").append(reason);
+				}
+			}
+			if (failures.length() > 0) {
+				throw new IOException(failures.toString());
 			}
 
 			log.info("done... {}", modelName);
