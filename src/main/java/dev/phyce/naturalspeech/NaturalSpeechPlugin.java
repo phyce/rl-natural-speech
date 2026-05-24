@@ -144,6 +144,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		updateConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
 		updateConfigVoice(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice());
 		updateConfigVoice(ConfigKeys.SYSTEM_VOICE, config.systemVoice());
+		updateConfigVoice(ConfigKeys.TWITCH_VOICE, config.twitchVoice());
 
 		log.info("NaturalSpeech plugin has started");
 	}
@@ -211,13 +212,15 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		switch (event.getKey()) {
 			case ConfigKeys.SHORTENED_PHRASES:
-				log.trace("Detected short phrase changes, reloading into TextToSpeech");
+			case ConfigKeys.COMMON_ABBREVIATIONS:
+				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
 				textToSpeech.loadShortenedPhrases();
 				break;
 
 			case ConfigKeys.PERSONAL_VOICE:
 			case ConfigKeys.GLOBAL_NPC_VOICE:
 			case ConfigKeys.SYSTEM_VOICE:
+			case ConfigKeys.TWITCH_VOICE:
 				log.trace("Detected voice changes from config, loading in new voices");
 				updateConfigVoice(event.getKey(), event.getNewValue());
 				break;
@@ -259,6 +262,16 @@ public class NaturalSpeechPlugin extends Plugin {
 				else {
 					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.SYSTEM);
 					voiceManager.resetForUsername(MagicUsernames.SYSTEM);
+				}
+				break;
+			case ConfigKeys.TWITCH_VOICE:
+				if (voiceID != null) {
+					log.debug("Setting voice for {} to {}", MagicUsernames.TWITCH, voiceID);
+					voiceManager.setDefaultVoiceIDForUsername(MagicUsernames.TWITCH, voiceID);
+				}
+				else {
+					log.debug("Invalid voice for {}, resetting voices.", MagicUsernames.TWITCH);
+					voiceManager.resetForUsername(MagicUsernames.TWITCH);
 				}
 				break;
 		}

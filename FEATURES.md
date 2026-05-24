@@ -41,6 +41,21 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 
 ## 1.3.0
 - NPC and player dialog now share a single audio queue
+- Added `Friends only` mode
+- Numerical abbreviations (k, m, b, t)
+- Added a Discord help link to the main settings panel
+- Replaced deprecated `client.getPlayers()` usage with the world view API
+- `Mute Grand Exchange` now also mutes NPC overhead text in the GE
+- `Global NPC voice` now properly overrides per-NPC voice settings
+- Fixed numbers with commas in system messages not being read correctly
+- Clan / clan guest system messages now also respect the matching channel toggle
+- Renamed the `Dialogs` toggle to `NPC dialogs` and added `Player dialogs` toggle
+- Added integration with Twitch plugin
+- Added Friend volume boost option
+- Added `Use common abbreviations` option
+- Added `Use for dialogs` option to enable abbreviations for NPC dialogs
+- `Shortened phrases` are now `Abbreviations`
+- `Abbreviations` field is now `Custom abbreviations`
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus

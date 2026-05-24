@@ -16,6 +16,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String PERSONAL_VOICE = "personalVoice";
 		public static final String GLOBAL_NPC_VOICE = "globalNpcVoice";
 		public static final String SYSTEM_VOICE = "systemVoice";
+		public static final String TWITCH_VOICE = "twitchVoice";
 		public static final String AUTO_START = "autoStart";
 		public static final String DISTANCE_FADE = "distanceFade";
 		public static final String MASTER_VOLUME = "masterVolume";
@@ -26,19 +27,25 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String FRIENDS_CHAT = "friendsChat";
 		public static final String CLAN_CHAT = "clanChat";
 		public static final String CLAN_GUEST_CHAT = "clanGuestChat";
+		public static final String FRIENDS_ONLY_MODE = "friendsOnlyMode";
 		public static final String EXAMINE_CHAT = "examineChat";
 		public static final String NPC_OVERHEAD = "npcOverhead";
 		public static final String DIALOG = "dialog";
+		public static final String PLAYER_DIALOG = "playerDialog";
 		public static final String REQUESTS = "requests";
 		public static final String SYSTEM_MESSAGES = "systemMessages";
+		public static final String TWITCH_CHAT = "twitchChat";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 		public static final String MUTE_SELF = "muteSelf";
 		public static final String MUTE_OTHERS = "muteOthers";
 		public static final String MUTE_LEVEL_THRESHOLD = "muteLevelThreshold";
 		public static final String MUTE_CROWDS = "muteCrowds";
 		public static final String SHORTENED_PHRASES = "shortenedPhrases";
+		public static final String COMMON_ABBREVIATIONS = "commonAbbreviations";
+		public static final String DIALOG_TEXT_REPLACEMENTS = "dialogTextReplacements";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
 		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
+		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -86,6 +93,17 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=4,
+		keyName=ConfigKeys.TWITCH_VOICE,
+		name="Twitch chat voice",
+		description="Choose one of the voices for Twitch chat, example: libritts:0",
+		section=generalSettingsSection
+	)
+	default String twitchVoice() {
+		return "";
+	}
+
+	@ConfigItem(
+		position=5,
 		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
@@ -94,7 +112,7 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position=5,
+		position=6,
 		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter.",
@@ -106,7 +124,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=6,
+		position=7,
 		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Master volume control",
 		description="Volume percentage",
@@ -119,7 +137,19 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=7,
+		position=8,
+		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
+		name="Friends volume boost",
+		description="Volume boost percentage",
+		section=generalSettingsSection
+	)
+	@Range(min=0, max=100)
+	default int friendsVolumeBoost() {
+		return 0;
+	}
+
+	@ConfigItem(
+		position=9,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",
@@ -254,12 +284,23 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		keyName=ConfigKeys.DIALOG,
-		name="Dialogs",
-		description="Enable text-to-speech to dialog text.",
+		name="NPC dialogs",
+		description="Enable text-to-speech for NPC dialog text.",
 		section=ttsOptionsSection,
 		position=10
 	)
-	default boolean dialogEnabled() {
+	default boolean npcDialogEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.PLAYER_DIALOG,
+		name="Player dialogs",
+		description="Enable text-to-speech for your own dialog lines.",
+		section=ttsOptionsSection,
+		position=11
+	)
+	default boolean playerDialogEnabled() {
 		return true;
 	}
 
@@ -268,7 +309,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Trade/Challenge requests",
 		description="Enable text-to-speech to trade and challenge requests.",
 		section=ttsOptionsSection,
-		position=11
+		position=12
 	)
 	default boolean requestsEnabled() {
 		return false;
@@ -279,10 +320,21 @@ public interface NaturalSpeechConfig extends Config {
 		name="System messages",
 		description="Generate text-to-speech to game's messages",
 		section=ttsOptionsSection,
-		position=12
+		position=13
 	)
 	default boolean systemMesagesEnabled() {
 		return true;
+	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.TWITCH_CHAT,
+		name="Twitch chat plugin",
+		description="Generate text-to-speech of messages received via the RuneLite Twitch plugin.",
+		section=ttsOptionsSection,
+		position=13
+	)
+	default boolean twitchChatEnabled() {
+		return false;
 	}
 	//</editor-fold>
 
@@ -303,6 +355,17 @@ public interface NaturalSpeechConfig extends Config {
 
 	)
 	default boolean muteOthers() {
+		return false;
+	}
+
+	@ConfigItem(
+		position=1,
+		keyName=ConfigKeys.FRIENDS_ONLY_MODE,
+		name="Friends only mode",
+		description="Only generate text-to-speech for friends.",
+		section=muteOptionsSection
+	)
+	default boolean friendsOnlyMode() {
 		return false;
 	}
 
@@ -365,79 +428,36 @@ public interface NaturalSpeechConfig extends Config {
 	String otherOptionsSection = "otherOptionsSection";
 
 	@ConfigItem(
-		position=4,
+		position=1,
+		keyName=ConfigKeys.COMMON_ABBREVIATIONS,
+		name="Use common abbreviations",
+		description="Enable commonly used abbreviations",
+		section=otherOptionsSection
+	)
+	default boolean useCommonAbbreviations() {
+		return true;
+	}
+
+	@ConfigItem(
+		position=2,
+		keyName=ConfigKeys.DIALOG_TEXT_REPLACEMENTS,
+		name="Use for dialogs",
+		description="Enable abbreviations for in-game dialogs",
+		section=otherOptionsSection
+	)
+	default boolean dialogTextReplacementsEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
+		position=3,
 		keyName=ConfigKeys.SHORTENED_PHRASES,
-		name="Shortened phrases",
-		description="Replace commonly used shortened sentences with whole words",
+		name="Custom abbreviations",
+		description="One per line. Example: wth=what the hell",
 		section=otherOptionsSection
 	)
 	default String shortenedPhrases() {
-		return "ags=armadyl godsword\n" +
-			"ags2=ancient godsword\n" +
-			"bgs=bandos godsword\n" +
-			"idk=i don't know\n" +
-			"imo=in my opinion\n" +
-			"afaik=as far as i know\n" +
-			"rly=really\n" +
-			"tbow=twisted bow\n" +
-			"tbows=twisted bows\n" +
-			"p2p=pay to play\n" +
-			"f2p=free to play\n" +
-			"ty=thank you\n" +
-			"tysm=thank you so much\n" +
-			"tyvm=thank you very much\n" +
-			"tyty=thank you thank you\n" +
-			"im=i'm\n" +
-			"np=no problem\n" +
-			"acc=account\n" +
-			"irl=in real life\n" +
-			"wtf=what the fuck\n" +
-			"jk=just kidding\n" +
-			"gl=good luck\n" +
-			"pls=please\n" +
-			"plz=please\n" +
-			"osrs=oldschool runescape\n" +
-			"rs3=runescape 3\n" +
-			"lvl=level\n" +
-			"ffs=for fuck's sake\n" +
-			"af=as fuck\n" +
-			"smh=shake my head\n" +
-			"wby=what about you\n" +
-			"brb=be right back\n" +
-			"ik=i know\n" +
-			"<3=heart\n" +
-			"fcape=fire cape\n" +
-			"xp=experience\n" +
-			"nty=no thank you\n" +
-			"dhide=dragonhide\n" +
-			"pvp=player versus player\n" +
-			"wyd=what you doing\n" +
-			"bc=because\n" +
-			"afk=away from keyboard\n" +
-			"tts=text to speech\n" +
-			"ea=each\n" +
-			"bbq=barbeque\n" +
-			"thx=thanks\n" +
-			"lmk=let me know\n" +
-			"gg=good game\n" +
-			"wp=well played\n" +
-			"ggwp=good game well played\n" +
-			"rn=right now\n" +
-			"fr=for real\n" +
-			"nmz=nightmare zone\n" +
-			"ge=grand exchange\n" +
-			"ppl=people\n" +
-			"gtfo=get the fuck out\n" +
-			"wb=welcome back\n" +
-			"ikr=i know right\n" +
-			"og=original gangster\n" +
-			"cc=clan chat\n" +
-			"pk=player killing\n" +
-			"pker=player killer\n" +
-			"pking=player killing\n" +
-			"poh=player owned home\n" +
-			"gz=congratulations\n" +
-			"tbh=to be honest\n";
+		return "wth=what the hell\n";
 	}
 	//</editor-fold>
 }

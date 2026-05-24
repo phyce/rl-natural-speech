@@ -5,4 +5,5 @@ public final class MagicUsernames {
 	public static final String GLOBAL_NPC = "&globalnpc";
 	public static final String LOCAL_USER = "&localuser";
 	public static final String DIALOG = "&dialog";
+	public static final String TWITCH = "&twitch";
 }
