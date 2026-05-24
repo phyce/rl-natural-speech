@@ -40,6 +40,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 
 ## 1.3.0
+- NPC and player dialog now share a single audio queue
 - Added `Friends only` mode
 - Numerical abbreviations (k, m, b, t)
 - Added a Discord help link to the main settings panel

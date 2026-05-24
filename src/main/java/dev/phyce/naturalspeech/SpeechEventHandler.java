@@ -152,7 +152,7 @@ public class SpeechEventHandler {
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-				textToSpeech.speak(voiceID, text, 0, MagicUsernames.LOCAL_USER);
+				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
 			if (!config.npcDialogEnabled()) return;
@@ -192,7 +192,7 @@ public class SpeechEventHandler {
 				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName); }
 				catch (VoiceSelectionOutOfOption e) { throw new RuntimeException(e); }
 
-				textToSpeech.speak(voiceID, text, 0, npcName);
+				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		}
 	}
