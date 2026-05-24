@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.tts;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
@@ -44,6 +45,8 @@ public class TextToSpeech {
 	private final NaturalSpeechConfig config;
 
 	private Map<String, String> shortenedPhrases;
+
+	private static final String COMMON_ABBREVIATIONS_RESOURCE = "common_abbreviations.txt";
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
@@ -342,12 +345,32 @@ public class TextToSpeech {
 
 	// In method so we can load again when user changes config
 	public void loadShortenedPhrases() {
-		String phrases = config.shortenedPhrases();
 		shortenedPhrases = new HashMap<>();
-		String[] lines = phrases.split("\n");
-		for (String line : lines) {
+		if (config.useCommonAbbreviations()) {
+			parsePhrasesInto(readCommonAbbreviationsResource(), shortenedPhrases);
+		}
+		parsePhrasesInto(config.shortenedPhrases(), shortenedPhrases);
+	}
+
+	private static void parsePhrasesInto(String phrases, Map<String, String> out) {
+		if (phrases == null || phrases.isEmpty()) return;
+		for (String line : phrases.split("\n")) {
 			String[] parts = line.split("=", 2);
-			if (parts.length == 2) shortenedPhrases.put(parts[0].trim(), parts[1].trim());
+			if (parts.length == 2) out.put(parts[0].trim(), parts[1].trim());
+		}
+	}
+
+	private static String readCommonAbbreviationsResource() {
+		try (java.io.InputStream is = NaturalSpeechPlugin.class.getResourceAsStream(COMMON_ABBREVIATIONS_RESOURCE)) {
+			if (is == null) {
+				log.warn("Common abbreviations resource not found on classpath: {}", COMMON_ABBREVIATIONS_RESOURCE);
+				return "";
+			}
+			return new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+		}
+		catch (IOException e) {
+			log.error("Failed to read common abbreviations resource", e);
+			return "";
 		}
 	}
 
