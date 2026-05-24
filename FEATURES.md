@@ -56,6 +56,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 - Added `Use for dialogs` option to enable abbreviations for NPC dialogs
 - `Shortened phrases` are now `Abbreviations`
 - `Abbreviations` field is now `Custom abbreviations`
+- Voice pack downloads now show the reason when they fail
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus

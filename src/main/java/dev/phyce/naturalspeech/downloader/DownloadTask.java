@@ -4,11 +4,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
+import java.net.UnknownHostException;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
@@ -31,6 +37,8 @@ public class DownloadTask implements Supplier<File> {
 	private volatile float progress = 0;
 	@Getter
 	private volatile int error = 0;
+	@Getter
+	private volatile String errorMessage = null;
 
 	// TODO(Louis) Add a callback that updates the download progress
 	public DownloadTask(OkHttpClient httpClient, Path destination, HttpUrl url, boolean overwrite) {
@@ -48,7 +56,7 @@ public class DownloadTask implements Supplier<File> {
 			try (Response response = httpClient.newCall(req).execute()) {
 				if (!response.isSuccessful()) {
 					error = response.code();
-					throw new IOException("Failed to download file: " + response.message());
+					throw new IOException("Server returned HTTP " + response.code() + " " + response.message());
 				}
 
 				int length = (int) Objects.requireNonNull(response.body()).contentLength();
@@ -78,12 +86,37 @@ public class DownloadTask implements Supplier<File> {
 					downloading = false;
 				}
 			} catch (IOException e) {
-				log.error("Error downloading the file: {}", e.getMessage());
+				errorMessage = describe(e);
+				log.error("Error downloading {}: {}", url, errorMessage);
 				progress = 0; // Reset progress if download fails
-				error = 1;
+				if (error == 0) error = 1;
 				downloading = false;
 			}
 		}
+	}
+
+	private String describe(IOException e) {
+		if (e instanceof AccessDeniedException) {
+			return "Permission denied writing to " + destination;
+		}
+		if (e instanceof NoSuchFileException) {
+			return "Folder does not exist: " + destination.getParent();
+		}
+		if (e instanceof FileSystemException) {
+			FileSystemException fse = (FileSystemException) e;
+			String reason = fse.getReason() != null ? fse.getReason() : e.getClass().getSimpleName();
+			return "Cannot write to " + destination + " (" + reason + ")";
+		}
+		if (e instanceof UnknownHostException) {
+			return "Cannot resolve host: " + url.host() + " (check your internet connection)";
+		}
+		if (e instanceof ConnectException) {
+			return "Cannot connect to " + url.host() + ": " + e.getMessage();
+		}
+		if (e instanceof SSLException) {
+			return "Secure connection to " + url.host() + " failed: " + e.getMessage();
+		}
+		return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 	}
 
 	@Override
