@@ -93,6 +93,7 @@ public class SpeechEventHandler {
 			else if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
+				text = Text.removeTags(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
 				text = TextUtil.renderLargeNumbers(text);
