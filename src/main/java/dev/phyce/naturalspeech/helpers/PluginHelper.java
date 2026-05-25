@@ -153,19 +153,50 @@ public final class PluginHelper {
 //	}
 
 	public static boolean isPlayerChatMessage(@NonNull ChatMessage message) {
-		return !isNPCChatMessage(message);
+		switch (message.getType()) {
+			case PUBLICCHAT:
+			case MODCHAT:
+			case PRIVATECHAT:
+			case PRIVATECHATOUT:
+			case MODPRIVATECHAT:
+			case FRIENDSCHAT:
+			case CLAN_CHAT:
+			case CLAN_GUEST_CHAT:
+				return true;
+		}
+		return false;
 	}
 
 	public static boolean isNPCChatMessage(@NonNull ChatMessage message) {
-		// From NPC
 		switch (message.getType()) {
 			case DIALOG:
+				return true;
+		}
+		return false;
+	}
+
+	public static boolean isSystemMessage(@NonNull ChatMessage message) {
+		switch (message.getType()) {
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
 			case OBJECT_EXAMINE:
 			case WELCOME:
 			case GAMEMESSAGE:
 			case CONSOLE:
+			case ENGINE:
+			case BROADCAST:
+			case LOGINLOGOUTNOTIFICATION:
+			case IGNORENOTIFICATION:
+			case TENSECTIMEOUT:
+			case CLAN_MESSAGE:
+			case CLAN_GUEST_MESSAGE:
+			case CLAN_CREATION_INVITATION:
+			case CLAN_GIM_FORM_GROUP:
+			case CLAN_GIM_GROUP_WITH:
+			case TRADE:
+			case TRADEREQ:
+			case PLAYERRELATED:
+			case AUTOTYPER:
 				return true;
 		}
 		return false;
