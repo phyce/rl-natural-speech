@@ -14,6 +14,12 @@ You can use the Included voice explorer to preview a voice:<br/>
 Explore the many customization options to fine-tune your TTS experience:<br/>
 ![](https://mechanic.ink/img/osrs/features/config.png)
 
+### Party options
+You can make your friends messages sound louder by adjusting the `Friends volume boost`, or you can listen to them exclusively by using `Friends only mode`. Set a limit of how many people there is around you before the plugin stops generating audio clips.
+
+### Friends volume boost
+You can boost the volume of your friends to make them sound louder than the rest of the players.
+
 ### Spam Prevention
 
 Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
