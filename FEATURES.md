@@ -15,6 +15,7 @@ Explore the many customization options to fine-tune your TTS experience:<br/>
 ![](https://mechanic.ink/img/osrs/features/config.png)
 
 ### Party options
+
 You can make your friends messages sound louder by adjusting the `Friends volume boost`, or you can listen to them exclusively by using `Friends only mode`. Set a limit of how many people there is around you before the plugin stops generating audio clips.
 
 ### Friends volume boost
@@ -50,7 +51,6 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 - Added `Friends only` mode
 - Numerical abbreviations (k, m, b, t)
 - Added a Discord help link to the main settings panel
-- Replaced deprecated `client.getPlayers()` usage with the world view API
 - `Mute Grand Exchange` now also mutes NPC overhead text in the GE
 - `Global NPC voice` now properly overrides per-NPC voice settings
 - Fixed numbers with commas in system messages not being read correctly
@@ -64,6 +64,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 - `Abbreviations` field is now `Custom abbreviations`
 - Added ability to skip NPC dialogs
 - Added ability to silence duplicate messages
+- Other changes and fixes
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus

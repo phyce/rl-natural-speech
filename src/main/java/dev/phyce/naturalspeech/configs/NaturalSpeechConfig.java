@@ -10,7 +10,7 @@ import net.runelite.client.config.Range;
 @ConfigGroup(CONFIG_GROUP)
 public interface NaturalSpeechConfig extends Config {
 
-	String CONFIG_GROUP = "NaturalSpeech";
+	String CONFIG_GROUP = "Natural Speech";
 
 	final class ConfigKeys {
 		public static final String PERSONAL_VOICE = "personalVoice";
@@ -481,7 +481,12 @@ public interface NaturalSpeechConfig extends Config {
 		section=otherOptionsSection
 	)
 	default String shortenedPhrases() {
-		return "wth=what the hell\n";
+		return "wth=what the hell\n" +
+			"iknami=my friend\n" +
+			"kuani=excellent\n" +
+			"nilsal=hello\n" +
+			"tetamo=oh no\n" +
+			"timoiva=goodbye\n";
 	}
 	//</editor-fold>
 }
