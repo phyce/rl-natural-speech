@@ -63,21 +63,42 @@ public final class TextUtil {
 		return lastSpace;
 	}
 
+	// A match is valid when the preceding char is start-of-string or space,
+	// AND the following char is end-of-string or one of these terminators.
+	// Without this, "afk?" wouldn't match the key "afk".
+	private static final String VALID_MATCH_TAILS = " ,.!?;:";
+
 	public static String expandShortenedPhrases(String text, Map<String, String> phrases) {
-		List<String> tokens = tokenize(text);
-		StringBuilder parsedMessage = new StringBuilder();
-		int lastIndex = 0;
-
-		for (String token : tokens) {
-			if (text.indexOf(token, lastIndex) > lastIndex) parsedMessage.append(" ");
-
-			String key = token.toLowerCase();
-			String replacement = phrases.getOrDefault(key, token);
-			parsedMessage.append(replacement);
-			lastIndex = text.indexOf(token, lastIndex) + token.length();
+		for (Map.Entry<String, String> entry : phrases.entrySet()) {
+			text = applyPhraseReplacement(text, entry.getKey(), entry.getValue());
 		}
+		return text;
+	}
 
-		return parsedMessage.toString();
+	private static String applyPhraseReplacement(String text, String key, String replacement) {
+		if (key == null || key.isEmpty()) return text;
+		String lowerText = text.toLowerCase();
+		String lowerKey = key.toLowerCase();
+		StringBuilder result = new StringBuilder();
+		int prev = 0;
+		int head = lowerText.indexOf(lowerKey);
+		while (head != -1) {
+			result.append(text, prev, head);
+			int tail = head + lowerKey.length();
+			boolean precededOk = head == 0 || text.charAt(head - 1) == ' ';
+			boolean followedOk = tail == text.length() || VALID_MATCH_TAILS.indexOf(text.charAt(tail)) >= 0;
+			if (precededOk && followedOk) {
+				result.append(replacement);
+			} else {
+				result.append(text, head, tail);
+			}
+			prev = tail;
+			head = lowerText.indexOf(lowerKey, prev);
+		}
+		if (prev < text.length()) {
+			result.append(text, prev, text.length());
+		}
+		return result.toString();
 	}
 
 	public static List<String> tokenize(String text) {
@@ -92,6 +113,14 @@ public final class TextUtil {
 	public static final Pattern patternAnyAlphaNumericChar = Pattern.compile(".*[A-Za-z0-9À-ÖØ-öø-ÿ].*");
 	public static boolean containAlphaNumeric(String text) {
 		return patternAnyAlphaNumericChar.matcher(text).matches();
+	}
+
+	public static String renderLargeNumbers(String text) {
+		text = text.replaceAll("(?i)(\\d+)\\s?k\\b", "$1 thousand");
+		text = text.replaceAll("(?i)(\\d+)\\s?m\\b", "$1 million");
+		text = text.replaceAll("(?i)(\\d+)\\s?b\\b", "$1 billion");
+		text = text.replaceAll("(?i)(\\d+)\\s?t\\b", "$1 trillion");
+		return text;
 	}
 
 	private static final Pattern NUMERIC_COMMA_PATTERN = Pattern.compile("\\d{1,3}(,\\d{3})+");

@@ -20,6 +20,7 @@ import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.config.ConfigManager;
@@ -36,8 +37,11 @@ import org.slf4j.LoggerFactory;
 
 
 @Slf4j
-@PluginDescriptor(name=CONFIG_GROUP)
+@PluginDescriptor(name="Natural Speech")
 public class NaturalSpeechPlugin extends Plugin {
+
+	private static final String LEGACY_CONFIG_GROUP = "NaturalSpeech";
+
 	//<editor-fold desc="> RuneLite Dependencies">
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -99,6 +103,8 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	@Override
 	public void startUp() {
+
+		migrateLegacyConfigGroup();
 
 		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
 		textToSpeech = injector.getInstance(TextToSpeech.class);
@@ -187,6 +193,33 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void resetConfiguration() {
 		runtimeConfig.reset();
 	}
+
+	private void migrateLegacyConfigGroup() {
+		final String legacyPrefix = LEGACY_CONFIG_GROUP + ".";
+		List<String> legacyKeys = configManager.getConfigurationKeys(legacyPrefix);
+
+		if (legacyKeys.isEmpty()) {
+			return;
+		}
+
+		log.info("Migrating {} setting(s) from legacy config group '{}' to '{}'",
+			legacyKeys.size(), LEGACY_CONFIG_GROUP, CONFIG_GROUP);
+
+		for (String legacyKey : legacyKeys) {
+			String key = legacyKey.substring(legacyPrefix.length());
+
+			String value = configManager.getConfiguration(LEGACY_CONFIG_GROUP, key);
+			log.debug("Migrating config key '{}' (value present: {})", key, value != null);
+			if (value != null) {
+				configManager.setConfiguration(CONFIG_GROUP, key, value);
+			}
+
+			// Remove the legacy entry so the migration runs exactly once.
+			//configManager.unsetConfiguration(LEGACY_CONFIG_GROUP, key);
+		}
+
+		log.info("Legacy config migration complete");
+	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
@@ -212,7 +245,8 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		switch (event.getKey()) {
 			case ConfigKeys.SHORTENED_PHRASES:
-				log.trace("Detected short phrase changes, reloading into TextToSpeech");
+			case ConfigKeys.COMMON_ABBREVIATIONS:
+				log.trace("Detected abbreviation changes, reloading into TextToSpeech");
 				textToSpeech.loadShortenedPhrases();
 				break;
 

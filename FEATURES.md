@@ -14,6 +14,13 @@ You can use the Included voice explorer to preview a voice:<br/>
 Explore the many customization options to fine-tune your TTS experience:<br/>
 ![](https://mechanic.ink/img/osrs/features/config.png)
 
+### Party options
+
+You can make your friends messages sound louder by adjusting the `Friends volume boost`, or you can listen to them exclusively by using `Friends only mode`. Set a limit of how many people there is around you before the plugin stops generating audio clips.
+
+### Friends volume boost
+You can boost the volume of your friends to make them sound louder than the rest of the players.
+
 ### Spam Prevention
 
 Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) and [Chat Filter](https://github.com/runelite/runelite/wiki/Chat-Filter) so you don't have to listen to spam!<br/>
@@ -41,14 +48,24 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 
 ## 1.3.0
 - Added Group Ironman chat support
+- NPC and player dialog now share a single audio queue
+- Added `Friends only` mode
+- Numerical abbreviations (k, m, b, t)
 - Added a Discord help link to the main settings panel
-- Replaced deprecated `client.getPlayers()` usage with the world view API
 - `Mute Grand Exchange` now also mutes NPC overhead text in the GE
 - `Global NPC voice` now properly overrides per-NPC voice settings
 - Fixed numbers with commas in system messages not being read correctly
 - Clan / clan guest system messages now also respect the matching channel toggle
 - Renamed the `Dialogs` toggle to `NPC dialogs` and added `Player dialogs` toggle
 - Added integration with Twitch plugin
+- Added Friend volume boost option
+- Added `Use common abbreviations` option
+- Added `Use for dialogs` option to enable abbreviations for NPC dialogs
+- `Shortened phrases` are now `Abbreviations`
+- `Abbreviations` field is now `Custom abbreviations`
+- Added ability to skip NPC dialogs
+- Added ability to silence duplicate messages
+- Other changes and fixes
 
 ## 1.2.6
 - Updated Menu event handler to work with the latest update affecting submenus

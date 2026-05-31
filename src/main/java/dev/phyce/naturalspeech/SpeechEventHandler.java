@@ -7,6 +7,7 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import static dev.phyce.naturalspeech.helpers.PluginHelper.*;
+import dev.phyce.naturalspeech.spamdetection.MessageDuplicateSuppressor;
 import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
@@ -21,6 +22,7 @@ import net.runelite.api.NPC;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.OverheadTextChanged;
+import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.InterfaceID;
@@ -38,18 +40,21 @@ public class SpeechEventHandler {
 	private final VoiceManager voiceManager;
 	private final MuteManager muteManager;
 	private final SpamDetection spamDetection;
+	private final MessageDuplicateSuppressor duplicateSuppressor;
 
 	private final ClientThread clientThread;
 
 	@Inject
 	public SpeechEventHandler(Client client, TextToSpeech textToSpeech, NaturalSpeechConfig config,
-							  VoiceManager voiceManager, MuteManager muteManager, SpamDetection spamDetection, ClientThread clientThread) {
+							  VoiceManager voiceManager, MuteManager muteManager, SpamDetection spamDetection,
+							  MessageDuplicateSuppressor duplicateSuppressor, ClientThread clientThread) {
 		this.client = client;
 		this.textToSpeech = textToSpeech;
 		this.config = config;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
 		this.spamDetection = spamDetection;
+		this.duplicateSuppressor = duplicateSuppressor;
 
 		this.clientThread = clientThread;
 	}
@@ -61,6 +66,7 @@ public class SpeechEventHandler {
 
 		String username;
 		int distance;
+		int volumeBoost = 0;
 		VoiceID voiceId;
 		username = Text.standardize(message.getName());
 		message.setName(username);
@@ -87,15 +93,21 @@ public class SpeechEventHandler {
 			else if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
+				text = Text.removeTags(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
+				text = TextUtil.renderLargeNumbers(text);
 
 				log.debug("Inner voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
 			else if (isChatOtherPlayerVoice(message)) {
 				distance = config.distanceFadeEnabled()? getDistance(username) : 0;
+				if (config.friendsVolumeBoost() > 0 && PluginHelper.isFriend(username)) {
+					volumeBoost = config.friendsVolumeBoost();
+				}
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
+				text = TextUtil.renderLargeNumbers(text);
 
 				log.debug("Player voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
@@ -104,6 +116,7 @@ public class SpeechEventHandler {
 				distance = 0;
 				text = Text.removeTags(text);
 				text = Text.standardize(text);
+				text = TextUtil.renderLargeNumbers(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
@@ -120,7 +133,7 @@ public class SpeechEventHandler {
 		}
 
 		text = TextUtil.removeNumericCommas(text);
-		textToSpeech.speak(voiceId, text, distance, username);
+		textToSpeech.speak(voiceId, text, distance, volumeBoost, username);
 	}
 
 	@Subscribe(priority=-100)
@@ -129,6 +142,9 @@ public class SpeechEventHandler {
 			if (!config.playerDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
+				if (config.cutOffDialogOnSkip()) {
+					textToSpeech.silenceQueue(MagicUsernames.DIALOG);
+				}
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_PLAYER_TEXT);
 				if (textWidget == null || textWidget.getText() == null) {
 					log.error("Player dialog textWidget or textWidget.getText() is null");
@@ -136,18 +152,24 @@ public class SpeechEventHandler {
 				}
 				log.trace("Player dialog textWidget detected:{}", textWidget.getText());
 				String text = Text.sanitizeMultilineText(textWidget.getText());
+				if (config.dialogTextReplacementsEnabled()) {
+					text = textToSpeech.expandShortenedPhrases(text);
+				}
 				VoiceID voiceID;
 				try {
 					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
 				} catch (VoiceSelectionOutOfOption e) {
 					throw new RuntimeException(e);
 				}
-				textToSpeech.speak(voiceID, text, 0, MagicUsernames.LOCAL_USER);
+				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
 			if (!config.npcDialogEnabled()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
+				if (config.cutOffDialogOnSkip()) {
+					textToSpeech.silenceQueue(MagicUsernames.DIALOG);
+				}
 				Widget textWidget = client.getWidget(ComponentID.DIALOG_NPC_TEXT);
 				Widget headModelWidget = client.getWidget(ComponentID.DIALOG_NPC_HEAD_MODEL);
 				Widget npcNameWidget = client.getWidget(ComponentID.DIALOG_NPC_NAME);
@@ -167,6 +189,9 @@ public class SpeechEventHandler {
 				log.trace("NPC dialog textWidget detected:{}", textWidget.getText());
 
 				String text = Text.sanitizeMultilineText(textWidget.getText());
+				if (config.dialogTextReplacementsEnabled()) {
+					text = textToSpeech.expandShortenedPhrases(text);
+				}
 				String npcName = npcNameWidget.getText();
 				int npcCompId = headModelWidget.getModelId();
 
@@ -179,8 +204,17 @@ public class SpeechEventHandler {
 				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName); }
 				catch (VoiceSelectionOutOfOption e) { throw new RuntimeException(e); }
 
-				textToSpeech.speak(voiceID, text, 0, npcName);
+				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
+		}
+	}
+
+	@Subscribe
+	private void onWidgetClosed(WidgetClosed event) {
+		if (!config.cutOffDialogOnSkip()) return;
+		int group = event.getGroupId();
+		if (group == InterfaceID.DIALOG_NPC || group == InterfaceID.DIALOG_PLAYER) {
+			textToSpeech.silenceQueue(MagicUsernames.DIALOG);
 		}
 	}
 
@@ -193,13 +227,19 @@ public class SpeechEventHandler {
 			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
 			if (!muteManager.isNpcAllowed(npc)) return;
+			if (duplicateSuppressor.shouldSuppress("npc:" + npc.getName(), event.getOverheadText())) return;
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
+
+			String text = event.getOverheadText();
+			if (config.dialogTextReplacementsEnabled()) {
+				text = textToSpeech.expandShortenedPhrases(text);
+			}
 
 			VoiceID voiceID = null;
 			try {
 				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
-				textToSpeech.speak(voiceID, event.getOverheadText(), distance, npc.getName());
+				textToSpeech.speak(voiceID, text, distance, npc.getName());
 			} catch (VoiceSelectionOutOfOption e) {
 				log.error(
 					"Voice Selection ran out of options for NPC. No suitable active voice found NPC ID:{} NPC name:{}",
@@ -266,14 +306,37 @@ public class SpeechEventHandler {
 		}
 	}
 
+	private boolean isFriend(ChatMessage message) {
+		String name = Text.standardize(message.getName());
+		return !name.isEmpty() && client.isFriended(name, false);
+	}
+
 	private static boolean isTwitchMessage(ChatMessage message) {
 		return "Twitch".equals(message.getSender());
+	}
+
+	private static String duplicateSourceKey(ChatMessage message) {
+		switch (message.getType()) {
+			case ITEM_EXAMINE:
+			case NPC_EXAMINE:
+			case OBJECT_EXAMINE:
+				return "&examine";
+			case TRADEREQ:
+				return "tradereq:" + Text.standardize(message.getName());
+			default:
+				return MagicUsernames.SYSTEM;
+		}
 	}
 
 	public boolean isChatMessageMuted(ChatMessage message) {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
+
+		if (config.friendsOnlyMode() && isChatOtherPlayerVoice(message) && !isFriend(message)) {
+			log.trace("Muting message. Friends-only mode and sender is not a friend. Message:{}", message.getMessage());
+			return true;
+		}
 
 		if (isTwitchMessage(message) && !config.twitchChatEnabled()) return true;
 
@@ -321,9 +384,14 @@ public class SpeechEventHandler {
 			return true;
 		}
 
-		//noinspection RedundantIfStatement
 		if (spamDetection.isSpam(message.getName(), message.getMessage())) {
 			log.trace("Muting message. Spam detected. Message:{}", message.getMessage());
+			return true;
+		}
+
+		//noinspection RedundantIfStatement
+		if ((PluginHelper.isNPCChatMessage(message) || PluginHelper.isSystemMessage(message))
+			&& duplicateSuppressor.shouldSuppress(duplicateSourceKey(message), message.getMessage())) {
 			return true;
 		}
 
@@ -419,12 +487,12 @@ public class SpeechEventHandler {
 	}
 
 	private boolean isMutingOthers(ChatMessage message) {
-		if (isNPCChatMessage(message)) return false;
+		if (isNPCChatMessage(message) || isSystemMessage(message)) return false;
 		return config.muteOthers() && !message.getName().equals(PluginHelper.getLocalPlayerUsername());
 	}
 
 	private boolean checkMuteLevelThreshold(ChatMessage message) {
-		if (isNPCChatMessage(message)) return false;
+		if (isNPCChatMessage(message) || isSystemMessage(message)) return false;
 		if (Objects.equals(MagicUsernames.LOCAL_USER, message.getName())) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHAT) return false;
 		if (message.getType() == ChatMessageType.PRIVATECHATOUT) return false;

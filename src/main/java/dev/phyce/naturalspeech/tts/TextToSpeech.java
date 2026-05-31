@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech.tts;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.NaturalSpeechPlugin;
 import dev.phyce.naturalspeech.configs.ModelConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
@@ -44,6 +45,11 @@ public class TextToSpeech {
 	private final NaturalSpeechConfig config;
 
 	private Map<String, String> shortenedPhrases;
+
+	private static final String COMMON_ABBREVIATIONS_RESOURCE = "common_abbreviations.txt";
+
+	// Bumped on dialog silenceQueue; synth tasks drop their clip if their captured gen no longer matches.
+	private final java.util.concurrent.atomic.AtomicInteger dialogGen = new java.util.concurrent.atomic.AtomicInteger(0);
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
@@ -117,6 +123,11 @@ public class TextToSpeech {
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
+		speak(voiceID, text, distance, 0, audioQueueName);
+	}
+
+	public void speak(VoiceID voiceID, String text, int distance, int volumeBoostPercent, String audioQueueName)
+		throws ModelLocalUnavailableException, PiperNotActiveException {
 		assert distance >= 0;
 		try {
 			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
@@ -130,9 +141,10 @@ public class TextToSpeech {
 			// Piper should be guaranteed to be present due to checks above
 			Piper piper = pipers.get(voiceID.modelName);
 
+			int generation = MagicUsernames.DIALOG.equals(audioQueueName) ? dialogGen.get() : -1;
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				piper.speak(sentence, voiceID, getVolumeWithDistance(distance), audioQueueName);
+				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName, generation);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
@@ -153,6 +165,10 @@ public class TextToSpeech {
 //		return -6.0f * (float) (Math.log(distance) / Math.log(2)); // Log base 2
 //	}
 	public float getVolumeWithDistance(int distance) {
+		return getVolumeWithDistance(distance, 0);
+	}
+
+	public float getVolumeWithDistance(int distance, int volumeBoostPercent) {
 		float volumeWithDistance;
 		if (distance <= 1) {
 			volumeWithDistance = 0;
@@ -161,18 +177,35 @@ public class TextToSpeech {
 		}
 
 		int masterVolumePercentage = PluginHelper.getConfig().masterVolume();
+		// Honor a hard mute even when boost is set - if the user explicitly
+		// dialed master to 0 they want silence.
 		if (masterVolumePercentage == 0) return -80;
 
-		float scaleFactor = masterVolumePercentage / 100.0f;
+		int effectivePercent = masterVolumePercentage + Math.max(0, volumeBoostPercent);
+		float scaleFactor = effectivePercent / 100.0f;
 
-		float maxVolume = 0;
 		float minVolume = -35;
+		// Allow output above 0 dB when boosted. 100% effective -> 0 dB ceiling
+		// (linear 1x), 200% -> +6 dB (linear 2x). Most Java audio lines
+		// support up to ~+6 dB on MASTER_GAIN; anything above is silently
+		// clamped by the line.
+		float maxVolume = (float) Math.max(0.0, 20.0 * Math.log10(scaleFactor));
 
 		float scaledVolume = minVolume + (volumeWithDistance - minVolume) * scaleFactor;
-
 		scaledVolume = Math.max(minVolume, Math.min(maxVolume, scaledVolume));
 
 		return scaledVolume;
+	}
+
+	public void silenceQueue(String queueName) {
+		if (MagicUsernames.DIALOG.equals(queueName)) {
+			// Bump first so any synth that completes after this point is
+			// recognised as stale and dropped before being queued for playback.
+			dialogGen.incrementAndGet();
+		}
+		for (Piper piper : pipers.values()) {
+			piper.silenceQueue(queueName);
+		}
 	}
 
 	public void clearAllAudioQueues() {
@@ -242,7 +275,8 @@ public class TextToSpeech {
 		Piper piper = Piper.start(
 			modelLocal,
 			runtimeConfig.getPiperPath(),
-			modelConfig.getModelProcessCount(modelLocal.getModelName())
+			modelConfig.getModelProcessCount(modelLocal.getModelName()),
+			dialogGen::get
 		);
 
 		// Careful, PiperProcess listeners are not called on the client thread
@@ -327,12 +361,32 @@ public class TextToSpeech {
 
 	// In method so we can load again when user changes config
 	public void loadShortenedPhrases() {
-		String phrases = config.shortenedPhrases();
 		shortenedPhrases = new HashMap<>();
-		String[] lines = phrases.split("\n");
-		for (String line : lines) {
+		if (config.useCommonAbbreviations()) {
+			parsePhrasesInto(readCommonAbbreviationsResource(), shortenedPhrases);
+		}
+		parsePhrasesInto(config.shortenedPhrases(), shortenedPhrases);
+	}
+
+	private static void parsePhrasesInto(String phrases, Map<String, String> out) {
+		if (phrases == null || phrases.isEmpty()) return;
+		for (String line : phrases.split("\n")) {
 			String[] parts = line.split("=", 2);
-			if (parts.length == 2) shortenedPhrases.put(parts[0].trim(), parts[1].trim());
+			if (parts.length == 2) out.put(parts[0].trim(), parts[1].trim());
+		}
+	}
+
+	private static String readCommonAbbreviationsResource() {
+		try (java.io.InputStream is = NaturalSpeechPlugin.class.getResourceAsStream(COMMON_ABBREVIATIONS_RESOURCE)) {
+			if (is == null) {
+				log.warn("Common abbreviations resource not found on classpath: {}", COMMON_ABBREVIATIONS_RESOURCE);
+				return "";
+			}
+			return new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+		}
+		catch (IOException e) {
+			log.error("Failed to read common abbreviations resource", e);
+			return "";
 		}
 	}
 
