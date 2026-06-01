@@ -63,9 +63,6 @@ public final class TextUtil {
 		return lastSpace;
 	}
 
-	// A match is valid when the preceding char is start-of-string or space,
-	// AND the following char is end-of-string or one of these terminators.
-	// Without this, "afk?" wouldn't match the key "afk".
 	private static final String VALID_MATCH_TAILS = " ,.!?;:";
 
 	public static String expandShortenedPhrases(String text, Map<String, String> phrases) {

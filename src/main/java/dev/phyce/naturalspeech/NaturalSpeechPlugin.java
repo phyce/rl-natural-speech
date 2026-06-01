@@ -214,8 +214,7 @@ public class NaturalSpeechPlugin extends Plugin {
 				configManager.setConfiguration(CONFIG_GROUP, key, value);
 			}
 
-			// Remove the legacy entry so the migration runs exactly once.
-			//configManager.unsetConfiguration(LEGACY_CONFIG_GROUP, key);
+			configManager.unsetConfiguration(LEGACY_CONFIG_GROUP, key);
 		}
 
 		log.info("Legacy config migration complete");
@@ -317,6 +316,4 @@ public class NaturalSpeechPlugin extends Plugin {
 	NaturalSpeechConfig provideConfig(ConfigManager configManager) {
 		return configManager.getConfig(NaturalSpeechConfig.class);
 	}
-
-
 }

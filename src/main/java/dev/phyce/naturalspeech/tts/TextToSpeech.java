@@ -48,7 +48,6 @@ public class TextToSpeech {
 
 	private static final String COMMON_ABBREVIATIONS_RESOURCE = "common_abbreviations.txt";
 
-	// Bumped on dialog silenceQueue; synth tasks drop their clip if their captured gen no longer matches.
 	private final java.util.concurrent.atomic.AtomicInteger dialogGen = new java.util.concurrent.atomic.AtomicInteger(0);
 	@Getter
 	private ModelConfig modelConfig;
@@ -177,18 +176,12 @@ public class TextToSpeech {
 		}
 
 		int masterVolumePercentage = PluginHelper.getConfig().masterVolume();
-		// Honor a hard mute even when boost is set - if the user explicitly
-		// dialed master to 0 they want silence.
 		if (masterVolumePercentage == 0) return -80;
 
 		int effectivePercent = masterVolumePercentage + Math.max(0, volumeBoostPercent);
 		float scaleFactor = effectivePercent / 100.0f;
 
 		float minVolume = -35;
-		// Allow output above 0 dB when boosted. 100% effective -> 0 dB ceiling
-		// (linear 1x), 200% -> +6 dB (linear 2x). Most Java audio lines
-		// support up to ~+6 dB on MASTER_GAIN; anything above is silently
-		// clamped by the line.
 		float maxVolume = (float) Math.max(0.0, 20.0 * Math.log10(scaleFactor));
 
 		float scaledVolume = minVolume + (volumeWithDistance - minVolume) * scaleFactor;
@@ -199,8 +192,6 @@ public class TextToSpeech {
 
 	public void silenceQueue(String queueName) {
 		if (MagicUsernames.DIALOG.equals(queueName)) {
-			// Bump first so any synth that completes after this point is
-			// recognised as stale and dropped before being queued for playback.
 			dialogGen.incrementAndGet();
 		}
 		for (Piper piper : pipers.values()) {

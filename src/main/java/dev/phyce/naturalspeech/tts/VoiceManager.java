@@ -165,7 +165,6 @@ public class VoiceManager {
 
 		VoiceID result = null;
 
-		// 1. Global NPC voice overrides any per-NPC config when set + active.
 		{
 			List<VoiceID> globalResults = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
 			if (globalResults != null) {
@@ -178,7 +177,6 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
-			// 2. Check NPC ID
 			List<VoiceID> results = voiceConfig.findNpcId(npcId);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
@@ -194,7 +192,6 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
-			// 3. Check NPC Name
 			List<VoiceID> results = voiceConfig.findNpcName(npcName);
 			if (results != null) {
 				result = getFirstActiveVoice(results);
@@ -209,7 +206,6 @@ public class VoiceManager {
 		}
 
 		if (result == null) {
-			// 4. Randomize using npc name
 			result = randomVoiceFromActiveModels(npcName);
 		}
 

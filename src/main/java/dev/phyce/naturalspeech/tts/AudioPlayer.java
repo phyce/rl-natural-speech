@@ -78,7 +78,6 @@ public class AudioPlayer {
 		playClip(audioData, volume, null);
 	}
 
-	// decoupled audio system from plugin logic
 	public void playClip(byte[] audioData, float volume, String queueName) {
 		AudioInputStream audioInputStream = null;
 		SourceDataLine line = null;
@@ -125,7 +124,6 @@ public class AudioPlayer {
 			log.error("Clip failed to play", e);
 		} finally {
 			if (queueName != null && line != null) {
-				// remove only if we're still the active line for this queue
 				activeLines.remove(queueName, line);
 			}
 			if (line != null) line.close();
