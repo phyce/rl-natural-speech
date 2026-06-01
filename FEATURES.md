@@ -47,7 +47,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 
 ## 1.3.0
-- Added Czech, Welsh, Finnish and Danish voice models
+- Added Czech, Welsh, Finnish and Danish voices
 - Added Group Ironman chat support
 - NPC and player dialog now share a single audio queue
 - Added `Friends only` mode
