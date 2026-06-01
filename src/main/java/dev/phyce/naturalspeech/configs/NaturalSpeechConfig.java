@@ -45,7 +45,6 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String COMMON_ABBREVIATIONS = "commonAbbreviations";
 		public static final String DIALOG_TEXT_REPLACEMENTS = "dialogTextReplacements";
 		public static final String HOLD_SHIFT_RIGHT_CLICK_MENU = "holdShiftRightClickMenu";
-		public static final String MUTE_GRAND_EXCHANGE_NPC_SPAM = "muteGrandExchangeNpcSpam";
 		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 		public static final String CUT_OFF_DIALOG_ON_SKIP = "cutOffDialogOnSkip";
 		public static final String MESSAGE_DUPLICATE_SUPPRESSOR = "messageDuplicateSuppressor";
