@@ -3,6 +3,7 @@ package dev.phyce.naturalspeech.tts.piper;
 import dev.phyce.naturalspeech.tts.AudioPlayer;
 import dev.phyce.naturalspeech.tts.AudioQueue;
 import dev.phyce.naturalspeech.tts.ModelRepository;
+import dev.phyce.naturalspeech.tts.PlaybackGate;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,21 +46,23 @@ public class Piper {
 	 */
 	public static Piper start(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount)
 		throws IOException {
-		return new Piper(modelLocal, piperPath, instanceCount, () -> -1);
+		return new Piper(modelLocal, piperPath, instanceCount, () -> -1, PlaybackGate.disabled());
 	}
 
 	public static Piper start(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount,
-		IntSupplier dialogGenSupplier) throws IOException {
-		return new Piper(modelLocal, piperPath, instanceCount, dialogGenSupplier);
+		IntSupplier dialogGenSupplier, PlaybackGate playbackGate) throws IOException {
+		return new Piper(modelLocal, piperPath, instanceCount, dialogGenSupplier, playbackGate);
 	}
 
 	private final IntSupplier dialogGenSupplier;
+	private final PlaybackGate playbackGate;
 
 	private Piper(ModelRepository.ModelLocal modelLocal, Path piperPath, int instanceCount,
-		IntSupplier dialogGenSupplier) throws IOException {
+		IntSupplier dialogGenSupplier, PlaybackGate playbackGate) throws IOException {
 		this.modelLocal = modelLocal;
 		this.piperPath = piperPath;
 		this.dialogGenSupplier = dialogGenSupplier;
+		this.playbackGate = playbackGate;
 
 		audioPlayer = new AudioPlayer();
 
@@ -180,9 +183,13 @@ public class Piper {
 					// start a thread for each named audio queue
 					new Thread(() -> {
 						try {
-							AudioQueue.AudioTask task;
-							while ((task = audioQueue.queue.poll()) != null) {
-								audioPlayer.playClip(task.getAudioClip(), task.getVolume(), queueName);
+							// held for the whole drain, so the fragments a single message was split
+							// into are not interleaved with another speaker's when playing in turn
+							try (PlaybackGate.Hold ignored = playbackGate.acquire()) {
+								AudioQueue.AudioTask task;
+								while ((task = audioQueue.queue.poll()) != null) {
+									audioPlayer.playClip(task.getAudioClip(), task.getVolume(), queueName);
+								}
 							}
 						} finally {
 							audioQueue.setPlaying(false);
@@ -226,6 +233,14 @@ public class Piper {
 			audioQueue.queue.clear();
 		}
 		audioPlayer.stopQueue(queueName);
+	}
+
+	public int pendingAudioCount() {
+		int total = piperTaskQueue.size();
+		for (AudioQueue audioQueue : namedAudioQueueMap.values()) {
+			total += audioQueue.queue.size();
+		}
+		return total;
 	}
 
 	public int countAlive() {

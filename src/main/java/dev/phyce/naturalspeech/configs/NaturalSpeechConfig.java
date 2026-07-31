@@ -49,6 +49,8 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String FRIENDS_VOLUME_BOOST = "friendsVolumeBoost";
 		public static final String CUT_OFF_DIALOG_ON_SKIP = "cutOffDialogOnSkip";
 		public static final String MESSAGE_DUPLICATE_SUPPRESSOR = "messageDuplicateSuppressor";
+		public static final String SEQUENTIAL_PLAYBACK = "sequentialPlayback";
+		public static final String SEQUENTIAL_PLAYBACK_QUEUE_SIZE = "sequentialPlaybackQueueSize";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -182,6 +184,30 @@ public interface NaturalSpeechConfig extends Config {
 	)
 	default boolean messageDuplicateSuppressorEnabled() {
 		return true;
+	}
+
+	@ConfigItem(
+		position=12,
+		keyName=ConfigKeys.SEQUENTIAL_PLAYBACK,
+		name="Single public message queue",
+		description="Play one message at a time for the whole chat. Busy areas will lag behind the chatbox.",
+		section=generalSettingsSection
+	)
+	default boolean sequentialPlaybackEnabled() {
+		return false;
+	}
+
+	@ConfigItem(
+		position=13,
+		keyName=ConfigKeys.SEQUENTIAL_PLAYBACK_QUEUE_SIZE,
+		name="Max queued messages",
+		description="How far behind the single queue is allowed to fall before new messages are dropped. "
+			+ "Long messages take up more than one slot. Only applies with the single queue enabled.",
+		section=generalSettingsSection
+	)
+	@Range(min=1, max=200)
+	default int sequentialPlaybackQueueSize() {
+		return 30;
 	}
 
 	//	@ConfigItem(

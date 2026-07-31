@@ -49,6 +49,7 @@ public class TextToSpeech {
 	private static final String COMMON_ABBREVIATIONS_RESOURCE = "common_abbreviations.txt";
 
 	private final java.util.concurrent.atomic.AtomicInteger dialogGen = new java.util.concurrent.atomic.AtomicInteger(0);
+	private final PlaybackGate playbackGate;
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
@@ -70,6 +71,7 @@ public class TextToSpeech {
 		this.clientThread = clientThread;
 		this.modelRepository = modelRepository;
 		this.config = config;
+		this.playbackGate = new PlaybackGate(config::sequentialPlaybackEnabled, config::sequentialPlaybackQueueSize);
 
 		loadModelConfig();
 	}
@@ -140,7 +142,14 @@ public class TextToSpeech {
 			// Piper should be guaranteed to be present due to checks above
 			Piper piper = pipers.get(voiceID.modelName);
 
-			int generation = MagicUsernames.DIALOG.equals(audioQueueName) ? dialogGen.get() : -1;
+			boolean isDialog = MagicUsernames.DIALOG.equals(audioQueueName);
+			if (!isDialog && playbackGate.isBacklogged(pendingAudioCount())) {
+				log.debug("Dropping message, playback queue is full ({} pending). Text:{}",
+					pendingAudioCount(), text);
+				return;
+			}
+
+			int generation = isDialog ? dialogGen.get() : -1;
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
 				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName, generation);
@@ -148,6 +157,14 @@ public class TextToSpeech {
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
 		}
+	}
+
+	public int pendingAudioCount() {
+		int total = 0;
+		for (Piper piper : pipers.values()) {
+			total += piper.pendingAudioCount();
+		}
+		return total;
 	}
 
 	public String expandShortenedPhrases(String text) {
@@ -267,7 +284,8 @@ public class TextToSpeech {
 			modelLocal,
 			runtimeConfig.getPiperPath(),
 			modelConfig.getModelProcessCount(modelLocal.getModelName()),
-			dialogGen::get
+			dialogGen::get,
+			playbackGate
 		);
 
 		// Careful, PiperProcess listeners are not called on the client thread
