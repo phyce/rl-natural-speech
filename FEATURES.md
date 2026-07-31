@@ -46,6 +46,11 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.4.0
+- Added ability to toggle login/logout messages
+- Improved message processing
+- Other changes and fixes
+
 ## 1.3.0
 - Added Czech, Welsh, Finnish and Danish voices
 - Added Group Ironman chat support
