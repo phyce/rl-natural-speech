@@ -35,6 +35,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String PLAYER_DIALOG = "playerDialog";
 		public static final String REQUESTS = "requests";
 		public static final String SYSTEM_MESSAGES = "systemMessages";
+		public static final String LOGIN_LOGOUT = "loginLogout";
 		public static final String TWITCH_CHAT = "twitchChat";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 		public static final String MUTE_SELF = "muteSelf";
@@ -362,15 +363,27 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
+		keyName=ConfigKeys.LOGIN_LOGOUT,
+		name="Login/logout notifications",
+		description="Enable text-to-speech for login/logout notifications",
+		section=ttsOptionsSection,
+		position=14
+	)
+	default boolean loginLogoutEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
 		keyName=ConfigKeys.TWITCH_CHAT,
 		name="Twitch chat plugin",
 		description="Generate text-to-speech of messages received via the RuneLite Twitch plugin.",
 		section=ttsOptionsSection,
-		position=13
+		position=15
 	)
 	default boolean twitchChatEnabled() {
 		return false;
 	}
+
 	//</editor-fold>
 
 	//<editor-fold desc="> Mute Options">

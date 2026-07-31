@@ -21,6 +21,7 @@ import static net.runelite.api.ChatMessageType.*;
 import net.runelite.api.Client;
 import net.runelite.api.FriendsChatManager;
 import net.runelite.api.MessageNode;
+import net.runelite.api.Player;
 import net.runelite.api.clan.ClanChannel;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
@@ -184,8 +185,9 @@ public class ChatFilterPluglet {
 		}
 
 		Duplicate duplicateCacheEntry = duplicateChatCache.get(username + ":" + message);
-//		log.trace("Duplicate chat entry count:{} for ({})", duplicateCacheEntry.count, duplicateCacheEntry);
-		if (config.maxRepeatedPublicChats() > 0 && duplicateCacheEntry.count > config.maxRepeatedPublicChats()) {
+		if (duplicateCacheEntry != null
+			&& config.maxRepeatedPublicChats() > 0
+			&& duplicateCacheEntry.count > config.maxRepeatedPublicChats()) {
 //			log.trace("Duplicate chat filtered ({})", duplicateCacheEntry);
 			return true;
 		}
@@ -268,7 +270,10 @@ public class ChatFilterPluglet {
 	}
 
 	boolean canFilterPlayer(String playerName) {
-		boolean isMessageFromSelf = playerName.equals(client.getLocalPlayer().getName());
+		Player localPlayer = client.getLocalPlayer();
+		if (localPlayer == null) return false;
+
+		boolean isMessageFromSelf = playerName.equals(localPlayer.getName());
 		return !isMessageFromSelf &&
 			(config.filterFriends() || !client.isFriended(playerName, false)) &&
 			(config.filterFriendsChat() || !isFriendsChatMember(playerName)) &&

@@ -164,4 +164,12 @@ public final class TextUtil {
 		return input.replaceAll("<[^>]+>", "");
 	}
 
+	private static final Pattern CHAT_TAG_PATTERN = Pattern.compile("<(?!lt>|gt>)[^>]+>");
+
+	public static String stripChatTags(String text) {
+		return CHAT_TAG_PATTERN.matcher(text).replaceAll("")
+			.replace("<lt>", "<")
+			.replace("<gt>", ">");
+	}
+
 }

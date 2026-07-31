@@ -46,6 +46,11 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.4.0
+- Added ability to toggle login/logout messages
+- Improved message processing
+- Other changes and fixes
+
 ## 1.3.1
 - Disabled overhead TTS in boss areas
 - Fixed issue of not being able to set custom NPC voices via right click submenu

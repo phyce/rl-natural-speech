@@ -15,7 +15,10 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.utils.TextUtil;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -73,9 +76,7 @@ public class SpeechEventHandler {
 		VoiceID voiceId;
 		username = Text.standardize(message.getName());
 		message.setName(username);
-		String text = message.getMessage()
-			.replace("<lt>", "<")
-			.replace("<gt>", ">");
+		String text = TextUtil.stripChatTags(message.getMessage());
 
 		if (isChatMessageMuted(message)) return;
 
@@ -86,9 +87,6 @@ public class SpeechEventHandler {
 				}
 				distance = 0;
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
-				if (text.startsWith("<colNORMAL>")) {
-					text = text.replaceFirst("^<colNORMAL>", "");
-				}
 				text = textToSpeech.expandShortenedPhrases(text);
 
 				log.debug("Twitch voice {} used for {}. ", voiceId, username);
@@ -96,7 +94,6 @@ public class SpeechEventHandler {
 			else if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
-				text = Text.removeTags(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
 				text = textToSpeech.expandShortenedPhrases(text);
 				text = TextUtil.renderLargeNumbers(text);
@@ -117,7 +114,6 @@ public class SpeechEventHandler {
 			else if (isChatSystemVoice(message.getType())) {
 				username = MagicUsernames.SYSTEM;
 				distance = 0;
-				text = Text.removeTags(text);
 				text = Text.standardize(text);
 				text = TextUtil.renderLargeNumbers(text);
 				voiceId = voiceManager.getVoiceIDFromUsername(username);
@@ -237,7 +233,7 @@ public class SpeechEventHandler {
 
 			int distance = PluginHelper.getActorDistance(event.getActor());
 
-			String text = event.getOverheadText();
+			String text = TextUtil.stripChatTags(event.getOverheadText());
 			if (config.dialogTextReplacementsEnabled()) {
 				text = textToSpeech.expandShortenedPhrases(text);
 			}
@@ -343,10 +339,27 @@ public class SpeechEventHandler {
 		}
 	}
 
+	private static final Set<ChatMessageType> ALWAYS_MUTED_TYPES = Collections.unmodifiableSet(EnumSet.of(
+		ChatMessageType.ENGINE,
+		ChatMessageType.BROADCAST,
+		ChatMessageType.IGNORENOTIFICATION,
+		ChatMessageType.TRADE,
+		ChatMessageType.PLAYERRELATED,
+		ChatMessageType.TENSECTIMEOUT,
+		ChatMessageType.CLAN_CREATION_INVITATION,
+		ChatMessageType.CLAN_GIM_FORM_GROUP,
+		ChatMessageType.CLAN_GIM_GROUP_WITH
+	));
+
+	public static boolean isAlwaysMuted(ChatMessageType type) {
+		return ALWAYS_MUTED_TYPES.contains(type);
+	}
+
 	public boolean isChatMessageMuted(ChatMessage message) {
 		if (message.getType() == ChatMessageType.AUTOTYPER) return true;
 		// dialog messages are handled in onWidgetLoad
 		if (message.getType() == ChatMessageType.DIALOG) return true;
+		if (isAlwaysMuted(message.getType())) return true;
 
 		if (config.friendsOnlyMode() && isChatOtherPlayerVoice(message) && !isFriend(message)) {
 			log.trace("Muting message. Friends-only mode and sender is not a friend. Message:{}", message.getMessage());
@@ -367,7 +380,7 @@ public class SpeechEventHandler {
 		}
 
 		if (isMessageTypeDisabledInConfig(message)) {
-			log.trace("Muting message. Disabled message type {}. Message:{}", message.getType(), message.getMessage());
+			log.debug("Muting message. Disabled message type {}. Message:{}", message.getType(), message.getMessage());
 			return true;
 		}
 
@@ -464,8 +477,7 @@ public class SpeechEventHandler {
 				if (!config.groupIronmanChatEnabled()) return true;
 				break;
 			case CLAN_GIM_MESSAGE:
-				if (!config.groupIronmanChatEnabled()) return true;
-				if (!config.systemMesagesEnabled()) return true;
+				if (!config.groupIronmanChatEnabled() || !config.systemMesagesEnabled()) return true;
 				break;
 			case OBJECT_EXAMINE:
 			case ITEM_EXAMINE:
@@ -478,12 +490,10 @@ public class SpeechEventHandler {
 				if (!config.systemMesagesEnabled()) return true;
 				break;
 			case CLAN_MESSAGE:
-				if (!config.clanChatEnabled()) return true;
-				if (!config.systemMesagesEnabled()) return true;
+				if (!config.clanChatEnabled() || !config.systemMesagesEnabled()) return true;
 				break;
 			case CLAN_GUEST_MESSAGE:
-				if (!config.clanGuestChatEnabled()) return true;
-				if (!config.systemMesagesEnabled()) return true;
+				if (!config.clanGuestChatEnabled() || !config.systemMesagesEnabled()) return true;
 				break;
 			case TRADEREQ:
 			case CHALREQ_CLANCHAT:
@@ -491,7 +501,11 @@ public class SpeechEventHandler {
 			case CHALREQ_TRADE:
 				if (!config.requestsEnabled()) return true;
 				break;
+			case LOGINLOGOUTNOTIFICATION:
+				if (!config.loginLogoutEnabled() || !config.systemMesagesEnabled()) return true;
+				break;
 		}
+
 		return false;
 	}
 
