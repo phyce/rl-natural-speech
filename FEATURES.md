@@ -48,6 +48,7 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 
 ## 1.4.0
 - Added ability to toggle login/logout messages
+- Added single message queue option for public chat + max queue size
 - Improved message processing
 - Other changes and fixes
 
