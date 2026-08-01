@@ -3,11 +3,15 @@ package dev.phyce.naturalspeech.ui.panels;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeVoice;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -25,6 +29,7 @@ import java.util.stream.Collectors;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -37,7 +42,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
@@ -71,7 +75,21 @@ public class VoiceExplorerPanel extends EditorPanel {
 	@Getter
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
+	private final List<VoiceSection> voiceSections = new ArrayList<>();
+	private final JCheckBox piperFilter;
+	private final JCheckBox systemFilter;
 	private final ModelRepository.ModelRepositoryListener modelRepositoryListener;
+	private final TextToSpeech.TextToSpeechListener textToSpeechListener;
+
+	private static final class VoiceSection {
+		private final SpeechEngine engine;
+		private final JPanel panel;
+
+		private VoiceSection(SpeechEngine engine, JPanel panel) {
+			this.engine = engine;
+			this.panel = panel;
+		}
+	}
 
 	@Inject
 	public VoiceExplorerPanel(ModelRepository modelRepository, TextToSpeech textToSpeech) {
@@ -116,18 +134,29 @@ public class VoiceExplorerPanel extends EditorPanel {
 		speechText.setToolTipText("Sentence to be spoken.");
 		speechText.setPlaceholderText("Enter a sentence");
 
+		piperFilter = buildEngineFilter("Piper", "Show the piper voices you have downloaded.");
+		systemFilter = buildEngineFilter("System", "Show the voices built into your system.");
+
+		JPanel engineFilterPanel = new JPanel(new GridLayout(1, 2));
+		engineFilterPanel.setOpaque(false);
+		engineFilterPanel.add(piperFilter);
+		engineFilterPanel.add(systemFilter);
+
 		// Float Top/North Wrapper Panel, for search and speech text bar.
 		JPanel topPanel = new JPanel();
 		topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 		topPanel.setLayout(new GridLayout(0, 1, 0, PluginPanel.BORDER_OFFSET));
 		topPanel.add(searchBar);
 		topPanel.add(speechText);
+		topPanel.add(engineFilterPanel);
 		this.add(topPanel, BorderLayout.NORTH);
 
 		// Speakers panel containing individual speaker item panels
 		sectionListPanel = new FixedWidthPanel();
 		sectionListPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
-		sectionListPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		// OnlyVisible, so a section hidden by the engine filters gives up its row instead of
+		// leaving a gap where it used to be
+		sectionListPanel.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 		// North panel wraps and fixes the speakerList north
@@ -154,11 +183,42 @@ public class VoiceExplorerPanel extends EditorPanel {
 		};
 		this.modelRepository.addRepositoryChangedListener(modelRepositoryListener);
 
+		textToSpeechListener = new TextToSpeech.TextToSpeechListener() {
+			@Override
+			public void onNativeSpeechStart(NativeSpeechEngine engine) {
+				SwingUtilities.invokeLater(() -> buildSpeakerList());
+			}
+
+			@Override
+			public void onNativeSpeechExit(NativeSpeechEngine engine) {
+				SwingUtilities.invokeLater(() -> buildSpeakerList());
+			}
+		};
+		this.textToSpeech.addTextToSpeechListener(textToSpeechListener);
+
 		buildSpeakerList();
 	}
 
+	private JCheckBox buildEngineFilter(String label, String toolTip) {
+		JCheckBox checkBox = new JCheckBox(label, true);
+		checkBox.setToolTipText(toolTip);
+		checkBox.setOpaque(false);
+		checkBox.setForeground(Color.WHITE);
+		checkBox.addActionListener(event -> applyFilters());
+		return checkBox;
+	}
+
 	void buildSpeakerList() {
+		voiceListItems.forEach(VoiceListItem::dispose);
+		voiceListItems.clear();
+		voiceSections.clear();
 		sectionListPanel.removeAll();
+
+		NativeSpeechEngine nativeEngine = textToSpeech.getNativeSpeechEngine();
+		if (nativeEngine != null && !nativeEngine.getVoices().isEmpty()) {
+			buildSystemVoiceSegment(nativeEngine);
+		}
+
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 			try {
 				if (modelRepository.hasModelLocal(modelURL.getModelName())) {
@@ -167,6 +227,34 @@ public class VoiceExplorerPanel extends EditorPanel {
 			} catch (IOException ignore) {
 			}
 		}
+
+		applyFilters();
+		sectionListPanel.revalidate();
+		sectionListPanel.repaint();
+	}
+
+	private void buildSystemVoiceSegment(NativeSpeechEngine nativeEngine) {
+		JPanel sectionContent = buildSpeakerSection(
+			"System Voices", "The voices installed with your operating system.", SpeechEngine.SYSTEM);
+
+		nativeEngine.getVoices().stream()
+			.sorted(Comparator.comparing(NativeVoice::getId))
+			.forEach(voice -> {
+				VoiceListItem speakerItem = VoiceListItem.forSystemVoice(this, textToSpeech, voice);
+				voiceListItems.add(speakerItem);
+				sectionContent.add(speakerItem);
+			});
+	}
+
+	private void applyFilters() {
+		for (VoiceSection section : voiceSections) {
+			section.panel.setVisible(isEngineShown(section.engine));
+		}
+		searchFilter(searchBar.getText());
+	}
+
+	private boolean isEngineShown(SpeechEngine engine) {
+		return engine == SpeechEngine.SYSTEM? systemFilter.isSelected(): piperFilter.isSelected();
 	}
 
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
@@ -178,6 +266,23 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	private void buildSpeakerSegmentForVoice(String voice_name) {
+		JPanel sectionContent = buildSpeakerSection(voice_name, voice_name, SpeechEngine.PIPER);
+
+		try {
+			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voice_name);
+
+			Arrays.stream(modelLocal.getVoiceMetadata())
+				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
+				.forEach((voiceMetadata) -> {
+					VoiceListItem speakerItem = VoiceListItem.forPiperVoice(this, textToSpeech, voiceMetadata);
+					voiceListItems.add(speakerItem);
+					sectionContent.add(speakerItem);
+				});
+
+		} catch (IOException e) {throw new RuntimeException(e);}
+	}
+
+	private JPanel buildSpeakerSection(String name, String description, SpeechEngine engine) {
 
 		final JPanel section = new JPanel();
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
@@ -200,8 +305,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final String name = voice_name;
-		final String description = voice_name;
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
@@ -228,25 +331,15 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
 
-		try {
-			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voice_name);
-
-			Arrays.stream(modelLocal.getVoiceMetadata())
-				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
-				.forEach((voiceMetadata) -> {
-					VoiceListItem speakerItem = new VoiceListItem(this, textToSpeech, voiceMetadata, modelLocal);
-					voiceListItems.add(speakerItem);
-					sectionContent.add(speakerItem);
-				});
-
-		} catch (IOException e) {throw new RuntimeException(e);}
-
+		voiceSections.add(new VoiceSection(engine, section));
 		sectionListPanel.add(section);
+		return sectionContent;
 	}
 
 	void searchFilter(String searchInput) {
 		if (searchInput.isEmpty()) {
 			for (VoiceListItem speakerItems : voiceListItems) {speakerItems.setVisible(true);}
+			sectionListPanel.revalidate();
 			return;
 		}
 
@@ -274,14 +367,12 @@ public class VoiceExplorerPanel extends EditorPanel {
 		searchInput = StringUtils.join(searchTerms, " ");
 
 		for (VoiceListItem speakerItem : voiceListItems) {
-			ModelRepository.VoiceMetadata voiceMetadata = speakerItem.getVoiceMetadata();
-
-			boolean visible = genderSearch == null || genderSearch.equals(voiceMetadata.getGender());
+			boolean visible = genderSearch == null || genderSearch.equals(speakerItem.getGender());
 
 			// name search
 			if (!searchInput.isEmpty()) {
 				boolean term_matched = false;
-				if (!searchTerms.isEmpty() && voiceMetadata.getName().toLowerCase().contains(searchInput)) {
+				if (!searchTerms.isEmpty() && speakerItem.getVoiceName().toLowerCase().contains(searchInput)) {
 					term_matched = true;
 				}
 
@@ -295,6 +386,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 	public void shutdown() {
 		modelRepository.removeRepositoryChangedListener(modelRepositoryListener);
+		textToSpeech.removeTextToSpeechListener(textToSpeechListener);
+		voiceListItems.forEach(VoiceListItem::dispose);
+		voiceListItems.clear();
 		this.removeAll();
 	}
 

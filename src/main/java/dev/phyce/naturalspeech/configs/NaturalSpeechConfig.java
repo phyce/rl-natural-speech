@@ -52,6 +52,7 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String MESSAGE_DUPLICATE_SUPPRESSOR = "messageDuplicateSuppressor";
 		public static final String SEQUENTIAL_PLAYBACK = "sequentialPlayback";
 		public static final String SEQUENTIAL_PLAYBACK_QUEUE_SIZE = "sequentialPlaybackQueueSize";
+		public static final String NATIVE_SPEECH = "nativeSpeech";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -106,6 +107,17 @@ public interface NaturalSpeechConfig extends Config {
 	)
 	default String twitchVoice() {
 		return "";
+	}
+
+	@ConfigItem(
+		position=5,
+		keyName=ConfigKeys.NATIVE_SPEECH,
+		name="Use system voices",
+		description="Use the voices built into your operating system",
+		section=generalSettingsSection
+	)
+	default boolean nativeSpeechEnabled() {
+		return true;
 	}
 
 	@ConfigItem(

@@ -14,6 +14,8 @@ import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.piper.Piper;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeVoice;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +44,7 @@ public class VoiceManager {
 	private final GenderedVoiceMap genderedVoiceMap;
 
 	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
+	private final List<VoiceID> nativeVoiceIDs = new ArrayList<>();
 
 	@Inject
 	public VoiceManager(TextToSpeech textToSpeech, ConfigManager configManager) {
@@ -65,6 +68,24 @@ public class VoiceManager {
 				public void onPiperExit(Piper piper) {
 					genderedVoiceMap.removeModel(piper.getModelLocal());
 					activeVoiceMap.removeAll(piper.getModelLocal());
+				}
+
+				@Override
+				public void onNativeSpeechStart(NativeSpeechEngine engine) {
+					for (NativeVoice voice : engine.getVoices()) {
+						VoiceID voiceID = voice.toVoiceID();
+						genderedVoiceMap.addVoice(voice.getGender(), voiceID);
+						nativeVoiceIDs.add(voiceID);
+					}
+					log.debug("Registered {} system voice(s)", engine.getVoices().size());
+				}
+
+				@Override
+				public void onNativeSpeechExit(NativeSpeechEngine engine) {
+					for (NativeVoice voice : engine.getVoices()) {
+						genderedVoiceMap.removeVoice(voice.getGender(), voice.toVoiceID());
+					}
+					nativeVoiceIDs.clear();
 				}
 			}
 		);
@@ -137,6 +158,7 @@ public class VoiceManager {
 
 	private List<VoiceID> allActiveVoiceIDs() {
 		List<VoiceID> all = new ArrayList<>(activeVoiceMap.values());
+		all.addAll(nativeVoiceIDs);
 		return all;
 	}
 
@@ -172,6 +194,16 @@ public class VoiceManager {
 
 		return voiceIDs.get(voice);
 	}
+	@CheckForNull
+	public VoiceID anyVoiceFor(@NonNull SpeechEngine engine) {
+		List<VoiceID> voiceIDs = filter(allActiveVoiceIDs(), engine);
+		if (voiceIDs.isEmpty()) return null;
+
+		// sorted so the same setting does not land on a different voice each startup
+		voiceIDs.sort(java.util.Comparator.comparing(VoiceID::toVoiceIDString));
+		return voiceIDs.get(0);
+	}
+
 	// Ultimate fallback
 	@CheckForNull
 	public VoiceID randomVoice() {
