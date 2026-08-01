@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.configs;
 
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -106,7 +107,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=5,
+		position=6,
 		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
@@ -115,7 +116,7 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position=6,
+		position=7,
 		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter.",
@@ -127,7 +128,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=7,
+		position=8,
 		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Master volume control",
 		description="Volume percentage",
@@ -140,7 +141,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=8,
+		position=9,
 		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
 		name="Friends volume boost",
 		description="Volume boost percentage",
@@ -152,7 +153,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=9,
+		position=10,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",
@@ -163,7 +164,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=10,
+		position=11,
 		keyName=ConfigKeys.CUT_OFF_DIALOG_ON_SKIP,
 		name="Interrupt dialog when skipping",
 		description="Immediately play the next audio clip upon dialog skip",
@@ -174,7 +175,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=11,
+		position=12,
 		keyName=ConfigKeys.MESSAGE_DUPLICATE_SUPPRESSOR,
 		name="Silence duplicate messages",
 		description="Prevents the same message from being constantly spammed",
@@ -214,8 +215,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=1
 	)
-	default boolean publicChatEnabled() {
-		return true;
+	default SpeechEngine publicChat() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -225,20 +226,19 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=2
 	)
-	default boolean privateChatEnabled() {
-		return false;
+	default SpeechEngine privateChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
 		keyName=ConfigKeys.PRIVATE_OUT_CHAT,
 		name="Private sent out messages",
 		description="Enable text-to-speech to the sent out private chat messages.",
-		section=ttsOptionsSection
-		,
+		section=ttsOptionsSection,
 		position=3
 	)
-	default boolean privateOutChatEnabled() {
-		return false;
+	default SpeechEngine privateOutChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -248,8 +248,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=4
 	)
-	default boolean friendsChatEnabled() {
-		return true;
+	default SpeechEngine friendsChat() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -259,8 +259,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=5
 	)
-	default boolean clanChatEnabled() {
-		return false;
+	default SpeechEngine clanChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -270,8 +270,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=6
 	)
-	default boolean clanGuestChatEnabled() {
-		return false;
+	default SpeechEngine clanGuestChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -279,10 +279,10 @@ public interface NaturalSpeechConfig extends Config {
 		name="Group Ironman chat",
 		description="Enable text-to-speech to the group ironman chat messages.",
 		section=ttsOptionsSection,
-		position=6
+		position=7
 	)
-	default boolean groupIronmanChatEnabled() {
-		return false;
+	default SpeechEngine groupIronmanChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -290,10 +290,10 @@ public interface NaturalSpeechConfig extends Config {
 		name="Examine text",
 		description="Enable text-to-speech to the 'Examine' messages.",
 		section=ttsOptionsSection,
-		position=7
+		position=8
 	)
-	default boolean examineChatEnabled() {
-		return true;
+	default SpeechEngine examineChat() {
+		return SpeechEngine.PIPER;
 	}
 
 	//	@ConfigItem(
@@ -314,8 +314,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=9
 	)
-	default boolean npcOverheadEnabled() {
-		return false;
+	default SpeechEngine npcOverhead() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -325,8 +325,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=10
 	)
-	default boolean npcDialogEnabled() {
-		return true;
+	default SpeechEngine npcDialog() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -336,8 +336,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=11
 	)
-	default boolean playerDialogEnabled() {
-		return true;
+	default SpeechEngine playerDialog() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -347,8 +347,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=12
 	)
-	default boolean requestsEnabled() {
-		return false;
+	default SpeechEngine requests() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -358,8 +358,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=13
 	)
-	default boolean systemMesagesEnabled() {
-		return true;
+	default SpeechEngine systemMessages() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -369,8 +369,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=14
 	)
-	default boolean loginLogoutEnabled() {
-		return true;
+	default SpeechEngine loginLogout() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -380,8 +380,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=15
 	)
-	default boolean twitchChatEnabled() {
-		return false;
+	default SpeechEngine twitchChat() {
+		return SpeechEngine.OFF;
 	}
 
 	//</editor-fold>
