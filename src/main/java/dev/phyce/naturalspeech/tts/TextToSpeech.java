@@ -16,6 +16,8 @@ import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
 import dev.phyce.naturalspeech.enums.SpeechEngine;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeech;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
@@ -53,6 +55,8 @@ public class TextToSpeech {
 	@Getter
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
+	@Getter
+	private NativeSpeechEngine nativeSpeechEngine;
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
@@ -77,13 +81,21 @@ public class TextToSpeech {
 
 	// <editor-fold desc="> API">
 	public void start() {
+		if (config.nativeSpeechEnabled() && !isNativeSpeechRunning()) startNativeSpeech();
+
 		if (!isPiperPathValid()) {
-			triggerOnPiperInvalid();
+			if (isNativeSpeechRunning()) {
+				started = true;
+				triggerOnStart();
+			}
+			else {
+				triggerOnPiperInvalid();
+			}
 			return;
 		}
 
 		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
-		started = false;
+		started = isNativeSpeechRunning();
 		try {
 			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 				try {
@@ -107,9 +119,52 @@ public class TextToSpeech {
 		}
 	}
 
+	public void startNativeSpeech() {
+		stopNativeSpeech();
+
+		if (!NativeSpeech.isSupported()) {
+			log.debug("This platform has no system voices wired up yet, skipping");
+			return;
+		}
+
+		try {
+			nativeSpeechEngine = NativeSpeechEngine.start(dialogGen::get);
+			triggerOnNativeSpeechStart(nativeSpeechEngine);
+		}
+		catch (IOException | RuntimeException e) {
+			log.error("Failed to start the system voices", e);
+			nativeSpeechEngine = null;
+		}
+	}
+
+	public void stopNativeSpeech() {
+		if (nativeSpeechEngine == null) return;
+
+		NativeSpeechEngine stopping = nativeSpeechEngine;
+		nativeSpeechEngine = null;
+		try {
+			stopping.stop();
+		}
+		catch (RuntimeException e) {
+			log.error("Error stopping the system voices", e);
+		}
+		triggerOnNativeSpeechExit(stopping);
+	}
+
+	public boolean isNativeSpeechRunning() {
+		return nativeSpeechEngine != null && nativeSpeechEngine.isAlive();
+	}
+
 	public void stop() {
 		started = false;
+		stopNativeSpeech();
 		stopPipers();
+		triggerOnStop();
+	}
+
+	public void stopPiper() {
+		stopPipers();
+		started = isNativeSpeechRunning();
 		triggerOnStop();
 	}
 
@@ -134,22 +189,36 @@ public class TextToSpeech {
 		throws ModelLocalUnavailableException, PiperNotActiveException {
 		assert distance >= 0;
 		try {
-			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
-				throw new ModelLocalUnavailableException(text, voiceID);
-			}
+			boolean isNativeVoice = NativeSpeech.isNativeModel(voiceID.getModelName());
 
-			if (!isModelActive(voiceID.getModelName())) {
-				throw new PiperNotActiveException(text, voiceID);
+			if (isNativeVoice) {
+				if (nativeSpeechEngine == null || !nativeSpeechEngine.isAlive()) {
+					throw new PiperNotActiveException(text, voiceID);
+				}
+			}
+			else {
+				if (!modelRepository.hasModelLocal(voiceID.modelName)) {
+					throw new ModelLocalUnavailableException(text, voiceID);
+				}
+
+				if (!isModelActive(voiceID.getModelName())) {
+					throw new PiperNotActiveException(text, voiceID);
+				}
 			}
 
 			// Piper should be guaranteed to be present due to checks above
-			Piper piper = pipers.get(voiceID.modelName);
+			Piper piper = isNativeVoice ? null : pipers.get(voiceID.modelName);
 
 			int generation = MagicUsernames.DIALOG.equals(audioQueueName) ? dialogGen.get() : -1;
 			float volume = getVolumeWithDistance(distance, volumeBoostPercent);
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				piper.speak(sentence, voiceID, volume, audioQueueName, generation);
+				if (isNativeVoice) {
+					nativeSpeechEngine.speak(sentence, voiceID, volume, audioQueueName, generation);
+				}
+				else {
+					piper.speak(sentence, voiceID, volume, audioQueueName, generation);
+				}
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
@@ -203,11 +272,17 @@ public class TextToSpeech {
 		for (Piper piper : pipers.values()) {
 			piper.silenceQueue(queueName);
 		}
+		if (nativeSpeechEngine != null) {
+			nativeSpeechEngine.silenceQueue(queueName);
+		}
 	}
 
 	public void clearAllAudioQueues() {
 		for (String modelName : pipers.keySet()) {
 			pipers.get(modelName).clearQueue();
+		}
+		if (nativeSpeechEngine != null) {
+			nativeSpeechEngine.clearQueue();
 		}
 	}
 
@@ -243,6 +318,21 @@ public class TextToSpeech {
 	/**
 	 * Starts Piper for specific ModelLocal
 	 */
+
+	public boolean isPiperSetUp() {
+		if (!isPiperPathValid()) return false;
+
+		try {
+			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+				if (modelRepository.hasModelLocal(modelURL.getModelName())) return true;
+			}
+		}
+		catch (IOException e) {
+			log.debug("Could not check for downloaded voice packs", e);
+		}
+
+		return false;
+	}
 
 	public boolean isPiperPathValid() {
 		File piper_file = runtimeConfig.getPiperPath().toFile();
@@ -313,11 +403,11 @@ public class TextToSpeech {
 	}
 
 	public boolean isAnyEngineRunning() {
-		return activePiperProcessCount() > 0;
+		return activePiperProcessCount() > 0 || isNativeSpeechRunning();
 	}
 
 	public static SpeechEngine engineOfModel(String modelName) {
-		return SpeechEngine.PIPER;
+		return NativeSpeech.isNativeModel(modelName) ? SpeechEngine.SYSTEM : SpeechEngine.PIPER;
 	}
 
 	public boolean isModelActive(ModelRepository.ModelLocal modelLocal) {
@@ -325,6 +415,10 @@ public class TextToSpeech {
 	}
 
 	public boolean isModelActive(String modelName) {
+		if (NativeSpeech.isNativeModel(modelName)) {
+			return nativeSpeechEngine != null && nativeSpeechEngine.isAlive();
+		}
+
 		Piper piper = pipers.get(modelName);
 		return piper != null && piper.countAlive() > 0;
 	}
@@ -338,6 +432,18 @@ public class TextToSpeech {
 	public void triggerOnPiperExit(Piper piper) {
 		for (TextToSpeechListener listener : textToSpeechListeners) {
 			listener.onPiperExit(piper);
+		}
+	}
+
+	private void triggerOnNativeSpeechStart(NativeSpeechEngine engine) {
+		for (TextToSpeechListener listener : textToSpeechListeners) {
+			listener.onNativeSpeechStart(engine);
+		}
+	}
+
+	private void triggerOnNativeSpeechExit(NativeSpeechEngine engine) {
+		for (TextToSpeechListener listener : textToSpeechListeners) {
+			listener.onNativeSpeechExit(engine);
 		}
 	}
 
@@ -423,6 +529,10 @@ public class TextToSpeech {
 		default void onPiperStart(Piper piper) {}
 
 		default void onPiperExit(Piper piper) {}
+
+		default void onNativeSpeechStart(NativeSpeechEngine engine) {}
+
+		default void onNativeSpeechExit(NativeSpeechEngine engine) {}
 
 		default void onPiperInvalid() {}
 

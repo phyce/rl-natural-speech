@@ -19,11 +19,13 @@ import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeech;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -54,6 +56,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	private NaturalSpeechConfig config;
 	@Inject
 	private EventBus eventBus;
+	@Inject
+	private ClientThread clientThread;
 
 	//</editor-fold>
 
@@ -145,9 +149,13 @@ public class NaturalSpeechPlugin extends Plugin {
 		textToSpeech.loadShortenedPhrases();
 
 
+		seedFirstRunDefaults();
+
 		if (config.autoStart()) {
 			textToSpeech.start();
 		}
+
+		realignConfiguredVoices();
 
 		updateConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
 		updateConfigVoice(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice());
@@ -220,6 +228,31 @@ public class NaturalSpeechPlugin extends Plugin {
 		}
 
 		log.info("Legacy config migration complete");
+	}
+
+	private static final String[] DEFAULT_ON_KEYS = {
+		ConfigKeys.PUBLIC_CHAT,
+		ConfigKeys.FRIENDS_CHAT,
+		ConfigKeys.EXAMINE_CHAT,
+		ConfigKeys.DIALOG,
+		ConfigKeys.PLAYER_DIALOG,
+		ConfigKeys.SYSTEM_MESSAGES,
+		ConfigKeys.LOGIN_LOGOUT,
+	};
+
+	private void seedFirstRunDefaults() {
+		for (String key : SPEECH_ENGINE_KEYS) {
+			// any setting at all means this is not a first run
+			if (configManager.getConfiguration(CONFIG_GROUP, key) != null) return;
+		}
+
+		if (!NativeSpeech.isSupported()) return;
+		if (textToSpeech.isPiperSetUp()) return;
+
+		log.info("First run without piper, defaulting the enabled message types to the system voices");
+		for (String key : DEFAULT_ON_KEYS) {
+			configManager.setConfiguration(CONFIG_GROUP, key, SpeechEngine.SYSTEM);
+		}
 	}
 
 	private static final String[] SPEECH_ENGINE_KEYS = {
@@ -300,7 +333,58 @@ public class NaturalSpeechPlugin extends Plugin {
 				log.trace("Detected voice changes from config, loading in new voices");
 				updateConfigVoice(event.getKey(), event.getNewValue());
 				break;
+
+			case ConfigKeys.NATIVE_SPEECH:
+				// spawning the process is too slow to do on the EDT
+				final boolean enabled = config.nativeSpeechEnabled();
+				clientThread.invokeLater(() -> {
+					if (enabled) {
+						textToSpeech.startNativeSpeech();
+					}
+					else {
+						textToSpeech.stopNativeSpeech();
+					}
+					realignConfiguredVoices();
+				});
+				break;
 		}
+
+		if (isSpeechEngineKey(event.getKey())) {
+			realignConfiguredVoices();
+		}
+	}
+
+	private static boolean isSpeechEngineKey(String key) {
+		for (String engineKey : SPEECH_ENGINE_KEYS) {
+			if (engineKey.equals(key)) return true;
+		}
+		return false;
+	}
+
+	private void realignConfiguredVoices() {
+		realignVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID(), config.publicChat());
+		realignVoice(ConfigKeys.GLOBAL_NPC_VOICE, config.globalNpcVoice(), config.npcDialog());
+		realignVoice(ConfigKeys.SYSTEM_VOICE, config.systemVoice(), config.systemMessages());
+		realignVoice(ConfigKeys.TWITCH_VOICE, config.twitchVoice(), config.twitchChat());
+	}
+
+	private void realignVoice(String configKey, String currentValue, SpeechEngine engine) {
+		if (engine.isOff()) return;
+
+		VoiceID current = VoiceID.fromIDString(currentValue);
+		if (current == null) return;
+		if (TextToSpeech.engineOfModel(current.getModelName()) == engine) return;
+
+		VoiceID replacement = voiceManager.anyVoiceFor(engine);
+		if (replacement == null) {
+			log.debug("{} is set to {} which is not {}, but that engine has no voices to swap in",
+				configKey, current, engine);
+			return;
+		}
+
+		log.info("{} was {}, which {} cannot speak. Using {} instead.",
+			configKey, current, engine, replacement);
+		configManager.setConfiguration(CONFIG_GROUP, configKey, replacement.toVoiceIDString());
 	}
 
 

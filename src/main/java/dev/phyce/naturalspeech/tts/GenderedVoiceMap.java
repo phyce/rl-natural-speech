@@ -11,6 +11,26 @@ public class GenderedVoiceMap {
 	public List<VoiceID> FemaleList = new ArrayList<>();
 	public List<VoiceID> OtherList = new ArrayList<>();
 
+	public void addVoice(Gender gender, VoiceID voiceID) {
+		if (gender == Gender.MALE) {
+			MaleList.add(voiceID);
+		} else if (gender == Gender.FEMALE) {
+			FemaleList.add(voiceID);
+		} else {
+			OtherList.add(voiceID);
+		}
+	}
+
+	public void removeVoice(Gender gender, VoiceID voiceID) {
+		if (gender == Gender.MALE) {
+			MaleList.remove(voiceID);
+		} else if (gender == Gender.FEMALE) {
+			FemaleList.remove(voiceID);
+		} else {
+			OtherList.remove(voiceID);
+		}
+	}
+
 	public void addModel(ModelRepository.ModelLocal modelLocal) {
 		for (ModelRepository.VoiceMetadata voiceMetadata : modelLocal.getVoiceMetadata()) {
 			VoiceID voiceID = voiceMetadata.toVoiceID();
