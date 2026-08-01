@@ -10,6 +10,7 @@ import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
@@ -105,6 +106,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void startUp() {
 
 		migrateLegacyConfigGroup();
+		migrateSpeechToggles();
 
 		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
 		textToSpeech = injector.getInstance(TextToSpeech.class);
@@ -219,6 +221,48 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		log.info("Legacy config migration complete");
 	}
+
+	private static final String[] SPEECH_ENGINE_KEYS = {
+		ConfigKeys.PUBLIC_CHAT,
+		ConfigKeys.PRIVATE_CHAT,
+		ConfigKeys.PRIVATE_OUT_CHAT,
+		ConfigKeys.FRIENDS_CHAT,
+		ConfigKeys.CLAN_CHAT,
+		ConfigKeys.CLAN_GUEST_CHAT,
+		ConfigKeys.GIM_CHAT,
+		ConfigKeys.EXAMINE_CHAT,
+		ConfigKeys.NPC_OVERHEAD,
+		ConfigKeys.DIALOG,
+		ConfigKeys.PLAYER_DIALOG,
+		ConfigKeys.REQUESTS,
+		ConfigKeys.SYSTEM_MESSAGES,
+		ConfigKeys.LOGIN_LOGOUT,
+		ConfigKeys.TWITCH_CHAT,
+	};
+
+	private void migrateSpeechToggles() {
+		int migrated = 0;
+
+		for (String key : SPEECH_ENGINE_KEYS) {
+			String value = configManager.getConfiguration(CONFIG_GROUP, key);
+
+			if ("true".equals(value)) {
+				configManager.setConfiguration(CONFIG_GROUP, key, SpeechEngine.PIPER);
+			}
+			else if ("false".equals(value)) {
+				configManager.setConfiguration(CONFIG_GROUP, key, SpeechEngine.OFF);
+			}
+			else {
+				continue;
+			}
+
+			migrated++;
+		}
+
+		if (migrated > 0) {
+			log.info("Migrated {} message type(s) from an on/off toggle to a choice of engine", migrated);
+		}
+	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
@@ -257,7 +301,6 @@ public class NaturalSpeechPlugin extends Plugin {
 				updateConfigVoice(event.getKey(), event.getNewValue());
 				break;
 		}
-
 	}
 
 

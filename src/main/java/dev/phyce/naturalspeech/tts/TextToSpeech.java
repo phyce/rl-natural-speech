@@ -15,6 +15,7 @@ import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
@@ -110,6 +111,11 @@ public class TextToSpeech {
 
 	public void stop() {
 		started = false;
+		stopPipers();
+		triggerOnStop();
+	}
+
+	private void stopPipers() {
 		for (Piper piper : pipers.values()) {
 			try {
 				piper.stop();
@@ -119,7 +125,6 @@ public class TextToSpeech {
 			triggerOnPiperExit(piper);
 		}
 		pipers.clear();
-		triggerOnStop();
 	}
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
@@ -150,9 +155,10 @@ public class TextToSpeech {
 			}
 
 			int generation = isDialog ? dialogGen.get() : -1;
+			float volume = getVolumeWithDistance(distance, volumeBoostPercent);
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName, generation);
+				piper.speak(sentence, voiceID, volume, audioQueueName, generation);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
@@ -322,6 +328,14 @@ public class TextToSpeech {
 			result += model.countAlive();
 		}
 		return result;
+	}
+
+	public boolean isAnyEngineRunning() {
+		return activePiperProcessCount() > 0;
+	}
+
+	public static SpeechEngine engineOfModel(String modelName) {
+		return SpeechEngine.PIPER;
 	}
 
 	public boolean isModelActive(ModelRepository.ModelLocal modelLocal) {

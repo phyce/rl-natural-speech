@@ -1,9 +1,12 @@
 package dev.phyce.naturalspeech;
 
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
@@ -15,23 +18,23 @@ public class SpeechEventHandlerTest {
 	private static SpeechEventHandler handler(boolean systemMessagesEnabled) {
 		NaturalSpeechConfig config = new NaturalSpeechConfig() {
 			@Override
-			public boolean systemMesagesEnabled() {
-				return systemMessagesEnabled;
+			public SpeechEngine systemMessages() {
+				return systemMessagesEnabled ? SpeechEngine.PIPER : SpeechEngine.OFF;
 			}
 
 			@Override
-			public boolean clanChatEnabled() {
-				return true;
+			public SpeechEngine clanChat() {
+				return SpeechEngine.PIPER;
 			}
 
 			@Override
-			public boolean clanGuestChatEnabled() {
-				return true;
+			public SpeechEngine clanGuestChat() {
+				return SpeechEngine.PIPER;
 			}
 
 			@Override
-			public boolean groupIronmanChatEnabled() {
-				return true;
+			public SpeechEngine groupIronmanChat() {
+				return SpeechEngine.PIPER;
 			}
 		};
 
@@ -119,13 +122,13 @@ public class SpeechEventHandlerTest {
 	public void loginLogoutCanBeSilencedWhileOtherSystemMessagesStillSpeak() {
 		NaturalSpeechConfig systemOnLoginOff = new NaturalSpeechConfig() {
 			@Override
-			public boolean systemMesagesEnabled() {
-				return true;
+			public SpeechEngine systemMessages() {
+				return SpeechEngine.PIPER;
 			}
 
 			@Override
-			public boolean loginLogoutEnabled() {
-				return false;
+			public SpeechEngine loginLogout() {
+				return SpeechEngine.OFF;
 			}
 		};
 		SpeechEventHandler handler = new SpeechEventHandler(null, null, systemOnLoginOff, null, null, null, null, null);
@@ -138,13 +141,13 @@ public class SpeechEventHandlerTest {
 	public void clanSystemMessagesStillRespectTheirChannelToggle() {
 		NaturalSpeechConfig systemOnClanOff = new NaturalSpeechConfig() {
 			@Override
-			public boolean systemMesagesEnabled() {
-				return true;
+			public SpeechEngine systemMessages() {
+				return SpeechEngine.PIPER;
 			}
 
 			@Override
-			public boolean clanChatEnabled() {
-				return false;
+			public SpeechEngine clanChat() {
+				return SpeechEngine.OFF;
 			}
 		};
 		SpeechEventHandler handler = new SpeechEventHandler(null, null, systemOnClanOff, null, null, null, null, null);
@@ -159,5 +162,79 @@ public class SpeechEventHandlerTest {
 
 		assertTrue(handler.isMessageTypeDisabledInConfig(broadcast));
 		assertTrue(handler.isMessageTypeDisabledInConfig(message(ChatMessageType.CLAN_MESSAGE)));
+	}
+
+	private static SpeechEventHandler handler(NaturalSpeechConfig config) {
+		return new SpeechEventHandler(null, null, config, null, null, null, null, null);
+	}
+
+	@Test
+	public void eachMessageTypeReadsItsOwnEngineSetting() {
+		SpeechEventHandler handler = handler(new NaturalSpeechConfig() {
+			@Override
+			public SpeechEngine publicChat() {
+				return SpeechEngine.SYSTEM;
+			}
+
+			@Override
+			public SpeechEngine clanChat() {
+				return SpeechEngine.PIPER;
+			}
+
+			@Override
+			public SpeechEngine privateChat() {
+				return SpeechEngine.OFF;
+			}
+		});
+
+		assertEquals(SpeechEngine.SYSTEM, handler.engineFor(message(ChatMessageType.PUBLICCHAT)));
+		assertEquals(SpeechEngine.PIPER, handler.engineFor(message(ChatMessageType.CLAN_CHAT)));
+		assertEquals(SpeechEngine.OFF, handler.engineFor(message(ChatMessageType.PRIVATECHAT)));
+		assertTrue(handler.isMessageTypeDisabledInConfig(message(ChatMessageType.PRIVATECHAT)));
+	}
+
+	@Test
+	public void clanBroadcastsFollowTheSystemEngineButStillNeedTheClanToggle() {
+		SpeechEventHandler handler = handler(new NaturalSpeechConfig() {
+			@Override
+			public SpeechEngine systemMessages() {
+				return SpeechEngine.SYSTEM;
+			}
+
+			@Override
+			public SpeechEngine clanChat() {
+				return SpeechEngine.PIPER;
+			}
+		});
+
+		assertEquals(SpeechEngine.SYSTEM, handler.engineFor(message(ChatMessageType.CLAN_MESSAGE)));
+		assertEquals(SpeechEngine.PIPER, handler.engineFor(message(ChatMessageType.CLAN_CHAT)));
+	}
+
+	@Test
+	public void loginLogoutPicksItsOwnEngineOnceSystemMessagesAreOn() {
+		SpeechEventHandler handler = handler(new NaturalSpeechConfig() {
+			@Override
+			public SpeechEngine systemMessages() {
+				return SpeechEngine.PIPER;
+			}
+
+			@Override
+			public SpeechEngine loginLogout() {
+				return SpeechEngine.SYSTEM;
+			}
+		});
+
+		assertEquals(SpeechEngine.SYSTEM, handler.engineFor(message(ChatMessageType.LOGINLOGOUTNOTIFICATION)));
+		assertEquals(SpeechEngine.PIPER, handler.engineFor(message(ChatMessageType.GAMEMESSAGE)));
+	}
+
+	@Test
+	public void everyMessageTypeResolvesToSomeEngine() {
+		SpeechEventHandler handler = handler(true);
+
+		for (ChatMessageType type : ChatMessageType.values()) {
+			assertNotNull(type + " does not resolve to an engine", handler.engineFor(message(type)));
+		}
 	}
 }
