@@ -2,7 +2,8 @@ package dev.phyce.naturalspeech.enums;
 
 public enum SpeechEngine {
 	OFF("Off"),
-	PIPER("Piper");
+	PIPER("Piper"),
+	ELEVENLABS("ElevenLabs");
 
 	private final String label;
 

@@ -1,54 +1,102 @@
 package dev.phyce.naturalspeech.tts;
 
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.annotations.JsonAdapter;
+import java.lang.reflect.Type;
 import lombok.Data;
 
 @Data
+@JsonAdapter(VoiceID.Adapter.class)
 public class VoiceID {
+
 	public String modelName;
-	public int piperVoiceID;
+
+	public String id;
 
 	public VoiceID() {
 
 	}
 
-	public VoiceID(String modelName, int piperVoiceID) {
+	public VoiceID(String modelName, String id) {
 		this.modelName = modelName;
-		this.piperVoiceID = piperVoiceID;
+		this.id = id;
+	}
+
+	public VoiceID(String modelName, int piperVoiceID) {
+		this(modelName, Integer.toString(piperVoiceID));
 	}
 
 	/**
-	 * Returns the ModelAndVoice in the format of "modelShortName:VoiceID",
-	 * ex libritts:360
+	 * @return the piper speaker index, or -1 when this voice is not numeric (in which case it does
+	 * not belong to piper). -1 is what piper itself treats as "no speaker id".
+	 */
+	public int getPiperVoiceID() {
+		try {
+			return Integer.parseUnsignedInt(id);
+		}
+		catch (NumberFormatException ignored) {
+			return -1;
+		}
+	}
+
+	/**
+	 * Parses "modelName:voiceID", ex libritts:360 or microsoft:Microsoft Hazel Desktop.
+	 * <p>
+	 * Splits on the first colon only, so voice names containing one survive.
 	 *
-	 * @return null if format is invalid, ModelAndVoice otherwise.
-	 * Does not verify Model and Voice's actual existence.
+	 * @return null if the format is invalid. Does not verify the model or voice actually exists.
 	 */
 	public static VoiceID fromIDString(String idString) {
-		String[] split = idString.split(":");
+		if (idString == null) return null;
 
-		// incorrect format
-		if (split.length != 2) return null;
+		int separator = idString.indexOf(':');
+		if (separator < 1) return null;
 
-		// verify model short name
-		if (split[0].isEmpty() || split[0].isBlank()) return null;
+		String modelName = idString.substring(0, separator);
+		String id = idString.substring(separator + 1);
 
-		// verify voice ID
-		int voiceID;
+		if (modelName.trim().isEmpty() || id.trim().isEmpty()) return null;
 
-		try {
-			voiceID = Integer.parseUnsignedInt(split[1]);
-		} catch (NumberFormatException ignored) {
-			return null;
-		}
-
-		return new VoiceID(split[0], voiceID);
+		return new VoiceID(modelName, id);
 	}
 
 	public String toVoiceIDString() {
-		return String.format("%s:%d", modelName, piperVoiceID);
+		return modelName + ":" + id;
 	}
 
 	public String toString() {
 		return toVoiceIDString();
+	}
+
+	/**
+	 * Voice ids used to be the numeric {@code piperVoiceID}. Saved configs still hold that field, so
+	 * it is read as a fallback for {@code id}. Writing is left to gson, which uses the fields above.
+	 */
+	static final class Adapter implements JsonDeserializer<VoiceID> {
+
+		private static final String MODEL_NAME = "modelName";
+		private static final String ID = "id";
+		private static final String LEGACY_ID = "piperVoiceID";
+
+		@Override
+		public VoiceID deserialize(JsonElement element, Type type, JsonDeserializationContext context) {
+			if (!element.isJsonObject()) return null;
+
+			JsonObject object = element.getAsJsonObject();
+
+			JsonElement modelName = object.get(MODEL_NAME);
+			if (modelName == null || modelName.isJsonNull()) return null;
+
+			JsonElement id = object.get(ID);
+			if (id == null || id.isJsonNull()) {
+				id = object.get(LEGACY_ID);
+			}
+			if (id == null || id.isJsonNull()) return null;
+
+			return new VoiceID(modelName.getAsString(), id.getAsString());
+		}
 	}
 }

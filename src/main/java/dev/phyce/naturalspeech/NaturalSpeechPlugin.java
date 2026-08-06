@@ -24,6 +24,7 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -55,6 +56,8 @@ public class NaturalSpeechPlugin extends Plugin {
 	private NaturalSpeechConfig config;
 	@Inject
 	private EventBus eventBus;
+	@Inject
+	private ClientThread clientThread;
 
 	//</editor-fold>
 
@@ -288,6 +291,11 @@ public class NaturalSpeechPlugin extends Plugin {
 			case ConfigKeys.TWITCH_VOICE:
 				log.trace("Detected voice changes from config, loading in new voices");
 				updateConfigVoice(event.getKey(), event.getNewValue());
+				break;
+
+			case ConfigKeys.ELEVENLABS_API_KEY:
+				log.trace("Detected ElevenLabs API key change, reloading the voice library");
+				clientThread.invokeLater(() -> textToSpeech.startElevenLabs());
 				break;
 		}
 

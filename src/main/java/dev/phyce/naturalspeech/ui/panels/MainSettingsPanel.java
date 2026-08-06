@@ -7,6 +7,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -73,6 +74,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final ModelRepository modelRepository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
+	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
 	private final List<ModelRepository.ModelRepositoryListener> modelRepositoryListeners;
 
 	@Inject
@@ -82,9 +84,11 @@ public class MainSettingsPanel extends PluginPanel {
 		ConfigManager configManager,
 		Downloader downloader, ClientThread clientThread,
 		TextToSpeech textToSpeech,
-		NaturalSpeechRuntimeConfig runtimeConfig
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		ElevenLabsVoiceRepository elevenLabsVoiceRepository
 	) {
 		super(false);
+		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
 		this.textToSpeech = textToSpeech;
 		this.modelRepository = modelRepository;
 		this.clientThread = clientThread;
@@ -114,6 +118,7 @@ public class MainSettingsPanel extends PluginPanel {
 		this.add(scrollPane);
 
 		buildHeaderSegment();
+		buildElevenLabsSection();
 		buildPiperStatusSection();
 		buildVoiceRepositorySegment();
 //		buildVoiceHistorySegment();
@@ -217,56 +222,8 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	public void buildVoiceRepositorySegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final String name = "Voice Packs";
-		final String description = "Download and manage your voice models.";
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
+		final JPanel sectionContent =
+			buildSection("Piper Voice Packs", "Download and manage your piper voice models.");
 
 		List<ModelRepository.ModelURL> modelURLS = modelRepository.getModelURLS();
 		for (ModelRepository.ModelURL modelUrl : modelURLS) {
@@ -297,7 +254,7 @@ public class MainSettingsPanel extends PluginPanel {
 		}
 	}
 
-	public void buildPiperStatusSection() {
+	private JPanel buildSection(String name, String description) {
 		final JPanel section = new JPanel();
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
@@ -319,8 +276,6 @@ public class MainSettingsPanel extends PluginPanel {
 		SwingUtil.removeButtonDecorations(sectionToggle);
 		sectionHeader.add(sectionToggle, BorderLayout.WEST);
 
-		final String name = "Piper Status";
-		final String description = "Manage your piper instances.";
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
@@ -348,15 +303,95 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
 
+		return sectionContent;
+	}
+
+	public void buildPiperStatusSection() {
+		JPanel sectionContent = buildSection("Piper Status", "Manage your piper instances.");
+
 		// Status Label with dynamic background color
-		JPanel statusPanel = buildPiperStatusPanel();
-		sectionContent.add(statusPanel);
+		sectionContent.add(buildPiperStatusPanel());
+		sectionContent.add(buildPiperFileChoose());
+		sectionContent.add(buildPiperProcessMonitorPanel());
+	}
 
-		JPanel piperFileChoosePanel = buildPiperFileChoose();
-		sectionContent.add(piperFileChoosePanel);
+	public void buildElevenLabsSection() {
+		JPanel sectionContent = buildSection("ElevenLabs",
+			"Cloud voices. Set the API key in the plugin settings, then check it here.");
 
-		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
-		sectionContent.add(piperProcessMonitorPanel);
+		sectionContent.add(buildElevenLabsStatusPanel());
+	}
+
+	/**
+	 * Status plus a Check key button. The key lives in the RuneLite config panel, which only renders
+	 * plain inputs, so the button that validates it has to live here.
+	 */
+	private JPanel buildElevenLabsStatusPanel() {
+		JPanel statusPanel = new JPanel(new BorderLayout());
+		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
+
+		JLabel statusLabel = new JLabel("No API Key", SwingConstants.CENTER);
+		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
+		statusLabel.setOpaque(true); // Needed to show background color
+		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50));
+		statusPanel.add(statusLabel, BorderLayout.NORTH);
+
+		JLabel detailLabel = new JLabel(" ", SwingConstants.CENTER);
+		detailLabel.setFont(FontManager.getRunescapeSmallFont());
+		detailLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+
+		JButton checkButton = new JButton("Check key");
+		checkButton.setToolTipText("Ask ElevenLabs for your voice list using the configured API key");
+
+		Runnable refresh = () -> SwingUtilities.invokeLater(() -> {
+			int voices = elevenLabsVoiceRepository.getVoices().size();
+
+			if (!elevenLabsVoiceRepository.isConfigured()) {
+				statusLabel.setText("No API Key");
+				statusLabel.setBackground(Color.DARK_GRAY);
+				statusLabel.setForeground(null);
+				statusPanel.setToolTipText("Set an API key in the plugin settings under ElevenLabs.");
+			}
+			else if (voices > 0) {
+				statusLabel.setText("Ready");
+				statusLabel.setBackground(Color.GREEN.darker());
+				statusLabel.setForeground(Color.WHITE);
+				statusPanel.setToolTipText(voices + " ElevenLabs voice(s) available.");
+			}
+			else {
+				statusLabel.setText("Unverified");
+				statusLabel.setBackground(Color.DARK_GRAY);
+				statusLabel.setForeground(null);
+				statusPanel.setToolTipText("An API key is set, but no voices have loaded yet.");
+			}
+
+			checkButton.setEnabled(!elevenLabsVoiceRepository.isFetching());
+		});
+		refresh.run();
+
+		checkButton.addActionListener(event -> {
+			checkButton.setEnabled(false);
+			detailLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+			detailLabel.setText("Checking...");
+
+			elevenLabsVoiceRepository.verify(result -> SwingUtilities.invokeLater(() -> {
+				detailLabel.setForeground(result.isSuccess() ? Color.GREEN.brighter() : ColorScheme.PROGRESS_ERROR_COLOR);
+				detailLabel.setText("<html><center>" + result.getMessage() + "</center></html>");
+				refresh.run();
+			}));
+		});
+
+		elevenLabsVoiceRepository.addListener((removed, added) -> refresh.run());
+
+		JPanel bottom = new JPanel(new DynamicGridLayout(0, 1, 0, 3));
+		bottom.setBorder(new EmptyBorder(3, 5, 0, 5));
+		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		buttonPanel.add(checkButton);
+		bottom.add(buttonPanel);
+		bottom.add(detailLabel);
+		statusPanel.add(bottom, BorderLayout.CENTER);
+
+		return statusPanel;
 	}
 
 	private JPanel buildPiperProcessMonitorPanel() {
@@ -481,7 +516,7 @@ public class MainSettingsPanel extends PluginPanel {
 		});
 		stopButton.addActionListener(e -> {
 			clientThread.invokeLater(() -> {
-				textToSpeech.stop();
+				textToSpeech.stopPiper();
 			});
 		});
 

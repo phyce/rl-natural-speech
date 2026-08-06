@@ -68,7 +68,7 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onChatMessage(ChatMessage message) throws ModelLocalUnavailableException {
-		if (textToSpeech.activePiperProcessCount() == 0) return;
+		if (!textToSpeech.isAnyEngineRunning()) return;
 		log.debug("Message received: " + message.toString());
 
 		String username;
@@ -81,13 +81,15 @@ public class SpeechEventHandler {
 
 		if (isChatMessageMuted(message)) return;
 
+		SpeechEngine engine = engineFor(message);
+
 		try {
 			if (isTwitchMessage(message)) {
 				if (!config.twitchVoice().isEmpty()) {
 					username = MagicUsernames.TWITCH;
 				}
 				distance = 0;
-				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
 				text = textToSpeech.expandShortenedPhrases(text);
 
 				log.debug("Twitch voice {} used for {}. ", voiceId, username);
@@ -95,7 +97,7 @@ public class SpeechEventHandler {
 			else if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
-				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
 				text = textToSpeech.expandShortenedPhrases(text);
 				text = TextUtil.renderLargeNumbers(text);
 
@@ -106,7 +108,7 @@ public class SpeechEventHandler {
 				if (config.friendsVolumeBoost() > 0 && PluginHelper.isFriend(username)) {
 					volumeBoost = config.friendsVolumeBoost();
 				}
-				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
 				text = textToSpeech.expandShortenedPhrases(text);
 				text = TextUtil.renderLargeNumbers(text);
 
@@ -117,7 +119,7 @@ public class SpeechEventHandler {
 				distance = 0;
 				text = Text.standardize(text);
 				text = TextUtil.renderLargeNumbers(text);
-				voiceId = voiceManager.getVoiceIDFromUsername(username);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
 
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
@@ -138,8 +140,11 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onWidgetLoaded(WidgetLoaded event) {
+		if (!textToSpeech.isAnyEngineRunning()) return;
+
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
-			if (config.playerDialog().isOff()) return;
+			SpeechEngine engine = config.playerDialog();
+			if (engine.isOff()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				if (config.cutOffDialogOnSkip()) {
@@ -157,14 +162,18 @@ public class SpeechEventHandler {
 				}
 				VoiceID voiceID;
 				try {
-					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
+					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER, engine);
 				} catch (VoiceSelectionOutOfOption e) {
-					throw new RuntimeException(e);
+					// Nothing to speak with, ex ElevenLabs selected before its voices have loaded.
+					// Skipping the line is the intended behaviour; it must not take the tick down.
+					log.debug("No {} voice available for player dialog, skipping", engine);
+					return;
 				}
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
-			if (config.npcDialog().isOff()) return;
+			SpeechEngine engine = config.npcDialog();
+			if (engine.isOff()) return;
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				if (config.cutOffDialogOnSkip()) {
@@ -201,8 +210,16 @@ public class SpeechEventHandler {
 				}
 
 				VoiceID voiceID;
-				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName); }
-				catch (VoiceSelectionOutOfOption e) { throw new RuntimeException(e); }
+				try {
+					voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName, engine);
+				}
+				catch (VoiceSelectionOutOfOption e) {
+					// Nothing to speak with, ex ElevenLabs selected before its voices have loaded.
+					// Skipping the line is the intended behaviour; it must not take the tick down.
+					log.debug("No {} voice available for NPC dialog (CompId:{} name:{}), skipping",
+						engine, npcCompId, npcName);
+					return;
+				}
 
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
@@ -220,10 +237,11 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-1)
 	private void onOverheadTextChanged(OverheadTextChanged event) {
-		if (textToSpeech.activePiperProcessCount() < 1) return;
+		if (!textToSpeech.isAnyEngineRunning()) return;
 
 		if (event.getActor() instanceof NPC) {
-			if (config.npcOverhead().isOff()) return;
+			SpeechEngine engine = config.npcOverhead();
+			if (engine.isOff()) return;
 			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
 
@@ -241,7 +259,7 @@ public class SpeechEventHandler {
 
 			VoiceID voiceID = null;
 			try {
-				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
+				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName(), engine);
 				textToSpeech.speak(voiceID, text, distance, npc.getName());
 			} catch (VoiceSelectionOutOfOption e) {
 				log.error(
