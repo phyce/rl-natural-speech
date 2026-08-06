@@ -16,6 +16,9 @@ import dev.phyce.naturalspeech.macos.MacUnquarantine;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
 import dev.phyce.naturalspeech.enums.SpeechEngine;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabs;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsEngine;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeech;
 import dev.phyce.naturalspeech.utils.OSValidator;
@@ -58,6 +61,11 @@ public class TextToSpeech {
 	private final Map<String, Piper> pipers = new HashMap<>();
 	@Getter
 	private NativeSpeechEngine nativeSpeechEngine;
+	@Getter
+	private ElevenLabsEngine elevenLabsEngine;
+	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
+	private final okhttp3.OkHttpClient httpClient;
+	private final com.google.gson.Gson gson;
 	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
 	@Getter
 	private boolean started = false;
@@ -70,12 +78,18 @@ public class TextToSpeech {
 		ClientThread clientThread,
 		ModelRepository modelRepository,
 		NaturalSpeechRuntimeConfig runtimeConfig,
-		NaturalSpeechConfig config) {
+		NaturalSpeechConfig config,
+		ElevenLabsVoiceRepository elevenLabsVoiceRepository,
+		okhttp3.OkHttpClient httpClient,
+		com.google.gson.Gson gson) {
 		this.runtimeConfig = runtimeConfig;
 		this.configManager = configManager;
 		this.clientThread = clientThread;
 		this.modelRepository = modelRepository;
 		this.config = config;
+		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
+		this.httpClient = httpClient;
+		this.gson = gson;
 		this.playbackGate = new PlaybackGate(config::sequentialPlaybackEnabled, config::sequentialPlaybackQueueSize);
 
 		loadModelConfig();
@@ -85,8 +99,10 @@ public class TextToSpeech {
 	public void start() {
 		if (config.nativeSpeechEnabled() && !isNativeSpeechRunning()) startNativeSpeech();
 
+		startElevenLabs();
+
 		if (!isPiperPathValid()) {
-			if (isNativeSpeechRunning()) {
+			if (isNativeSpeechRunning() || isElevenLabsRunning()) {
 				started = true;
 				triggerOnStart();
 			}
@@ -97,7 +113,7 @@ public class TextToSpeech {
 		}
 
 		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
-		started = isNativeSpeechRunning();
+		started = isNativeSpeechRunning() || isElevenLabsRunning();
 		try {
 			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 				try {
@@ -157,16 +173,80 @@ public class TextToSpeech {
 		return nativeSpeechEngine != null && nativeSpeechEngine.isAlive();
 	}
 
+	/**
+	 * ElevenLabs is a cloud API with no process to spawn, so "starting" it only means loading the
+	 * voice library for the configured key. Call again whenever the API key changes.
+	 */
+	public void startElevenLabs() {
+		// A cloud backend failing must never stop piper or the system voices from coming up, so this
+		// swallows rather than propagates: start() calls it before the local engines are running.
+		try {
+			elevenLabsVoiceRepository.resetWarning();
+			elevenLabsVoiceRepository.refresh();
+		}
+		catch (RuntimeException e) {
+			log.error("Failed to load the ElevenLabs voice library, continuing without it", e);
+		}
+	}
+
+	/**
+	 * The engine is built on first use rather than by {@link #start()}. It holds nothing but worker
+	 * threads and an HTTP client, and tying it to the start button meant a saved API key that fired no
+	 * config-change event left it null — which silently reported ElevenLabs as not running.
+	 */
+	private ElevenLabsEngine elevenLabsEngine() {
+		ElevenLabsEngine engine = elevenLabsEngine;
+
+		if (engine == null) {
+			engine = new ElevenLabsEngine(httpClient, gson, config, playbackGate, dialogGen::get);
+			elevenLabsEngine = engine;
+		}
+
+		return engine;
+	}
+
+	/**
+	 * Cancels anything queued or in flight and releases the worker threads; a later call rebuilds
+	 * them on demand.
+	 * <p>
+	 * Deliberately leaves the voice library loaded. It reflects the API key, not the engine, and
+	 * dropping it here meant an unrelated full stop — swapping the piper binary, say — silently
+	 * reported ElevenLabs as unavailable until the user pressed Start.
+	 */
+	public void stopElevenLabs() {
+		try {
+			if (elevenLabsEngine != null) {
+				ElevenLabsEngine stopping = elevenLabsEngine;
+				elevenLabsEngine = null;
+				stopping.stop();
+			}
+		}
+		catch (RuntimeException e) {
+			log.error("Error stopping ElevenLabs", e);
+			elevenLabsEngine = null;
+		}
+	}
+
+	/**
+	 * Usable as soon as there is a key and a loaded voice library — deliberately not tied to whether
+	 * the engine object exists, since it is created on demand and there is no process to be up.
+	 */
+	public boolean isElevenLabsRunning() {
+		return elevenLabsVoiceRepository.isConfigured() && elevenLabsVoiceRepository.hasVoices();
+	}
+
 	public void stop() {
 		started = false;
 		stopNativeSpeech();
+		stopElevenLabs();
 		stopPipers();
 		triggerOnStop();
 	}
 
+
 	public void stopPiper() {
 		stopPipers();
-		started = isNativeSpeechRunning();
+		started = isNativeSpeechRunning() || isElevenLabsRunning();
 		triggerOnStop();
 	}
 
@@ -192,9 +272,15 @@ public class TextToSpeech {
 		assert distance >= 0;
 		try {
 			boolean isNativeVoice = NativeSpeech.isNativeModel(voiceID.getModelName());
+			boolean isElevenLabsVoice = ElevenLabs.isElevenLabsModel(voiceID.getModelName());
 
 			if (isNativeVoice) {
 				if (nativeSpeechEngine == null || !nativeSpeechEngine.isAlive()) {
+					throw new PiperNotActiveException(text, voiceID);
+				}
+			}
+			else if (isElevenLabsVoice) {
+				if (!isElevenLabsRunning()) {
 					throw new PiperNotActiveException(text, voiceID);
 				}
 			}
@@ -209,7 +295,7 @@ public class TextToSpeech {
 			}
 
 			// Piper should be guaranteed to be present due to checks above
-			Piper piper = isNativeVoice ? null : pipers.get(voiceID.modelName);
+			Piper piper = (isNativeVoice || isElevenLabsVoice) ? null : pipers.get(voiceID.modelName);
 
 			boolean isDialog = MagicUsernames.DIALOG.equals(audioQueueName);
 			if (!isDialog && playbackGate.isBacklogged(pendingAudioCount())) {
@@ -220,6 +306,14 @@ public class TextToSpeech {
 
 			int generation = isDialog ? dialogGen.get() : -1;
 			float volume = getVolumeWithDistance(distance, volumeBoostPercent);
+
+			if (isElevenLabsVoice) {
+				// One request per line. Splitting would bill each fragment separately and drop an
+				// audible gap into the middle of a sentence while the next request round-trips.
+				elevenLabsEngine().speak(text, voiceID, volume, audioQueueName, generation);
+				return;
+			}
+
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
 				if (isNativeVoice) {
@@ -241,6 +335,9 @@ public class TextToSpeech {
 		}
 		if (nativeSpeechEngine != null) {
 			total += nativeSpeechEngine.pendingAudioCount();
+		}
+		if (elevenLabsEngine != null) {
+			total += elevenLabsEngine.pendingAudioCount();
 		}
 		return total;
 	}
@@ -295,6 +392,9 @@ public class TextToSpeech {
 		if (nativeSpeechEngine != null) {
 			nativeSpeechEngine.silenceQueue(queueName);
 		}
+		if (elevenLabsEngine != null) {
+			elevenLabsEngine.silenceQueue(queueName);
+		}
 	}
 
 	public void clearAllAudioQueues() {
@@ -303,6 +403,9 @@ public class TextToSpeech {
 		}
 		if (nativeSpeechEngine != null) {
 			nativeSpeechEngine.clearQueue();
+		}
+		if (elevenLabsEngine != null) {
+			elevenLabsEngine.clearQueue();
 		}
 	}
 
@@ -424,11 +527,13 @@ public class TextToSpeech {
 	}
 
 	public boolean isAnyEngineRunning() {
-		return activePiperProcessCount() > 0 || isNativeSpeechRunning();
+		return activePiperProcessCount() > 0 || isNativeSpeechRunning() || isElevenLabsRunning();
 	}
 
 	public static SpeechEngine engineOfModel(String modelName) {
-		return NativeSpeech.isNativeModel(modelName) ? SpeechEngine.SYSTEM : SpeechEngine.PIPER;
+		if (NativeSpeech.isNativeModel(modelName)) return SpeechEngine.SYSTEM;
+		if (ElevenLabs.isElevenLabsModel(modelName)) return SpeechEngine.ELEVENLABS;
+		return SpeechEngine.PIPER;
 	}
 
 	public boolean isModelActive(ModelRepository.ModelLocal modelLocal) {
@@ -438,6 +543,10 @@ public class TextToSpeech {
 	public boolean isModelActive(String modelName) {
 		if (NativeSpeech.isNativeModel(modelName)) {
 			return nativeSpeechEngine != null && nativeSpeechEngine.isAlive();
+		}
+
+		if (ElevenLabs.isElevenLabsModel(modelName)) {
+			return isElevenLabsRunning();
 		}
 
 		Piper piper = pipers.get(modelName);

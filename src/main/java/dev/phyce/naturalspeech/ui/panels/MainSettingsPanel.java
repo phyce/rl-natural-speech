@@ -9,6 +9,7 @@ import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeech;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
 import dev.phyce.naturalspeech.utils.OSValidator;
@@ -78,6 +79,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final ConfigManager configManager;
+	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
 	private final List<ModelRepository.ModelRepositoryListener> modelRepositoryListeners;
 
 	@Inject
@@ -87,9 +89,11 @@ public class MainSettingsPanel extends PluginPanel {
 		ConfigManager configManager,
 		Downloader downloader, ClientThread clientThread,
 		TextToSpeech textToSpeech,
-		NaturalSpeechRuntimeConfig runtimeConfig
+		NaturalSpeechRuntimeConfig runtimeConfig,
+		ElevenLabsVoiceRepository elevenLabsVoiceRepository
 	) {
 		super(false);
+		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
 		this.textToSpeech = textToSpeech;
 		this.modelRepository = modelRepository;
 		this.clientThread = clientThread;
@@ -121,6 +125,7 @@ public class MainSettingsPanel extends PluginPanel {
 
 		buildHeaderSegment();
 		buildNativeSpeechSection();
+		buildElevenLabsSection();
 		buildPiperStatusSection();
 		buildVoiceRepositorySegment();
 //		buildVoiceHistorySegment();
@@ -315,6 +320,85 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionContent.add(buildPiperStatusPanel());
 		sectionContent.add(buildPiperFileChoose());
 		sectionContent.add(buildPiperProcessMonitorPanel());
+	}
+
+	public void buildElevenLabsSection() {
+		JPanel sectionContent = buildSection("ElevenLabs",
+			"Cloud voices. Set the API key in the plugin settings, then check it here.");
+
+		sectionContent.add(buildElevenLabsStatusPanel());
+	}
+
+	/**
+	 * Status plus a Check key button. The key lives in the RuneLite config panel, which only renders
+	 * plain inputs, so the button that validates it has to live here.
+	 */
+	private JPanel buildElevenLabsStatusPanel() {
+		JPanel statusPanel = new JPanel(new BorderLayout());
+		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
+
+		JLabel statusLabel = new JLabel("No API Key", SwingConstants.CENTER);
+		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
+		statusLabel.setOpaque(true); // Needed to show background color
+		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50));
+		statusPanel.add(statusLabel, BorderLayout.NORTH);
+
+		JLabel detailLabel = new JLabel(" ", SwingConstants.CENTER);
+		detailLabel.setFont(FontManager.getRunescapeSmallFont());
+		detailLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+
+		JButton checkButton = new JButton("Check key");
+		checkButton.setToolTipText("Ask ElevenLabs for your voice list using the configured API key");
+
+		Runnable refresh = () -> SwingUtilities.invokeLater(() -> {
+			int voices = elevenLabsVoiceRepository.getVoices().size();
+
+			if (!elevenLabsVoiceRepository.isConfigured()) {
+				statusLabel.setText("No API Key");
+				statusLabel.setBackground(Color.DARK_GRAY);
+				statusLabel.setForeground(null);
+				statusPanel.setToolTipText("Set an API key in the plugin settings under ElevenLabs.");
+			}
+			else if (voices > 0) {
+				statusLabel.setText("Ready");
+				statusLabel.setBackground(Color.GREEN.darker());
+				statusLabel.setForeground(Color.WHITE);
+				statusPanel.setToolTipText(voices + " ElevenLabs voice(s) available.");
+			}
+			else {
+				statusLabel.setText("Unverified");
+				statusLabel.setBackground(Color.DARK_GRAY);
+				statusLabel.setForeground(null);
+				statusPanel.setToolTipText("An API key is set, but no voices have loaded yet.");
+			}
+
+			checkButton.setEnabled(!elevenLabsVoiceRepository.isFetching());
+		});
+		refresh.run();
+
+		checkButton.addActionListener(event -> {
+			checkButton.setEnabled(false);
+			detailLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+			detailLabel.setText("Checking...");
+
+			elevenLabsVoiceRepository.verify(result -> SwingUtilities.invokeLater(() -> {
+				detailLabel.setForeground(result.isSuccess() ? Color.GREEN.brighter() : ColorScheme.PROGRESS_ERROR_COLOR);
+				detailLabel.setText("<html><center>" + result.getMessage() + "</center></html>");
+				refresh.run();
+			}));
+		});
+
+		elevenLabsVoiceRepository.addListener((removed, added) -> refresh.run());
+
+		JPanel bottom = new JPanel(new DynamicGridLayout(0, 1, 0, 3));
+		bottom.setBorder(new EmptyBorder(3, 5, 0, 5));
+		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		buttonPanel.add(checkButton);
+		bottom.add(buttonPanel);
+		bottom.add(detailLabel);
+		statusPanel.add(bottom, BorderLayout.CENTER);
+
+		return statusPanel;
 	}
 
 	public void buildNativeSpeechSection() {

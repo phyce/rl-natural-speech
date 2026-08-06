@@ -6,6 +6,8 @@ import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoice;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeVoice;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
@@ -78,6 +80,9 @@ public class VoiceExplorerPanel extends EditorPanel {
 	private final List<VoiceSection> voiceSections = new ArrayList<>();
 	private final JCheckBox piperFilter;
 	private final JCheckBox systemFilter;
+	private final JCheckBox elevenLabsFilter;
+	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
+	private final ElevenLabsVoiceRepository.Listener elevenLabsListener;
 	private final ModelRepository.ModelRepositoryListener modelRepositoryListener;
 	private final TextToSpeech.TextToSpeechListener textToSpeechListener;
 
@@ -92,9 +97,13 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	@Inject
-	public VoiceExplorerPanel(ModelRepository modelRepository, TextToSpeech textToSpeech) {
+	public VoiceExplorerPanel(
+		ModelRepository modelRepository,
+		TextToSpeech textToSpeech,
+		ElevenLabsVoiceRepository elevenLabsVoiceRepository) {
 		this.modelRepository = modelRepository;
 		this.textToSpeech = textToSpeech;
+		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -136,11 +145,14 @@ public class VoiceExplorerPanel extends EditorPanel {
 
 		piperFilter = buildEngineFilter("Piper", "Show the piper voices you have downloaded.");
 		systemFilter = buildEngineFilter("System", "Show the voices built into your system.");
+		elevenLabsFilter = buildEngineFilter("ElevenLabs", "Show the voices in your ElevenLabs library.");
 
-		JPanel engineFilterPanel = new JPanel(new GridLayout(1, 2));
+		// Two columns so the longer ElevenLabs label stays readable; it wraps onto a second row
+		JPanel engineFilterPanel = new JPanel(new GridLayout(0, 2));
 		engineFilterPanel.setOpaque(false);
 		engineFilterPanel.add(piperFilter);
 		engineFilterPanel.add(systemFilter);
+		engineFilterPanel.add(elevenLabsFilter);
 
 		// Float Top/North Wrapper Panel, for search and speech text bar.
 		JPanel topPanel = new JPanel();
@@ -196,6 +208,10 @@ public class VoiceExplorerPanel extends EditorPanel {
 		};
 		this.textToSpeech.addTextToSpeechListener(textToSpeechListener);
 
+		// Fires on the client thread when the library loads or is cleared
+		elevenLabsListener = (removed, added) -> SwingUtilities.invokeLater(() -> buildSpeakerList());
+		this.elevenLabsVoiceRepository.addListener(elevenLabsListener);
+
 		buildSpeakerList();
 	}
 
@@ -217,6 +233,10 @@ public class VoiceExplorerPanel extends EditorPanel {
 		NativeSpeechEngine nativeEngine = textToSpeech.getNativeSpeechEngine();
 		if (nativeEngine != null && !nativeEngine.getVoices().isEmpty()) {
 			buildSystemVoiceSegment(nativeEngine);
+		}
+
+		if (!elevenLabsVoiceRepository.getVoices().isEmpty()) {
+			buildElevenLabsVoiceSegment();
 		}
 
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
@@ -246,6 +266,20 @@ public class VoiceExplorerPanel extends EditorPanel {
 			});
 	}
 
+	private void buildElevenLabsVoiceSegment() {
+		JPanel sectionContent = buildSpeakerSection("ElevenLabs",
+			"The voices in your ElevenLabs library. Previews here use API credit.",
+			SpeechEngine.ELEVENLABS);
+
+		elevenLabsVoiceRepository.getVoices().stream()
+			.sorted(Comparator.comparing(voice -> voice.getName().toLowerCase()))
+			.forEach(voice -> {
+				VoiceListItem speakerItem = VoiceListItem.forElevenLabsVoice(this, textToSpeech, voice);
+				voiceListItems.add(speakerItem);
+				sectionContent.add(speakerItem);
+			});
+	}
+
 	private void applyFilters() {
 		for (VoiceSection section : voiceSections) {
 			section.panel.setVisible(isEngineShown(section.engine));
@@ -254,7 +288,14 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	private boolean isEngineShown(SpeechEngine engine) {
-		return engine == SpeechEngine.SYSTEM? systemFilter.isSelected(): piperFilter.isSelected();
+		switch (engine) {
+			case SYSTEM:
+				return systemFilter.isSelected();
+			case ELEVENLABS:
+				return elevenLabsFilter.isSelected();
+			default:
+				return piperFilter.isSelected();
+		}
 	}
 
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
@@ -387,6 +428,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 	public void shutdown() {
 		modelRepository.removeRepositoryChangedListener(modelRepositoryListener);
 		textToSpeech.removeTextToSpeechListener(textToSpeechListener);
+		elevenLabsVoiceRepository.removeListener(elevenLabsListener);
 		voiceListItems.forEach(VoiceListItem::dispose);
 		voiceListItems.clear();
 		this.removeAll();

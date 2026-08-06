@@ -6,10 +6,12 @@ import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Actor;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
@@ -29,6 +31,8 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private NPC npc;
 	@SuppressWarnings("FieldCanBeLocal")
 	private final VoiceManager voiceManager;
+	private final Client client;
+	private final ClientThread clientThread;
 	private String standardActorName;
 
 	@Inject
@@ -36,38 +40,53 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		ChatboxPanelManager chatboxPanelManager,
 		ClientThread clientThread,
 		ScheduledExecutorService scheduledExecutorService,
-		OkHttpClient okHttpClient, Gson gson, TextToSpeech textToSpeech, VoiceManager voiceManager) {
+		OkHttpClient okHttpClient, Gson gson, TextToSpeech textToSpeech, VoiceManager voiceManager,
+		Client client) {
 		super(chatboxPanelManager, clientThread);
 		this.chatboxPanelManager = chatboxPanelManager;
 		this.voiceManager = voiceManager;
+		this.client = client;
+		this.clientThread = clientThread;
 		lines(1);
 		prompt("Enter voice in voice:id format. Example: libritts:120");
 
-		onDone(string ->
+		// onDone fires on the AWT thread, but applying a voice reads NPC composition and name, which
+		// assert they are on the client thread. Hopping is not optional: the assertion aborts the
+		// handler part-way, leaving the voice written but everything after it skipped.
+		// Cast because onDone is overloaded for Consumer and Predicate, and an implicitly typed
+		// lambda leaves the compiler unable to pick between them
+		onDone((Consumer<String>) string -> clientThread.invokeLater(() -> apply(string)));
+	}
+
+	private void apply(String string) {
+		if (string == null) return;
+
 		{
-			if (string == null) return;
 			if (!string.isEmpty()) {
 				VoiceID voiceId = VoiceID.fromIDString(string);
 				if (voiceId != null) {
-					if (npc != null) {
-						log.info("NPC Name:{} NPC ID:{} set to {}", standardActorName, npc.getId(), voiceId);
-						voiceManager.setActorVoiceID(npc, voiceId);
-					} else {
-						log.info("Username:{} set to {}", standardActorName, voiceId);
-						voiceManager.setDefaultVoiceIDForUsername(standardActorName, voiceId);
-					}
-					voiceManager.saveVoiceConfig();
+					log.info("{} set to {}", standardActorName, voiceId);
+					voiceManager.applyConfiguredVoice(npc, standardActorName, voiceId);
+
+					feedback(standardActorName + " set to " + voiceId + ", added to Custom Characters.");
 				} else {
 					log.info("Attempting to set invalid voiceID with {}", string);
+					// Used to fail silently, which is indistinguishable from the plugin ignoring you
+					feedback("'" + string + "' is not a valid voice id. Use model:id, for example "
+						+ "libritts:120, microsoft:david or elevenlabs:21m00Tcm4TlvDq8ikWAM.");
 				}
 			} else {
-				if (npc != null) {
-					voiceManager.resetVoiceIDForNPC(npc);
-				} else {
-					voiceManager.resetForUsername(standardActorName);
-				}
+				voiceManager.clearConfiguredVoice(npc, standardActorName);
 			}
-		});
+		}
+	}
+
+	/**
+	 * Reports back in the chatbox. Uses CONSOLE rather than GAMEMESSAGE because the plugin mutes
+	 * console messages for text-to-speech, so this shows up without being read aloud.
+	 */
+	private void feedback(String message) {
+		client.addChatMessage(ChatMessageType.CONSOLE, "", "Natural Speech: " + message, null);
 	}
 
 	public VoiceConfigChatboxTextInput configNPC(@Nullable NPC actor) {

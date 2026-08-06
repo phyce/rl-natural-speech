@@ -8,7 +8,7 @@ import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
-import dev.phyce.naturalspeech.ui.game.VoiceConfigChatboxTextInput;
+import dev.phyce.naturalspeech.ui.game.VoicePickerChatbox;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +37,7 @@ public class MenuEventHandler {
 	private final NaturalSpeechConfig config;
 
 	private final TextToSpeech textToSpeech;
-	private final Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider;
+	private final Provider<VoicePickerChatbox> voicePickerChatboxProvider;
 	private final VoiceManager voiceManager;
 	private final MuteManager muteManager;
 
@@ -53,13 +53,13 @@ public class MenuEventHandler {
 	@Inject
 	public MenuEventHandler(Client client, ChatIconManager chatIconManager, NaturalSpeechConfig config,
 							TextToSpeech textToSpeech,
-							Provider<VoiceConfigChatboxTextInput> voiceConfigChatboxTextInputProvider,
+							Provider<VoicePickerChatbox> voicePickerChatboxProvider,
 							VoiceManager voiceManager, MuteManager muteManager) {
 		this.client = client;
 		this.chatIconManager = chatIconManager;
 		this.config = config;
 		this.textToSpeech = textToSpeech;
-		this.voiceConfigChatboxTextInputProvider = voiceConfigChatboxTextInputProvider;
+		this.voicePickerChatboxProvider = voicePickerChatboxProvider;
 		this.voiceManager = voiceManager;
 		this.muteManager = muteManager;
 
@@ -216,15 +216,13 @@ public class MenuEventHandler {
 			}
 
 			{
-				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
 				subMenu.createMenuEntry(1)
 					.setOption("Configure")
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
-						voiceConfigChatboxTextInputProvider.get()
+						voicePickerChatboxProvider.get()
 							.configNPC(npc) // can be null and will be ignored
 							.configUsername(standardActorName)
-							.value(value)
 							.build();
 					});
 			}

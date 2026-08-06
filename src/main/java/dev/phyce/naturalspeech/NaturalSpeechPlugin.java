@@ -334,6 +334,11 @@ public class NaturalSpeechPlugin extends Plugin {
 				updateConfigVoice(event.getKey(), event.getNewValue());
 				break;
 
+			case ConfigKeys.ELEVENLABS_API_KEY:
+				log.trace("Detected ElevenLabs API key change, reloading the voice library");
+				clientThread.invokeLater(() -> textToSpeech.startElevenLabs());
+				break;
+
 			case ConfigKeys.NATIVE_SPEECH:
 				// spawning the process is too slow to do on the EDT
 				final boolean enabled = config.nativeSpeechEnabled();
@@ -370,6 +375,9 @@ public class NaturalSpeechPlugin extends Plugin {
 
 	private void realignVoice(String configKey, String currentValue, SpeechEngine engine) {
 		if (engine.isOff()) return;
+		// ElevenLabs picks its voices from its own settings and the Custom Characters tab,
+		// so it should not overwrite the piper/system voice ids configured here.
+		if (engine == SpeechEngine.ELEVENLABS) return;
 
 		VoiceID current = VoiceID.fromIDString(currentValue);
 		if (current == null) return;

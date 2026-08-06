@@ -137,6 +137,8 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onWidgetLoaded(WidgetLoaded event) {
+		if (!textToSpeech.isAnyEngineRunning()) return;
+
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
 			SpeechEngine engine = config.playerDialog();
 			if (engine.isOff()) return;
@@ -159,7 +161,10 @@ public class SpeechEventHandler {
 				try {
 					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER, engine);
 				} catch (VoiceSelectionOutOfOption e) {
-					throw new RuntimeException(e);
+					// Nothing to speak with, ex ElevenLabs selected before its voices have loaded.
+					// Skipping the line is the intended behaviour; it must not take the tick down.
+					log.debug("No {} voice available for player dialog, skipping", engine);
+					return;
 				}
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
@@ -202,8 +207,16 @@ public class SpeechEventHandler {
 				}
 
 				VoiceID voiceID;
-				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName, engine); }
-				catch (VoiceSelectionOutOfOption e) { throw new RuntimeException(e); }
+				try {
+					voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName, engine);
+				}
+				catch (VoiceSelectionOutOfOption e) {
+					// Nothing to speak with, ex ElevenLabs selected before its voices have loaded.
+					// Skipping the line is the intended behaviour; it must not take the tick down.
+					log.debug("No {} voice available for NPC dialog (CompId:{} name:{}), skipping",
+						engine, npcCompId, npcName);
+					return;
+				}
 
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});

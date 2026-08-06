@@ -9,10 +9,14 @@ import com.google.inject.Singleton;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabs;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoice;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeVoice;
@@ -41,17 +45,50 @@ public class VoiceManager {
 	private final VoiceConfig voiceConfig;
 	private final TextToSpeech textToSpeech;
 	private final ConfigManager configManager;
+	private final NaturalSpeechConfig config;
+	private final CharacterVoices characterVoices;
+	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
 	private final GenderedVoiceMap genderedVoiceMap;
 
 	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
 	private final List<VoiceID> nativeVoiceIDs = new ArrayList<>();
+	private final List<VoiceID> elevenLabsVoiceIDs = new ArrayList<>();
+	/** So a missing key does not log once per spoken line. Cleared when voices arrive. */
+	private boolean elevenLabsWarned = false;
 
 	@Inject
-	public VoiceManager(TextToSpeech textToSpeech, ConfigManager configManager) {
+	public VoiceManager(
+		TextToSpeech textToSpeech,
+		ConfigManager configManager,
+		NaturalSpeechConfig config,
+		CharacterVoices characterVoices,
+		ElevenLabsVoiceRepository elevenLabsVoiceRepository) {
 		this.textToSpeech = textToSpeech;
 		this.configManager = configManager;
+		this.config = config;
+		this.characterVoices = characterVoices;
+		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
 		this.genderedVoiceMap = new GenderedVoiceMap();
 		voiceConfig = new VoiceConfig();
+
+		// Fires on the client thread, so touching the voice maps here is safe
+		elevenLabsVoiceRepository.addListener((removed, added) -> {
+			for (ElevenLabsVoice voice : removed) {
+				VoiceID voiceID = voice.toVoiceID();
+				genderedVoiceMap.removeVoice(voice.getGender(), voiceID);
+				elevenLabsVoiceIDs.remove(voiceID);
+			}
+
+			for (ElevenLabsVoice voice : added) {
+				VoiceID voiceID = voice.toVoiceID();
+				genderedVoiceMap.addVoice(voice.getGender(), voiceID);
+				elevenLabsVoiceIDs.add(voiceID);
+			}
+
+			if (!added.isEmpty()) elevenLabsWarned = false;
+
+			log.debug("Registered {} ElevenLabs voice(s)", added.size());
+		});
 
 		textToSpeech.addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
@@ -152,6 +189,14 @@ public class VoiceManager {
 		return matching;
 	}
 
+	/**
+	 * ElevenLabs costs real money per character, so it never borrows another engine's voices: if it
+	 * has nothing to speak with, the message stays silent rather than quietly coming out in piper.
+	 */
+	private static boolean isStrict(@CheckForNull SpeechEngine engine) {
+		return engine == SpeechEngine.ELEVENLABS;
+	}
+
 	private boolean hasVoicesFor(@CheckForNull SpeechEngine engine) {
 		return !filter(allActiveVoiceIDs(), engine).isEmpty();
 	}
@@ -159,13 +204,17 @@ public class VoiceManager {
 	private List<VoiceID> allActiveVoiceIDs() {
 		List<VoiceID> all = new ArrayList<>(activeVoiceMap.values());
 		all.addAll(nativeVoiceIDs);
+		all.addAll(elevenLabsVoiceIDs);
 		return all;
 	}
 
 	private List<VoiceID> activeVoiceIDs(@CheckForNull SpeechEngine engine) {
 		List<VoiceID> all = allActiveVoiceIDs();
 		List<VoiceID> matching = filter(all, engine);
-		return matching.isEmpty() ? all : matching;
+
+		if (!matching.isEmpty()) return matching;
+
+		return isStrict(engine) ? matching : all;
 	}
 
 	@CheckForNull
@@ -228,7 +277,50 @@ public class VoiceManager {
 			if (wrongEngine == null) wrongEngine = voiceID;
 		}
 
+		if (isStrict(engine)) return null;
+
 		return hasVoicesFor(engine) ? null : wrongEngine;
+	}
+
+	/**
+	 * The ElevenLabs voice configured for your own character under settings -> ElevenLabs -> Your
+	 * voice. Kept separate from the piper/system personal voice so both can be set at once and the
+	 * right one is used depending on which engine the message type asks for.
+	 */
+	@CheckForNull
+	private VoiceID elevenLabsPersonalVoice(@NonNull String identity, @CheckForNull SpeechEngine engine) {
+		if (engine != SpeechEngine.ELEVENLABS) return null;
+		if (!MagicUsernames.LOCAL_USER.equals(identity)) return null;
+
+		String personal = config.elevenLabsPersonalVoice();
+		if (personal == null || personal.trim().isEmpty()) return null;
+
+		return ElevenLabs.voiceID(personal.trim());
+	}
+
+	/**
+	 * A voice from the gender set on a Custom Characters row. Scoped to ElevenLabs because that is
+	 * where the panel puts the setting — piper and system voices carry readable names, so a gender
+	 * hint earns its place only for ElevenLabs' opaque ids.
+	 * <p>
+	 * This is a manual override of the automatic pick, not a pinned voice: it applies only once no
+	 * explicit voice has matched. It is most useful for NPCs, which have no in-game gender to infer.
+	 */
+	@CheckForNull
+	private VoiceID genderedOverride(@NonNull String identity, @CheckForNull SpeechEngine engine) {
+		if (engine != SpeechEngine.ELEVENLABS) return null;
+
+		Gender gender = characterVoices.getGender(identity);
+		if (gender == null) return null;
+
+		VoiceID result = randomGenderedVoice(identity, gender, engine);
+
+		if (result == null) {
+			// Gender comes from labels.gender on each voice, which plenty of libraries leave unset
+			log.debug("{} is set to {}, but no ElevenLabs voice is labelled with that gender", identity, gender);
+		}
+
+		return result;
 	}
 
 	@NonNull
@@ -254,7 +346,20 @@ public class VoiceManager {
 			}
 		}
 
-		if (result == null) {
+		// A character curated in the Custom Characters tab is described entirely by its row, so the
+		// npc-id and npc-name layers below are skipped for them. Merely ranking the row higher is not
+		// enough: clearing its id would then fall through to whatever the right-click flow wrote
+		// against the npc id, and the row's gender would never get a say.
+		final boolean curated = characterVoices.contains(npcName);
+
+		if (result == null && curated) {
+			result = curatedCharacterVoice(npcName, engine);
+			if (result != null) {
+				log.debug("Custom Characters entry for NPC id:{} npcName:{}, using {}", npcId, npcName, result);
+			}
+		}
+
+		if (result == null && !curated) {
 			List<VoiceID> results = voiceConfig.findNpcId(npcId);
 			if (results != null) {
 				result = getFirstActiveVoice(results, engine);
@@ -269,7 +374,7 @@ public class VoiceManager {
 			}
 		}
 
-		if (result == null) {
+		if (result == null && !curated) {
 			List<VoiceID> results = voiceConfig.findNpcName(npcName);
 			if (results != null) {
 				result = getFirstActiveVoice(results, engine);
@@ -283,15 +388,41 @@ public class VoiceManager {
 			}
 		}
 
+		// No pinned voice matched, so a manually configured gender gets to steer the automatic pick
+		if (result == null) {
+			result = genderedOverride(npcName, engine);
+		}
+
 		if (result == null) {
 			result = randomVoiceFromActiveModels(npcName, engine);
 		}
 
 		if (result == null) {
+			warnIfElevenLabsUnusable(engine);
 			throw new VoiceSelectionOutOfOption();
 		}
 
 		return result;
+	}
+
+	/**
+	 * ElevenLabs deliberately stays silent rather than borrowing another engine's voice, which is
+	 * indistinguishable from a broken plugin unless we say why. Warns once per outage.
+	 */
+	private void warnIfElevenLabsUnusable(@CheckForNull SpeechEngine engine) {
+		if (engine != SpeechEngine.ELEVENLABS) return;
+		if (elevenLabsWarned) return;
+
+		elevenLabsWarned = true;
+
+		if (!elevenLabsVoiceRepository.isConfigured()) {
+			log.warn("A message type is set to ElevenLabs but no API key is configured, so those "
+				+ "messages stay silent. Add one under Natural Speech settings -> ElevenLabs.");
+		}
+		else {
+			log.warn("A message type is set to ElevenLabs but no voices have loaded for this API key, "
+				+ "so those messages stay silent. Press Check key in the Natural Speech panel to see why.");
+		}
 	}
 
 	@NonNull
@@ -326,6 +457,14 @@ public class VoiceManager {
 	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username, @CheckForNull SpeechEngine engine)
 		throws VoiceSelectionOutOfOption {
+		{
+			VoiceID personal = elevenLabsPersonalVoice(standardized_username, engine);
+			if (personal != null) {
+				log.debug("Using the configured ElevenLabs personal voice {}", personal);
+				return personal;
+			}
+		}
+
 		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
 
 		VoiceID result;
@@ -337,9 +476,13 @@ public class VoiceManager {
 
 		if (result == null) {
 			Player player = PluginHelper.findPlayerWithUsername(standardized_username);
-			VoiceID voiceID = null;
+			// A manually configured gender beats the one read off the player's in-game appearance
+			VoiceID voiceID = genderedOverride(standardized_username, engine);
 
-			if (player != null) {
+			if (voiceID != null) {
+				log.debug("Using the gender configured for {} in Custom Characters", standardized_username);
+			}
+			else if (player != null) {
 				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
 				log.debug("No existing settings found for {}, using randomize gendered voice.", standardized_username);
 				voiceID = randomGenderedVoice(standardized_username, gender, engine);
@@ -353,6 +496,7 @@ public class VoiceManager {
 			}
 
 			if (voiceID == null) {
+				warnIfElevenLabsUnusable(engine);
 				throw new VoiceSelectionOutOfOption();
 			}
 			return voiceID;
@@ -392,6 +536,95 @@ public class VoiceManager {
 
 	public void setDefaultVoiceIDForNPC(@NonNull String npcName, VoiceID voiceId) {
 		voiceConfig.setDefaultNpcNameVoice(npcName, voiceId);
+	}
+
+	/**
+	 * The pinned voice for a character the user has actually added to the Custom Characters tab,
+	 * filtered to the engine being asked for. Null for anyone not curated, which leaves the ordinary
+	 * npc-id and npc-name lookups untouched for everyone else.
+	 */
+	@CheckForNull
+	private VoiceID curatedCharacterVoice(@NonNull String name, @CheckForNull SpeechEngine engine) {
+		if (!characterVoices.contains(name)) return null;
+
+		return getFirstActiveVoice(voiceConfig.findCharacterVoices(CharacterVoices.normalize(name)), engine);
+	}
+
+	/** The voice pinned for a character on one engine, or null when that engine has none. */
+	@CheckForNull
+	public VoiceID getCharacterVoice(@NonNull String name, @NonNull SpeechEngine engine) {
+		for (VoiceID voiceID : voiceConfig.findCharacterVoices(CharacterVoices.normalize(name))) {
+			if (voiceID != null && TextToSpeech.engineOfModel(voiceID.getModelName()) == engine) {
+				return voiceID;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Pins a character's voice on one engine, or clears it when {@code voiceID} is null. The voices
+	 * configured for the other engines are left alone, so a character can carry one per engine.
+	 */
+	public void setCharacterVoice(@NonNull String name, @NonNull SpeechEngine engine,
+								  @CheckForNull VoiceID voiceID) {
+		// findNpcName lowercases its lookup key, so anything written here has to be normalized or it
+		// would never be found again
+		String key = CharacterVoices.normalize(name);
+
+		List<VoiceID> voiceIDs = voiceConfig.findCharacterVoices(key);
+		voiceIDs.removeIf(
+			existing -> existing == null || TextToSpeech.engineOfModel(existing.getModelName()) == engine);
+
+		if (voiceID != null) voiceIDs.add(voiceID);
+
+		voiceConfig.setCharacterVoices(key, voiceIDs);
+		saveVoiceConfig();
+	}
+
+	/**
+	 * Applies a voice picked from the game UI and lists the character in the Custom Characters tab.
+	 * <p>
+	 * Must run on the client thread: {@link #setActorVoiceID} reads NPC composition and name.
+	 */
+	public void applyConfiguredVoice(@CheckForNull NPC npc, @NonNull String standardActorName,
+									 @NonNull VoiceID voiceID) {
+		if (npc != null) {
+			setActorVoiceID(npc, voiceID);
+		}
+		else {
+			setDefaultVoiceIDForUsername(standardActorName, voiceID);
+		}
+
+		// Also store it by name, which is the only key the Custom Characters panel can look up
+		setCharacterVoice(standardActorName, TextToSpeech.engineOfModel(voiceID.getModelName()), voiceID);
+		characterVoices.add(standardActorName);
+
+		saveVoiceConfig();
+
+		// add() is a no-op for an already-listed character, so nudge the panel explicitly
+		characterVoices.notifyChanged();
+	}
+
+	/** Clears a character's configured voice from the game UI. Must run on the client thread. */
+	public void clearConfiguredVoice(@CheckForNull NPC npc, @NonNull String standardActorName) {
+		if (npc != null) {
+			resetVoiceIDForNPC(npc);
+		}
+		else {
+			resetForUsername(standardActorName);
+		}
+
+		clearCharacterVoices(standardActorName);
+		saveVoiceConfig();
+
+		characterVoices.notifyChanged();
+	}
+
+	/** Clears every pinned voice for a character, across all engines. */
+	public void clearCharacterVoices(@NonNull String name) {
+		voiceConfig.setCharacterVoices(CharacterVoices.normalize(name), new ArrayList<>());
+		saveVoiceConfig();
 	}
 
 	//</editor-fold>

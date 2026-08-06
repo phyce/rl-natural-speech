@@ -7,12 +7,18 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
+import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoice;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeVoice;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.HeadlessException;
 import java.awt.Image;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
@@ -70,6 +76,16 @@ public class VoiceListItem extends JPanel {
 			voice.getSystemName(), voice.getGender(), voice.getId());
 	}
 
+	public static VoiceListItem forElevenLabsVoice(
+		VoiceExplorerPanel voiceExplorerPanel,
+		TextToSpeech textToSpeech,
+		ElevenLabsVoice voice) {
+		// ElevenLabs ids are 20 opaque characters and will not fit the id column; the full id is in
+		// the tooltip, and clicking the row copies it.
+		return new VoiceListItem(voiceExplorerPanel, textToSpeech, voice.toVoiceID(),
+			voice.getName(), voice.getGender(), "EL");
+	}
+
 	private VoiceListItem(
 		VoiceExplorerPanel voiceExplorerPanel,
 		TextToSpeech textToSpeech,
@@ -85,7 +101,17 @@ public class VoiceListItem extends JPanel {
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("%s (%s)", voiceID.toVoiceIDString(), gender));
+		this.setToolTipText(String.format("<html>%s (%s)<br>Click to copy the voice id</html>",
+			voiceID.toVoiceIDString(), gender));
+
+		// The voice settings and the Custom Characters tab all take an id string, and ElevenLabs ids
+		// are impossible to retype from memory, so make the row hand it over.
+		this.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent event) {
+				copyVoiceIDToClipboard();
+			}
+		});
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
@@ -192,6 +218,17 @@ public class VoiceListItem extends JPanel {
 			}
 		};
 		textToSpeech.addTextToSpeechListener(listener);
+	}
+
+	private void copyVoiceIDToClipboard() {
+		try {
+			Toolkit.getDefaultToolkit().getSystemClipboard()
+				.setContents(new StringSelection(voiceID.toVoiceIDString()), null);
+			log.debug("Copied {} to the clipboard", voiceID);
+		}
+		catch (IllegalStateException | HeadlessException e) {
+			log.debug("Could not access the clipboard", e);
+		}
 	}
 
 	public void dispose() {

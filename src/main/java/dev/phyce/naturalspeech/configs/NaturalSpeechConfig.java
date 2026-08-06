@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.configs;
 
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
+import dev.phyce.naturalspeech.enums.ElevenLabsModel;
 import dev.phyce.naturalspeech.enums.SpeechEngine;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
@@ -53,6 +54,11 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String SEQUENTIAL_PLAYBACK = "sequentialPlayback";
 		public static final String SEQUENTIAL_PLAYBACK_QUEUE_SIZE = "sequentialPlaybackQueueSize";
 		public static final String NATIVE_SPEECH = "nativeSpeech";
+		public static final String ELEVENLABS_API_KEY = "elevenLabsApiKey";
+		public static final String ELEVENLABS_MODEL = "elevenLabsModel";
+		public static final String ELEVENLABS_PERSONAL_VOICE = "elevenLabsPersonalVoice";
+		public static final String ELEVENLABS_CACHE = "elevenLabsCacheAudio";
+		public static final String ELEVENLABS_CACHE_SIZE = "elevenLabsCacheSizeMb";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -242,7 +248,8 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigSection(
 		name=ConfigKeys.SPEECH_GENERATION,
 		description="Settings to choose which messages should be played",
-		position=1
+		position=1,
+		closedByDefault=true
 	)
 	String ttsOptionsSection = "ttsOptionsSection";
 
@@ -428,7 +435,8 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigSection(
 		name="Mute",
 		description="Change mute settings here",
-		position=2
+		position=2,
+		closedByDefault=true
 	)
 	String muteOptionsSection = "muteOptionsSection";
 
@@ -503,13 +511,89 @@ public interface NaturalSpeechConfig extends Config {
 		return 0;
 	}
 
+    //</editor-fold>
+
+    //<editor-fold desc="> ElevenLabs">
+    @ConfigSection(
+            name="ElevenLabs",
+            description="Cloud text-to-speech via the ElevenLabs API. Pick \"ElevenLabs\" for a message type "
+                    + "under Speech generation to route it here.",
+            position=3,
+            closedByDefault=true
+    )
+    String elevenLabsSection = "elevenLabsSection";
+
+    @ConfigItem(
+            position=1,
+            keyName=ConfigKeys.ELEVENLABS_API_KEY,
+            name="API key",
+            description="Your ElevenLabs API key (Settings -> API Keys on elevenlabs.io). "
+                    + "Without it, message types set to ElevenLabs stay silent.",
+            secret=true,
+            section=elevenLabsSection
+    )
+    default String elevenLabsApiKey() {
+        return "";
+    }
+
+    @ConfigItem(
+            position=2,
+            keyName=ConfigKeys.ELEVENLABS_MODEL,
+            name="Model",
+            description="Flash v2.5 is fastest and cheapest. Multilingual v2 is higher quality but about 2x the price "
+                    + "per character. v3 is the most expressive but pricier, slower, and may require special account access.",
+            section=elevenLabsSection
+    )
+    default ElevenLabsModel elevenLabsModel() {
+        return ElevenLabsModel.FLASH_V2_5;
+    }
+
+    @ConfigItem(
+            position=3,
+            keyName=ConfigKeys.ELEVENLABS_PERSONAL_VOICE,
+            name="Your voice",
+            description="ElevenLabs voice id used for your own character, example: 21m00Tcm4TlvDq8ikWAM. "
+                    + "Leave blank to be assigned one automatically.",
+            section=elevenLabsSection
+    )
+    default String elevenLabsPersonalVoice() {
+        return "";
+    }
+
+    @ConfigItem(
+            position=4,
+            keyName=ConfigKeys.ELEVENLABS_CACHE,
+            name="Cache audio",
+            description="Reuse previously generated audio for identical lines instead of calling the API again. "
+                    + "Saves usage and latency on repeated dialogue.",
+            section=elevenLabsSection
+    )
+    default boolean elevenLabsCacheAudio() {
+        return true;
+    }
+
+    @ConfigItem(
+            position=5,
+            keyName=ConfigKeys.ELEVENLABS_CACHE_SIZE,
+            name="Cache size (MB)",
+            description="Maximum disk space for cached ElevenLabs audio. "
+                    + "When exceeded, the least-recently-used clips are removed.",
+            section=elevenLabsSection
+    )
+    @Range(min=32, max=16384)
+    default int elevenLabsCacheSizeMb() {
+        return 256;
+    }
+    //</editor-fold>
+
 	//</editor-fold>
 
 	//<editor-fold desc="> Other Settings">
 	@ConfigSection(
 		name="Other",
 		description="Other settings",
-		position=3
+		position=4,
+		closedByDefault=true
 	)
 	String otherOptionsSection = "otherOptionsSection";
 

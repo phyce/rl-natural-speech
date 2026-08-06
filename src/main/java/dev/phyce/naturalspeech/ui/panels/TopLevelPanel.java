@@ -23,6 +23,8 @@ public class TopLevelPanel extends PluginPanel {
 	private final MainSettingsPanel mainSettingsPanel;
 	@Getter
 	private final VoiceExplorerPanel voiceExplorerPanel;
+	@Getter
+	private final CustomCharactersPanel customCharactersPanel;
 	private final MaterialTab mainSettingsTab;
 	//	@Getter
 	//	private final EditorPanel editorPanel;
@@ -34,13 +36,15 @@ public class TopLevelPanel extends PluginPanel {
 	@Inject
 	TopLevelPanel(
 		MainSettingsPanel mainSettingsPanel,
-		VoiceExplorerPanel voiceExplorerPanel
+		VoiceExplorerPanel voiceExplorerPanel,
+		CustomCharactersPanel customCharactersPanel
 		//			EditorPanel editorPanel
 	) {
 		super(false);
 
 		this.mainSettingsPanel = mainSettingsPanel;
 		this.voiceExplorerPanel = voiceExplorerPanel;
+		this.customCharactersPanel = customCharactersPanel;
 		//		this.editorPanel = editorPanel;
 
 		tabGroup = new MaterialTabGroup();
@@ -62,6 +66,9 @@ public class TopLevelPanel extends PluginPanel {
 
 		// Speaker Explorer Panel Tab
 		addTab(voiceExplorerPanel, "profile_icon.png", "Voice Explorer");
+
+		// Custom Characters Panel Tab (ElevenLabs per-character voices)
+		addTab(customCharactersPanel, "plugin_hub_icon.png", "Custom Characters");
 
 		// Editor Panel Tab
 		//		addTab(editorPanel, "plugin_hub_icon.png", "Editor");
@@ -124,6 +131,7 @@ public class TopLevelPanel extends PluginPanel {
 	public void shutdown() {
 		this.mainSettingsPanel.shutdown();
 		this.voiceExplorerPanel.shutdown();
+		this.customCharactersPanel.shutdown();
 	}
 
 	@Override
