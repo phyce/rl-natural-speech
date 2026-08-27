@@ -46,27 +46,29 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		onDone(string ->
 		{
 			if (string == null) return;
-			if (!string.isEmpty()) {
-				VoiceID voiceId = VoiceID.fromIDString(string);
-				if (voiceId != null) {
-					if (npc != null) {
-						log.info("NPC Name:{} NPC ID:{} set to {}", standardActorName, npc.getId(), voiceId);
-						voiceManager.setActorVoiceID(npc, voiceId);
+			clientThread.invokeLater(() -> {
+				if (!string.isEmpty()) {
+					VoiceID voiceId = VoiceID.fromIDString(string);
+					if (voiceId != null) {
+						if (npc != null) {
+							log.info("NPC Name:{} NPC ID:{} set to {}", standardActorName, npc.getId(), voiceId);
+							voiceManager.setActorVoiceID(npc, voiceId);
+						} else {
+							log.info("Username:{} set to {}", standardActorName, voiceId);
+							voiceManager.setDefaultVoiceIDForUsername(standardActorName, voiceId);
+						}
+						voiceManager.saveVoiceConfig();
 					} else {
-						log.info("Username:{} set to {}", standardActorName, voiceId);
-						voiceManager.setDefaultVoiceIDForUsername(standardActorName, voiceId);
+						log.info("Attempting to set invalid voiceID with {}", string);
 					}
-					voiceManager.saveVoiceConfig();
 				} else {
-					log.info("Attempting to set invalid voiceID with {}", string);
+					if (npc != null) {
+						voiceManager.resetVoiceIDForNPC(npc);
+					} else {
+						voiceManager.resetForUsername(standardActorName);
+					}
 				}
-			} else {
-				if (npc != null) {
-					voiceManager.resetVoiceIDForNPC(npc);
-				} else {
-					voiceManager.resetForUsername(standardActorName);
-				}
-			}
+			});
 		});
 	}
 
