@@ -46,6 +46,9 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 ---
 # Changelog
 
+## 1.3.1
+- Disabled overhead TTS in boss areas
+
 ## 1.3.0
 - Added Czech, Welsh, Finnish and Danish voices
 - Added Group Ironman chat support

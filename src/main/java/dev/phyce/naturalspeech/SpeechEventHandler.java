@@ -2,6 +2,7 @@ package dev.phyce.naturalspeech;
 
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.enums.BossRegions;
 import static dev.phyce.naturalspeech.enums.Locations.inGrandExchange;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
@@ -19,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.NPC;
+import net.runelite.api.NPCComposition;
+import net.runelite.api.ParamID;
 import net.runelite.api.Player;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.OverheadTextChanged;
@@ -226,6 +229,9 @@ public class SpeechEventHandler {
 			if (!config.npcOverheadEnabled()) return;
 			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
+
+			if (isBossNpc(npc)) return;
+			if (BossRegions.inBossRegion(client)) return;
 			if (!muteManager.isNpcAllowed(npc)) return;
 			if (duplicateSuppressor.shouldSuppress("npc:" + npc.getName(), event.getOverheadText())) return;
 
@@ -246,6 +252,15 @@ public class SpeechEventHandler {
 					npc.getId(), npc.getName());
 			}
 		}
+	}
+
+	public static boolean isBossNpc(NPC npc) {
+		NPCComposition composition = npc.getTransformedComposition();
+		if (composition == null) composition = npc.getComposition();
+		if (composition == null) return true;
+
+		String hpHudName = composition.getStringValue(ParamID.NPC_HP_NAME);
+		return hpHudName != null && !hpHudName.isEmpty();
 	}
 
 	public static boolean isChatInnerVoice(ChatMessage message) {
