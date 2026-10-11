@@ -14,15 +14,18 @@ import dev.phyce.naturalspeech.configs.VoiceConfig;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.tts.piper.Piper;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeech;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeVoice;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -73,11 +76,9 @@ public class VoiceManager {
 				@Override
 				public void onNativeSpeechStart(NativeSpeechEngine engine) {
 					for (NativeVoice voice : engine.getVoices()) {
-						VoiceID voiceID = voice.toVoiceID();
-						genderedVoiceMap.addVoice(voice.getGender(), voiceID);
-						nativeVoiceIDs.add(voiceID);
+						genderedVoiceMap.addVoice(voice.getGender(), voice.toVoiceID());
+						nativeVoiceIDs.add(voice.toVoiceID());
 					}
-					log.debug("Registered {} system voice(s)", engine.getVoices().size());
 				}
 
 				@Override
@@ -138,102 +139,63 @@ public class VoiceManager {
 		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.toJson());
 	}
 
-	private static boolean matches(@CheckForNull SpeechEngine engine, @NonNull VoiceID voiceID) {
-		return engine == null || TextToSpeech.engineOfModel(voiceID.getModelName()) == engine;
+	private boolean isUsable(@NonNull VoiceID voiceID, @CheckForNull SpeechEngine engine) {
+		if (engine == null || engine.isOff() || TextToSpeech.engineOfModel(voiceID.getModelName()) == engine) return true;
+
+		boolean engineHasVoices = engine == SpeechEngine.SYSTEM ? !nativeVoiceIDs.isEmpty() : !activeVoiceMap.isEmpty();
+		return !engineHasVoices;
 	}
 
-	private static List<VoiceID> filter(@NonNull List<VoiceID> voiceIDs, @CheckForNull SpeechEngine engine) {
-		if (engine == null) return voiceIDs;
-
-		List<VoiceID> matching = new ArrayList<>();
-		for (VoiceID voiceID : voiceIDs) {
-			if (voiceID != null && matches(engine, voiceID)) matching.add(voiceID);
-		}
-		return matching;
-	}
-
-	private boolean hasVoicesFor(@CheckForNull SpeechEngine engine) {
-		return !filter(allActiveVoiceIDs(), engine).isEmpty();
-	}
-
-	private List<VoiceID> allActiveVoiceIDs() {
-		List<VoiceID> all = new ArrayList<>(activeVoiceMap.values());
-		all.addAll(nativeVoiceIDs);
-		return all;
-	}
-
-	private List<VoiceID> activeVoiceIDs(@CheckForNull SpeechEngine engine) {
-		List<VoiceID> all = allActiveVoiceIDs();
-		List<VoiceID> matching = filter(all, engine);
-		return matching.isEmpty() ? all : matching;
+	private List<VoiceID> usable(Collection<VoiceID> voiceIDs, @CheckForNull SpeechEngine engine) {
+		return voiceIDs.stream().filter(voiceID -> isUsable(voiceID, engine)).collect(Collectors.toList());
 	}
 
 	@CheckForNull
 	public VoiceID randomVoiceFromActiveModels(String standardized_username, @CheckForNull SpeechEngine engine) {
 		int hashCode = standardized_username.hashCode();
 
-		List<VoiceID> voiceIDs = activeVoiceIDs(engine);
+		List<VoiceID> voiceIDs = new ArrayList<>(activeVoiceMap.values());
+		voiceIDs.addAll(nativeVoiceIDs);
+		voiceIDs = usable(voiceIDs, engine);
 		if (voiceIDs.isEmpty()) return null;
 
 		return voiceIDs.get(Math.abs(hashCode) % voiceIDs.size());
 	}
 
 	@CheckForNull
-	private VoiceID randomGenderedVoice(String standardized_username, Gender gender,
-										@CheckForNull SpeechEngine engine) {
-		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
-		if (voiceIDs == null || voiceIDs.isEmpty()) {
+	private VoiceID randomGenderedVoice(String standardized_username, Gender gender, @CheckForNull SpeechEngine engine) {
+		List<VoiceID> voiceIDs = usable(genderedVoiceMap.find(gender), engine);
+		if (voiceIDs.isEmpty()) {
 			return null;
 		}
-
-		voiceIDs = filter(voiceIDs, engine);
-		if (voiceIDs.isEmpty()) return null;
-
 		int hashCode = standardized_username.hashCode();
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
 		return voiceIDs.get(voice);
 	}
-	@CheckForNull
-	public VoiceID anyVoiceFor(@NonNull SpeechEngine engine) {
-		List<VoiceID> voiceIDs = filter(allActiveVoiceIDs(), engine);
-		if (voiceIDs.isEmpty()) return null;
-
-		// sorted so the same setting does not land on a different voice each startup
-		voiceIDs.sort(java.util.Comparator.comparing(VoiceID::toVoiceIDString));
-		return voiceIDs.get(0);
-	}
-
 	// Ultimate fallback
 	@CheckForNull
 	public VoiceID randomVoice() {
-		List<VoiceID> voiceIDs = allActiveVoiceIDs();
-		if (voiceIDs.isEmpty()) return null;
+		long count = activeVoiceMap.values().size();
+		Optional<VoiceID> first = activeVoiceMap.values().stream().skip((int) (Math.random() * count)).findFirst();
 
-		return voiceIDs.get((int) (Math.random() * voiceIDs.size()));
+		return first.orElse(null);
 	}
 
 	//<editor-fold desc="> Get">
 	@CheckForNull
-	private VoiceID getFirstActiveVoice(@NonNull List<VoiceID> voiceIdAndFallbacks,
-										@CheckForNull SpeechEngine engine) {
-		VoiceID wrongEngine = null;
-
+	private VoiceID getFirstActiveVoice(@NonNull List<VoiceID> voiceIdAndFallbacks, @CheckForNull SpeechEngine engine) {
 		for (VoiceID voiceID : voiceIdAndFallbacks) {
 			// if the config is invalid, a null might be present
 			if (voiceID == null) continue;
-			if (!textToSpeech.isModelActive(voiceID.getModelName())) continue;
 
-			if (matches(engine, voiceID)) return voiceID;
-			if (wrongEngine == null) wrongEngine = voiceID;
+			if (NativeSpeech.isNativeModel(voiceID.getModelName()) && !nativeVoiceIDs.contains(voiceID)) continue;
+
+			if (textToSpeech.isModelActive(voiceID.getModelName()) && isUsable(voiceID, engine)) {
+				return voiceID;
+			}
 		}
-
-		return hasVoicesFor(engine) ? null : wrongEngine;
-	}
-
-	@NonNull
-	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromNPCId(npcId, npcName, null);
+		return null;
 	}
 
 	@NonNull
@@ -296,7 +258,7 @@ public class VoiceManager {
 
 	@NonNull
 	public VoiceID getVoiceIdForLocalPlayer() throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
+		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER, null);
 	}
 
 	public boolean containsUsername(@NonNull String standardized_username) {
@@ -319,11 +281,6 @@ public class VoiceManager {
 	}
 
 	@NonNull
-	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername(standardized_username, null);
-	}
-
-	@NonNull
 	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username, @CheckForNull SpeechEngine engine)
 		throws VoiceSelectionOutOfOption {
 		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
@@ -338,7 +295,6 @@ public class VoiceManager {
 		if (result == null) {
 			Player player = PluginHelper.findPlayerWithUsername(standardized_username);
 			VoiceID voiceID = null;
-
 			if (player != null) {
 				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
 				log.debug("No existing settings found for {}, using randomize gendered voice.", standardized_username);
@@ -351,7 +307,6 @@ public class VoiceManager {
 			if (voiceID == null) {
 				voiceID = randomVoiceFromActiveModels(standardized_username, engine);
 			}
-
 			if (voiceID == null) {
 				throw new VoiceSelectionOutOfOption();
 			}

@@ -3,7 +3,6 @@ package dev.phyce.naturalspeech.ui.panels;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
@@ -42,6 +41,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import lombok.Getter;
 import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.DynamicGridLayout;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
@@ -75,21 +75,10 @@ public class VoiceExplorerPanel extends EditorPanel {
 	@Getter
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
-	private final List<VoiceSection> voiceSections = new ArrayList<>();
-	private final JCheckBox piperFilter;
-	private final JCheckBox systemFilter;
+	private final JCheckBox piperFilter = buildEngineFilter("Piper");
+	private final JCheckBox systemFilter = buildEngineFilter("System");
 	private final ModelRepository.ModelRepositoryListener modelRepositoryListener;
 	private final TextToSpeech.TextToSpeechListener textToSpeechListener;
-
-	private static final class VoiceSection {
-		private final SpeechEngine engine;
-		private final JPanel panel;
-
-		private VoiceSection(SpeechEngine engine, JPanel panel) {
-			this.engine = engine;
-			this.panel = panel;
-		}
-	}
 
 	@Inject
 	public VoiceExplorerPanel(ModelRepository modelRepository, TextToSpeech textToSpeech) {
@@ -134,29 +123,23 @@ public class VoiceExplorerPanel extends EditorPanel {
 		speechText.setToolTipText("Sentence to be spoken.");
 		speechText.setPlaceholderText("Enter a sentence");
 
-		piperFilter = buildEngineFilter("Piper", "Show the piper voices you have downloaded.");
-		systemFilter = buildEngineFilter("System", "Show the voices built into your system.");
-
-		JPanel engineFilterPanel = new JPanel(new GridLayout(1, 2));
-		engineFilterPanel.setOpaque(false);
-		engineFilterPanel.add(piperFilter);
-		engineFilterPanel.add(systemFilter);
-
 		// Float Top/North Wrapper Panel, for search and speech text bar.
 		JPanel topPanel = new JPanel();
 		topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 		topPanel.setLayout(new GridLayout(0, 1, 0, PluginPanel.BORDER_OFFSET));
 		topPanel.add(searchBar);
 		topPanel.add(speechText);
+		JPanel engineFilterPanel = new JPanel(new GridLayout(1, 2));
+		engineFilterPanel.setOpaque(false);
+		engineFilterPanel.add(piperFilter);
+		engineFilterPanel.add(systemFilter);
 		topPanel.add(engineFilterPanel);
 		this.add(topPanel, BorderLayout.NORTH);
 
 		// Speakers panel containing individual speaker item panels
 		sectionListPanel = new FixedWidthPanel();
 		sectionListPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
-		// OnlyVisible, so a section hidden by the engine filters gives up its row instead of
-		// leaving a gap where it used to be
-		sectionListPanel.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
+		sectionListPanel.setLayout(new DynamicGridLayout(0, 1, 0, 5));
 		sectionListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 		// North panel wraps and fixes the speakerList north
@@ -199,62 +182,44 @@ public class VoiceExplorerPanel extends EditorPanel {
 		buildSpeakerList();
 	}
 
-	private JCheckBox buildEngineFilter(String label, String toolTip) {
+	private JCheckBox buildEngineFilter(String label) {
 		JCheckBox checkBox = new JCheckBox(label, true);
-		checkBox.setToolTipText(toolTip);
+		checkBox.setToolTipText("Show " + label + " voices");
 		checkBox.setOpaque(false);
 		checkBox.setForeground(Color.WHITE);
-		checkBox.addActionListener(event -> applyFilters());
+		checkBox.addActionListener(event -> buildSpeakerList());
 		return checkBox;
 	}
 
 	void buildSpeakerList() {
 		voiceListItems.forEach(VoiceListItem::dispose);
 		voiceListItems.clear();
-		voiceSections.clear();
 		sectionListPanel.removeAll();
 
 		NativeSpeechEngine nativeEngine = textToSpeech.getNativeSpeechEngine();
-		if (nativeEngine != null && !nativeEngine.getVoices().isEmpty()) {
-			buildSystemVoiceSegment(nativeEngine);
+		if (systemFilter.isSelected() && nativeEngine != null && !nativeEngine.getVoices().isEmpty()) {
+			JPanel sectionContent = buildSpeakerSection("System Voices");
+			nativeEngine.getVoices().stream()
+				.sorted(Comparator.comparing(NativeVoice::getId))
+				.forEach(voice -> addVoiceListItem(sectionContent, VoiceListItem.forSystemVoice(this, textToSpeech, voice)));
 		}
 
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 			try {
-				if (modelRepository.hasModelLocal(modelURL.getModelName())) {
+				if (piperFilter.isSelected() && modelRepository.hasModelLocal(modelURL.getModelName())) {
 					buildSpeakerSegmentForVoice(modelURL.getModelName());
 				}
 			} catch (IOException ignore) {
 			}
 		}
 
-		applyFilters();
-		sectionListPanel.revalidate();
+		searchFilter(searchBar.getText());
 		sectionListPanel.repaint();
 	}
 
-	private void buildSystemVoiceSegment(NativeSpeechEngine nativeEngine) {
-		JPanel sectionContent = buildSpeakerSection(
-			"System Voices", "The voices installed with your operating system.", SpeechEngine.SYSTEM);
-
-		nativeEngine.getVoices().stream()
-			.sorted(Comparator.comparing(NativeVoice::getId))
-			.forEach(voice -> {
-				VoiceListItem speakerItem = VoiceListItem.forSystemVoice(this, textToSpeech, voice);
-				voiceListItems.add(speakerItem);
-				sectionContent.add(speakerItem);
-			});
-	}
-
-	private void applyFilters() {
-		for (VoiceSection section : voiceSections) {
-			section.panel.setVisible(isEngineShown(section.engine));
-		}
-		searchFilter(searchBar.getText());
-	}
-
-	private boolean isEngineShown(SpeechEngine engine) {
-		return engine == SpeechEngine.SYSTEM? systemFilter.isSelected(): piperFilter.isSelected();
+	private void addVoiceListItem(JPanel sectionContent, VoiceListItem speakerItem) {
+		voiceListItems.add(speakerItem);
+		sectionContent.add(speakerItem);
 	}
 
 	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
@@ -266,24 +231,19 @@ public class VoiceExplorerPanel extends EditorPanel {
 	}
 
 	private void buildSpeakerSegmentForVoice(String voice_name) {
-		JPanel sectionContent = buildSpeakerSection(voice_name, voice_name, SpeechEngine.PIPER);
+		JPanel sectionContent = buildSpeakerSection(voice_name);
 
 		try {
 			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voice_name);
 
 			Arrays.stream(modelLocal.getVoiceMetadata())
 				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
-				.forEach((voiceMetadata) -> {
-					VoiceListItem speakerItem = VoiceListItem.forPiperVoice(this, textToSpeech, voiceMetadata);
-					voiceListItems.add(speakerItem);
-					sectionContent.add(speakerItem);
-				});
+				.forEach(voiceMetadata -> addVoiceListItem(sectionContent, VoiceListItem.forPiperVoice(this, textToSpeech, voiceMetadata)));
 
 		} catch (IOException e) {throw new RuntimeException(e);}
 	}
 
-	private JPanel buildSpeakerSection(String name, String description, SpeechEngine engine) {
-
+	private JPanel buildSpeakerSection(String name) {
 		final JPanel section = new JPanel();
 		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
 		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
@@ -308,7 +268,7 @@ public class VoiceExplorerPanel extends EditorPanel {
 		final JLabel sectionName = new JLabel(name);
 		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
 		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionName.setToolTipText(name);
 		sectionHeader.add(sectionName, BorderLayout.CENTER);
 
 		final JPanel sectionContent = new JPanel();
@@ -331,7 +291,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 		sectionName.addMouseListener(adapter);
 		sectionHeader.addMouseListener(adapter);
 
-		voiceSections.add(new VoiceSection(engine, section));
 		sectionListPanel.add(section);
 		return sectionContent;
 	}
@@ -388,7 +347,6 @@ public class VoiceExplorerPanel extends EditorPanel {
 		modelRepository.removeRepositoryChangedListener(modelRepositoryListener);
 		textToSpeech.removeTextToSpeechListener(textToSpeechListener);
 		voiceListItems.forEach(VoiceListItem::dispose);
-		voiceListItems.clear();
 		this.removeAll();
 	}
 

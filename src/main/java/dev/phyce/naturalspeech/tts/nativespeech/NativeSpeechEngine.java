@@ -5,10 +5,12 @@ import dev.phyce.naturalspeech.tts.AudioQueue;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 import java.util.function.IntSupplier;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -16,125 +18,47 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NativeSpeechEngine {
 
+	private static final SpeechTask STOP = new SpeechTask("", null, 0, "", -1);
+
 	@Getter
-	private final ConcurrentHashMap<String, AudioQueue> namedAudioQueueMap = new ConcurrentHashMap<>();
-	private final ConcurrentLinkedQueue<SpeechTask> taskQueue = new ConcurrentLinkedQueue<>();
-
+	private final Map<String, AudioQueue> namedAudioQueueMap = new ConcurrentHashMap<>();
+	private final BlockingQueue<SpeechTask> tasks = new LinkedBlockingQueue<>();
 	private final AudioPlayer audioPlayer = new AudioPlayer();
-	private final IntSupplier dialogGenSupplier;
+	private final IntSupplier dialogGen;
+	private volatile NativeSpeechProcess process;
+	private volatile boolean stopped;
 
-	private final NativeSpeechProcess process;
-	private final Thread processTaskThread;
-	private final Thread processAudioQueueThread;
+	public NativeSpeechEngine(
+		IntSupplier dialogGen,
+		Consumer<NativeSpeechEngine> onReady,
+		Consumer<NativeSpeechEngine> onCrash) {
+		this.dialogGen = dialogGen;
 
-	private NativeSpeechEngine(NativeSpeechProcess process, IntSupplier dialogGenSupplier) {
-		this.process = process;
-		this.dialogGenSupplier = dialogGenSupplier;
-
-		processTaskThread = new Thread(this::processTask, "NativeSpeechEngine::processTask Thread");
-		processTaskThread.start();
-
-		processAudioQueueThread =
-			new Thread(this::processAudioQueue, "NativeSpeechEngine::processAudioQueue Thread");
-		processAudioQueueThread.start();
-	}
-
-	public static NativeSpeechEngine start(IntSupplier dialogGenSupplier) throws IOException {
-		return new NativeSpeechEngine(NativeSpeech.startProcess(), dialogGenSupplier);
+		Thread worker = new Thread(() -> run(onReady, onCrash), "NativeSpeechEngine");
+		worker.setDaemon(true);
+		worker.start();
 	}
 
 	public List<NativeVoice> getVoices() {
-		return process.getVoices();
+		NativeSpeechProcess process = this.process;
+		return process == null ? List.of() : process.getVoices();
 	}
 
 	public boolean isAlive() {
-		return process.isAlive();
+		NativeSpeechProcess process = this.process;
+		return !stopped && process != null && process.isAlive();
 	}
 
 	public void speak(String text, VoiceID voiceID, float volume, String audioQueueName, int generation) {
-		if (!process.isAlive()) {
-			log.warn("System speech process is not running, dropping: {}", text);
-			return;
+		if (tasks.size() > 10) {
+			log.info("Cleared system voice queue because it grew past 10 messages");
+			tasks.clear();
 		}
-
-		taskQueue.add(new SpeechTask(text, voiceID, volume, audioQueueName, generation));
-		synchronized (taskQueue) {taskQueue.notify();}
-	}
-
-	private void processTask() {
-		while (!processTaskThread.isInterrupted()) {
-			if (taskQueue.isEmpty()) {
-				synchronized (taskQueue) {
-					try {
-						taskQueue.wait();
-					}
-					catch (InterruptedException e) {
-						return;
-					}
-				}
-				continue; // double check emptiness after notify
-			}
-
-			SpeechTask task = taskQueue.poll();
-			if (task == null) continue;
-
-			byte[] audioClip;
-			try {
-				audioClip = process.generateAudio(task.getVoiceID().getId(), task.getText());
-			}
-			catch (IOException e) {
-				log.error("System speech failed, stopping engine", e);
-				return;
-			}
-
-			if (audioClip == null || audioClip.length == 0) continue;
-
-			if (task.generation >= 0 && task.generation != dialogGenSupplier.getAsInt()) {
-				log.trace("Dropping stale audio for {} (gen {} != current {})",
-					task.audioQueueName, task.generation, dialogGenSupplier.getAsInt());
-				continue;
-			}
-
-			AudioQueue audioQueue =
-				namedAudioQueueMap.computeIfAbsent(task.audioQueueName, name -> new AudioQueue());
-			audioQueue.queue.add(new AudioQueue.AudioTask(audioClip, task.getVolume()));
-
-			synchronized (namedAudioQueueMap) {namedAudioQueueMap.notify();}
-		}
-	}
-
-	private void processAudioQueue() {
-		while (!processAudioQueueThread.isInterrupted()) {
-			synchronized (namedAudioQueueMap) {
-				try {
-					namedAudioQueueMap.wait();
-				}
-				catch (InterruptedException e) {
-					return;
-				}
-			}
-
-			namedAudioQueueMap.forEach((queueName, audioQueue) -> {
-				if (!audioQueue.isPlaying() && !audioQueue.queue.isEmpty()) {
-					audioQueue.setPlaying(true);
-
-					new Thread(() -> {
-						try {
-							AudioQueue.AudioTask task;
-							while ((task = audioQueue.queue.poll()) != null) {
-								audioPlayer.playClip(task.getAudioClip(), task.getVolume(), queueName);
-							}
-						} finally {
-							audioQueue.setPlaying(false);
-						}
-					}, String.format("NativeSpeechEngine AudioPlayer Thread for %s", queueName)).start();
-				}
-			});
-		}
+		tasks.add(new SpeechTask(text, voiceID, volume, audioQueueName, generation));
 	}
 
 	public void silenceQueue(String queueName) {
-		taskQueue.removeIf(task -> queueName.equals(task.getAudioQueueName()));
+		tasks.removeIf(task -> queueName.equals(task.getAudioQueueName()));
 		AudioQueue audioQueue = namedAudioQueueMap.get(queueName);
 		if (audioQueue != null) {
 			audioQueue.queue.clear();
@@ -143,28 +67,112 @@ public class NativeSpeechEngine {
 	}
 
 	public void clearQueue() {
-		taskQueue.clear();
+		tasks.clear();
 		namedAudioQueueMap.values().forEach(audioQueue -> audioQueue.queue.clear());
 	}
 
 	public void stop() {
-		audioPlayer.stop();
-		process.stop();
+		stopped = true;
 		clearQueue();
+		tasks.add(STOP);
+		audioPlayer.stop();
 
-		processAudioQueueThread.interrupt();
-		processTaskThread.interrupt();
-		synchronized (taskQueue) {taskQueue.notifyAll();}
-		synchronized (namedAudioQueueMap) {namedAudioQueueMap.notifyAll();}
+		NativeSpeechProcess process = this.process;
+		if (process != null) {
+			process.stop();
+		}
 	}
 
-	@Override
-	public String toString() {
-		return String.format("System speech with %d voices", getVoices().size());
+	private void run(Consumer<NativeSpeechEngine> onReady, Consumer<NativeSpeechEngine> onCrash) {
+		try {
+			process = NativeSpeech.startProcess();
+			if (stopped) {
+				process.stop();
+				return;
+			}
+			process.onExit().thenRun(() -> {
+				if (!stopped) onCrash.accept(this);
+			});
+			onReady.accept(this);
+
+			SpeechTask task;
+			while ((task = tasks.take()) != STOP) {
+				generate(task);
+			}
+		}
+		catch (InterruptedException ignored) {
+		}
+		catch (IOException e) {
+			if (stopped) return;
+			log.error("System voices stopped working", e);
+			onCrash.accept(this);
+		}
+	}
+
+	private void generate(SpeechTask task) throws IOException {
+		String systemName = systemName(task.getVoiceID());
+		if (systemName == null) {
+			log.warn("No system voice called {}", task.getVoiceID());
+			return;
+		}
+
+		byte[] audio;
+		try {
+			audio = process.generateAudio(systemName, task.getText());
+		}
+		catch (RuntimeException e) {
+			log.warn("System voice {} failed to speak: {}", task.getVoiceID(), task.getText(), e);
+			return;
+		}
+
+		if (stopped || audio == null || audio.length == 0) return;
+		if (task.getGeneration() >= 0 && task.getGeneration() != dialogGen.getAsInt()) return;
+
+		AudioQueue audioQueue = namedAudioQueueMap.computeIfAbsent(task.getAudioQueueName(), name -> new AudioQueue());
+		audioQueue.queue.add(new AudioQueue.AudioTask(audio, task.getVolume()));
+		play(task.getAudioQueueName(), audioQueue);
+	}
+
+	private String systemName(VoiceID voiceID) {
+		return process.getVoices().stream()
+			.filter(voice -> voice.toVoiceID().equals(voiceID))
+			.map(NativeVoice::getSystemName)
+			.findFirst()
+			.orElse(null);
+	}
+
+	private void play(String queueName, AudioQueue audioQueue) {
+		synchronized (audioQueue) {
+			if (audioQueue.isPlaying()) return;
+			audioQueue.setPlaying(true);
+		}
+
+		Thread player = new Thread(() -> {
+			AudioQueue.AudioTask clip;
+			while (!stopped && (clip = nextClip(audioQueue)) != null) {
+				try {
+					audioPlayer.playClip(clip.getAudioClip(), clip.getVolume(), queueName);
+				}
+				catch (RuntimeException e) {
+					log.error("System voice clip failed to play", e);
+				}
+			}
+		}, "NativeSpeechEngine " + queueName);
+		player.setDaemon(true);
+		player.start();
+	}
+
+	private static AudioQueue.AudioTask nextClip(AudioQueue audioQueue) {
+		synchronized (audioQueue) {
+			AudioQueue.AudioTask clip = audioQueue.queue.poll();
+			if (clip == null) {
+				audioQueue.setPlaying(false);
+			}
+			return clip;
+		}
 	}
 
 	@Value
-	@AllArgsConstructor
 	private static class SpeechTask {
 		String text;
 		VoiceID voiceID;

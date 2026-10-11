@@ -386,7 +386,7 @@ public class SpeechEventHandler {
 		}
 
 		if (isMessageTypeDisabledInConfig(message)) {
-			log.debug("Muting message. Disabled message type {}. Message:{}", message.getType(), message.getMessage());
+			log.trace("Muting message. Disabled message type {}. Message:{}", message.getType(), message.getMessage());
 			return true;
 		}
 

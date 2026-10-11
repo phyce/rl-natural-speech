@@ -1,9 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.tts.ModelRepository;
-import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
@@ -29,17 +27,12 @@ import net.runelite.client.util.SwingUtil;
 @Slf4j
 public class VoiceListItem extends JPanel {
 
+	private final TextToSpeech textToSpeech;
+	private final TextToSpeech.TextToSpeechListener listener;
 	@Getter
 	private final String voiceName;
 	@Getter
 	private final Gender gender;
-	@Getter
-	private final VoiceID voiceID;
-	@Getter
-	private final SpeechEngine engine;
-
-	private final TextToSpeech textToSpeech;
-	private final TextToSpeech.TextToSpeechListener listener;
 
 	private static final ImageIcon PLAY_BUTTON;
 	private static final ImageIcon PLAY_BUTTON_DISABLED;
@@ -53,13 +46,13 @@ public class VoiceListItem extends JPanel {
 
 	}
 
+
 	public static VoiceListItem forPiperVoice(
 		VoiceExplorerPanel voiceExplorerPanel,
 		TextToSpeech textToSpeech,
 		ModelRepository.VoiceMetadata voiceMetadata) {
 		return new VoiceListItem(voiceExplorerPanel, textToSpeech, voiceMetadata.toVoiceID(),
-			voiceMetadata.getName(), voiceMetadata.getGender(),
-			String.format("ID%d", voiceMetadata.getPiperVoiceID()));
+			voiceMetadata.getName(), voiceMetadata.getGender(), String.format("ID%d", voiceMetadata.getPiperVoiceID()));
 	}
 
 	public static VoiceListItem forSystemVoice(
@@ -78,20 +71,19 @@ public class VoiceListItem extends JPanel {
 		Gender gender,
 		String idLabelText) {
 		this.textToSpeech = textToSpeech;
-		this.voiceID = voiceID;
 		this.voiceName = voiceName;
 		this.gender = gender;
-		this.engine = TextToSpeech.engineOfModel(voiceID.getModelName());
 
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
 		this.setOpaque(true);
-		this.setToolTipText(String.format("%s (%s)", voiceID.toVoiceIDString(), gender));
+		this.setToolTipText(String.format("%s (%s)", voiceID, gender));
 
 		JPanel speakerPanel = new JPanel();
 		speakerPanel.setOpaque(false);
 
 		GroupLayout speakerLayout = new GroupLayout(speakerPanel);
 		speakerPanel.setLayout(speakerLayout);
+
 
 		JLabel nameLabel = new JLabel(voiceName);
 		nameLabel.setForeground(Color.white);
@@ -110,12 +102,12 @@ public class VoiceListItem extends JPanel {
 		JLabel genderLabel = new JLabel(genderString);
 		genderLabel.setForeground(Color.white);
 
-		JLabel idLabel = new JLabel(idLabelText);
+		JLabel piperIdLabel = new JLabel(idLabelText);
 
 		speakerLayout.setHorizontalGroup(speakerLayout
 			.createSequentialGroup()
 			.addGap(5)
-			.addComponent(idLabel, 35, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
+			.addComponent(piperIdLabel, 35, GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
 			.addGap(5)
 			.addComponent(nameLabel)
 			.addGap(5).addComponent(genderLabel));
@@ -124,30 +116,28 @@ public class VoiceListItem extends JPanel {
 
 		speakerLayout.setVerticalGroup(speakerLayout.createParallelGroup()
 			.addGap(5)
-			.addComponent(idLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
+			.addComponent(piperIdLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addComponent(nameLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addComponent(genderLabel, lineHeight, GroupLayout.PREFERRED_SIZE, lineHeight)
 			.addGap(5));
+
 
 		JButton playButton = new JButton(PLAY_BUTTON_DISABLED);
 		SwingUtil.removeButtonDecorations(playButton);
 		playButton.setPreferredSize(
 			new Dimension(PLAY_BUTTON_DISABLED.getIconWidth(), PLAY_BUTTON_DISABLED.getIconHeight()));
 		playButton.addActionListener(
-			event -> {
-				if (!textToSpeech.isModelActive(voiceID.getModelName())) {
-					log.info("{} is currently not running.", voiceID.getModelName());
-					return;
-				}
 
-				try {
+			event -> {
+				if (textToSpeech.isModelActive(voiceID.getModelName())) {
 					textToSpeech.speak(
 						voiceID,
 						textToSpeech.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
 						0,
 						"&VoiceExplorer");
-				} catch (ModelLocalUnavailableException e) {
-					throw new RuntimeException(e);
+				}
+				else {
+					log.info("Model {} is currently not running.", voiceID.getModelName());
 				}
 			});
 
@@ -160,7 +150,7 @@ public class VoiceListItem extends JPanel {
 
 		Runnable refresh = () -> SwingUtilities.invokeLater(() -> {
 			boolean active = textToSpeech.isModelActive(voiceID.getModelName());
-			playButton.setIcon(active? PLAY_BUTTON: PLAY_BUTTON_DISABLED);
+			playButton.setIcon(active ? PLAY_BUTTON : PLAY_BUTTON_DISABLED);
 			playButton.setEnabled(active);
 		});
 		refresh.run();
@@ -177,17 +167,12 @@ public class VoiceListItem extends JPanel {
 			}
 
 			@Override
-			public void onNativeSpeechStart(NativeSpeechEngine speechEngine) {
+			public void onNativeSpeechStart(NativeSpeechEngine engine) {
 				refresh.run();
 			}
 
 			@Override
-			public void onNativeSpeechExit(NativeSpeechEngine speechEngine) {
-				refresh.run();
-			}
-
-			@Override
-			public void onStop() {
+			public void onNativeSpeechExit(NativeSpeechEngine engine) {
 				refresh.run();
 			}
 		};

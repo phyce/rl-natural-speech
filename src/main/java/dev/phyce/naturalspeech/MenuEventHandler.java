@@ -149,7 +149,7 @@ public class MenuEventHandler {
 			VoiceID voiceID;
 			if (npc != null) {
 				try {
-					voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
+					voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName(), config.npcDialog());
 				} catch (VoiceSelectionOutOfOption ignored) {
 					voiceID = null;
 				}
@@ -160,7 +160,7 @@ public class MenuEventHandler {
 			}
 			else {
 				try {
-					voiceID = voiceManager.getVoiceIDFromUsername(standardActorName);
+					voiceID = voiceManager.getVoiceIDFromUsername(standardActorName, config.publicChat());
 				} catch (VoiceSelectionOutOfOption ignored) {
 					voiceID = null;
 					log.error("Voice Selection Out of option for {}", standardActorName);

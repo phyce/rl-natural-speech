@@ -77,6 +77,7 @@ public class MainSettingsPanel extends PluginPanel {
 	private final ModelRepository modelRepository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
+	private final NaturalSpeechConfig config;
 	private final ConfigManager configManager;
 	private final List<ModelRepository.ModelRepositoryListener> modelRepositoryListeners;
 
@@ -94,6 +95,7 @@ public class MainSettingsPanel extends PluginPanel {
 		this.modelRepository = modelRepository;
 		this.clientThread = clientThread;
 		this.runtimeConfig = runtimeConfig;
+		this.config = config;
 		this.configManager = configManager;
 		this.modelRepositoryListeners = new ArrayList<>();
 
@@ -224,8 +226,56 @@ public class MainSettingsPanel extends PluginPanel {
 	}
 
 	public void buildVoiceRepositorySegment() {
-		final JPanel sectionContent =
-			buildSection("Piper Voice Packs", "Download and manage your piper voice models.");
+		final JPanel section = new JPanel();
+		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+
+		final JPanel sectionHeader = new JPanel();
+		sectionHeader.setLayout(new BorderLayout());
+		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
+		// border on the right only affects the width when closed, fixing the issue.
+		sectionHeader.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(0, 0, 3, 1)));
+		section.add(sectionHeader);
+
+		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
+		sectionToggle.setPreferredSize(new Dimension(18, 0));
+		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
+		sectionToggle.setToolTipText("Retract");
+		SwingUtil.removeButtonDecorations(sectionToggle);
+		sectionHeader.add(sectionToggle, BorderLayout.WEST);
+
+		final String name = "Piper Voice Packs";
+		final String description = "Download and manage your piper voice models.";
+		final JLabel sectionName = new JLabel(name);
+		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
+		sectionName.setFont(FontManager.getRunescapeBoldFont());
+		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
+		sectionHeader.add(sectionName, BorderLayout.CENTER);
+
+		final JPanel sectionContent = new JPanel();
+		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
+		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
+		section.setBorder(new CompoundBorder(
+			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
+			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
+		));
+		section.add(sectionContent, BorderLayout.SOUTH);
+
+		mainContentPanel.add(section);
+
+		// Toggle section action listeners
+		final MouseAdapter adapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				toggleSection(sectionToggle, sectionContent);
+			}
+		};
+		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
+		sectionName.addMouseListener(adapter);
+		sectionHeader.addMouseListener(adapter);
 
 		List<ModelRepository.ModelURL> modelURLS = modelRepository.getModelURLS();
 		for (ModelRepository.ModelURL modelUrl : modelURLS) {
@@ -254,6 +304,75 @@ public class MainSettingsPanel extends PluginPanel {
 			modelRepository.addRepositoryChangedListener(modelRepoListener);
 			this.modelRepositoryListeners.add(modelRepoListener);
 		}
+	}
+
+	public void buildPiperStatusSection() {
+		JPanel sectionContent = buildSection("Piper Status", "Manage your piper instances.");
+
+		JPanel statusPanel = buildPiperStatusPanel();
+		sectionContent.add(statusPanel);
+
+		JPanel piperFileChoosePanel = buildPiperFileChoose();
+		sectionContent.add(piperFileChoosePanel);
+
+		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
+		sectionContent.add(piperProcessMonitorPanel);
+	}
+
+	public void buildNativeSpeechSection() {
+		JPanel sectionContent = buildSection("System Voices", "The voices built into your operating system.");
+
+		JPanel statusPanel = new JPanel(new BorderLayout());
+		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
+
+		JLabel statusLabel = new JLabel("", SwingConstants.CENTER);
+		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
+		statusLabel.setOpaque(true);
+		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50));
+		statusPanel.add(statusLabel, BorderLayout.NORTH);
+
+		Runnable refresh = () -> SwingUtilities.invokeLater(() -> {
+			NativeSpeechEngine engine = textToSpeech.getNativeSpeechEngine();
+			boolean running = engine != null && engine.isAlive();
+			statusLabel.setText(running ? "Running" : NativeSpeech.isSupported() ? "Not Running" : "Not Supported");
+			statusLabel.setBackground(running ? Color.GREEN.darker() : Color.DARK_GRAY);
+			statusLabel.setForeground(running ? Color.WHITE : null);
+			statusPanel.setToolTipText(running ? engine.getVoices().size() + " system voices available." : null);
+		});
+		refresh.run();
+
+		textToSpeech.addTextToSpeechListener(
+			new TextToSpeech.TextToSpeechListener() {
+				@Override
+				public void onNativeSpeechStart(NativeSpeechEngine engine) {
+					refresh.run();
+				}
+
+				@Override
+				public void onNativeSpeechExit(NativeSpeechEngine engine) {
+					refresh.run();
+				}
+			}
+		);
+
+		JButton playButton = createButton("start.png", "Start");
+		JButton stopButton = createButton("stop.png", "Stop");
+		playButton.addActionListener(e -> {
+			if (config.nativeSpeechEnabled()) {
+				clientThread.invokeLater(textToSpeech::startNativeSpeech);
+			}
+			else {
+				configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.NATIVE_SPEECH, true);
+			}
+		});
+		stopButton.addActionListener(e -> configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.NATIVE_SPEECH, false));
+
+		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		buttonPanel.add(playButton);
+		buttonPanel.add(stopButton);
+		statusPanel.add(buttonPanel, BorderLayout.CENTER);
+
+		sectionContent.add(statusPanel);
 	}
 
 	private JPanel buildSection(String name, String description) {
@@ -306,126 +425,6 @@ public class MainSettingsPanel extends PluginPanel {
 		sectionHeader.addMouseListener(adapter);
 
 		return sectionContent;
-	}
-
-	public void buildPiperStatusSection() {
-		JPanel sectionContent = buildSection("Piper Status", "Manage your piper instances.");
-
-		// Status Label with dynamic background color
-		sectionContent.add(buildPiperStatusPanel());
-		sectionContent.add(buildPiperFileChoose());
-		sectionContent.add(buildPiperProcessMonitorPanel());
-	}
-
-	public void buildNativeSpeechSection() {
-		JPanel sectionContent = buildSection("System Voices",
-			"The voices built into your operating system. No piper install needed.");
-
-		sectionContent.add(buildNativeSpeechStatusPanel());
-		sectionContent.add(buildNativeVoicePackPanel());
-	}
-
-	private JPanel buildNativeVoicePackPanel() {
-		JPanel panel = new JPanel(new BorderLayout());
-		panel.setBorder(new EmptyBorder(5, 5, 5, 5));
-
-		JLabel nameLabel = new JLabel(OSValidator.IS_MAC ? "macOS voices" : "Windows voices");
-		nameLabel.setFont(FontManager.getRunescapeBoldFont());
-		panel.add(nameLabel, BorderLayout.WEST);
-
-		JLabel countLabel = new JLabel();
-		panel.add(countLabel, BorderLayout.EAST);
-
-		Runnable refresh = () -> SwingUtilities.invokeLater(() -> {
-			NativeSpeechEngine engine = textToSpeech.getNativeSpeechEngine();
-			int voices = engine == null ? 0 : engine.getVoices().size();
-			countLabel.setText(voices == 0 ? "-" : voices + " voices");
-			panel.setToolTipText("Voices available on your system");
-		});
-		refresh.run();
-
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				@Override
-				public void onNativeSpeechStart(NativeSpeechEngine engine) {
-					refresh.run();
-				}
-
-				@Override
-				public void onNativeSpeechExit(NativeSpeechEngine engine) {
-					refresh.run();
-				}
-			}
-		);
-
-		return panel;
-	}
-
-	private JPanel buildNativeSpeechStatusPanel() {
-		JPanel statusPanel = new JPanel();
-		statusPanel.setLayout(new BorderLayout());
-		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
-
-		JLabel statusLabel = new JLabel("Not Running", SwingConstants.CENTER);
-		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
-		statusLabel.setOpaque(true); // Needed to show background color
-		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50));
-		statusPanel.add(statusLabel, BorderLayout.NORTH);
-
-		Runnable refresh = () -> SwingUtilities.invokeLater(() -> {
-			NativeSpeechEngine engine = textToSpeech.getNativeSpeechEngine();
-
-			if (engine != null && engine.isAlive()) {
-				int voices = engine.getVoices().size();
-				statusLabel.setText("Running");
-				statusLabel.setBackground(Color.GREEN.darker());
-				statusLabel.setForeground(Color.WHITE);
-				statusPanel.setToolTipText(voices + " system voice(s) available.");
-			}
-			else if (!NativeSpeech.isSupported()) {
-				statusLabel.setText("Not Supported");
-				statusLabel.setBackground(Color.DARK_GRAY);
-				statusLabel.setForeground(null);
-				statusPanel.setToolTipText("This operating system has no built-in voices wired up yet.");
-			}
-			else {
-				statusLabel.setText("Not Running");
-				statusLabel.setBackground(Color.DARK_GRAY);
-				statusLabel.setForeground(null);
-				statusPanel.setToolTipText("Press start to use the voices built into your system.");
-			}
-		});
-		refresh.run();
-
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				@Override
-				public void onNativeSpeechStart(NativeSpeechEngine engine) {
-					refresh.run();
-				}
-
-				@Override
-				public void onNativeSpeechExit(NativeSpeechEngine engine) {
-					refresh.run();
-				}
-			}
-		);
-
-		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-		JButton playButton = createButton("start.png", "Start");
-		JButton stopButton = createButton("stop.png", "Stop");
-
-		// writes the setting rather than starting directly, so the buttons and the checkbox agree
-		playButton.addActionListener(e ->
-			configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.NATIVE_SPEECH, true));
-		stopButton.addActionListener(e ->
-			configManager.setConfiguration(CONFIG_GROUP, ConfigKeys.NATIVE_SPEECH, false));
-
-		buttonPanel.add(playButton);
-		buttonPanel.add(stopButton);
-		statusPanel.add(buttonPanel, BorderLayout.CENTER);
-		return statusPanel;
 	}
 
 	private JPanel buildPiperProcessMonitorPanel() {
@@ -550,7 +549,7 @@ public class MainSettingsPanel extends PluginPanel {
 		});
 		stopButton.addActionListener(e -> {
 			clientThread.invokeLater(() -> {
-				textToSpeech.stopPiper();
+				textToSpeech.stop();
 			});
 		});
 

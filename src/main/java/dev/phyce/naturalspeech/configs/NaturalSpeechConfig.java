@@ -22,22 +22,22 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String DISTANCE_FADE = "distanceFade";
 		public static final String MASTER_VOLUME = "masterVolume";
 		public static final String SPEECH_GENERATION = "Speech generation";
-		public static final String PUBLIC_CHAT = "publicChat";
-		public static final String PRIVATE_CHAT = "privateChat";
-		public static final String PRIVATE_OUT_CHAT = "privateOutChat";
-		public static final String FRIENDS_CHAT = "friendsChat";
-		public static final String CLAN_CHAT = "clanChat";
-		public static final String CLAN_GUEST_CHAT = "clanGuestChat";
-		public static final String GIM_CHAT = "groupIronmanChat";
+		public static final String PUBLIC_CHAT = "publicChatEngine";
+		public static final String PRIVATE_CHAT = "privateChatEngine";
+		public static final String PRIVATE_OUT_CHAT = "privateOutChatEngine";
+		public static final String FRIENDS_CHAT = "friendsChatEngine";
+		public static final String CLAN_CHAT = "clanChatEngine";
+		public static final String CLAN_GUEST_CHAT = "clanGuestChatEngine";
+		public static final String GIM_CHAT = "groupIronmanChatEngine";
 		public static final String FRIENDS_ONLY_MODE = "friendsOnlyMode";
-		public static final String EXAMINE_CHAT = "examineChat";
-		public static final String NPC_OVERHEAD = "npcOverhead";
-		public static final String DIALOG = "dialog";
-		public static final String PLAYER_DIALOG = "playerDialog";
-		public static final String REQUESTS = "requests";
-		public static final String SYSTEM_MESSAGES = "systemMessages";
-		public static final String LOGIN_LOGOUT = "loginLogout";
-		public static final String TWITCH_CHAT = "twitchChat";
+		public static final String EXAMINE_CHAT = "examineChatEngine";
+		public static final String NPC_OVERHEAD = "npcOverheadEngine";
+		public static final String DIALOG = "dialogEngine";
+		public static final String PLAYER_DIALOG = "playerDialogEngine";
+		public static final String REQUESTS = "requestsEngine";
+		public static final String SYSTEM_MESSAGES = "systemMessagesEngine";
+		public static final String LOGIN_LOGOUT = "loginLogoutEngine";
+		public static final String TWITCH_CHAT = "twitchChatEngine";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 		public static final String MUTE_SELF = "muteSelf";
 		public static final String MUTE_OTHERS = "muteOthers";
@@ -109,17 +109,6 @@ public interface NaturalSpeechConfig extends Config {
 
 	@ConfigItem(
 		position=5,
-		keyName=ConfigKeys.NATIVE_SPEECH,
-		name="Use system voices",
-		description="Use the voices built into your operating system",
-		section=generalSettingsSection
-	)
-	default boolean nativeSpeechEnabled() {
-		return true;
-	}
-
-	@ConfigItem(
-		position=6,
 		keyName=ConfigKeys.AUTO_START,
 		name="Autostart the TTS engine",
 		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
@@ -128,7 +117,7 @@ public interface NaturalSpeechConfig extends Config {
 	default boolean autoStart() {return true;}
 
 	@ConfigItem(
-		position=7,
+		position=6,
 		keyName=ConfigKeys.DISTANCE_FADE,
 		name="Fade distant sound",
 		description="Players standing further away will sound quieter.",
@@ -140,7 +129,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=8,
+		position=7,
 		keyName=ConfigKeys.MASTER_VOLUME,
 		name="Master volume control",
 		description="Volume percentage",
@@ -153,7 +142,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=9,
+		position=8,
 		keyName=ConfigKeys.FRIENDS_VOLUME_BOOST,
 		name="Friends volume boost",
 		description="Volume boost percentage",
@@ -165,7 +154,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=10,
+		position=9,
 		keyName=ConfigKeys.HOLD_SHIFT_RIGHT_CLICK_MENU,
 		name="Hold shift for right-click menu",
 		description="Only show the right-click menu when holding shift.",
@@ -176,7 +165,7 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=11,
+		position=10,
 		keyName=ConfigKeys.CUT_OFF_DIALOG_ON_SKIP,
 		name="Interrupt dialog when skipping",
 		description="Immediately play the next audio clip upon dialog skip",
@@ -187,13 +176,24 @@ public interface NaturalSpeechConfig extends Config {
 	}
 
 	@ConfigItem(
-		position=12,
+		position=11,
 		keyName=ConfigKeys.MESSAGE_DUPLICATE_SUPPRESSOR,
 		name="Silence duplicate messages",
 		description="Prevents the same message from being constantly spammed",
 		section=generalSettingsSection
 	)
 	default boolean messageDuplicateSuppressorEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
+		position=12,
+		keyName=ConfigKeys.NATIVE_SPEECH,
+		name="Use system voices",
+		description="Use the voices built into your operating system",
+		section=generalSettingsSection
+	)
+	default boolean nativeSpeechEnabled() {
 		return true;
 	}
 
@@ -246,7 +246,8 @@ public interface NaturalSpeechConfig extends Config {
 		keyName=ConfigKeys.PRIVATE_OUT_CHAT,
 		name="Private sent out messages",
 		description="Enable text-to-speech to the sent out private chat messages.",
-		section=ttsOptionsSection,
+		section=ttsOptionsSection
+		,
 		position=3
 	)
 	default SpeechEngine privateOutChat() {
@@ -291,7 +292,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Group Ironman chat",
 		description="Enable text-to-speech to the group ironman chat messages.",
 		section=ttsOptionsSection,
-		position=7
+		position=6
 	)
 	default SpeechEngine groupIronmanChat() {
 		return SpeechEngine.OFF;
@@ -302,7 +303,7 @@ public interface NaturalSpeechConfig extends Config {
 		name="Examine text",
 		description="Enable text-to-speech to the 'Examine' messages.",
 		section=ttsOptionsSection,
-		position=8
+		position=7
 	)
 	default SpeechEngine examineChat() {
 		return SpeechEngine.PIPER;
@@ -395,7 +396,6 @@ public interface NaturalSpeechConfig extends Config {
 	default SpeechEngine twitchChat() {
 		return SpeechEngine.OFF;
 	}
-
 	//</editor-fold>
 
 	//<editor-fold desc="> Mute Options">

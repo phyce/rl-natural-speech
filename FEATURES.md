@@ -47,6 +47,8 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 
 ## 1.4.0
+- Added native windows TTS
+- Added native macos TTS
 - Added ability to toggle login/logout messages
 - Improved message processing
 - Other changes and fixes

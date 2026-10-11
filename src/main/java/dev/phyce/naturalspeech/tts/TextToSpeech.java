@@ -13,11 +13,11 @@ import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.PiperNotActiveException;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.macos.MacUnquarantine;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeech;
+import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.piper.PiperProcess;
-import dev.phyce.naturalspeech.enums.SpeechEngine;
-import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeechEngine;
-import dev.phyce.naturalspeech.tts.nativespeech.NativeSpeech;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import static dev.phyce.naturalspeech.utils.TextUtil.splitSentence;
@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
@@ -56,8 +57,8 @@ public class TextToSpeech {
 	private ModelConfig modelConfig;
 	private final Map<String, Piper> pipers = new HashMap<>();
 	@Getter
-	private NativeSpeechEngine nativeSpeechEngine;
-	private final List<TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
+	private volatile NativeSpeechEngine nativeSpeechEngine;
+	private final List<TextToSpeechListener> textToSpeechListeners = new CopyOnWriteArrayList<>();
 	@Getter
 	private boolean started = false;
 	private boolean isPiperUnquarantined = false;
@@ -81,21 +82,13 @@ public class TextToSpeech {
 
 	// <editor-fold desc="> API">
 	public void start() {
-		if (config.nativeSpeechEnabled() && !isNativeSpeechRunning()) startNativeSpeech();
-
 		if (!isPiperPathValid()) {
-			if (isNativeSpeechRunning()) {
-				started = true;
-				triggerOnStart();
-			}
-			else {
-				triggerOnPiperInvalid();
-			}
+			triggerOnPiperInvalid();
 			return;
 		}
 
 		isPiperUnquarantined = false; // set to false for each launch, in case piper path/files were modified
-		started = isNativeSpeechRunning();
+		started = false;
 		try {
 			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 				try {
@@ -121,54 +114,34 @@ public class TextToSpeech {
 
 	public void startNativeSpeech() {
 		stopNativeSpeech();
+		if (!NativeSpeech.isSupported()) return;
 
-		if (!NativeSpeech.isSupported()) {
-			log.debug("This platform has no system voices wired up yet, skipping");
-			return;
-		}
-
-		try {
-			nativeSpeechEngine = NativeSpeechEngine.start(dialogGen::get);
-			triggerOnNativeSpeechStart(nativeSpeechEngine);
-		}
-		catch (IOException | RuntimeException e) {
-			log.error("Failed to start the system voices", e);
-			nativeSpeechEngine = null;
-		}
+		nativeSpeechEngine = new NativeSpeechEngine(
+			dialogGen::get,
+			engine -> clientThread.invokeLater(() -> {
+				if (engine == nativeSpeechEngine) triggerOnNativeSpeechStart(engine);
+			}),
+			engine -> clientThread.invokeLater(() -> {
+				if (engine == nativeSpeechEngine) stopNativeSpeech();
+			}));
 	}
 
 	public void stopNativeSpeech() {
-		if (nativeSpeechEngine == null) return;
+		NativeSpeechEngine engine = nativeSpeechEngine;
+		if (engine == null) return;
 
-		NativeSpeechEngine stopping = nativeSpeechEngine;
 		nativeSpeechEngine = null;
-		try {
-			stopping.stop();
-		}
-		catch (RuntimeException e) {
-			log.error("Error stopping the system voices", e);
-		}
-		triggerOnNativeSpeechExit(stopping);
+		engine.stop();
+		triggerOnNativeSpeechExit(engine);
 	}
 
 	public boolean isNativeSpeechRunning() {
-		return nativeSpeechEngine != null && nativeSpeechEngine.isAlive();
+		NativeSpeechEngine engine = nativeSpeechEngine;
+		return engine != null && engine.isAlive();
 	}
 
 	public void stop() {
 		started = false;
-		stopNativeSpeech();
-		stopPipers();
-		triggerOnStop();
-	}
-
-	public void stopPiper() {
-		stopPipers();
-		started = isNativeSpeechRunning();
-		triggerOnStop();
-	}
-
-	private void stopPipers() {
 		for (Piper piper : pipers.values()) {
 			try {
 				piper.stop();
@@ -178,6 +151,7 @@ public class TextToSpeech {
 			triggerOnPiperExit(piper);
 		}
 		pipers.clear();
+		triggerOnStop();
 	}
 
 	public void speak(VoiceID voiceID, String text, int distance, String audioQueueName)
@@ -188,37 +162,33 @@ public class TextToSpeech {
 	public void speak(VoiceID voiceID, String text, int distance, int volumeBoostPercent, String audioQueueName)
 		throws ModelLocalUnavailableException, PiperNotActiveException {
 		assert distance >= 0;
-		try {
-			boolean isNativeVoice = NativeSpeech.isNativeModel(voiceID.getModelName());
+		if (NativeSpeech.isNativeModel(voiceID.getModelName())) {
+			NativeSpeechEngine engine = nativeSpeechEngine;
+			if (engine == null) throw new PiperNotActiveException(text, voiceID);
 
-			if (isNativeVoice) {
-				if (nativeSpeechEngine == null || !nativeSpeechEngine.isAlive()) {
-					throw new PiperNotActiveException(text, voiceID);
-				}
+			int generation = MagicUsernames.DIALOG.equals(audioQueueName) ? dialogGen.get() : -1;
+			for (String sentence : splitSentence(text)) {
+				engine.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName, generation);
 			}
-			else {
-				if (!modelRepository.hasModelLocal(voiceID.modelName)) {
-					throw new ModelLocalUnavailableException(text, voiceID);
-				}
+			return;
+		}
 
-				if (!isModelActive(voiceID.getModelName())) {
-					throw new PiperNotActiveException(text, voiceID);
-				}
+		try {
+			if (!modelRepository.hasModelLocal(voiceID.modelName)) {
+				throw new ModelLocalUnavailableException(text, voiceID);
+			}
+
+			if (!isModelActive(voiceID.getModelName())) {
+				throw new PiperNotActiveException(text, voiceID);
 			}
 
 			// Piper should be guaranteed to be present due to checks above
-			Piper piper = isNativeVoice ? null : pipers.get(voiceID.modelName);
+			Piper piper = pipers.get(voiceID.modelName);
 
 			int generation = MagicUsernames.DIALOG.equals(audioQueueName) ? dialogGen.get() : -1;
-			float volume = getVolumeWithDistance(distance, volumeBoostPercent);
 			List<String> fragments = splitSentence(text);
 			for (String sentence : fragments) {
-				if (isNativeVoice) {
-					nativeSpeechEngine.speak(sentence, voiceID, volume, audioQueueName, generation);
-				}
-				else {
-					piper.speak(sentence, voiceID, volume, audioQueueName, generation);
-				}
+				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName, generation);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error loading " + voiceID, e);
@@ -272,8 +242,9 @@ public class TextToSpeech {
 		for (Piper piper : pipers.values()) {
 			piper.silenceQueue(queueName);
 		}
-		if (nativeSpeechEngine != null) {
-			nativeSpeechEngine.silenceQueue(queueName);
+		NativeSpeechEngine engine = nativeSpeechEngine;
+		if (engine != null) {
+			engine.silenceQueue(queueName);
 		}
 	}
 
@@ -281,35 +252,46 @@ public class TextToSpeech {
 		for (String modelName : pipers.keySet()) {
 			pipers.get(modelName).clearQueue();
 		}
-		if (nativeSpeechEngine != null) {
-			nativeSpeechEngine.clearQueue();
+		NativeSpeechEngine engine = nativeSpeechEngine;
+		if (engine != null) {
+			engine.clearQueue();
 		}
 	}
 
 	public void clearOtherPlayersAudioQueue(String username) {
-		for (String modelName : pipers.keySet()) {
-			Piper piper = pipers.get(modelName);
-			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
+		for (Map<String, AudioQueue> audioQueues : namedAudioQueueMaps()) {
+			for (String audioQueueName : audioQueues.keySet()) {
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
 				if (audioQueueName.equals(PluginHelper.getLocalPlayerUsername())) continue;
 				if (audioQueueName.equals(username)) continue;
-				piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+				audioQueues.get(audioQueueName).queue.clear();
 			}
 		}
 	}
 
 	public void clearPlayerAudioQueue(String username) {
-		for (String modelName : pipers.keySet()) {
-			Piper piper = pipers.get(modelName);
-			for (String audioQueueName : piper.getNamedAudioQueueMap().keySet()) {
+		for (Map<String, AudioQueue> audioQueues : namedAudioQueueMaps()) {
+			for (String audioQueueName : audioQueues.keySet()) {
 				// Don't clear dialogue
 				if (audioQueueName.equals(AUDIO_QUEUE_DIALOGUE)) continue;
 
 				if (audioQueueName.equals(username)) {
-					piper.getNamedAudioQueueMap().get(audioQueueName).queue.clear();
+					audioQueues.get(audioQueueName).queue.clear();
 				}
 			}
 		}
+	}
+
+	private List<Map<String, AudioQueue>> namedAudioQueueMaps() {
+		List<Map<String, AudioQueue>> audioQueueMaps = new ArrayList<>();
+		for (Piper piper : pipers.values()) {
+			audioQueueMaps.add(piper.getNamedAudioQueueMap());
+		}
+		NativeSpeechEngine engine = nativeSpeechEngine;
+		if (engine != null) {
+			audioQueueMaps.add(engine.getNamedAudioQueueMap());
+		}
+		return audioQueueMaps;
 	}
 	//</editor-fold>
 
@@ -318,21 +300,6 @@ public class TextToSpeech {
 	/**
 	 * Starts Piper for specific ModelLocal
 	 */
-
-	public boolean isPiperSetUp() {
-		if (!isPiperPathValid()) return false;
-
-		try {
-			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
-				if (modelRepository.hasModelLocal(modelURL.getModelName())) return true;
-			}
-		}
-		catch (IOException e) {
-			log.debug("Could not check for downloaded voice packs", e);
-		}
-
-		return false;
-	}
 
 	public boolean isPiperPathValid() {
 		File piper_file = runtimeConfig.getPiperPath().toFile();
@@ -402,6 +369,10 @@ public class TextToSpeech {
 		return result;
 	}
 
+	public boolean isModelActive(ModelRepository.ModelLocal modelLocal) {
+		return isModelActive(modelLocal.getModelName());
+	}
+
 	public boolean isAnyEngineRunning() {
 		return activePiperProcessCount() > 0 || isNativeSpeechRunning();
 	}
@@ -410,14 +381,8 @@ public class TextToSpeech {
 		return NativeSpeech.isNativeModel(modelName) ? SpeechEngine.SYSTEM : SpeechEngine.PIPER;
 	}
 
-	public boolean isModelActive(ModelRepository.ModelLocal modelLocal) {
-		return isModelActive(modelLocal.getModelName());
-	}
-
 	public boolean isModelActive(String modelName) {
-		if (NativeSpeech.isNativeModel(modelName)) {
-			return nativeSpeechEngine != null && nativeSpeechEngine.isAlive();
-		}
+		if (NativeSpeech.isNativeModel(modelName)) return isNativeSpeechRunning();
 
 		Piper piper = pipers.get(modelName);
 		return piper != null && piper.countAlive() > 0;
