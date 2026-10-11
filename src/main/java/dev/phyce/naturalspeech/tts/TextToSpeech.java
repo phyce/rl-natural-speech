@@ -142,15 +142,14 @@ public class TextToSpeech {
 			// Piper should be guaranteed to be present due to checks above
 			Piper piper = pipers.get(voiceID.modelName);
 
-			boolean isDialog = MagicUsernames.DIALOG.equals(audioQueueName);
-			if (!isDialog && playbackGate.isBacklogged(pendingAudioCount())) {
-				log.debug("Dropping message, playback queue is full ({} pending). Text:{}",
-					pendingAudioCount(), text);
+			boolean queued = playbackGate.isQueued(audioQueueName);
+			if (queued && playbackGate.isBacklogged(pendingAudioCount())) {
+				log.debug("Dropping message, playback queue is full. Text:{}", text);
 				return;
 			}
 
-			int generation = isDialog ? dialogGen.get() : -1;
-			List<String> fragments = splitSentence(text);
+			int generation = MagicUsernames.DIALOG.equals(audioQueueName) ? dialogGen.get() : -1;
+			List<String> fragments = queued ? List.of(text) : splitSentence(text);
 			for (String sentence : fragments) {
 				piper.speak(sentence, voiceID, getVolumeWithDistance(distance, volumeBoostPercent), audioQueueName, generation);
 			}

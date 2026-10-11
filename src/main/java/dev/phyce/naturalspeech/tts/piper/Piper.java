@@ -183,14 +183,15 @@ public class Piper {
 					// start a thread for each named audio queue
 					new Thread(() -> {
 						try {
-							// held for the whole drain, so the fragments a single message was split
-							// into are not interleaved with another speaker's when playing in turn
-							try (PlaybackGate.Hold ignored = playbackGate.acquire()) {
-								AudioQueue.AudioTask task;
-								while ((task = audioQueue.queue.poll()) != null) {
-									audioPlayer.playClip(task.getAudioClip(), task.getVolume(), queueName);
+							AudioQueue.AudioTask task;
+							do {
+								try (PlaybackGate.Hold ignored = playbackGate.acquire(queueName)) {
+									task = audioQueue.queue.poll();
+									if (task != null) {
+										audioPlayer.playClip(task.getAudioClip(), task.getVolume(), queueName);
+									}
 								}
-							}
+							} while (task != null);
 						} finally {
 							audioQueue.setPlaying(false);
 						}

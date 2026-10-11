@@ -190,7 +190,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=12,
 		keyName=ConfigKeys.SEQUENTIAL_PLAYBACK,
 		name="Single public message queue",
-		description="Play one message at a time for the whole chat. Busy areas will lag behind the chatbox.",
+		description="Play one message at a time",
 		section=generalSettingsSection
 	)
 	default boolean sequentialPlaybackEnabled() {
@@ -201,8 +201,7 @@ public interface NaturalSpeechConfig extends Config {
 		position=13,
 		keyName=ConfigKeys.SEQUENTIAL_PLAYBACK_QUEUE_SIZE,
 		name="Max queued messages",
-		description="How far behind the single queue is allowed to fall before new messages are dropped. "
-			+ "Long messages take up more than one slot. Only applies with the single queue enabled.",
+		description="How many messages to keep in the queue when single message queue is enabled",
 		section=generalSettingsSection
 	)
 	@Range(min=1, max=200)

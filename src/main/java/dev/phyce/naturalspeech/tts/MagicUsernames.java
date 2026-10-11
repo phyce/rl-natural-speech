@@ -6,4 +6,5 @@ public final class MagicUsernames {
 	public static final String LOCAL_USER = "&localuser";
 	public static final String DIALOG = "&dialog";
 	public static final String TWITCH = "&twitch";
+	public static final String VOICE_EXPLORER = "&VoiceExplorer";
 }

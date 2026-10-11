@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.tts.MagicUsernames;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.tts.piper.Piper;
@@ -116,7 +117,7 @@ public class VoiceListItem extends JPanel {
 								voiceMetadata.toVoiceID(),
 								textToSpeech.expandShortenedPhrases(voiceExplorerPanel.getSpeechText().getText()),
 								0,
-								"&VoiceExplorer");
+								MagicUsernames.VOICE_EXPLORER);
 						}
 						else {
 							log.info("Model {} is currently not running.", modelLocal.getModelName());
