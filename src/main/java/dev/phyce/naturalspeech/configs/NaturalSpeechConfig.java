@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.configs;
 
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -21,22 +22,22 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String DISTANCE_FADE = "distanceFade";
 		public static final String MASTER_VOLUME = "masterVolume";
 		public static final String SPEECH_GENERATION = "Speech generation";
-		public static final String PUBLIC_CHAT = "publicChat";
-		public static final String PRIVATE_CHAT = "privateChat";
-		public static final String PRIVATE_OUT_CHAT = "privateOutChat";
-		public static final String FRIENDS_CHAT = "friendsChat";
-		public static final String CLAN_CHAT = "clanChat";
-		public static final String CLAN_GUEST_CHAT = "clanGuestChat";
-		public static final String GIM_CHAT = "groupIronmanChat";
+		public static final String PUBLIC_CHAT = "publicChatEngine";
+		public static final String PRIVATE_CHAT = "privateChatEngine";
+		public static final String PRIVATE_OUT_CHAT = "privateOutChatEngine";
+		public static final String FRIENDS_CHAT = "friendsChatEngine";
+		public static final String CLAN_CHAT = "clanChatEngine";
+		public static final String CLAN_GUEST_CHAT = "clanGuestChatEngine";
+		public static final String GIM_CHAT = "groupIronmanChatEngine";
 		public static final String FRIENDS_ONLY_MODE = "friendsOnlyMode";
-		public static final String EXAMINE_CHAT = "examineChat";
-		public static final String NPC_OVERHEAD = "npcOverhead";
-		public static final String DIALOG = "dialog";
-		public static final String PLAYER_DIALOG = "playerDialog";
-		public static final String REQUESTS = "requests";
-		public static final String SYSTEM_MESSAGES = "systemMessages";
-		public static final String LOGIN_LOGOUT = "loginLogout";
-		public static final String TWITCH_CHAT = "twitchChat";
+		public static final String EXAMINE_CHAT = "examineChatEngine";
+		public static final String NPC_OVERHEAD = "npcOverheadEngine";
+		public static final String DIALOG = "dialogEngine";
+		public static final String PLAYER_DIALOG = "playerDialogEngine";
+		public static final String REQUESTS = "requestsEngine";
+		public static final String SYSTEM_MESSAGES = "systemMessagesEngine";
+		public static final String LOGIN_LOGOUT = "loginLogoutEngine";
+		public static final String TWITCH_CHAT = "twitchChatEngine";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 		public static final String MUTE_SELF = "muteSelf";
 		public static final String MUTE_OTHERS = "muteOthers";
@@ -239,8 +240,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=1
 	)
-	default boolean publicChatEnabled() {
-		return true;
+	default SpeechEngine publicChat() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -250,8 +251,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=2
 	)
-	default boolean privateChatEnabled() {
-		return false;
+	default SpeechEngine privateChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -262,8 +263,8 @@ public interface NaturalSpeechConfig extends Config {
 		,
 		position=3
 	)
-	default boolean privateOutChatEnabled() {
-		return false;
+	default SpeechEngine privateOutChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -273,8 +274,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=4
 	)
-	default boolean friendsChatEnabled() {
-		return true;
+	default SpeechEngine friendsChat() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -284,8 +285,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=5
 	)
-	default boolean clanChatEnabled() {
-		return false;
+	default SpeechEngine clanChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -295,8 +296,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=6
 	)
-	default boolean clanGuestChatEnabled() {
-		return false;
+	default SpeechEngine clanGuestChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -306,8 +307,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=6
 	)
-	default boolean groupIronmanChatEnabled() {
-		return false;
+	default SpeechEngine groupIronmanChat() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -317,8 +318,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=7
 	)
-	default boolean examineChatEnabled() {
-		return true;
+	default SpeechEngine examineChat() {
+		return SpeechEngine.PIPER;
 	}
 
 	//	@ConfigItem(
@@ -339,8 +340,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=9
 	)
-	default boolean npcOverheadEnabled() {
-		return false;
+	default SpeechEngine npcOverhead() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -350,8 +351,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=10
 	)
-	default boolean npcDialogEnabled() {
-		return true;
+	default SpeechEngine npcDialog() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -361,8 +362,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=11
 	)
-	default boolean playerDialogEnabled() {
-		return true;
+	default SpeechEngine playerDialog() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -372,8 +373,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=12
 	)
-	default boolean requestsEnabled() {
-		return false;
+	default SpeechEngine requests() {
+		return SpeechEngine.OFF;
 	}
 
 	@ConfigItem(
@@ -383,8 +384,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=13
 	)
-	default boolean systemMesagesEnabled() {
-		return true;
+	default SpeechEngine systemMessages() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -394,8 +395,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=14
 	)
-	default boolean loginLogoutEnabled() {
-		return true;
+	default SpeechEngine loginLogout() {
+		return SpeechEngine.PIPER;
 	}
 
 	@ConfigItem(
@@ -405,10 +406,9 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=15
 	)
-	default boolean twitchChatEnabled() {
-		return false;
+	default SpeechEngine twitchChat() {
+		return SpeechEngine.OFF;
 	}
-
 	//</editor-fold>
 
 	//<editor-fold desc="> Mute Options">
