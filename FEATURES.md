@@ -1,18 +1,16 @@
 # Features
 
 ### Right click option menu
-Right click on any player/npc to `configure` their voice, `mute` them or `listen` exclusively to them.<br/>
-![](https://mechanic.ink/img/osrs/features/right-click.png)
-
+Right click on any player/npc to `configure` their voice, assign a random voice, `mute` them or `listen` exclusively to them.<br/>
+![](https://narration.studio/storage/runelite/features/right-click.png)
 ### Voice Explorer
 Choose from over 1000 different voices for your character. 
 You can use the Included voice explorer to preview a voice:<br/>
-![](https://mechanic.ink/img/osrs/features/voice-explorer.png)
+![](https://narration.studio/storage/runelite/features/voice-explorer.png)
 
 ### Vast Customization
 
-Explore the many customization options to fine-tune your TTS experience:<br/>
-![](https://mechanic.ink/img/osrs/features/config.png)
+Explore the many customization options to fine-tune your TTS experience.
 
 ### Party options
 
