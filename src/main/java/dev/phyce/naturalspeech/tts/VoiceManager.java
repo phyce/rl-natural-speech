@@ -52,7 +52,6 @@ public class VoiceManager {
 
 	public final static String VOICE_CONFIG_FILE = "speaker_config.json";
 	private static final String SOURCE_KEY_PREFIX = "voiceSource_";
-	private static final int MAX_HEARD = 500;
 	private final VoiceConfig voiceConfig;
 	private final VoiceConfig defaultVoiceConfig;
 	private final TextToSpeech textToSpeech;
@@ -60,8 +59,8 @@ public class VoiceManager {
 	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
 	private final GenderedVoiceMap genderedVoiceMap;
 	private final List<Runnable> characterListeners = new CopyOnWriteArrayList<>();
-	private final Map<String, VoiceID> heardPlayers = boundedMap();
-	private final Map<String, VoiceID> heardNpcs = boundedMap();
+	private final Map<String, VoiceID> heardPlayers = new LinkedHashMap<>();
+	private final Map<String, VoiceID> heardNpcs = new LinkedHashMap<>();
 
 	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
 
@@ -497,15 +496,6 @@ public class VoiceManager {
 		Map<String, VoiceID> heard = new LinkedHashMap<>(heardNpcs);
 		heard.keySet().removeIf(voiceConfig::hasNpcName);
 		return heard;
-	}
-
-	private static Map<String, VoiceID> boundedMap() {
-		return new LinkedHashMap<>() {
-			@Override
-			protected boolean removeEldestEntry(Map.Entry<String, VoiceID> eldest) {
-				return size() > MAX_HEARD;
-			}
-		};
 	}
 
 	public void setCharacterVoices(@NonNull CharacterVoiceDatum datum, @NonNull List<VoiceID> voiceIDs) {

@@ -6,7 +6,9 @@ Give everyone a voice in OldSchool RuneScape! For all characters and players, wi
 ### To see a list of features, check out [FEATURES.md](FEATURES.md)
 
 Natural Speech requires an installing external tool to process text to generate speech.
-At the moment the only supported TTS engine is  [Piper](https://github.com/rhasspy/piper).
+At the moment there are only 2 supported TTS engines:<br/>
+- Local TTS:  [Piper](https://github.com/rhasspy/piper).<br/>
+- API TTS: [Elevenlabs](https://elevenlabs.io)
 
 [![Discord](https://discord.com/api/guilds/1214848661029392405/widget.png?style=banner2)](https://discord.gg/Zg5hMYMZ6E)
 
@@ -40,31 +42,50 @@ To set up Natural Speech, you will need to install a TTS engine, and download at
 
 After intalling the plugin, open the panel by clicking the button on the side:
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-0.png)
+![](https://narration.studio/storage/runelite/naturalspeech-0.png)
 
 You should see a plugin panel looking like the screenshot below.
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-1.png)
+![](https://narration.studio/storage/runelite/naturalspeech-1.png)
 
 Make sure that under the `Play` and `Stop` control buttons the location of your piper installation is correct.
 If it's not, piper will not work. To change it click on the browse button, and navigate to find `piper.exe` and press `Open`.
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-2.png)
+![](https://narration.studio/storage/runelite/naturalspeech-2.png)
 
 Click `Download` on a voice pack.
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-3.png)
+![](https://narration.studio/storage/runelite/naturalspeech-3.png)
 
 
 The button will get greyed out, the download will start and might take a while. Be patient.
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-4.png)
+![](https://narration.studio/storage/runelite/naturalspeech-4.png)
 
 After it's finished downloading, **toggle the repository on**.
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-5.png)
+![](https://narration.studio/storage/runelite/naturalspeech-5.png)
 
 Piper status should update to `Running`, which means the plugin is ready to go!
 
-![](https://mechanic.ink/img/osrs/readme/naturalspeech-6.png)
+![](https://narration.studio/storage/runelite/naturalspeech-6.png)
 
+## Setting up [Elevenlabs]([Elevenlabs](https://elevenlabs.io))
+
+Sign up or log in to https://elevenlabs.io and create an API key in https://elevenlabs.io/app/developers/api-keys with access to Text to speech.
+
+![](https://narration.studio/storage/runelite/naturalspeech-7.png)
+
+Copy the key that appears on the screen that starts with `sk_`
+
+![](https://narration.studio/storage/runelite/naturalspeech-8.png)<br/>
+_Note: the API key in this screenshot is not valid. Go make your own._
+
+Paste the API key in Natural Speech settings
+
+![](https://narration.studio/storage/runelite/naturalspeech-9.png)<br/>
+_You will get a warning when pasting the key, letting you know that using this feature will send some data to ElevenLabs. This is required for it to work._
+
+At this point, the Natural Speech panel should show that ElevenLabs is ready to use!
+
+![](https://narration.studio/storage/runelite/naturalspeech-10.png)

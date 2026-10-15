@@ -4,9 +4,13 @@ import javax.annotation.CheckForNull;
 import lombok.Getter;
 
 public enum ElevenLabsModel {
+	FLASH_V2("Flash v2", "eleven_flash_v2", "Fast, English only"),
 	FLASH_V2_5("Flash v2.5", "eleven_flash_v2_5", "Fast & uses less credits."),
 	MULTILINGUAL_V2("Multilingual v2", "eleven_multilingual_v2", "Multilingual"),
-	V3("v3", "eleven_v3", "Most expressive");
+	V3_CONVERSATIONAL("v3 Conversational", "eleven_v3_conversational", "Faster v3"),
+	V3("v3", "eleven_v3", "Expressive"),
+	V4_TURBO("v4 Turbo", "eleven_v4_turbo", "Faster v4"),
+	V4("v4", "eleven_v4", "Highest quality");
 
 	private final String label;
 	@Getter
