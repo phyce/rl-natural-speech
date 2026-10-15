@@ -70,7 +70,7 @@ Piper status should update to `Running`, which means the plugin is ready to go!
 
 ![](https://narration.studio/storage/runelite/naturalspeech-6.png)
 
-## Setting up [Elevenlabs]([Elevenlabs](https://elevenlabs.io))
+## Setting up [Elevenlabs]((https://elevenlabs.io))
 
 Sign up or log in to https://elevenlabs.io and create an API key in https://elevenlabs.io/app/developers/api-keys with access to Text to speech.
 
