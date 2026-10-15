@@ -8,12 +8,14 @@ import lombok.Value;
 
 // Used for JSON Serialization
 @Data
-public class NPCIDVoiceConfigDatum {
+public class NPCIDVoiceConfigDatum implements CharacterVoiceDatum {
 
 	// implicitly implements ModelAndVoiceConfig::getModelAndVoice through lombok@Data
 	List<VoiceID> voiceIDs = new ArrayList<>();
 
 	int npcId;
+
+	String npcName;
 
 	public NPCIDVoiceConfigDatum(int npcId) {
 		this.npcId = npcId;

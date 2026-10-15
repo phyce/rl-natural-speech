@@ -8,7 +8,7 @@ import lombok.Value;
 
 // Used for JSON Serialization
 @Data
-public class PlayerNameVoiceConfigDatum {
+public class PlayerNameVoiceConfigDatum implements CharacterVoiceDatum {
 
 	List<VoiceID> voiceIDs = new ArrayList<>();
 

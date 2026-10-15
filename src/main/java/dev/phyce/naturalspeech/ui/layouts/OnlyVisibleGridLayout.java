@@ -99,6 +99,18 @@ public class OnlyVisibleGridLayout extends GridLayout {
 				}
 			}
 
+			final int[] columnX = new int[columnCount];
+			for (int column = 0, x = insets.left; column < columnCount; column++) {
+				columnX[column] = x;
+				x += widths[column] + horizontalGap;
+			}
+
+			final int[] rowY = new int[rowCount];
+			for (int row = 0, y = insets.top; row < rowCount; row++) {
+				rowY[row] = y;
+				y += heights[row] + verticalGap;
+			}
+
 			// Apply new bounds to all child components
 			int visibleIndex = 0;
 			int trueIndex = 0;
@@ -112,9 +124,7 @@ public class OnlyVisibleGridLayout extends GridLayout {
 
 				final int row = visibleIndex / columnCount;
 				final int column = visibleIndex % columnCount;
-				final int x = insets.left + column * (widths[column] + horizontalGap);
-				final int y = insets.top + row * (heights[row] + verticalGap);
-				comp.setBounds(x, y, widths[column], heights[row]);
+				comp.setBounds(columnX[column], rowY[row], widths[column], heights[row]);
 				visibleIndex++;
 				trueIndex++;
 			}

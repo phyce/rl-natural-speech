@@ -47,6 +47,10 @@ Intergrated with [Spam Filter](https://runelite.net/plugin-hub/show/spamfilter) 
 # Changelog
 
 ## 1.4.0
+- Added right-click submenu options to assign random male & female voices
+- Added ElevenLabs engine
+- Added `Character Voices` tab to view, edit, and remove player & NPC voices
+- Right-click `Configure` now has a new voice selection menu
 - Added ability to toggle login/logout messages
 - Added single message queue option for public chat + max queue size
 - Improved message processing

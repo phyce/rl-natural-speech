@@ -19,16 +19,6 @@ import net.runelite.client.game.chatbox.ChatboxPanelManager;
 import net.runelite.client.game.chatbox.ChatboxTextInput;
 import net.runelite.client.input.MouseWheelListener;
 
-/**
- * A scrollable, searchable voice list in the chatbox, in the spirit of RuneLite's item search.
- * <p>
- * Scrolling matters as much as searching here: nobody remembers voice names, so the list has to be
- * browsable, not just filterable. The mouse wheel, the arrow keys and page up/down all move a window
- * over the results; typing narrows them.
- * <p>
- * {@code ChatboxPanelManager} registers this as a mouse wheel listener automatically because the
- * class implements {@link MouseWheelListener}.
- */
 public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelListener {
 
 	private static final int FONT_SIZE = 16;
@@ -44,7 +34,6 @@ public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelLi
 	private Runnable onBack;
 
 	private int scrollOffset = 0;
-	/** How many rows the last render actually fit, so scrolling can clamp to something real. */
 	private int visibleRows = 1;
 
 	@Inject
@@ -78,7 +67,6 @@ public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelLi
 		return this;
 	}
 
-	/** Runs when the panel is closed without a pick, so the caller can reopen its own menu. */
 	public VoiceSearchChatbox onBack(Runnable onBack) {
 		this.onBack = onBack;
 		return this;
@@ -125,7 +113,6 @@ public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelLi
 		if (!chatboxPanelManager.shouldTakeInput()) return;
 
 		switch (event.getKeyCode()) {
-			// The base class maps these to cursor movement, which is meaningless on a one line field
 			case KeyEvent.VK_UP:
 				event.consume();
 				scrollBy(-1);
@@ -188,7 +175,6 @@ public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelLi
 			return;
 		}
 
-		// Give up a row to the counter only when there is actually something off screen
 		boolean scrollable = results.size() > totalRows;
 		visibleRows = scrollable ? Math.max(1, totalRows - 1) : totalRows;
 
@@ -225,8 +211,14 @@ public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelLi
 		}
 
 		if (scrollable) {
-			caption(container, y, String.format("%d-%d of %d  -  scroll for more", from + 1, to, results.size()));
+			caption(container, y, String.format("%d-%d of %d  -  %s", from + 1, to, results.size(), scrollHint(from, to)));
 		}
+	}
+
+	private String scrollHint(int from, int to) {
+		if (from == 0) return "scroll down for more";
+		if (to == results.size()) return "scroll up for more";
+		return "scroll up & down for more";
 	}
 
 	private void caption(Widget container, int y, String text) {
@@ -247,7 +239,6 @@ public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelLi
 	}
 
 	private void select(Choice choice) {
-		// Taking the pick means this is no longer a cancel, so the back handler must not fire
 		onBack = null;
 		chatboxPanelManager.close();
 
@@ -264,7 +255,6 @@ public class VoiceSearchChatbox extends ChatboxTextInput implements MouseWheelLi
 		if (back != null) back.run();
 	}
 
-	/** One selectable voice: what the player reads, what they can search, and what it resolves to. */
 	@Value
 	public static class Choice {
 		String label;

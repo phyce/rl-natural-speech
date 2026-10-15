@@ -1,45 +1,53 @@
 package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.inject.Inject;
+import dev.phyce.naturalspeech.enums.ElevenLabsModel;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
+import dev.phyce.naturalspeech.enums.SpeechType;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
 import dev.phyce.naturalspeech.tts.piper.Piper;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
+import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.VoiceSource;
 import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
+import dev.phyce.naturalspeech.ui.components.CollapsibleSection;
 import dev.phyce.naturalspeech.utils.OSValidator;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
-import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
-import java.net.URI;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.BoxLayout;
+import java.util.stream.Collectors;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -54,28 +62,38 @@ import net.runelite.client.util.SwingUtil;
 @Slf4j
 public class MainSettingsPanel extends PluginPanel {
 
-	static {
-		BufferedImage sectionRetractIcon =
-			ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
-		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
-		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
-		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
-		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
-	}
-
-	public static final ImageIcon SECTION_EXPAND_ICON;
 	private static final EmptyBorder BORDER_PADDING = new EmptyBorder(6, 6, 6, 6);
-	private static final ImageIcon SECTION_RETRACT_ICON;
+	private static final ImageIcon START_ICON =
+		new ImageIcon(ImageUtil.loadImageResource(MainSettingsPanel.class, "start.png"));
+	private static final ImageIcon STOP_ICON =
+		new ImageIcon(ImageUtil.loadImageResource(MainSettingsPanel.class, "stop.png"));
 //	private static final Dimension OUTER_PREFERRED_SIZE = new Dimension(242, 0);
 
 
 	private final ClientThread clientThread;
+	private final NaturalSpeechConfig config;
+	private final VoiceManager voiceManager;
 	private final FixedWidthPanel mainContentPanel;
 	private final ModelRepository modelRepository;
 	private final TextToSpeech textToSpeech;
 	private final NaturalSpeechRuntimeConfig runtimeConfig;
 	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
 	private final List<ModelRepository.ModelRepositoryListener> modelRepositoryListeners;
+	private final List<TextToSpeech.TextToSpeechListener> textToSpeechListeners = new ArrayList<>();
+	private final Runnable statusListener = () -> SwingUtilities.invokeLater(this::refreshStatus);
+	private final Runnable speechGenerationListener = () -> SwingUtilities.invokeLater(this::refreshSpeechGeneration);
+	private final JPanel speechGenerationList = new JPanel(new DynamicGridLayout(0, 1, 0, 3));
+
+	private final JLabel enginesStatusLabel = new JLabel("", SwingConstants.CENTER);
+	private final JLabel piperStatusLabel = buildStatusLabel();
+	private final JButton piperToggleButton = new JButton();
+	private final JLabel elevenLabsStatusLabel = buildStatusLabel();
+	private final JButton elevenLabsToggleButton = new JButton();
+	private final JButton reloadVoicesButton = new JButton("Reload voices");
+	private final JButton clearCacheButton = new JButton("Clear cache");
+	private CollapsibleSection elevenLabsStatusSection;
+	private CollapsibleSection elevenLabsVoicePacksSection;
+	private volatile boolean piperPathInvalid = false;
 
 	@Inject
 	public MainSettingsPanel(
@@ -85,14 +103,17 @@ public class MainSettingsPanel extends PluginPanel {
 		Downloader downloader, ClientThread clientThread,
 		TextToSpeech textToSpeech,
 		NaturalSpeechRuntimeConfig runtimeConfig,
-		ElevenLabsVoiceRepository elevenLabsVoiceRepository
+		ElevenLabsVoiceRepository elevenLabsVoiceRepository,
+		VoiceManager voiceManager
 	) {
 		super(false);
-		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
 		this.textToSpeech = textToSpeech;
 		this.modelRepository = modelRepository;
 		this.clientThread = clientThread;
+		this.config = config;
+		this.voiceManager = voiceManager;
 		this.runtimeConfig = runtimeConfig;
+		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
 		this.modelRepositoryListeners = new ArrayList<>();
 
 		this.setLayout(new BorderLayout());
@@ -118,65 +139,62 @@ public class MainSettingsPanel extends PluginPanel {
 		this.add(scrollPane);
 
 		buildHeaderSegment();
-		buildElevenLabsSection();
+		buildEnginesSegment();
 		buildPiperStatusSection();
 		buildVoiceRepositorySegment();
+		buildElevenLabsStatusSection();
+		buildElevenLabsVoicePacksSection();
+		buildSpeechGenerationSection();
 //		buildVoiceHistorySegment();
 
+		addTextToSpeechListener(new TextToSpeech.TextToSpeechListener() {
+			@Override
+			public void onPiperStart(Piper piper) {
+				piperPathInvalid = false;
+				statusListener.run();
+			}
+
+			@Override
+			public void onPiperExit(Piper piper) {
+				statusListener.run();
+			}
+
+			@Override
+			public void onPiperInvalid() {
+				piperPathInvalid = true;
+				statusListener.run();
+			}
+
+			@Override
+			public void onStart() {
+				statusListener.run();
+			}
+
+			@Override
+			public void onStop() {
+				statusListener.run();
+			}
+
+			@Override
+			public void onElevenLabsStart() {
+				statusListener.run();
+			}
+
+			@Override
+			public void onElevenLabsStop() {
+				statusListener.run();
+			}
+		});
+		elevenLabsVoiceRepository.addListener(statusListener);
+		elevenLabsVoiceRepository.addListener(speechGenerationListener);
+
+		refreshStatus();
+		refreshSpeechGeneration();
 		this.revalidate();
 	}
 
 	private void buildVoiceHistorySegment() {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final String name = "History";
-		final String description = "The history of played voices played.";
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
+		buildSection("History", "The history of played voices played.", true);
 	}
 
 	public void buildHeaderSegment() {
@@ -221,14 +239,32 @@ public class MainSettingsPanel extends PluginPanel {
 
 	}
 
+	private void buildEnginesSegment() {
+		JButton startButton = createButton("start.png", "Start all engines");
+		JButton stopButton = createButton("stop.png", "Stop all engines");
+		startButton.addActionListener(e -> clientThread.invokeLater(textToSpeech::startAll));
+		stopButton.addActionListener(e -> clientThread.invokeLater(textToSpeech::stopAll));
+
+		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		buttonPanel.add(startButton);
+		buttonPanel.add(stopButton);
+
+		enginesStatusLabel.setBorder(new EmptyBorder(0, 0, 5, 0));
+
+		JPanel enginesPanel = new JPanel(new BorderLayout());
+		enginesPanel.add(buttonPanel, BorderLayout.CENTER);
+		enginesPanel.add(enginesStatusLabel, BorderLayout.SOUTH);
+		mainContentPanel.add(enginesPanel);
+	}
+
 	public void buildVoiceRepositorySegment() {
-		final JPanel sectionContent =
-			buildSection("Piper Voice Packs", "Download and manage your piper voice models.");
+		CollapsibleSection section =
+			buildSection("Piper Voice Packs", "Download and manage your piper voice models.", false);
 
 		List<ModelRepository.ModelURL> modelURLS = modelRepository.getModelURLS();
 		for (ModelRepository.ModelURL modelUrl : modelURLS) {
 			ModelListItem listItem = new ModelListItem(textToSpeech, modelRepository, modelUrl);
-			sectionContent.add(listItem);
+			section.getContent().add(listItem);
 
 			ModelRepository.ModelRepositoryListener modelRepoListener = new ModelRepository.ModelRepositoryListener() {
 				@Override
@@ -252,146 +288,289 @@ public class MainSettingsPanel extends PluginPanel {
 			modelRepository.addRepositoryChangedListener(modelRepoListener);
 			this.modelRepositoryListeners.add(modelRepoListener);
 		}
-	}
 
-	private JPanel buildSection(String name, String description) {
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new DynamicGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-		mainContentPanel.add(section);
-
-		// Toggle section action listeners
-		final MouseAdapter adapter = new MouseAdapter() {
+		ModelRepository.ModelRepositoryListener speechGenerationRepoListener = new ModelRepository.ModelRepositoryListener() {
 			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSection(sectionToggle, sectionContent);
+			public void onRepositoryChanged(String modelName) {
+				speechGenerationListener.run();
+			}
+
+			@Override
+			public void onRefresh() {
+				speechGenerationListener.run();
 			}
 		};
-		sectionToggle.addActionListener(actionEvent -> toggleSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
-
-		return sectionContent;
+		modelRepository.addRepositoryChangedListener(speechGenerationRepoListener);
+		this.modelRepositoryListeners.add(speechGenerationRepoListener);
 	}
 
 	public void buildPiperStatusSection() {
-		JPanel sectionContent = buildSection("Piper Status", "Manage your piper instances.");
+		CollapsibleSection section = buildSection("Piper Status", "Manage your piper instances.", true);
 
-		// Status Label with dynamic background color
-		sectionContent.add(buildPiperStatusPanel());
-		sectionContent.add(buildPiperFileChoose());
-		sectionContent.add(buildPiperProcessMonitorPanel());
-	}
-
-	public void buildElevenLabsSection() {
-		JPanel sectionContent = buildSection("ElevenLabs",
-			"Cloud voices. Set the API key in the plugin settings, then check it here.");
-
-		sectionContent.add(buildElevenLabsStatusPanel());
-	}
-
-	/**
-	 * Status plus a Check key button. The key lives in the RuneLite config panel, which only renders
-	 * plain inputs, so the button that validates it has to live here.
-	 */
-	private JPanel buildElevenLabsStatusPanel() {
-		JPanel statusPanel = new JPanel(new BorderLayout());
-		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
-
-		JLabel statusLabel = new JLabel("No API Key", SwingConstants.CENTER);
-		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
-		statusLabel.setOpaque(true); // Needed to show background color
-		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50));
-		statusPanel.add(statusLabel, BorderLayout.NORTH);
-
-		JLabel detailLabel = new JLabel(" ", SwingConstants.CENTER);
-		detailLabel.setFont(FontManager.getRunescapeSmallFont());
-		detailLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-
-		JButton checkButton = new JButton("Check key");
-		checkButton.setToolTipText("Ask ElevenLabs for your voice list using the configured API key");
-
-		Runnable refresh = () -> SwingUtilities.invokeLater(() -> {
-			int voices = elevenLabsVoiceRepository.getVoices().size();
-
-			if (!elevenLabsVoiceRepository.isConfigured()) {
-				statusLabel.setText("No API Key");
-				statusLabel.setBackground(Color.DARK_GRAY);
-				statusLabel.setForeground(null);
-				statusPanel.setToolTipText("Set an API key in the plugin settings under ElevenLabs.");
-			}
-			else if (voices > 0) {
-				statusLabel.setText("Ready");
-				statusLabel.setBackground(Color.GREEN.darker());
-				statusLabel.setForeground(Color.WHITE);
-				statusPanel.setToolTipText(voices + " ElevenLabs voice(s) available.");
+		piperToggleButton.addActionListener(e -> clientThread.invokeLater(() -> {
+			if (textToSpeech.isPiperStarted()) {
+				textToSpeech.stopPiper();
 			}
 			else {
-				statusLabel.setText("Unverified");
-				statusLabel.setBackground(Color.DARK_GRAY);
-				statusLabel.setForeground(null);
-				statusPanel.setToolTipText("An API key is set, but no voices have loaded yet.");
+				textToSpeech.startPiper();
 			}
+		}));
+		section.getContent().add(buildStatusRow(piperStatusLabel, piperToggleButton));
 
-			checkButton.setEnabled(!elevenLabsVoiceRepository.isFetching());
+		JPanel piperFileChoosePanel = buildPiperFileChoose();
+		section.getContent().add(piperFileChoosePanel);
+
+		JPanel piperProcessMonitorPanel = buildPiperProcessMonitorPanel();
+		section.getContent().add(piperProcessMonitorPanel);
+	}
+
+	private void buildElevenLabsStatusSection() {
+		elevenLabsStatusSection =
+			buildSection("ElevenLabs Status", "Manage your ElevenLabs connection.", true);
+
+		elevenLabsToggleButton.addActionListener(e -> clientThread.invokeLater(() -> {
+			if (textToSpeech.isElevenLabsStarted()) {
+				textToSpeech.stopElevenLabs();
+			}
+			else {
+				textToSpeech.startElevenLabs();
+			}
+		}));
+		elevenLabsStatusSection.getContent().add(buildStatusRow(elevenLabsStatusLabel, elevenLabsToggleButton));
+
+		reloadVoicesButton.addActionListener(e -> textToSpeech.refreshElevenLabsVoices());
+
+		clearCacheButton.setToolTipText("Delete all cached ElevenLabs audio");
+		clearCacheButton.addActionListener(e -> {
+			int result = JOptionPane.showConfirmDialog(this, "Delete all cached ElevenLabs audio?", "Clear cache",
+				JOptionPane.YES_NO_OPTION);
+			if (result == JOptionPane.YES_OPTION) {
+				textToSpeech.clearElevenLabsCache();
+			}
 		});
-		refresh.run();
 
-		checkButton.addActionListener(event -> {
-			checkButton.setEnabled(false);
-			detailLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
-			detailLabel.setText("Checking...");
-
-			elevenLabsVoiceRepository.verify(result -> SwingUtilities.invokeLater(() -> {
-				detailLabel.setForeground(result.isSuccess() ? Color.GREEN.brighter() : ColorScheme.PROGRESS_ERROR_COLOR);
-				detailLabel.setText("<html><center>" + result.getMessage() + "</center></html>");
-				refresh.run();
-			}));
-		});
-
-		elevenLabsVoiceRepository.addListener((removed, added) -> refresh.run());
-
-		JPanel bottom = new JPanel(new DynamicGridLayout(0, 1, 0, 3));
-		bottom.setBorder(new EmptyBorder(3, 5, 0, 5));
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-		buttonPanel.add(checkButton);
-		bottom.add(buttonPanel);
-		bottom.add(detailLabel);
-		statusPanel.add(bottom, BorderLayout.CENTER);
+		buttonPanel.add(reloadVoicesButton);
+		buttonPanel.add(clearCacheButton);
+		elevenLabsStatusSection.getContent().add(buttonPanel);
+	}
 
+	private void buildElevenLabsVoicePacksSection() {
+		elevenLabsVoicePacksSection =
+			buildSection("ElevenLabs Voice Packs", "Choose which ElevenLabs models to use.", false);
+
+		for (ElevenLabsModel model : ElevenLabsModel.values()) {
+			elevenLabsVoicePacksSection.getContent().add(buildElevenLabsModelItem(model));
+		}
+	}
+
+	private void buildSpeechGenerationSection() {
+		CollapsibleSection section =
+			buildSection("Speech Generation", "Choose the engine or model that speaks each message type.", true);
+		speechGenerationList.setOpaque(false);
+		section.getContent().add(speechGenerationList);
+	}
+
+	private void refreshSpeechGeneration() {
+		speechGenerationList.removeAll();
+		List<VoiceSource> sources = availableSources();
+
+		List<SpeechType> enabledTypes = Arrays.stream(SpeechType.values())
+			.filter(speechType -> speechType.isEnabled(config))
+			.collect(Collectors.toList());
+		for (SpeechType speechType : enabledTypes) {
+			speechGenerationList.add(new JLabel(speechType.toString()));
+
+			JComboBox<VoiceSource> box = sourceBox(sources, voiceManager.getSource(speechType));
+			box.addActionListener(event -> {
+				VoiceSource source = (VoiceSource) box.getSelectedItem();
+				if (source != null) voiceManager.setSource(speechType, source);
+			});
+			speechGenerationList.add(box);
+		}
+
+		speechGenerationList.revalidate();
+		speechGenerationList.repaint();
+	}
+
+	private List<VoiceSource> availableSources() {
+		List<VoiceSource> sources = new ArrayList<>();
+		sources.add(VoiceSource.PIPER);
+		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+			try {
+				if (modelRepository.hasModelLocal(modelURL.getModelName())) {
+					sources.add(VoiceSource.ofModel(modelURL.getModelName()));
+				}
+			} catch (IOException ignored) {
+			}
+		}
+
+		if (elevenLabsVoiceRepository.hasApiKey()) {
+			sources.add(VoiceSource.ELEVENLABS);
+			for (ElevenLabsModel model : elevenLabsVoiceRepository.getEnabledModels()) {
+				sources.add(VoiceSource.ofModel(model.getId()));
+			}
+		}
+		return sources;
+	}
+
+	private static JComboBox<VoiceSource> sourceBox(List<VoiceSource> sources, VoiceSource selected) {
+		List<VoiceSource> options = new ArrayList<>(sources);
+		if (!options.contains(selected)) options.add(selected);
+
+		JComboBox<VoiceSource> box = new JComboBox<>(options.toArray(new VoiceSource[0]));
+		box.setSelectedItem(selected);
+		return box;
+	}
+
+	private JPanel buildElevenLabsModelItem(ElevenLabsModel model) {
+		JLabel name = new JLabel(model.toString());
+		name.setFont(FontManager.getRunescapeBoldFont());
+
+		JLabel description = new JLabel(model.getDescription());
+
+		JPanel textPanel = new JPanel(new GridLayout(0, 1));
+		textPanel.setOpaque(false);
+		textPanel.add(name);
+		textPanel.add(description);
+
+		JToggleButton toggleButton = new JToggleButton();
+		SwingUtil.removeButtonDecorations(toggleButton);
+		toggleButton.setIcon(ModelListItem.OFF_SWITCHER);
+		toggleButton.setSelectedIcon(ModelListItem.ON_SWITCHER);
+		toggleButton.setPreferredSize(new Dimension(25, 0));
+		toggleButton.setSelected(elevenLabsVoiceRepository.isModelEnabled(model));
+		toggleButton.addActionListener(e -> elevenLabsVoiceRepository.setModelEnabled(model, toggleButton.isSelected()));
+
+		JPanel item = new JPanel(new BorderLayout(5, 0));
+		item.setBackground(ColorScheme.DARKER_GRAY_COLOR);
+		item.setBorder(new EmptyBorder(5, 5, 5, 5));
+		item.add(textPanel, BorderLayout.CENTER);
+		item.add(toggleButton, BorderLayout.EAST);
+		return item;
+	}
+
+	private void refreshStatus() {
+		refreshPiperStatus();
+		refreshElevenLabsStatus();
+		refreshEnginesStatus();
+		mainContentPanel.revalidate();
+		mainContentPanel.repaint();
+	}
+
+	private void refreshEnginesStatus() {
+		List<SpeechEngine> engines = new ArrayList<>(List.of(SpeechEngine.PIPER));
+		if (elevenLabsVoiceRepository.hasApiKey()) engines.add(SpeechEngine.ELEVENLABS);
+
+		long running = engines.stream().filter(textToSpeech::isEngineRunning).count();
+
+		String status;
+		if (running == engines.size()) {
+			status = "All engines running";
+		}
+		else if (running == 0) {
+			status = "No engines running";
+		}
+		else {
+			status = running + "/" + engines.size() + " engines running";
+		}
+		enginesStatusLabel.setText("<html><body style='width:150px'><center>" + status + "</center></body></html>");
+	}
+
+	private void refreshPiperStatus() {
+		if (piperPathInvalid) {
+			setStatus(piperStatusLabel, "Piper Path Invalid", Color.RED.darker().darker().darker(),
+				"Please contact the developers for support.");
+		}
+		else if (textToSpeech.activePiperProcessCount() > 0) {
+			setStatus(piperStatusLabel, "Running", Color.GREEN.darker(), "Text to speech is running.");
+		}
+		else if (!textToSpeech.isPiperStarted()) {
+			setStatus(piperStatusLabel, "Not running", Color.DARK_GRAY, "Press start to begin text to speech.");
+		}
+		else if (isAnyPiperModelEnabled()) {
+			setStatus(piperStatusLabel, "Crashed (Contact Us)", Color.RED.darker(),
+				"Please contact the developers for support.");
+		}
+		else {
+			setStatus(piperStatusLabel, "No Models Enabled", Color.ORANGE.darker(), "Download and enable a model.");
+		}
+		setToggle(piperToggleButton, textToSpeech.isPiperStarted(), "Piper");
+	}
+
+	private boolean isAnyPiperModelEnabled() {
+		return modelRepository.getModelURLS().stream()
+			.anyMatch(modelURL -> textToSpeech.getModelConfig().isModelEnabled(modelURL.getModelName()));
+	}
+
+	private void refreshElevenLabsStatus() {
+		boolean hasApiKey = elevenLabsVoiceRepository.hasApiKey();
+		elevenLabsStatusSection.setVisible(hasApiKey);
+		elevenLabsVoicePacksSection.setVisible(hasApiKey);
+
+		boolean started = textToSpeech.isElevenLabsStarted();
+		boolean loading = elevenLabsVoiceRepository.isLoading();
+		int voiceCount = elevenLabsVoiceRepository.getVoices().size();
+		String error = elevenLabsVoiceRepository.getError();
+
+		if (!started) {
+			setStatus(elevenLabsStatusLabel, "Not started", Color.DARK_GRAY, "Press start to use ElevenLabs.");
+		}
+		else if (loading) {
+			setStatus(elevenLabsStatusLabel, "Loading", Color.DARK_GRAY, "Loading your ElevenLabs voices.");
+		}
+		else if (error != null) {
+			setStatus(elevenLabsStatusLabel, "Error", Color.RED.darker(), error);
+		}
+		else if (voiceCount == 0) {
+			setStatus(elevenLabsStatusLabel, "No Voices", Color.ORANGE.darker(), "Add voices to your ElevenLabs library.");
+		}
+		else if (elevenLabsVoiceRepository.getEnabledModels().isEmpty()) {
+			setStatus(elevenLabsStatusLabel, "No Models Enabled", Color.ORANGE.darker(),
+				"Enable a model in ElevenLabs Voice Packs.");
+		}
+		else {
+			setStatus(elevenLabsStatusLabel, "Ready", Color.GREEN.darker(),
+				voiceCount + " ElevenLabs voices available.");
+		}
+		setToggle(elevenLabsToggleButton, started, "ElevenLabs");
+		reloadVoicesButton.setEnabled(started && !loading);
+		clearCacheButton.setEnabled(started);
+	}
+
+	private static JLabel buildStatusLabel() {
+		JLabel statusLabel = new JLabel("", SwingConstants.CENTER);
+		statusLabel.setFont(new Font("Sans", Font.BOLD, 16));
+		statusLabel.setOpaque(true);
+		statusLabel.setPreferredSize(new Dimension(0, 50));
+		return statusLabel;
+	}
+
+	private static JPanel buildStatusRow(JLabel statusLabel, JButton toggleButton) {
+		JPanel statusPanel = new JPanel(new BorderLayout(5, 0));
+		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
+		statusPanel.add(statusLabel, BorderLayout.CENTER);
+		statusPanel.add(toggleButton, BorderLayout.EAST);
 		return statusPanel;
+	}
+
+	private static void setStatus(JLabel statusLabel, String text, Color background, String tooltip) {
+		statusLabel.setText(text);
+		statusLabel.setBackground(background);
+		statusLabel.setForeground(background == Color.DARK_GRAY ? null : Color.WHITE);
+		statusLabel.setToolTipText(tooltip);
+	}
+
+	private static void setToggle(JButton toggleButton, boolean started, String engineName) {
+		toggleButton.setIcon(started ? STOP_ICON : START_ICON);
+		toggleButton.setToolTipText((started ? "Stop " : "Start ") + engineName);
+	}
+
+	private CollapsibleSection buildSection(String name, String description, boolean expanded) {
+		CollapsibleSection section =
+			new CollapsibleSection(name, description, new DynamicGridLayout(0, 1, 0, 5), expanded);
+		mainContentPanel.add(section);
+		return section;
 	}
 
 	private JPanel buildPiperProcessMonitorPanel() {
@@ -399,7 +578,7 @@ public class MainSettingsPanel extends PluginPanel {
 		panel.setLayout(new DynamicGridLayout(0, 1, 0, 2));
 		panel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-		textToSpeech.addTextToSpeechListener(
+		addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
 				private final Map<Piper, PiperListItem> piperItemList = new HashMap<>();
 
@@ -422,108 +601,6 @@ public class MainSettingsPanel extends PluginPanel {
 			}
 		);
 		return panel;
-	}
-
-	private JPanel buildPiperStatusPanel() {
-		JPanel statusPanel = new JPanel();
-		statusPanel.setLayout(new BorderLayout());
-		statusPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
-
-		JLabel statusLabel = new JLabel("Not Running", SwingConstants.CENTER);
-		statusLabel.setFont(new Font("Sans", Font.BOLD, 20));
-		statusLabel.setOpaque(true); // Needed to show background color
-		statusLabel.setPreferredSize(new Dimension(statusLabel.getWidth(), 50)); // Set preferred height
-		statusLabel.setBackground(Color.DARK_GRAY);
-		statusPanel.setToolTipText("Press start to begin text to speech.");
-
-		statusPanel.add(statusLabel, BorderLayout.NORTH);
-
-		textToSpeech.addTextToSpeechListener(
-			new TextToSpeech.TextToSpeechListener() {
-				@Override
-				public void onPiperStart(Piper piper) {
-					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-					// not just one starting piper
-					statusLabel.setText("Running");
-					statusLabel.setBackground(Color.GREEN.darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Text to speech is running.");
-				}
-
-				@Override
-				public void onPiperExit(Piper piper) {
-					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-					// not just one starting piper
-					if (textToSpeech.isStarted() && textToSpeech.activePiperProcessCount() == 0) {
-						// Detect if this was an unintended exit, because the model would still be enabled
-						if (textToSpeech.getModelConfig().isModelEnabled(piper.getModelLocal().getModelName())) {
-							statusLabel.setText("Crashed (Contact Us)");
-							statusLabel.setBackground(Color.RED.darker());
-							statusLabel.setForeground(Color.WHITE);
-							statusPanel.setToolTipText("Please contact the developers for support.");
-						} else {
-							statusLabel.setText("No Models Enabled");
-							statusLabel.setBackground(Color.ORANGE.darker());
-							statusLabel.setForeground(Color.WHITE);
-							statusPanel.setToolTipText("Download and enable a model.");
-						}
-					}
-				}
-
-				@Override
-				public void onPiperInvalid() {
-					statusLabel.setText("Piper Path Invalid");
-					statusLabel.setBackground(Color.RED.darker().darker().darker());
-					statusLabel.setForeground(Color.WHITE);
-					statusPanel.setToolTipText("Please contact the developers for support.");
-				}
-
-				@Override
-				public void onStart() {
-					// FIXME(Louis) Temporary just for testing. Should check if any pipers are running,
-					// not just one starting piper
-					if (textToSpeech.isStarted() &&
-						textToSpeech.activePiperProcessCount() == 0) {
-						statusLabel.setText("No Models Enabled");
-						statusLabel.setBackground(Color.ORANGE.darker());
-						statusLabel.setForeground(Color.WHITE);
-						statusPanel.setToolTipText("Download and enable a model.");
-					}
-
-				}
-
-				@Override
-				public void onStop() {
-					statusLabel.setText("Not running");
-					statusLabel.setBackground(Color.DARK_GRAY);
-					statusLabel.setForeground(null);
-					statusPanel.setToolTipText("Press start to begin text to speech.");
-				}
-			}
-		);
-
-		// Button Panel
-		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Align buttons in the center
-
-		// Initialize buttons with icons
-		JButton playButton = createButton("start.png", "Start");
-		JButton stopButton = createButton("stop.png", "Stop");
-
-		playButton.addActionListener(e -> {
-			clientThread.invokeLater(() -> {
-				textToSpeech.start();
-			});
-		});
-		stopButton.addActionListener(e -> {
-			clientThread.invokeLater(() -> {
-				textToSpeech.stopPiper();
-			});
-		});
-
-		buttonPanel.add(playButton);
-		buttonPanel.add(stopButton);
-		statusPanel.add(buttonPanel, BorderLayout.CENTER);
-		return statusPanel;
 	}
 
 	private JPanel buildPiperFileChoose() {
@@ -555,10 +632,12 @@ public class MainSettingsPanel extends PluginPanel {
 				modelRepository.refresh();
 
 				// if text to speech is running, restart
-				if (textToSpeech.isStarted()) {
-					textToSpeech.stop();
+				if (textToSpeech.isPiperStarted()) {
+					textToSpeech.stopPiper();
 				}
 
+				piperPathInvalid = false;
+				refreshStatus();
 			}
 
 		});
@@ -570,14 +649,6 @@ public class MainSettingsPanel extends PluginPanel {
 		return fileBrowsePanel;
 	}
 
-	private void toggleSection(JButton toggleButton, JPanel sectionContent) {
-		boolean newState = !sectionContent.isVisible();
-		sectionContent.setVisible(newState);
-		toggleButton.setIcon(newState? SECTION_RETRACT_ICON: SECTION_EXPAND_ICON);
-		toggleButton.setToolTipText(newState? "Retract": "Expand");
-		SwingUtilities.invokeLater(sectionContent::revalidate);
-	}
-
 	private JButton createButton(String iconPath, String toolTipText) {
 		BufferedImage icon = ImageUtil.loadImageResource(getClass(), iconPath);
 		JButton button = new JButton(new ImageIcon(icon));
@@ -585,24 +656,26 @@ public class MainSettingsPanel extends PluginPanel {
 		return button;
 	}
 
+	private void addTextToSpeechListener(TextToSpeech.TextToSpeechListener listener) {
+		textToSpeech.addTextToSpeechListener(listener);
+		textToSpeechListeners.add(listener);
+	}
+
 	public void shutdown() {
 		this.removeAll();
 		for (ModelRepository.ModelRepositoryListener listener : this.modelRepositoryListeners) {
 			modelRepository.removeRepositoryChangedListener(listener);
 		}
+		for (TextToSpeech.TextToSpeechListener listener : textToSpeechListeners) {
+			textToSpeech.removeTextToSpeechListener(listener);
+		}
+		elevenLabsVoiceRepository.removeListener(statusListener);
+		elevenLabsVoiceRepository.removeListener(speechGenerationListener);
 	}
 
 	@Override
 	public void onActivate() {
 		super.onActivate();
-
-		this.setVisible(true);
-	}
-
-	@Override
-	public void onDeactivate() {
-		super.onDeactivate();
-
-		this.setVisible(false);
+		refreshSpeechGeneration();
 	}
 }

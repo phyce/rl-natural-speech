@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import dev.phyce.naturalspeech.enums.BossRegions;
 import static dev.phyce.naturalspeech.enums.Locations.inGrandExchange;
-import dev.phyce.naturalspeech.enums.SpeechEngine;
+import dev.phyce.naturalspeech.enums.SpeechType;
 import dev.phyce.naturalspeech.exceptions.ModelLocalUnavailableException;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
@@ -15,6 +15,7 @@ import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.VoiceSource;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -81,7 +82,7 @@ public class SpeechEventHandler {
 
 		if (isChatMessageMuted(message)) return;
 
-		SpeechEngine engine = engineFor(message);
+		VoiceSource source = voiceManager.getSource(speechTypeFor(message));
 
 		try {
 			if (isTwitchMessage(message)) {
@@ -89,7 +90,7 @@ public class SpeechEventHandler {
 					username = MagicUsernames.TWITCH;
 				}
 				distance = 0;
-				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, source);
 				text = textToSpeech.expandShortenedPhrases(text);
 
 				log.debug("Twitch voice {} used for {}. ", voiceId, username);
@@ -97,7 +98,7 @@ public class SpeechEventHandler {
 			else if (isChatInnerVoice(message)) {
 				username = MagicUsernames.LOCAL_USER;
 				distance = 0;
-				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, source);
 				text = textToSpeech.expandShortenedPhrases(text);
 				text = TextUtil.renderLargeNumbers(text);
 
@@ -108,7 +109,8 @@ public class SpeechEventHandler {
 				if (config.friendsVolumeBoost() > 0 && PluginHelper.isFriend(username)) {
 					volumeBoost = config.friendsVolumeBoost();
 				}
-				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, source);
+				voiceManager.rememberHeardPlayer(username, voiceId);
 				text = textToSpeech.expandShortenedPhrases(text);
 				text = TextUtil.renderLargeNumbers(text);
 
@@ -119,7 +121,7 @@ public class SpeechEventHandler {
 				distance = 0;
 				text = Text.standardize(text);
 				text = TextUtil.renderLargeNumbers(text);
-				voiceId = voiceManager.getVoiceIDFromUsername(username, engine);
+				voiceId = voiceManager.getVoiceIDFromUsername(username, source);
 
 				log.debug("System voice {} used for {} for {}. ", voiceId, message.getType(), username);
 			}
@@ -129,7 +131,7 @@ public class SpeechEventHandler {
 				return;
 			}
 		} catch (VoiceSelectionOutOfOption e) {
-			log.error("Voice Selection ran out of options. No suitable active voice found name:{} type:{} message:{}",
+			log.debug("Voice Selection ran out of options. No suitable active voice found name:{} type:{} message:{}",
 				message.getName(), message.getType(), message.getMessage());
 			return;
 		}
@@ -140,11 +142,9 @@ public class SpeechEventHandler {
 
 	@Subscribe(priority=-100)
 	private void onWidgetLoaded(WidgetLoaded event) {
-		if (!textToSpeech.isAnyEngineRunning()) return;
-
 		if (event.getGroupId() == InterfaceID.DIALOG_PLAYER) {
-			SpeechEngine engine = config.playerDialog();
-			if (engine.isOff()) return;
+			if (!config.playerDialogEnabled()) return;
+			VoiceSource source = voiceManager.getSource(SpeechType.PLAYER_DIALOG);
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				if (config.cutOffDialogOnSkip()) {
@@ -162,18 +162,16 @@ public class SpeechEventHandler {
 				}
 				VoiceID voiceID;
 				try {
-					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER, engine);
+					voiceID = voiceManager.getVoiceIDFromUsername(MagicUsernames.LOCAL_USER, source);
 				} catch (VoiceSelectionOutOfOption e) {
-					// Nothing to speak with, ex ElevenLabs selected before its voices have loaded.
-					// Skipping the line is the intended behaviour; it must not take the tick down.
-					log.debug("No {} voice available for player dialog, skipping", engine);
+					log.debug("Voice Selection ran out of options for player dialog. No suitable active voice found.");
 					return;
 				}
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		} else if (event.getGroupId() == InterfaceID.DIALOG_NPC) {
-			SpeechEngine engine = config.npcDialog();
-			if (engine.isOff()) return;
+			if (!config.npcDialogEnabled()) return;
+			VoiceSource source = voiceManager.getSource(SpeechType.NPC_DIALOG);
 			// InvokeAtTickEnd to wait until the text has loaded in
 			clientThread.invokeAtTickEnd(() -> {
 				if (config.cutOffDialogOnSkip()) {
@@ -210,17 +208,14 @@ public class SpeechEventHandler {
 				}
 
 				VoiceID voiceID;
-				try {
-					voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName, engine);
-				}
+				try { voiceID = voiceManager.getVoiceIDFromNPCId(npcCompId, npcName, source); }
 				catch (VoiceSelectionOutOfOption e) {
-					// Nothing to speak with, ex ElevenLabs selected before its voices have loaded.
-					// Skipping the line is the intended behaviour; it must not take the tick down.
-					log.debug("No {} voice available for NPC dialog (CompId:{} name:{}), skipping",
-						engine, npcCompId, npcName);
+					log.debug("Voice Selection ran out of options for NPC dialog. No suitable active voice found NPC name:{}",
+						npcName);
 					return;
 				}
 
+				voiceManager.rememberHeardNpc(npcCompId, npcName, voiceID);
 				textToSpeech.speak(voiceID, text, 0, MagicUsernames.DIALOG);
 			});
 		}
@@ -240,8 +235,8 @@ public class SpeechEventHandler {
 		if (!textToSpeech.isAnyEngineRunning()) return;
 
 		if (event.getActor() instanceof NPC) {
-			SpeechEngine engine = config.npcOverhead();
-			if (engine.isOff()) return;
+			if (!config.npcOverheadEnabled()) return;
+			VoiceSource source = voiceManager.getSource(SpeechType.NPC_OVERHEAD);
 			if (isAreaDisabled()) return;
 			NPC npc = (NPC) event.getActor();
 
@@ -259,10 +254,11 @@ public class SpeechEventHandler {
 
 			VoiceID voiceID = null;
 			try {
-				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName(), engine);
+				voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName(), source);
+				voiceManager.rememberHeardNpc(npc.getId(), npc.getName(), voiceID);
 				textToSpeech.speak(voiceID, text, distance, npc.getName());
 			} catch (VoiceSelectionOutOfOption e) {
-				log.error(
+				log.debug(
 					"Voice Selection ran out of options for NPC. No suitable active voice found NPC ID:{} NPC name:{}",
 					npc.getId(), npc.getName());
 			}
@@ -385,7 +381,7 @@ public class SpeechEventHandler {
 			return true;
 		}
 
-		if (isTwitchMessage(message) && config.twitchChat().isOff()) return true;
+		if (isTwitchMessage(message) && !config.twitchChatEnabled()) return true;
 
 		// example: "::::::))))))" (no alpha numeric, muted)
 		if (!TextUtil.containAlphaNumeric(message.getMessage())) {
@@ -470,48 +466,51 @@ public class SpeechEventHandler {
 	}
 
 	public boolean isMessageTypeDisabledInConfig(ChatMessage message) {
-		return engineFor(message).isOff();
+		switch (message.getType()) {
+			case CLAN_GIM_MESSAGE:
+				return !config.groupIronmanChatEnabled() || !config.systemMesagesEnabled();
+			case CLAN_MESSAGE:
+				return !config.clanChatEnabled() || !config.systemMesagesEnabled();
+			case CLAN_GUEST_MESSAGE:
+				return !config.clanGuestChatEnabled() || !config.systemMesagesEnabled();
+			default:
+				return !speechTypeFor(message).isEnabled(config);
+		}
 	}
 
-	public SpeechEngine engineFor(ChatMessage message) {
-		if (isTwitchMessage(message)) return config.twitchChat();
+	public SpeechType speechTypeFor(ChatMessage message) {
+		if (isTwitchMessage(message)) return SpeechType.TWITCH_CHAT;
 
 		switch (message.getType()) {
 			case PUBLICCHAT:
 			case MODCHAT:
-				return config.publicChat();
+				return SpeechType.PUBLIC_CHAT;
 			case PRIVATECHAT:
 			case MODPRIVATECHAT:
-				return config.privateChat();
+				return SpeechType.PRIVATE_CHAT;
 			case PRIVATECHATOUT:
-				return config.privateOutChat();
+				return SpeechType.PRIVATE_OUT_CHAT;
 			case FRIENDSCHAT:
-				return config.friendsChat();
+				return SpeechType.FRIENDS_CHAT;
 			case CLAN_CHAT:
-				return config.clanChat();
+				return SpeechType.CLAN_CHAT;
 			case CLAN_GUEST_CHAT:
-				return config.clanGuestChat();
+				return SpeechType.CLAN_GUEST_CHAT;
 			case CLAN_GIM_CHAT:
-				return config.groupIronmanChat();
-			case CLAN_GIM_MESSAGE:
-				return SpeechEngine.gated(config.groupIronmanChat(), config.systemMessages());
-			case CLAN_MESSAGE:
-				return SpeechEngine.gated(config.clanChat(), config.systemMessages());
-			case CLAN_GUEST_MESSAGE:
-				return SpeechEngine.gated(config.clanGuestChat(), config.systemMessages());
+				return SpeechType.GROUP_IRONMAN_CHAT;
 			case LOGINLOGOUTNOTIFICATION:
-				return SpeechEngine.gated(config.systemMessages(), config.loginLogout());
+				return SpeechType.LOGIN_LOGOUT;
 			case OBJECT_EXAMINE:
 			case ITEM_EXAMINE:
 			case NPC_EXAMINE:
-				return config.examineChat();
+				return SpeechType.EXAMINE;
 			case TRADEREQ:
 			case CHALREQ_CLANCHAT:
 			case CHALREQ_FRIENDSCHAT:
 			case CHALREQ_TRADE:
-				return config.requests();
+				return SpeechType.REQUESTS;
 			default:
-				return config.systemMessages();
+				return SpeechType.SYSTEM_MESSAGES;
 		}
 	}
 

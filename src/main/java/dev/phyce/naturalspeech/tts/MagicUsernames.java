@@ -7,4 +7,8 @@ public final class MagicUsernames {
 	public static final String DIALOG = "&dialog";
 	public static final String TWITCH = "&twitch";
 	public static final String VOICE_EXPLORER = "&VoiceExplorer";
+
+	public static boolean isMagicUsername(String username) {
+		return username.startsWith("&");
+	}
 }

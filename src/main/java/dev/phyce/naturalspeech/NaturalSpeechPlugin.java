@@ -10,7 +10,6 @@ import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig.ConfigKeys;
 import dev.phyce.naturalspeech.configs.NaturalSpeechRuntimeConfig;
 import dev.phyce.naturalspeech.downloader.Downloader;
-import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
 import dev.phyce.naturalspeech.spamdetection.ChatFilterPluglet;
 import dev.phyce.naturalspeech.spamdetection.SpamFilterPluglet;
@@ -21,10 +20,10 @@ import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
 import dev.phyce.naturalspeech.ui.panels.TopLevelPanel;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -35,15 +34,15 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 
 @Slf4j
-@PluginDescriptor(name="Natural Speech")
+@PluginDescriptor(name="Natural Speech", internalName="naturalspeech")
 public class NaturalSpeechPlugin extends Plugin {
 
 	private static final String LEGACY_CONFIG_GROUP = "NaturalSpeech";
+	private static final String ELEVENLABS_CACHE_DIRECTORY = "elevenlabs-cache";
 
 	//<editor-fold desc="> RuneLite Dependencies">
 	@Inject
@@ -56,8 +55,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	private NaturalSpeechConfig config;
 	@Inject
 	private EventBus eventBus;
-	@Inject
-	private ClientThread clientThread;
 
 	//</editor-fold>
 
@@ -110,7 +107,6 @@ public class NaturalSpeechPlugin extends Plugin {
 	public void startUp() {
 
 		migrateLegacyConfigGroup();
-		migrateSpeechToggles();
 
 		runtimeConfig = injector.getInstance(NaturalSpeechRuntimeConfig.class);
 		textToSpeech = injector.getInstance(TextToSpeech.class);
@@ -149,8 +145,14 @@ public class NaturalSpeechPlugin extends Plugin {
 		textToSpeech.loadShortenedPhrases();
 
 
+		try {
+			textToSpeech.setElevenLabsCacheDirectory(getPluginDirectory().joinSegment(ELEVENLABS_CACHE_DIRECTORY));
+		} catch (IOException e) {
+			log.error("Failed to open the ElevenLabs cache directory", e);
+		}
+
 		if (config.autoStart()) {
-			textToSpeech.start();
+			textToSpeech.startAll();
 		}
 
 		updateConfigVoice(ConfigKeys.PERSONAL_VOICE, config.personalVoiceID());
@@ -173,7 +175,7 @@ public class NaturalSpeechPlugin extends Plugin {
 		topLevelPanel.shutdown();
 
 		if (textToSpeech != null) {
-			textToSpeech.stop();
+			textToSpeech.stopAll();
 		}
 		clientToolbar.removeNavigation(navButton);
 
@@ -225,36 +227,6 @@ public class NaturalSpeechPlugin extends Plugin {
 
 		log.info("Legacy config migration complete");
 	}
-
-	private static final String[] SPEECH_ENGINE_KEYS = {
-		ConfigKeys.PUBLIC_CHAT,
-		ConfigKeys.PRIVATE_CHAT,
-		ConfigKeys.PRIVATE_OUT_CHAT,
-		ConfigKeys.FRIENDS_CHAT,
-		ConfigKeys.CLAN_CHAT,
-		ConfigKeys.CLAN_GUEST_CHAT,
-		ConfigKeys.GIM_CHAT,
-		ConfigKeys.EXAMINE_CHAT,
-		ConfigKeys.NPC_OVERHEAD,
-		ConfigKeys.DIALOG,
-		ConfigKeys.PLAYER_DIALOG,
-		ConfigKeys.REQUESTS,
-		ConfigKeys.SYSTEM_MESSAGES,
-		ConfigKeys.TWITCH_CHAT,
-	};
-
-	private void migrateSpeechToggles() {
-		for (String key : SPEECH_ENGINE_KEYS) {
-			String legacyKey = StringUtils.removeEnd(key, "Engine");
-			String enabled = configManager.getConfiguration(CONFIG_GROUP, legacyKey);
-			if (enabled == null) continue;
-
-			SpeechEngine engine = Boolean.parseBoolean(enabled) ? SpeechEngine.PIPER : SpeechEngine.OFF;
-			log.info("Migrating {}={} to {}={}", legacyKey, enabled, key, engine);
-			configManager.setConfiguration(CONFIG_GROUP, key, engine);
-			configManager.unsetConfiguration(CONFIG_GROUP, legacyKey);
-		}
-	}
 	//</editor-fold>
 
 	//<editor-fold desc="> Hooks">
@@ -263,7 +235,7 @@ public class NaturalSpeechPlugin extends Plugin {
 	private void onConfigChanged(ConfigChanged event) {
 		if (!event.getGroup().equals(CONFIG_GROUP)) return;
 
-		if (textToSpeech.activePiperProcessCount() > 0) {
+		if (textToSpeech.isAnyEngineRunning()) {
 			switch (event.getKey()) {
 				case ConfigKeys.MUTE_SELF:
 					log.trace("Detected mute-self toggle, clearing audio queue.");
@@ -294,8 +266,8 @@ public class NaturalSpeechPlugin extends Plugin {
 				break;
 
 			case ConfigKeys.ELEVENLABS_API_KEY:
-				log.trace("Detected ElevenLabs API key change, reloading the voice library");
-				clientThread.invokeLater(() -> textToSpeech.startElevenLabs());
+				log.trace("Detected ElevenLabs API key change, reloading ElevenLabs");
+				textToSpeech.reloadElevenLabs();
 				break;
 		}
 

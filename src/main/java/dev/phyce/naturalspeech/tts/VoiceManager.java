@@ -6,15 +6,19 @@ import com.google.common.io.Resources;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.CharacterVoiceDatum;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
+import dev.phyce.naturalspeech.enums.ElevenLabsModel;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.NaturalSpeechPlugin;
-import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
 import dev.phyce.naturalspeech.configs.VoiceConfig;
+import dev.phyce.naturalspeech.enums.SpeechType;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.helpers.PluginHelper;
-import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabs;
 import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoice;
 import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
 import dev.phyce.naturalspeech.tts.piper.Piper;
@@ -22,9 +26,16 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -40,52 +51,29 @@ import net.runelite.client.util.Text;
 public class VoiceManager {
 
 	public final static String VOICE_CONFIG_FILE = "speaker_config.json";
+	private static final String SOURCE_KEY_PREFIX = "voiceSource_";
+	private static final int MAX_HEARD = 500;
 	private final VoiceConfig voiceConfig;
+	private final VoiceConfig defaultVoiceConfig;
 	private final TextToSpeech textToSpeech;
 	private final ConfigManager configManager;
-	private final NaturalSpeechConfig config;
-	private final CharacterVoices characterVoices;
 	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
 	private final GenderedVoiceMap genderedVoiceMap;
+	private final List<Runnable> characterListeners = new CopyOnWriteArrayList<>();
+	private final Map<String, VoiceID> heardPlayers = boundedMap();
+	private final Map<String, VoiceID> heardNpcs = boundedMap();
 
 	private final Multimap<ModelRepository.ModelLocal, VoiceID> activeVoiceMap = HashMultimap.create();
-	private final List<VoiceID> elevenLabsVoiceIDs = new ArrayList<>();
-	/** So a missing key does not log once per spoken line. Cleared when voices arrive. */
-	private boolean elevenLabsWarned = false;
 
 	@Inject
-	public VoiceManager(
-		TextToSpeech textToSpeech,
-		ConfigManager configManager,
-		NaturalSpeechConfig config,
-		CharacterVoices characterVoices,
-		ElevenLabsVoiceRepository elevenLabsVoiceRepository) {
+	public VoiceManager(TextToSpeech textToSpeech, ConfigManager configManager,
+						ElevenLabsVoiceRepository elevenLabsVoiceRepository) {
 		this.textToSpeech = textToSpeech;
 		this.configManager = configManager;
-		this.config = config;
-		this.characterVoices = characterVoices;
 		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
 		this.genderedVoiceMap = new GenderedVoiceMap();
 		voiceConfig = new VoiceConfig();
-
-		// Fires on the client thread, so touching the voice maps here is safe
-		elevenLabsVoiceRepository.addListener((removed, added) -> {
-			for (ElevenLabsVoice voice : removed) {
-				VoiceID voiceID = voice.toVoiceID();
-				genderedVoiceMap.removeVoice(voice.getGender(), voiceID);
-				elevenLabsVoiceIDs.remove(voiceID);
-			}
-
-			for (ElevenLabsVoice voice : added) {
-				VoiceID voiceID = voice.toVoiceID();
-				genderedVoiceMap.addVoice(voice.getGender(), voiceID);
-				elevenLabsVoiceIDs.add(voiceID);
-			}
-
-			if (!added.isEmpty()) elevenLabsWarned = false;
-
-			log.debug("Registered {} ElevenLabs voice(s)", added.size());
-		});
+		defaultVoiceConfig = VoiceConfig.fromJson(readDefaultVoiceConfig());
 
 		textToSpeech.addTextToSpeechListener(
 			new TextToSpeech.TextToSpeechListener() {
@@ -133,14 +121,7 @@ public class VoiceManager {
 		}
 
 		// if configManager fails, load default from resources
-		try {
-			URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(VOICE_CONFIG_FILE));
-			//noinspection UnstableApiUsage
-			json = Resources.toString(resourceUrl, StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			throw new RuntimeException("Default voice config file failed to load. " +
-				"Either JSON is incorrect, file path is incorrect, or the file doesn't exist.");
-		}
+		json = readDefaultVoiceConfig();
 
 		try {
 			voiceConfig.loadJSON(json);
@@ -150,173 +131,140 @@ public class VoiceManager {
 		}
 	}
 
+	private static String readDefaultVoiceConfig() {
+		try {
+			URL resourceUrl = Objects.requireNonNull(NaturalSpeechPlugin.class.getResource(VOICE_CONFIG_FILE));
+			//noinspection UnstableApiUsage
+			return Resources.toString(resourceUrl, StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new RuntimeException("Default voice config file failed to load. " +
+				"Either JSON is incorrect, file path is incorrect, or the file doesn't exist.");
+		}
+	}
+
 	public void saveVoiceConfig() {
 		configManager.setConfiguration(CONFIG_GROUP, VOICE_CONFIG_FILE, voiceConfig.toJson());
 	}
 
-	private static boolean matches(@CheckForNull SpeechEngine engine, @NonNull VoiceID voiceID) {
-		return engine == null || TextToSpeech.engineOfModel(voiceID.getModelName()) == engine;
+	public VoiceSource getSource(SpeechType speechType) {
+		VoiceSource source = VoiceSource.fromConfigValue(
+			configManager.getConfiguration(CONFIG_GROUP, SOURCE_KEY_PREFIX + speechType.name()));
+		return source == null ? VoiceSource.PIPER : source;
 	}
 
-	private static List<VoiceID> filter(@NonNull List<VoiceID> voiceIDs, @CheckForNull SpeechEngine engine) {
-		if (engine == null) return voiceIDs;
-
-		List<VoiceID> matching = new ArrayList<>();
-		for (VoiceID voiceID : voiceIDs) {
-			if (voiceID != null && matches(engine, voiceID)) matching.add(voiceID);
-		}
-		return matching;
-	}
-
-	/**
-	 * ElevenLabs costs real money per character, so it never borrows another engine's voices: if it
-	 * has nothing to speak with, the message stays silent rather than quietly coming out in piper.
-	 */
-	private static boolean isStrict(@CheckForNull SpeechEngine engine) {
-		return engine == SpeechEngine.ELEVENLABS;
-	}
-
-	private boolean hasVoicesFor(@CheckForNull SpeechEngine engine) {
-		return !filter(allActiveVoiceIDs(), engine).isEmpty();
-	}
-
-	private List<VoiceID> allActiveVoiceIDs() {
-		List<VoiceID> all = new ArrayList<>(activeVoiceMap.values());
-		all.addAll(elevenLabsVoiceIDs);
-		return all;
-	}
-
-	private List<VoiceID> activeVoiceIDs(@CheckForNull SpeechEngine engine) {
-		List<VoiceID> all = allActiveVoiceIDs();
-		List<VoiceID> matching = filter(all, engine);
-
-		if (!matching.isEmpty()) return matching;
-
-		return isStrict(engine) ? matching : all;
+	public void setSource(SpeechType speechType, VoiceSource source) {
+		configManager.setConfiguration(CONFIG_GROUP, SOURCE_KEY_PREFIX + speechType.name(), source.toConfigValue());
 	}
 
 	@CheckForNull
-	public VoiceID randomVoiceFromActiveModels(String standardized_username, @CheckForNull SpeechEngine engine) {
+	public VoiceID randomVoiceFromActiveModels(String standardized_username, VoiceSource source) {
 		int hashCode = standardized_username.hashCode();
 
-		List<VoiceID> voiceIDs = activeVoiceIDs(engine);
+		List<VoiceID> voiceIDs = activeVoices(source, null);
 		if (voiceIDs.isEmpty()) return null;
 
 		return voiceIDs.get(Math.abs(hashCode) % voiceIDs.size());
 	}
 
 	@CheckForNull
-	private VoiceID randomGenderedVoice(String standardized_username, Gender gender,
-										@CheckForNull SpeechEngine engine) {
-		List<VoiceID> voiceIDs = genderedVoiceMap.find(gender);
-		if (voiceIDs == null || voiceIDs.isEmpty()) {
+	private VoiceID randomGenderedVoice(String standardized_username, Gender gender, VoiceSource source) {
+		List<VoiceID> voiceIDs = activeVoices(source, gender);
+		if (voiceIDs.isEmpty()) {
 			return null;
 		}
-
-		voiceIDs = filter(voiceIDs, engine);
-		if (voiceIDs.isEmpty()) return null;
-
 		int hashCode = standardized_username.hashCode();
 		int voice = Math.abs(hashCode) % voiceIDs.size();
 
 		return voiceIDs.get(voice);
 	}
-	@CheckForNull
-	public VoiceID anyVoiceFor(@NonNull SpeechEngine engine) {
-		List<VoiceID> voiceIDs = filter(allActiveVoiceIDs(), engine);
-		if (voiceIDs.isEmpty()) return null;
 
-		// sorted so the same setting does not land on a different voice each startup
-		voiceIDs.sort(java.util.Comparator.comparing(VoiceID::toVoiceIDString));
-		return voiceIDs.get(0);
+	private List<VoiceID> activeVoices(VoiceSource source, @CheckForNull Gender gender) {
+		Collection<VoiceID> voiceIDs;
+		if (source.getEngine() == SpeechEngine.ELEVENLABS) {
+			voiceIDs = activeElevenLabsVoiceIDs(gender);
+		}
+		else {
+			voiceIDs = gender == null ? activeVoiceMap.values() : genderedVoiceMap.find(gender);
+		}
+		return voiceIDs.stream().filter(source::includes).collect(Collectors.toList());
+	}
+
+	private List<VoiceID> activeElevenLabsVoiceIDs(@CheckForNull Gender gender) {
+		List<VoiceID> voiceIDs = new ArrayList<>();
+		if (!textToSpeech.isElevenLabsRunning()) return voiceIDs;
+
+		for (ElevenLabsModel model : elevenLabsVoiceRepository.getEnabledModels()) {
+			for (ElevenLabsVoice voice : elevenLabsVoiceRepository.getVoices()) {
+				if (gender == null || voice.getGender() == gender) voiceIDs.add(voice.toVoiceID(model));
+			}
+		}
+		return voiceIDs;
+	}
+
+	@CheckForNull
+	private VoiceID fallbackVoice(String name, @CheckForNull Gender gender, VoiceSource source,
+								  @CheckForNull List<VoiceID> configuredVoices) {
+		Set<VoiceSource> sources = new LinkedHashSet<>(List.of(source, VoiceSource.of(source.getEngine())));
+		if (source.getEngine() == SpeechEngine.ELEVENLABS) sources.add(VoiceSource.PIPER);
+
+		for (VoiceSource candidate : sources) {
+			VoiceID voiceID = gender == null ? null : randomGenderedVoice(name, gender, candidate);
+			if (voiceID == null) voiceID = randomVoiceFromActiveModels(name, candidate);
+			if (voiceID == null) continue;
+
+			if (configuredVoices != null) {
+				log.debug("Configured voices for {} are unavailable, saving {} as a fallback", name, voiceID);
+				configuredVoices.add(voiceID);
+				saveVoiceConfig();
+				notifyCharactersChanged();
+			}
+			return voiceID;
+		}
+		return null;
 	}
 
 	// Ultimate fallback
 	@CheckForNull
 	public VoiceID randomVoice() {
-		List<VoiceID> voiceIDs = allActiveVoiceIDs();
-		if (voiceIDs.isEmpty()) return null;
+		long count = activeVoiceMap.values().size();
+		Optional<VoiceID> first = activeVoiceMap.values().stream().skip((int) (Math.random() * count)).findFirst();
 
+		return first.orElse(null);
+	}
+
+	@CheckForNull
+	public VoiceID randomVoice(@NonNull Gender gender, @NonNull VoiceSource source) {
+		List<VoiceID> voiceIDs = activeVoices(source, gender);
+		if (voiceIDs.isEmpty()) return null;
 		return voiceIDs.get((int) (Math.random() * voiceIDs.size()));
 	}
 
 	//<editor-fold desc="> Get">
 	@CheckForNull
-	private VoiceID getFirstActiveVoice(@NonNull List<VoiceID> voiceIdAndFallbacks,
-										@CheckForNull SpeechEngine engine) {
-		VoiceID wrongEngine = null;
-
+	private VoiceID getFirstActiveVoice(@NonNull List<VoiceID> voiceIdAndFallbacks) {
 		for (VoiceID voiceID : voiceIdAndFallbacks) {
 			// if the config is invalid, a null might be present
 			if (voiceID == null) continue;
-			if (!textToSpeech.isModelActive(voiceID.getModelName())) continue;
 
-			if (matches(engine, voiceID)) return voiceID;
-			if (wrongEngine == null) wrongEngine = voiceID;
+			if (textToSpeech.isModelActive(voiceID.getModelName())) {
+				return voiceID;
+			}
 		}
-
-		if (isStrict(engine)) return null;
-
-		return hasVoicesFor(engine) ? null : wrongEngine;
-	}
-
-	/**
-	 * The ElevenLabs voice configured for your own character under settings -> ElevenLabs -> Your
-	 * voice. Kept separate from the piper/system personal voice so both can be set at once and the
-	 * right one is used depending on which engine the message type asks for.
-	 */
-	@CheckForNull
-	private VoiceID elevenLabsPersonalVoice(@NonNull String identity, @CheckForNull SpeechEngine engine) {
-		if (engine != SpeechEngine.ELEVENLABS) return null;
-		if (!MagicUsernames.LOCAL_USER.equals(identity)) return null;
-
-		String personal = config.elevenLabsPersonalVoice();
-		if (personal == null || personal.trim().isEmpty()) return null;
-
-		return ElevenLabs.voiceID(personal.trim());
-	}
-
-	/**
-	 * A voice from the gender set on a Custom Characters row. Scoped to ElevenLabs because that is
-	 * where the panel puts the setting — piper and system voices carry readable names, so a gender
-	 * hint earns its place only for ElevenLabs' opaque ids.
-	 * <p>
-	 * This is a manual override of the automatic pick, not a pinned voice: it applies only once no
-	 * explicit voice has matched. It is most useful for NPCs, which have no in-game gender to infer.
-	 */
-	@CheckForNull
-	private VoiceID genderedOverride(@NonNull String identity, @CheckForNull SpeechEngine engine) {
-		if (engine != SpeechEngine.ELEVENLABS) return null;
-
-		Gender gender = characterVoices.getGender(identity);
-		if (gender == null) return null;
-
-		VoiceID result = randomGenderedVoice(identity, gender, engine);
-
-		if (result == null) {
-			// Gender comes from labels.gender on each voice, which plenty of libraries leave unset
-			log.debug("{} is set to {}, but no ElevenLabs voice is labelled with that gender", identity, gender);
-		}
-
-		return result;
+		return null;
 	}
 
 	@NonNull
-	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName) throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromNPCId(npcId, npcName, null);
-	}
-
-	@NonNull
-	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName, @CheckForNull SpeechEngine engine)
+	public VoiceID getVoiceIDFromNPCId(int npcId, String npcName, VoiceSource source)
 		throws VoiceSelectionOutOfOption {
 		npcName = Text.standardize(npcName);
 
 		VoiceID result = null;
+		List<VoiceID> configuredVoices = null;
 
 		{
 			List<VoiceID> globalResults = voiceConfig.findUsername(MagicUsernames.GLOBAL_NPC);
 			if (globalResults != null) {
-				result = getFirstActiveVoice(globalResults, engine);
+				result = getFirstActiveVoice(globalResults);
 				if (result != null) {
 					log.debug("Global NPC voice overriding per-NPC config for NPC id:{} npcName:{}, using {}",
 						npcId, npcName, result);
@@ -324,23 +272,11 @@ public class VoiceManager {
 			}
 		}
 
-		// A character curated in the Custom Characters tab is described entirely by its row, so the
-		// npc-id and npc-name layers below are skipped for them. Merely ranking the row higher is not
-		// enough: clearing its id would then fall through to whatever the right-click flow wrote
-		// against the npc id, and the row's gender would never get a say.
-		final boolean curated = characterVoices.contains(npcName);
-
-		if (result == null && curated) {
-			result = curatedCharacterVoice(npcName, engine);
-			if (result != null) {
-				log.debug("Custom Characters entry for NPC id:{} npcName:{}, using {}", npcId, npcName, result);
-			}
-		}
-
-		if (result == null && !curated) {
+		if (result == null) {
 			List<VoiceID> results = voiceConfig.findNpcId(npcId);
 			if (results != null) {
-				result = getFirstActiveVoice(results, engine);
+				configuredVoices = results;
+				result = getFirstActiveVoice(results);
 				if (result == null) {
 					log.debug("Existing NPC ID voice found for NPC id:{} npcName:{}, but model is not active", npcId, npcName);
 				} else {
@@ -352,10 +288,11 @@ public class VoiceManager {
 			}
 		}
 
-		if (result == null && !curated) {
+		if (result == null) {
 			List<VoiceID> results = voiceConfig.findNpcName(npcName);
 			if (results != null) {
-				result = getFirstActiveVoice(results, engine);
+				if (configuredVoices == null) configuredVoices = results;
+				result = getFirstActiveVoice(results);
 			}
 			if (result == null) {
 				log.debug("No NPC ID voice found, NPC Name is also not available for NPC id:{} npcName:{}",
@@ -366,46 +303,20 @@ public class VoiceManager {
 			}
 		}
 
-		// No pinned voice matched, so a manually configured gender gets to steer the automatic pick
 		if (result == null) {
-			result = genderedOverride(npcName, engine);
+			result = fallbackVoice(npcName, null, source, configuredVoices);
 		}
 
 		if (result == null) {
-			result = randomVoiceFromActiveModels(npcName, engine);
-		}
-
-		if (result == null) {
-			warnIfElevenLabsUnusable(engine);
 			throw new VoiceSelectionOutOfOption();
 		}
 
 		return result;
 	}
 
-	/**
-	 * ElevenLabs deliberately stays silent rather than borrowing another engine's voice, which is
-	 * indistinguishable from a broken plugin unless we say why. Warns once per outage.
-	 */
-	private void warnIfElevenLabsUnusable(@CheckForNull SpeechEngine engine) {
-		if (engine != SpeechEngine.ELEVENLABS) return;
-		if (elevenLabsWarned) return;
-
-		elevenLabsWarned = true;
-
-		if (!elevenLabsVoiceRepository.isConfigured()) {
-			log.warn("A message type is set to ElevenLabs but no API key is configured, so those "
-				+ "messages stay silent. Add one under Natural Speech settings -> ElevenLabs.");
-		}
-		else {
-			log.warn("A message type is set to ElevenLabs but no voices have loaded for this API key, "
-				+ "so those messages stay silent. Press Check key in the Natural Speech panel to see why.");
-		}
-	}
-
 	@NonNull
 	public VoiceID getVoiceIdForLocalPlayer() throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER);
+		return getVoiceIDFromUsername(MagicUsernames.LOCAL_USER, VoiceSource.PIPER);
 	}
 
 	public boolean containsUsername(@NonNull String standardized_username) {
@@ -428,53 +339,28 @@ public class VoiceManager {
 	}
 
 	@NonNull
-	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username) throws VoiceSelectionOutOfOption {
-		return getVoiceIDFromUsername(standardized_username, null);
-	}
-
-	@NonNull
-	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username, @CheckForNull SpeechEngine engine)
+	public VoiceID getVoiceIDFromUsername(@NonNull String standardized_username, VoiceSource source)
 		throws VoiceSelectionOutOfOption {
-		{
-			VoiceID personal = elevenLabsPersonalVoice(standardized_username, engine);
-			if (personal != null) {
-				log.debug("Using the configured ElevenLabs personal voice {}", personal);
-				return personal;
-			}
-		}
-
 		List<VoiceID> voiceAndFallback = voiceConfig.findUsername(standardized_username);
 
-		VoiceID result;
+		VoiceID result = null;
 		if (voiceAndFallback != null) {
-			result = getFirstActiveVoice(voiceAndFallback, engine);
-		} else {
-			result = null;
+			result = getFirstActiveVoice(voiceAndFallback);
 		}
 
 		if (result == null) {
+			Gender gender = null;
 			Player player = PluginHelper.findPlayerWithUsername(standardized_username);
-			// A manually configured gender beats the one read off the player's in-game appearance
-			VoiceID voiceID = genderedOverride(standardized_username, engine);
-
-			if (voiceID != null) {
-				log.debug("Using the gender configured for {} in Custom Characters", standardized_username);
-			}
-			else if (player != null) {
-				Gender gender = Gender.parseInt(player.getPlayerComposition().getGender());
+			if (player != null) {
 				log.debug("No existing settings found for {}, using randomize gendered voice.", standardized_username);
-				voiceID = randomGenderedVoice(standardized_username, gender, engine);
+				gender = Gender.parseInt(player.getPlayerComposition().getGender());
 			}
 			else {
 				log.debug("No Player object found with {}, using random voice.", standardized_username);
 			}
 
+			VoiceID voiceID = fallbackVoice(standardized_username, gender, source, voiceAndFallback);
 			if (voiceID == null) {
-				voiceID = randomVoiceFromActiveModels(standardized_username, engine);
-			}
-
-			if (voiceID == null) {
-				warnIfElevenLabsUnusable(engine);
 				throw new VoiceSelectionOutOfOption();
 			}
 			return voiceID;
@@ -493,11 +379,12 @@ public class VoiceManager {
 	public void setActorVoiceID(@NonNull Actor actor, VoiceID voiceId) {
 		if (actor instanceof NPC) {
 			NPC npc = ((NPC) actor);
+			String npcName = npc.getName() == null ? null : Text.standardize(Text.removeTags(npc.getName()));
 			// I have no idea what a Composition is
 			var compId = npc.getComposition().getId();
 			// This is to solve the issue where the ModelID does not match the NPCID
-			voiceConfig.setDefaultNpcIdVoice(npc.getId(), voiceId);
-			voiceConfig.setDefaultNpcIdVoice(compId, voiceId);
+			voiceConfig.setDefaultNpcIdVoice(npc.getId(), npcName, voiceId);
+			voiceConfig.setDefaultNpcIdVoice(compId, npcName, voiceId);
 
 			log.debug("Setting Default NPC Voice for NpcID: {} CompID: {} NpcName: {} to {}",
 				npc.getId(), compId, npc.getName(), voiceId);
@@ -516,75 +403,17 @@ public class VoiceManager {
 		voiceConfig.setDefaultNpcNameVoice(npcName, voiceId);
 	}
 
-	/**
-	 * The pinned voice for a character the user has actually added to the Custom Characters tab,
-	 * filtered to the engine being asked for. Null for anyone not curated, which leaves the ordinary
-	 * npc-id and npc-name lookups untouched for everyone else.
-	 */
-	@CheckForNull
-	private VoiceID curatedCharacterVoice(@NonNull String name, @CheckForNull SpeechEngine engine) {
-		if (!characterVoices.contains(name)) return null;
-
-		return getFirstActiveVoice(voiceConfig.findCharacterVoices(CharacterVoices.normalize(name)), engine);
-	}
-
-	/** The voice pinned for a character on one engine, or null when that engine has none. */
-	@CheckForNull
-	public VoiceID getCharacterVoice(@NonNull String name, @NonNull SpeechEngine engine) {
-		for (VoiceID voiceID : voiceConfig.findCharacterVoices(CharacterVoices.normalize(name))) {
-			if (voiceID != null && TextToSpeech.engineOfModel(voiceID.getModelName()) == engine) {
-				return voiceID;
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Pins a character's voice on one engine, or clears it when {@code voiceID} is null. The voices
-	 * configured for the other engines are left alone, so a character can carry one per engine.
-	 */
-	public void setCharacterVoice(@NonNull String name, @NonNull SpeechEngine engine,
-								  @CheckForNull VoiceID voiceID) {
-		// findNpcName lowercases its lookup key, so anything written here has to be normalized or it
-		// would never be found again
-		String key = CharacterVoices.normalize(name);
-
-		List<VoiceID> voiceIDs = voiceConfig.findCharacterVoices(key);
-		voiceIDs.removeIf(
-			existing -> existing == null || TextToSpeech.engineOfModel(existing.getModelName()) == engine);
-
-		if (voiceID != null) voiceIDs.add(voiceID);
-
-		voiceConfig.setCharacterVoices(key, voiceIDs);
-		saveVoiceConfig();
-	}
-
-	/**
-	 * Applies a voice picked from the game UI and lists the character in the Custom Characters tab.
-	 * <p>
-	 * Must run on the client thread: {@link #setActorVoiceID} reads NPC composition and name.
-	 */
-	public void applyConfiguredVoice(@CheckForNull NPC npc, @NonNull String standardActorName,
-									 @NonNull VoiceID voiceID) {
+	public void applyConfiguredVoice(@CheckForNull NPC npc, @NonNull String standardActorName, @NonNull VoiceID voiceID) {
 		if (npc != null) {
 			setActorVoiceID(npc, voiceID);
 		}
 		else {
 			setDefaultVoiceIDForUsername(standardActorName, voiceID);
 		}
-
-		// Also store it by name, which is the only key the Custom Characters panel can look up
-		setCharacterVoice(standardActorName, TextToSpeech.engineOfModel(voiceID.getModelName()), voiceID);
-		characterVoices.add(standardActorName);
-
 		saveVoiceConfig();
-
-		// add() is a no-op for an already-listed character, so nudge the panel explicitly
-		characterVoices.notifyChanged();
+		notifyCharactersChanged();
 	}
 
-	/** Clears a character's configured voice from the game UI. Must run on the client thread. */
 	public void clearConfiguredVoice(@CheckForNull NPC npc, @NonNull String standardActorName) {
 		if (npc != null) {
 			resetVoiceIDForNPC(npc);
@@ -592,17 +421,112 @@ public class VoiceManager {
 		else {
 			resetForUsername(standardActorName);
 		}
-
-		clearCharacterVoices(standardActorName);
 		saveVoiceConfig();
-
-		characterVoices.notifyChanged();
+		notifyCharactersChanged();
 	}
 
-	/** Clears every pinned voice for a character, across all engines. */
-	public void clearCharacterVoices(@NonNull String name) {
-		voiceConfig.setCharacterVoices(CharacterVoices.normalize(name), new ArrayList<>());
+	public List<PlayerNameVoiceConfigDatum> listPlayerVoices() {
+		return voiceConfig.listPlayerVoices().stream()
+			.filter(datum -> !MagicUsernames.isMagicUsername(datum.getPlayerName()))
+			.filter(datum -> defaultVoiceConfig.findUsername(datum.getPlayerName()) == null)
+			.collect(Collectors.toList());
+	}
+
+	public List<NPCIDVoiceConfigDatum> listNpcIdVoices() {
+		return voiceConfig.listNpcIdVoices().stream()
+			.filter(datum -> defaultVoiceConfig.findNpcId(datum.getNpcId()) == null)
+			.collect(Collectors.toList());
+	}
+
+	public List<NPCNameVoiceConfigDatum> listNpcNameVoices() {
+		return voiceConfig.listNpcNameVoices().stream()
+			.filter(datum -> defaultVoiceConfig.findNpcName(datum.getNpcName()) == null)
+			.collect(Collectors.toList());
+	}
+
+	public void addPlayer(@NonNull String name) {
+		voiceConfig.addPlayer(Text.standardize(name));
 		saveVoiceConfig();
+		notifyCharactersChanged();
+	}
+
+	public void addNpc(@NonNull String name) {
+		voiceConfig.addNpcName(Text.standardize(name));
+		saveVoiceConfig();
+		notifyCharactersChanged();
+	}
+
+	public void removeCharacter(@NonNull CharacterVoiceDatum datum) {
+		voiceConfig.remove(datum);
+		saveVoiceConfig();
+		notifyCharactersChanged();
+	}
+
+	public void setPlayerVoices(@NonNull String name, @NonNull List<VoiceID> voiceIDs) {
+		setCharacterVoices(voiceConfig.addPlayer(Text.standardize(name)), voiceIDs);
+	}
+
+	public void setNpcVoices(@NonNull String name, @NonNull List<VoiceID> voiceIDs) {
+		setCharacterVoices(voiceConfig.addNpcName(Text.standardize(name)), voiceIDs);
+	}
+
+	public void rememberHeardPlayer(@NonNull String standardized_username, @NonNull VoiceID voiceID) {
+		if (MagicUsernames.isMagicUsername(standardized_username) || voiceConfig.hasPlayer(standardized_username)) return;
+
+		VoiceID previous = heardPlayers.remove(standardized_username);
+		heardPlayers.put(standardized_username, voiceID);
+		if (!voiceID.equals(previous)) notifyCharactersChanged();
+	}
+
+	public void rememberHeardNpc(int npcId, @NonNull String npcName, @NonNull VoiceID voiceID) {
+		String standardNpcName = Text.standardize(npcName);
+		if (voiceConfig.findNpcId(npcId) != null || voiceConfig.hasNpcName(standardNpcName)) return;
+
+		VoiceID previous = heardNpcs.remove(standardNpcName);
+		heardNpcs.put(standardNpcName, voiceID);
+		if (!voiceID.equals(previous)) notifyCharactersChanged();
+	}
+
+	public Map<String, VoiceID> getHeardPlayers() {
+		Map<String, VoiceID> heard = new LinkedHashMap<>(heardPlayers);
+		heard.keySet().removeIf(voiceConfig::hasPlayer);
+		return heard;
+	}
+
+	public Map<String, VoiceID> getHeardNpcs() {
+		Map<String, VoiceID> heard = new LinkedHashMap<>(heardNpcs);
+		heard.keySet().removeIf(voiceConfig::hasNpcName);
+		return heard;
+	}
+
+	private static Map<String, VoiceID> boundedMap() {
+		return new LinkedHashMap<>() {
+			@Override
+			protected boolean removeEldestEntry(Map.Entry<String, VoiceID> eldest) {
+				return size() > MAX_HEARD;
+			}
+		};
+	}
+
+	public void setCharacterVoices(@NonNull CharacterVoiceDatum datum, @NonNull List<VoiceID> voiceIDs) {
+		datum.getVoiceIDs().clear();
+		datum.getVoiceIDs().addAll(voiceIDs);
+		saveVoiceConfig();
+		notifyCharactersChanged();
+	}
+
+	private void notifyCharactersChanged() {
+		for (Runnable listener : characterListeners) {
+			listener.run();
+		}
+	}
+
+	public void addCharacterListener(Runnable listener) {
+		characterListeners.add(listener);
+	}
+
+	public void removeCharacterListener(Runnable listener) {
+		characterListeners.remove(listener);
 	}
 
 	//</editor-fold>

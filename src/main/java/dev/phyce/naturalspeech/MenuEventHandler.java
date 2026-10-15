@@ -3,17 +3,23 @@ package dev.phyce.naturalspeech;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
+import dev.phyce.naturalspeech.enums.Gender;
+import dev.phyce.naturalspeech.enums.SpeechEngine;
+import dev.phyce.naturalspeech.enums.SpeechType;
 import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.tts.MuteManager;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.VoiceSource;
 import dev.phyce.naturalspeech.ui.game.VoicePickerChatbox;
 import dev.phyce.naturalspeech.utils.TextUtil;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.CheckForNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.KeyCode;
 import net.runelite.api.Menu;
@@ -102,6 +108,32 @@ public class MenuEventHandler {
 		}
 	}
 
+	private VoiceSource displaySource(SpeechType speechType) {
+		VoiceSource source = voiceManager.getSource(speechType);
+		if (textToSpeech.isSourceRunning(source)) return source;
+		return textToSpeech.isEngineRunning(SpeechEngine.PIPER) ? VoiceSource.PIPER : VoiceSource.ELEVENLABS;
+	}
+
+	private String voiceName(VoiceID voiceID) {
+		String name = textToSpeech.getVoiceName(voiceID);
+		return name != null ? name : voiceID.toVoiceIDString();
+	}
+
+	private void assignRandomVoice(@CheckForNull NPC npc, String standardActorName, Gender gender, VoiceSource source) {
+		String genderName = gender == Gender.MALE ? "male" : "female";
+		VoiceID voiceID = voiceManager.randomVoice(gender, source);
+		if (voiceID == null) {
+			feedback("No " + genderName + " voices available");
+			return;
+		}
+		voiceManager.applyConfiguredVoice(npc, standardActorName, voiceID);
+		feedback(standardActorName + " set to " + voiceName(voiceID));
+	}
+
+	private void feedback(String message) {
+		client.addChatMessage(ChatMessageType.CONSOLE, "", "Natural Speech: " + message, null);
+	}
+
 	/**
 	 * $1 name, $2 level text
 	 */
@@ -146,10 +178,11 @@ public class MenuEventHandler {
 		String status = isAllowed ? getIconImgTag(unmuteIconId) : getIconImgTag(muteIconId);
 
 		{
+			VoiceSource source = displaySource(npc != null ? SpeechType.NPC_DIALOG : SpeechType.PUBLIC_CHAT);
 			VoiceID voiceID;
 			if (npc != null) {
 				try {
-					voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName());
+					voiceID = voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName(), source);
 				} catch (VoiceSelectionOutOfOption ignored) {
 					voiceID = null;
 				}
@@ -160,7 +193,7 @@ public class MenuEventHandler {
 			}
 			else {
 				try {
-					voiceID = voiceManager.getVoiceIDFromUsername(standardActorName);
+					voiceID = voiceManager.getVoiceIDFromUsername(standardActorName, source);
 				} catch (VoiceSelectionOutOfOption ignored) {
 					voiceID = null;
 					log.error("Voice Selection Out of option for {}", standardActorName);
@@ -172,17 +205,11 @@ public class MenuEventHandler {
 			}
 
 
-			String target;
-			if (voiceID != null) {
-				target = String.format("%s %s(%s)</col>", targetName, statusColorTag, voiceID);
-			}
-			else {
-				target = String.format("%s %s(voice-error)</col>", targetName, statusColorTag);
-			}
+			String voiceName = voiceID != null ? voiceName(voiceID) : "voice-error";
 
 			MenuEntry parent = client.createMenuEntry(index + 1)
 				.setOption(status + " Voice")
-				.setTarget(target)
+				.setTarget(targetName)
 				.setType(MenuAction.RUNELITE);
 
 			Menu subMenu = parent.createSubMenu();
@@ -216,16 +243,29 @@ public class MenuEventHandler {
 			}
 
 			{
+				final String value = voiceID != null ? voiceID.toVoiceIDString() : "";
 				subMenu.createMenuEntry(1)
 					.setOption("Configure")
+					.setTarget(String.format("%s(%s)</col>", statusColorTag, voiceName))
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> {
 						voicePickerChatboxProvider.get()
 							.configNPC(npc) // can be null and will be ignored
 							.configUsername(standardActorName)
+							.value(value)
 							.build();
 					});
 			}
+
+			subMenu.createMenuEntry(1)
+				.setOption("Random female voice")
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> assignRandomVoice(npc, standardActorName, Gender.FEMALE, source));
+
+			subMenu.createMenuEntry(1)
+				.setOption("Random male voice")
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> assignRandomVoice(npc, standardActorName, Gender.MALE, source));
 
 			if (muteManager.isListenMode()) {
 				subMenu.createMenuEntry(1)

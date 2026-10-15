@@ -39,8 +39,8 @@ public class ModelListItem extends JPanel {
 	private final ModelRepository.ModelURL modelUrl;
 
 	private static final int BOTTOM_LINE_HEIGHT = 16;
-	private static final ImageIcon ON_SWITCHER;
-	private static final ImageIcon OFF_SWITCHER;
+	static final ImageIcon ON_SWITCHER;
+	static final ImageIcon OFF_SWITCHER;
 
 	static {
 		BufferedImage onSwitcher = ImageUtil.loadImageResource(MainSettingsPanel.class, "switcher_on.png");
@@ -100,7 +100,7 @@ public class ModelListItem extends JPanel {
 				textToSpeech.getModelConfig().setModelEnabled(modelUrl.getModelName(), toggleButton.isSelected());
 				try {
 					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelUrl.getModelName());
-					if (textToSpeech.isStarted()) {
+					if (textToSpeech.isPiperStarted()) {
 						if (toggleButton.isSelected()) {
 							textToSpeech.startPiperForModel(modelLocal);
 						}
@@ -198,7 +198,7 @@ public class ModelListItem extends JPanel {
 					ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelUrl.getModelName());
 
 					// stop the piper
-					if (textToSpeech.isStarted() && textToSpeech.isModelActive(modelLocal)) {
+					if (textToSpeech.isPiperStarted() && textToSpeech.isModelActive(modelLocal)) {
 						textToSpeech.stopPiperForModel(modelLocal);
 					}
 
@@ -231,7 +231,7 @@ public class ModelListItem extends JPanel {
 					textToSpeech.getModelConfig().setModelProcessCount(modelUrl.getModelName(), result);
 
 					// TODO(Louis) lazy hack, just reboot all processes with new configuration
-					if (textToSpeech.isStarted()) textToSpeech.start();
+					if (textToSpeech.isPiperStarted()) textToSpeech.startPiper();
 				}
 				else {
 					log.debug("Cancelled!");

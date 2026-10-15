@@ -1,118 +1,100 @@
 package dev.phyce.naturalspeech.tts.elevenlabs;
 
-import java.io.File;
+import com.google.common.hash.Hashing;
+import dev.phyce.naturalspeech.configs.NaturalSpeechConfig;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.function.LongSupplier;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.CheckForNull;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.RuneLite;
+import net.runelite.client.util.Filepath;
 
-/**
- * On-disk cache of synthesized audio keyed by model, voice and text. Every hit is one fewer billed
- * ElevenLabs request, which matters a lot for repeated dialogue and system messages.
- * <p>
- * Stored under {@code .runelite/natural-speech/elevenlabs-cache}, bounded by a byte budget with
- * least-recently-used eviction.
- */
 @Slf4j
 public class ElevenLabsCache {
+	private static final String EXTENSION = ".pcm";
 
-	private static final String CACHE_PATH = "natural-speech" + File.separator + "elevenlabs-cache";
+	private final Filepath directory;
+	private final NaturalSpeechConfig config;
 
-	private final File dir;
-	private final LongSupplier maxBytes;
-
-	public ElevenLabsCache(LongSupplier maxBytes) {
-		this.dir = new File(RuneLite.RUNELITE_DIR, CACHE_PATH);
-		this.maxBytes = maxBytes;
-		//noinspection ResultOfMethodCallIgnored
-		dir.mkdirs();
+	public ElevenLabsCache(Filepath directory, NaturalSpeechConfig config) {
+		this.directory = directory;
+		this.config = config;
 	}
 
-	/** The cached audio for the key, or null on a miss. Touches the file on a hit, for LRU. */
+	@CheckForNull
 	public byte[] get(String key) {
-		File file = fileFor(key);
-		if (!file.exists()) return null;
+		Filepath file = fileFor(key);
+		if (!file.isFile()) return null;
 
-		try {
-			byte[] data = Files.readAllBytes(file.toPath());
-			//noinspection ResultOfMethodCallIgnored
-			file.setLastModified(System.currentTimeMillis());
-			return data;
-		}
-		catch (IOException e) {
+		try (InputStream inputStream = file.openInputStream()) {
+			return inputStream.readAllBytes();
+		} catch (IOException e) {
+			log.debug("Failed to read cached ElevenLabs audio {}", file, e);
 			return null;
 		}
 	}
 
-	/** Stores audio for the key, then evicts the oldest files if over budget. */
-	public void put(String key, byte[] data) {
+	public void put(String key, byte[] audio) {
 		try {
-			Files.write(fileFor(key).toPath(), data);
-			evict();
-		}
-		catch (IOException e) {
-			log.debug("Failed writing ElevenLabs cache entry", e);
-		}
-	}
-
-	/** Deletes every cached clip. Returns how many were removed. */
-	public static long clearAll() {
-		File root = new File(RuneLite.RUNELITE_DIR, CACHE_PATH);
-		File[] files = root.listFiles(File::isFile);
-		if (files == null) return 0;
-
-		long removed = 0;
-		for (File file : files) {
-			if (file.delete()) removed++;
-		}
-		return removed;
-	}
-
-	private File fileFor(String key) {
-		return new File(dir, hash(key));
-	}
-
-	private void evict() {
-		File[] files = dir.listFiles(File::isFile);
-		if (files == null) return;
-
-		long total = 0;
-		for (File file : files) {
-			total += file.length();
-		}
-
-		long max = maxBytes.getAsLong();
-		if (total <= max) return;
-
-		Arrays.sort(files, Comparator.comparingLong(File::lastModified)); // oldest first
-		for (File file : files) {
-			if (total <= max) break;
-
-			long length = file.length();
-			if (file.delete()) total -= length;
+			directory.createDirectories();
+			fileFor(key).write(audio);
+			trim();
+		} catch (IOException e) {
+			log.warn("Failed to cache ElevenLabs audio", e);
 		}
 	}
 
-	private static String hash(String key) {
+	public void clear() {
 		try {
-			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] bytes = digest.digest(key.getBytes(StandardCharsets.UTF_8));
-
-			StringBuilder builder = new StringBuilder(bytes.length * 2);
-			for (byte b : bytes) {
-				builder.append(Character.forDigit((b >> 4) & 0xF, 16));
-				builder.append(Character.forDigit(b & 0xF, 16));
+			for (CachedFile cachedFile : listFiles()) {
+				cachedFile.getFile().deleteIfExists();
 			}
-			return builder.toString();
+		} catch (IOException e) {
+			log.warn("Failed to clear the ElevenLabs cache", e);
 		}
-		catch (NoSuchAlgorithmException e) {
-			return Integer.toHexString(key.hashCode());
+	}
+
+	private void trim() throws IOException {
+		long budget = config.elevenLabsCacheSize() * 1024L * 1024L;
+
+		List<CachedFile> cachedFiles = listFiles();
+		long total = cachedFiles.stream().mapToLong(CachedFile::getSize).sum();
+		if (total <= budget) return;
+
+		cachedFiles.sort(Comparator.comparingLong(CachedFile::getLastModified));
+		for (CachedFile cachedFile : cachedFiles) {
+			if (total <= budget) break;
+			cachedFile.getFile().deleteIfExists();
+			total -= cachedFile.getSize();
 		}
+	}
+
+	private List<CachedFile> listFiles() throws IOException {
+		if (!directory.isDirectory()) return new ArrayList<>();
+
+		List<CachedFile> cachedFiles = new ArrayList<>();
+		try (Stream<Filepath> files = directory.walk(1)) {
+			for (Filepath file : files.filter(Filepath::isFile).collect(Collectors.toList())) {
+				cachedFiles.add(new CachedFile(file, file.size(), file.getLastModifiedTime().toMillis()));
+			}
+		}
+		return cachedFiles;
+	}
+
+	private Filepath fileFor(String key) {
+		return directory.joinSegment(Hashing.sha256().hashString(key, StandardCharsets.UTF_8) + EXTENSION);
+	}
+
+	@Value
+	private static class CachedFile {
+		Filepath file;
+		long size;
+		long lastModified;
 	}
 }

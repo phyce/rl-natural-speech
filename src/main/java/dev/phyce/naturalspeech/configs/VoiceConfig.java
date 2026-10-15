@@ -1,6 +1,7 @@
 package dev.phyce.naturalspeech.configs;
 
 import com.google.gson.JsonSyntaxException;
+import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.CharacterVoiceDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCIDVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.NPCNameVoiceConfigDatum;
 import dev.phyce.naturalspeech.configs.json.uservoiceconfigs.PlayerNameVoiceConfigDatum;
@@ -27,80 +28,59 @@ public class VoiceConfig {
 
 	public void setDefaultPlayerVoice(@NonNull String standardized_username, VoiceID voiceID) {
 		playerVoices.putIfAbsent(standardized_username, new PlayerNameVoiceConfigDatum(standardized_username));
-		PlayerNameVoiceConfigDatum datum = playerVoices.get(standardized_username);
-		if (datum.getVoiceIDs().isEmpty()) {
-			datum.getVoiceIDs().add(voiceID);
-		}
-		else {
-			// remove duplicates
-			datum.getVoiceIDs().remove(0);
-			// prepend
-			datum.getVoiceIDs().add(0, voiceID);
-		}
+		setPrimaryVoice(playerVoices.get(standardized_username).getVoiceIDs(), voiceID);
 	}
 
-	/**
-	 * Replaces every voice pinned for a name, as both a player and an NPC name. Backs a Custom
-	 * Characters row: the panel deals in names and does not know whether one belongs to a player or an
-	 * NPC, so both lookups need to find it.
-	 * <p>
-	 * The list holds at most one voice per engine. {@code getFirstActiveVoice} then picks whichever
-	 * matches the engine the message type asked for, which is how a character can have a piper voice
-	 * and an ElevenLabs voice at the same time.
-	 */
-	public void setCharacterVoices(@NonNull String name, @NonNull List<VoiceID> voiceIDs) {
-		if (voiceIDs.isEmpty()) {
-			playerVoices.remove(name);
-			npcNameVoices.remove(name);
-			return;
-		}
-
-		PlayerNameVoiceConfigDatum playerDatum =
-			playerVoices.computeIfAbsent(name, PlayerNameVoiceConfigDatum::new);
-		playerDatum.getVoiceIDs().clear();
-		playerDatum.getVoiceIDs().addAll(voiceIDs);
-
-		NPCNameVoiceConfigDatum npcDatum =
-			npcNameVoices.computeIfAbsent(name, NPCNameVoiceConfigDatum::new);
-		npcDatum.getVoiceIDs().clear();
-		npcDatum.getVoiceIDs().addAll(voiceIDs);
-	}
-
-	/** Every voice pinned for a name, preferring the player entry. Empty when there are none. */
-	@NonNull
-	public List<VoiceID> findCharacterVoices(@NonNull String name) {
-		List<VoiceID> voiceIDs = findUsername(name);
-		if (voiceIDs == null || voiceIDs.isEmpty()) voiceIDs = findNpcName(name);
-
-		return voiceIDs == null ? new ArrayList<>() : new ArrayList<>(voiceIDs);
-	}
-
-	public void setDefaultNpcIdVoice(int npcID, VoiceID voiceID) {
+	public void setDefaultNpcIdVoice(int npcID, @CheckForNull String npcName, VoiceID voiceID) {
 		npcIDVoices.putIfAbsent(npcID, new NPCIDVoiceConfigDatum(npcID));
 		NPCIDVoiceConfigDatum datum = npcIDVoices.get(npcID);
-		if (datum.getVoiceIDs().isEmpty()) {
-			datum.getVoiceIDs().add(voiceID);
-		}
-		else {
-			// remove duplicates
-			datum.getVoiceIDs().remove(voiceID);
-			// prepend
-			datum.getVoiceIDs().add(0, voiceID);
-		}
+		if (npcName != null) datum.setNpcName(npcName);
+		setPrimaryVoice(datum.getVoiceIDs(), voiceID);
 	}
 
 	public void setDefaultNpcNameVoice(@NonNull String npcName, VoiceID voiceID) {
 		npcNameVoices.putIfAbsent(npcName, new NPCNameVoiceConfigDatum(npcName));
-		NPCNameVoiceConfigDatum datum = npcNameVoices.get(npcName);
-		if (datum.getVoiceIDs().isEmpty()) {
-			datum.getVoiceIDs().add(voiceID);
-		}
-		else {
-			// remove duplicates
-			datum.getVoiceIDs().remove(voiceID);
-			// prepend
-			datum.getVoiceIDs().add(0, voiceID);
-		}
+		setPrimaryVoice(npcNameVoices.get(npcName).getVoiceIDs(), voiceID);
+	}
+
+	private static void setPrimaryVoice(List<VoiceID> voiceIDs, VoiceID voiceID) {
+		if (!voiceIDs.isEmpty()) voiceIDs.remove(0);
+		voiceIDs.remove(voiceID);
+		voiceIDs.add(0, voiceID);
+	}
+
+	public List<PlayerNameVoiceConfigDatum> listPlayerVoices() {
+		return new ArrayList<>(playerVoices.values());
+	}
+
+	public List<NPCIDVoiceConfigDatum> listNpcIdVoices() {
+		return new ArrayList<>(npcIDVoices.values());
+	}
+
+	public List<NPCNameVoiceConfigDatum> listNpcNameVoices() {
+		return new ArrayList<>(npcNameVoices.values());
+	}
+
+	public CharacterVoiceDatum addPlayer(@NonNull String standardized_username) {
+		return playerVoices.computeIfAbsent(standardized_username, PlayerNameVoiceConfigDatum::new);
+	}
+
+	public CharacterVoiceDatum addNpcName(@NonNull String npcName) {
+		return npcNameVoices.computeIfAbsent(npcName, NPCNameVoiceConfigDatum::new);
+	}
+
+	public boolean hasPlayer(@NonNull String standardized_username) {
+		return playerVoices.containsKey(standardized_username);
+	}
+
+	public boolean hasNpcName(@NonNull String npcName) {
+		return npcNameVoices.containsKey(npcName);
+	}
+
+	public void remove(@NonNull CharacterVoiceDatum datum) {
+		playerVoices.values().removeIf(existing -> existing == datum);
+		npcIDVoices.values().removeIf(existing -> existing == datum);
+		npcNameVoices.values().removeIf(existing -> existing == datum);
 	}
 
 	public void unsetPlayerVoice(@NonNull String standardized_username, VoiceID voiceID) {

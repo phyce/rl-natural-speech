@@ -24,8 +24,7 @@ public class TopLevelPanel extends PluginPanel {
 	@Getter
 	private final VoiceExplorerPanel voiceExplorerPanel;
 	@Getter
-	private final CustomCharactersPanel customCharactersPanel;
-	private final MaterialTab mainSettingsTab;
+	private final CharacterVoicesPanel characterVoicesPanel;
 	//	@Getter
 	//	private final EditorPanel editorPanel;
 
@@ -37,14 +36,14 @@ public class TopLevelPanel extends PluginPanel {
 	TopLevelPanel(
 		MainSettingsPanel mainSettingsPanel,
 		VoiceExplorerPanel voiceExplorerPanel,
-		CustomCharactersPanel customCharactersPanel
+		CharacterVoicesPanel characterVoicesPanel
 		//			EditorPanel editorPanel
 	) {
 		super(false);
 
 		this.mainSettingsPanel = mainSettingsPanel;
 		this.voiceExplorerPanel = voiceExplorerPanel;
-		this.customCharactersPanel = customCharactersPanel;
+		this.characterVoicesPanel = characterVoicesPanel;
 		//		this.editorPanel = editorPanel;
 
 		tabGroup = new MaterialTabGroup();
@@ -61,14 +60,13 @@ public class TopLevelPanel extends PluginPanel {
 
 		// Main Settings Panel Tab
 		//		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech");
-		mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech Settings");
+		MaterialTab mainSettingsTab = addTab(this.mainSettingsPanel, "config_icon.png", "Natural Speech Settings");
 		tabGroup.select(mainSettingsTab);
 
 		// Speaker Explorer Panel Tab
-		addTab(voiceExplorerPanel, "profile_icon.png", "Voice Explorer");
+		addTab(voiceExplorerPanel, "voice_hub_icon.png", "Voice Explorer");
 
-		// Custom Characters Panel Tab (ElevenLabs per-character voices)
-		addTab(customCharactersPanel, "plugin_hub_icon.png", "Custom Characters");
+		addTab(characterVoicesPanel, "profile_icon.png", "Set Voices");
 
 		// Editor Panel Tab
 		//		addTab(editorPanel, "plugin_hub_icon.png", "Editor");
@@ -131,19 +129,13 @@ public class TopLevelPanel extends PluginPanel {
 	public void shutdown() {
 		this.mainSettingsPanel.shutdown();
 		this.voiceExplorerPanel.shutdown();
-		this.customCharactersPanel.shutdown();
+		this.characterVoicesPanel.shutdown();
 	}
 
 	@Override
 	public void onActivate() {
-		// FIXME(Louis) First tab always defaults to being visible after deactivate then reactivate
-		// Despite the code running water tight, strange behavior.
-		// Possible that super onActivate sets visibility
 		active = true;
-		current.onDeactivate();
-		// FIXME(Louis): Temporary workaround the issue where the main tab rendering on top after toggling panel
-		// Might as well just select it automatically so intended "correct" behavior for now.
-		tabGroup.select(mainSettingsTab);
+		current.onActivate();
 	}
 
 	@Override

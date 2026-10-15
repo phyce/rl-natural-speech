@@ -1,8 +1,6 @@
 package dev.phyce.naturalspeech.configs;
 
 import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
-import dev.phyce.naturalspeech.enums.ElevenLabsModel;
-import dev.phyce.naturalspeech.enums.SpeechEngine;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -23,22 +21,23 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String DISTANCE_FADE = "distanceFade";
 		public static final String MASTER_VOLUME = "masterVolume";
 		public static final String SPEECH_GENERATION = "Speech generation";
-		public static final String PUBLIC_CHAT = "publicChatEngine";
-		public static final String PRIVATE_CHAT = "privateChatEngine";
-		public static final String PRIVATE_OUT_CHAT = "privateOutChatEngine";
-		public static final String FRIENDS_CHAT = "friendsChatEngine";
-		public static final String CLAN_CHAT = "clanChatEngine";
-		public static final String CLAN_GUEST_CHAT = "clanGuestChatEngine";
-		public static final String GIM_CHAT = "groupIronmanChatEngine";
+		public static final String SPEECH_GENERATION_HINT = "speechGenerationHint";
+		public static final String PUBLIC_CHAT = "publicChat";
+		public static final String PRIVATE_CHAT = "privateChat";
+		public static final String PRIVATE_OUT_CHAT = "privateOutChat";
+		public static final String FRIENDS_CHAT = "friendsChat";
+		public static final String CLAN_CHAT = "clanChat";
+		public static final String CLAN_GUEST_CHAT = "clanGuestChat";
+		public static final String GIM_CHAT = "groupIronmanChat";
 		public static final String FRIENDS_ONLY_MODE = "friendsOnlyMode";
-		public static final String EXAMINE_CHAT = "examineChatEngine";
-		public static final String NPC_OVERHEAD = "npcOverheadEngine";
-		public static final String DIALOG = "dialogEngine";
-		public static final String PLAYER_DIALOG = "playerDialogEngine";
-		public static final String REQUESTS = "requestsEngine";
-		public static final String SYSTEM_MESSAGES = "systemMessagesEngine";
-		public static final String LOGIN_LOGOUT = "loginLogoutEngine";
-		public static final String TWITCH_CHAT = "twitchChatEngine";
+		public static final String EXAMINE_CHAT = "examineChat";
+		public static final String NPC_OVERHEAD = "npcOverhead";
+		public static final String DIALOG = "dialog";
+		public static final String PLAYER_DIALOG = "playerDialog";
+		public static final String REQUESTS = "requests";
+		public static final String SYSTEM_MESSAGES = "systemMessages";
+		public static final String LOGIN_LOGOUT = "loginLogout";
+		public static final String TWITCH_CHAT = "twitchChat";
 		public static final String MUTE_GRAND_EXCHANGE = "muteGrandExchange";
 		public static final String MUTE_SELF = "muteSelf";
 		public static final String MUTE_OTHERS = "muteOthers";
@@ -54,10 +53,8 @@ public interface NaturalSpeechConfig extends Config {
 		public static final String SEQUENTIAL_PLAYBACK = "sequentialPlayback";
 		public static final String SEQUENTIAL_PLAYBACK_QUEUE_SIZE = "sequentialPlaybackQueueSize";
 		public static final String ELEVENLABS_API_KEY = "elevenLabsApiKey";
-		public static final String ELEVENLABS_MODEL = "elevenLabsModel";
-		public static final String ELEVENLABS_PERSONAL_VOICE = "elevenLabsPersonalVoice";
-		public static final String ELEVENLABS_CACHE = "elevenLabsCacheAudio";
-		public static final String ELEVENLABS_CACHE_SIZE = "elevenLabsCacheSizeMb";
+		public static final String ELEVENLABS_CACHE = "elevenLabsCache";
+		public static final String ELEVENLABS_CACHE_SIZE = "elevenLabsCacheSize";
 	}
 
 	//<editor-fold desc="> General Settings">
@@ -117,8 +114,8 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigItem(
 		position=5,
 		keyName=ConfigKeys.AUTO_START,
-		name="Autostart the TTS engine",
-		description="If executable and voice models available, autostart the TTS engine when the plugin loads.",
+		name="Autostart the TTS engines",
+		description="Start the text-to-speech engines when the plugin loads.",
 		section=generalSettingsSection
 	)
 	default boolean autoStart() {return true;}
@@ -235,8 +232,7 @@ public interface NaturalSpeechConfig extends Config {
 	@ConfigSection(
 		name=ConfigKeys.SPEECH_GENERATION,
 		description="Settings to choose which messages should be played",
-		position=1,
-		closedByDefault=true
+		position=1
 	)
 	String ttsOptionsSection = "ttsOptionsSection";
 
@@ -247,8 +243,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=1
 	)
-	default SpeechEngine publicChat() {
-		return SpeechEngine.PIPER;
+	default boolean publicChatEnabled() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -258,8 +254,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=2
 	)
-	default SpeechEngine privateChat() {
-		return SpeechEngine.OFF;
+	default boolean privateChatEnabled() {
+		return false;
 	}
 
 	@ConfigItem(
@@ -270,8 +266,8 @@ public interface NaturalSpeechConfig extends Config {
 		,
 		position=3
 	)
-	default SpeechEngine privateOutChat() {
-		return SpeechEngine.OFF;
+	default boolean privateOutChatEnabled() {
+		return false;
 	}
 
 	@ConfigItem(
@@ -281,8 +277,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=4
 	)
-	default SpeechEngine friendsChat() {
-		return SpeechEngine.PIPER;
+	default boolean friendsChatEnabled() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -292,8 +288,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=5
 	)
-	default SpeechEngine clanChat() {
-		return SpeechEngine.OFF;
+	default boolean clanChatEnabled() {
+		return false;
 	}
 
 	@ConfigItem(
@@ -303,8 +299,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=6
 	)
-	default SpeechEngine clanGuestChat() {
-		return SpeechEngine.OFF;
+	default boolean clanGuestChatEnabled() {
+		return false;
 	}
 
 	@ConfigItem(
@@ -314,8 +310,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=6
 	)
-	default SpeechEngine groupIronmanChat() {
-		return SpeechEngine.OFF;
+	default boolean groupIronmanChatEnabled() {
+		return false;
 	}
 
 	@ConfigItem(
@@ -325,8 +321,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=7
 	)
-	default SpeechEngine examineChat() {
-		return SpeechEngine.PIPER;
+	default boolean examineChatEnabled() {
+		return true;
 	}
 
 	//	@ConfigItem(
@@ -347,8 +343,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=9
 	)
-	default SpeechEngine npcOverhead() {
-		return SpeechEngine.OFF;
+	default boolean npcOverheadEnabled() {
+		return false;
 	}
 
 	@ConfigItem(
@@ -358,8 +354,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=10
 	)
-	default SpeechEngine npcDialog() {
-		return SpeechEngine.PIPER;
+	default boolean npcDialogEnabled() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -369,8 +365,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=11
 	)
-	default SpeechEngine playerDialog() {
-		return SpeechEngine.PIPER;
+	default boolean playerDialogEnabled() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -380,8 +376,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=12
 	)
-	default SpeechEngine requests() {
-		return SpeechEngine.OFF;
+	default boolean requestsEnabled() {
+		return false;
 	}
 
 	@ConfigItem(
@@ -391,8 +387,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=13
 	)
-	default SpeechEngine systemMessages() {
-		return SpeechEngine.PIPER;
+	default boolean systemMesagesEnabled() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -402,8 +398,8 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=14
 	)
-	default SpeechEngine loginLogout() {
-		return SpeechEngine.PIPER;
+	default boolean loginLogoutEnabled() {
+		return true;
 	}
 
 	@ConfigItem(
@@ -413,17 +409,26 @@ public interface NaturalSpeechConfig extends Config {
 		section=ttsOptionsSection,
 		position=15
 	)
-	default SpeechEngine twitchChat() {
-		return SpeechEngine.OFF;
+	default boolean twitchChatEnabled() {
+		return false;
 	}
+
+	@ConfigItem(
+		keyName=ConfigKeys.SPEECH_GENERATION_HINT,
+		name="<html><body style='width:150px'>To choose which engine speaks each message type, open the Natural Speech panel.</body></html>",
+		description="",
+		section=ttsOptionsSection,
+		position=16
+	)
+	default void speechGenerationHint() {}
+
 	//</editor-fold>
 
 	//<editor-fold desc="> Mute Options">
 	@ConfigSection(
 		name="Mute",
 		description="Change mute settings here",
-		position=2,
-		closedByDefault=true
+		position=2
 	)
 	String muteOptionsSection = "muteOptionsSection";
 
@@ -498,89 +503,13 @@ public interface NaturalSpeechConfig extends Config {
 		return 0;
 	}
 
-    //</editor-fold>
-
-    //<editor-fold desc="> ElevenLabs">
-    @ConfigSection(
-            name="ElevenLabs",
-            description="Cloud text-to-speech via the ElevenLabs API. Pick \"ElevenLabs\" for a message type "
-                    + "under Speech generation to route it here.",
-            position=3,
-            closedByDefault=true
-    )
-    String elevenLabsSection = "elevenLabsSection";
-
-    @ConfigItem(
-            position=1,
-            keyName=ConfigKeys.ELEVENLABS_API_KEY,
-            name="API key",
-            description="Your ElevenLabs API key (Settings -> API Keys on elevenlabs.io). "
-                    + "Without it, message types set to ElevenLabs stay silent.",
-            secret=true,
-            section=elevenLabsSection
-    )
-    default String elevenLabsApiKey() {
-        return "";
-    }
-
-    @ConfigItem(
-            position=2,
-            keyName=ConfigKeys.ELEVENLABS_MODEL,
-            name="Model",
-            description="Flash v2.5 is fastest and cheapest. Multilingual v2 is higher quality but about 2x the price "
-                    + "per character. v3 is the most expressive but pricier, slower, and may require special account access.",
-            section=elevenLabsSection
-    )
-    default ElevenLabsModel elevenLabsModel() {
-        return ElevenLabsModel.FLASH_V2_5;
-    }
-
-    @ConfigItem(
-            position=3,
-            keyName=ConfigKeys.ELEVENLABS_PERSONAL_VOICE,
-            name="Your voice",
-            description="ElevenLabs voice id used for your own character, example: 21m00Tcm4TlvDq8ikWAM. "
-                    + "Leave blank to be assigned one automatically.",
-            section=elevenLabsSection
-    )
-    default String elevenLabsPersonalVoice() {
-        return "";
-    }
-
-    @ConfigItem(
-            position=4,
-            keyName=ConfigKeys.ELEVENLABS_CACHE,
-            name="Cache audio",
-            description="Reuse previously generated audio for identical lines instead of calling the API again. "
-                    + "Saves usage and latency on repeated dialogue.",
-            section=elevenLabsSection
-    )
-    default boolean elevenLabsCacheAudio() {
-        return true;
-    }
-
-    @ConfigItem(
-            position=5,
-            keyName=ConfigKeys.ELEVENLABS_CACHE_SIZE,
-            name="Cache size (MB)",
-            description="Maximum disk space for cached ElevenLabs audio. "
-                    + "When exceeded, the least-recently-used clips are removed.",
-            section=elevenLabsSection
-    )
-    @Range(min=32, max=16384)
-    default int elevenLabsCacheSizeMb() {
-        return 256;
-    }
-    //</editor-fold>
-
 	//</editor-fold>
 
 	//<editor-fold desc="> Other Settings">
 	@ConfigSection(
 		name="Other",
 		description="Other settings",
-		position=4,
-		closedByDefault=true
+		position=4
 	)
 	String otherOptionsSection = "otherOptionsSection";
 
@@ -620,6 +549,51 @@ public interface NaturalSpeechConfig extends Config {
 			"nilsal=hello\n" +
 			"tetamo=oh no\n" +
 			"timoiva=goodbye\n";
+	}
+	//</editor-fold>
+
+	//<editor-fold desc="> ElevenLabs Settings">
+	@ConfigSection(
+		name="ElevenLabs",
+		description="ElevenLabs settings",
+		position=3
+	)
+	String elevenLabsSection = "elevenLabsSection";
+
+	@ConfigItem(
+		position=1,
+		keyName=ConfigKeys.ELEVENLABS_API_KEY,
+		name="API key",
+		description="Your ElevenLabs API key",
+		warning="This feature submits your IP address to a 3rd-party server not controlled or verified by RuneLite developers",
+		secret=true,
+		section=elevenLabsSection
+	)
+	default String elevenLabsApiKey() {
+		return "";
+	}
+
+	@ConfigItem(
+		position=2,
+		keyName=ConfigKeys.ELEVENLABS_CACHE,
+		name="Cache audio",
+		description="Reuse audio for repeated lines instead of generating it again",
+		section=elevenLabsSection
+	)
+	default boolean elevenLabsCacheEnabled() {
+		return true;
+	}
+
+	@ConfigItem(
+		position=3,
+		keyName=ConfigKeys.ELEVENLABS_CACHE_SIZE,
+		name="Cache size (MB)",
+		description="Maximum disk space used by cached audio",
+		section=elevenLabsSection
+	)
+	@Range(min=32, max=16384)
+	default int elevenLabsCacheSize() {
+		return 256;
 	}
 	//</editor-fold>
 }

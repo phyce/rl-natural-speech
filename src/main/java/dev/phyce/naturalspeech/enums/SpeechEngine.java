@@ -1,7 +1,6 @@
 package dev.phyce.naturalspeech.enums;
 
 public enum SpeechEngine {
-	OFF("Off"),
 	PIPER("Piper"),
 	ELEVENLABS("ElevenLabs");
 
@@ -11,12 +10,8 @@ public enum SpeechEngine {
 		this.label = label;
 	}
 
-	public boolean isOff() {
-		return this == OFF;
-	}
-
-	public static SpeechEngine gated(SpeechEngine gate, SpeechEngine engine) {
-		return gate == OFF ? OFF : engine;
+	public static SpeechEngine forModel(String modelName) {
+		return ElevenLabsModel.fromId(modelName) != null ? ELEVENLABS : PIPER;
 	}
 
 	@Override

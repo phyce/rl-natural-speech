@@ -2,104 +2,83 @@ package dev.phyce.naturalspeech.ui.panels;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import static dev.phyce.naturalspeech.configs.NaturalSpeechConfig.CONFIG_GROUP;
+import dev.phyce.naturalspeech.enums.ElevenLabsModel;
 import dev.phyce.naturalspeech.enums.Gender;
-import dev.phyce.naturalspeech.enums.SpeechEngine;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoice;
 import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
+import dev.phyce.naturalspeech.ui.components.CollapsibleSection;
 import dev.phyce.naturalspeech.ui.components.IconTextField;
 import dev.phyce.naturalspeech.ui.layouts.OnlyVisibleGridLayout;
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.MatteBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import lombok.Getter;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.ColorScheme;
-import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.ImageUtil;
-import net.runelite.client.util.SwingUtil;
 import org.apache.commons.lang3.StringUtils;
 
-public class VoiceExplorerPanel extends EditorPanel {
+public class VoiceExplorerPanel extends PluginPanel {
 
-	public static final ImageIcon SECTION_EXPAND_ICON;
-	private static final ImageIcon SECTION_RETRACT_ICON;
 	private static final ImmutableList<String> SEARCH_HINTS = ImmutableList.of("Male", "Female");
-
-	static {
-		BufferedImage sectionRetractIcon =
-			ImageUtil.loadImageResource(MainSettingsPanel.class, "section_icons/arrow_right.png");
-		sectionRetractIcon = ImageUtil.luminanceOffset(sectionRetractIcon, -121);
-		SECTION_EXPAND_ICON = new ImageIcon(sectionRetractIcon);
-		final BufferedImage sectionExpandIcon = ImageUtil.rotateImage(sectionRetractIcon, Math.PI / 2);
-		SECTION_RETRACT_ICON = new ImageIcon(sectionExpandIcon);
-	}
+	private static final String SINGLE_SECTION_KEY = "voiceExplorerSingleSection";
 
 	final ImageIcon speechTextIcon = new ImageIcon(ImageUtil.loadImageResource(getClass(), "speechText.png"));
 	private final ModelRepository modelRepository;
 	private final TextToSpeech textToSpeech;
+	private final ConfigManager configManager;
 	@Getter
 	private final IconTextField speechText;
 	@Getter
 	private final IconTextField searchBar;
+	private final JCheckBox singleSectionBox;
 	@Getter
 	private final FixedWidthPanel sectionListPanel;
 	@Getter
 	private final JScrollPane speakerScrollPane;
 	private final List<VoiceListItem> voiceListItems = new ArrayList<>();
-	private final List<VoiceSection> voiceSections = new ArrayList<>();
-	private final JCheckBox piperFilter;
-	private final JCheckBox elevenLabsFilter;
-	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
-	private final ElevenLabsVoiceRepository.Listener elevenLabsListener;
+	private final Map<CollapsibleSection, List<CollapsibleSection>> engineSections = new LinkedHashMap<>();
+	private final Map<CollapsibleSection, List<VoiceListItem>> modelSections = new LinkedHashMap<>();
+	private final Map<String, CollapsibleSection> sectionsByKey = new HashMap<>();
+	private final Map<String, Boolean> expandedStates = new HashMap<>();
 	private final ModelRepository.ModelRepositoryListener modelRepositoryListener;
-
-	private static final class VoiceSection {
-		private final SpeechEngine engine;
-		private final JPanel panel;
-
-		private VoiceSection(SpeechEngine engine, JPanel panel) {
-			this.engine = engine;
-			this.panel = panel;
-		}
-	}
+	private final ElevenLabsVoiceRepository elevenLabsVoiceRepository;
+	private final Runnable elevenLabsListener;
 
 	@Inject
-	public VoiceExplorerPanel(
-		ModelRepository modelRepository,
-		TextToSpeech textToSpeech,
-		ElevenLabsVoiceRepository elevenLabsVoiceRepository) {
+	public VoiceExplorerPanel(ModelRepository modelRepository, TextToSpeech textToSpeech,
+							  ElevenLabsVoiceRepository elevenLabsVoiceRepository, ConfigManager configManager) {
+		super(false);
 		this.modelRepository = modelRepository;
 		this.textToSpeech = textToSpeech;
 		this.elevenLabsVoiceRepository = elevenLabsVoiceRepository;
+		this.configManager = configManager;
 
 		this.setLayout(new BorderLayout());
 		this.setBackground(ColorScheme.DARKER_GRAY_COLOR);
@@ -139,29 +118,28 @@ public class VoiceExplorerPanel extends EditorPanel {
 		speechText.setToolTipText("Sentence to be spoken.");
 		speechText.setPlaceholderText("Enter a sentence");
 
-		piperFilter = buildEngineFilter("Piper", "Show the piper voices you have downloaded.");
-		elevenLabsFilter = buildEngineFilter("ElevenLabs", "Show the voices in your ElevenLabs library.");
-
-		// Two columns so the longer ElevenLabs label stays readable; it wraps onto a second row
-		JPanel engineFilterPanel = new JPanel(new GridLayout(0, 2));
-		engineFilterPanel.setOpaque(false);
-		engineFilterPanel.add(piperFilter);
-		engineFilterPanel.add(elevenLabsFilter);
+		Boolean singleSection = configManager.getConfiguration(CONFIG_GROUP, SINGLE_SECTION_KEY, Boolean.class);
+		singleSectionBox = new JCheckBox("Only one section open at a time", singleSection == null || singleSection);
+		singleSectionBox.addActionListener(e -> {
+			configManager.setConfiguration(CONFIG_GROUP, SINGLE_SECTION_KEY, singleSectionBox.isSelected());
+			if (singleSectionBox.isSelected()) collapseExtraSections();
+		});
 
 		// Float Top/North Wrapper Panel, for search and speech text bar.
 		JPanel topPanel = new JPanel();
 		topPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 		topPanel.setLayout(new GridLayout(0, 1, 0, PluginPanel.BORDER_OFFSET));
+		JLabel copyHint = new JLabel("Click a voice to copy the ID.", JLabel.CENTER);
+		copyHint.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
 		topPanel.add(searchBar);
 		topPanel.add(speechText);
-		topPanel.add(engineFilterPanel);
+		topPanel.add(singleSectionBox);
+		topPanel.add(copyHint);
 		this.add(topPanel, BorderLayout.NORTH);
 
 		// Speakers panel containing individual speaker item panels
 		sectionListPanel = new FixedWidthPanel();
 		sectionListPanel.setBorder(new EmptyBorder(8, 10, 10, 10));
-		// OnlyVisible, so a section hidden by the engine filters gives up its row instead of
-		// leaving a gap where it used to be
 		sectionListPanel.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
 		sectionListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -189,159 +167,128 @@ public class VoiceExplorerPanel extends EditorPanel {
 		};
 		this.modelRepository.addRepositoryChangedListener(modelRepositoryListener);
 
-		// Fires on the client thread when the library loads or is cleared
-		elevenLabsListener = (removed, added) -> SwingUtilities.invokeLater(() -> buildSpeakerList());
+		elevenLabsListener = () -> SwingUtilities.invokeLater(this::buildSpeakerList);
 		this.elevenLabsVoiceRepository.addListener(elevenLabsListener);
 
 		buildSpeakerList();
 	}
 
-	private JCheckBox buildEngineFilter(String label, String toolTip) {
-		JCheckBox checkBox = new JCheckBox(label, true);
-		checkBox.setToolTipText(toolTip);
-		checkBox.setOpaque(false);
-		checkBox.setForeground(Color.WHITE);
-		checkBox.addActionListener(event -> applyFilters());
-		return checkBox;
-	}
-
 	void buildSpeakerList() {
 		voiceListItems.forEach(VoiceListItem::dispose);
 		voiceListItems.clear();
-		voiceSections.clear();
+		sectionsByKey.forEach((key, section) -> expandedStates.put(key, section.isExpanded()));
+		sectionsByKey.clear();
+		engineSections.clear();
+		modelSections.clear();
 		sectionListPanel.removeAll();
 
-		if (!elevenLabsVoiceRepository.getVoices().isEmpty()) {
-			buildElevenLabsVoiceSegment();
-		}
-
+		CollapsibleSection piperSection = buildEngineSection("Piper", "Voices that run on your computer.", "piper", true);
 		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
 			try {
 				if (modelRepository.hasModelLocal(modelURL.getModelName())) {
-					buildSpeakerSegmentForVoice(modelURL.getModelName());
+					buildSpeakerSegmentForVoice(piperSection, modelURL);
 				}
 			} catch (IOException ignore) {
 			}
 		}
 
-		applyFilters();
-		sectionListPanel.revalidate();
+		List<ElevenLabsModel> elevenLabsModels = elevenLabsVoiceRepository.getEnabledModels();
+		if (elevenLabsVoiceRepository.hasApiKey() && elevenLabsVoiceRepository.hasVoices() && !elevenLabsModels.isEmpty()) {
+			CollapsibleSection elevenLabsSection = buildEngineSection("ElevenLabs",
+				"Previews use your ElevenLabs credits.", "elevenlabs", false);
+			List<ElevenLabsVoice> voices = elevenLabsVoiceRepository.getVoices().stream()
+				.sorted(Comparator.comparing(voice -> voice.getName().toLowerCase()))
+				.collect(Collectors.toList());
+
+			for (ElevenLabsModel model : elevenLabsModels) {
+				CollapsibleSection modelSection = buildModelSection(elevenLabsSection, model.toString(),
+					model.getDescription(), "elevenlabs_" + model.getId());
+				for (ElevenLabsVoice voice : voices) {
+					addVoiceListItem(modelSection, VoiceListItem.forElevenLabsVoice(this, textToSpeech, voice, model));
+				}
+			}
+		}
+
+		if (singleSectionBox.isSelected()) collapseExtraSections();
+		searchFilter(searchBar.getText());
 		sectionListPanel.repaint();
 	}
 
-	private void buildElevenLabsVoiceSegment() {
-		JPanel sectionContent = buildSpeakerSection("ElevenLabs",
-			"The voices in your ElevenLabs library. Previews here use API credit.",
-			SpeechEngine.ELEVENLABS);
-
-		elevenLabsVoiceRepository.getVoices().stream()
-			.sorted(Comparator.comparing(voice -> voice.getName().toLowerCase()))
-			.forEach(voice -> {
-				VoiceListItem speakerItem = VoiceListItem.forElevenLabsVoice(this, textToSpeech, voice);
-				voiceListItems.add(speakerItem);
-				sectionContent.add(speakerItem);
-			});
+	private void addVoiceListItem(CollapsibleSection modelSection, VoiceListItem speakerItem) {
+		voiceListItems.add(speakerItem);
+		modelSections.get(modelSection).add(speakerItem);
+		modelSection.getContent().add(speakerItem);
 	}
 
-	private void applyFilters() {
-		for (VoiceSection section : voiceSections) {
-			section.panel.setVisible(isEngineShown(section.engine));
-		}
-		searchFilter(searchBar.getText());
-	}
-
-	private boolean isEngineShown(SpeechEngine engine) {
-		switch (engine) {
-			case ELEVENLABS:
-				return elevenLabsFilter.isSelected();
-			default:
-				return piperFilter.isSelected();
-		}
-	}
-
-	private void toggleSpeakerSection(JButton toggleButton, JPanel sectionContent) {
-		boolean newState = !sectionContent.isVisible();
-		sectionContent.setVisible(newState);
-		toggleButton.setIcon(newState? SECTION_RETRACT_ICON: SECTION_EXPAND_ICON);
-		toggleButton.setToolTipText(newState? "Retract": "Expand");
-		SwingUtilities.invokeLater(sectionContent::revalidate);
-	}
-
-	private void buildSpeakerSegmentForVoice(String voice_name) {
-		JPanel sectionContent = buildSpeakerSection(voice_name, voice_name, SpeechEngine.PIPER);
+	private void buildSpeakerSegmentForVoice(CollapsibleSection piperSection, ModelRepository.ModelURL modelURL) {
+		String modelName = modelURL.getModelName();
+		CollapsibleSection modelSection =
+			buildModelSection(piperSection, modelName, modelURL.getDescription(), "piper_" + modelName);
 
 		try {
-			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(voice_name);
+			ModelRepository.ModelLocal modelLocal = modelRepository.loadModelLocal(modelName);
 
 			Arrays.stream(modelLocal.getVoiceMetadata())
 				.sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
-				.forEach((voiceMetadata) -> {
-					VoiceListItem speakerItem = VoiceListItem.forPiperVoice(this, textToSpeech, voiceMetadata);
-					voiceListItems.add(speakerItem);
-					sectionContent.add(speakerItem);
-				});
+				.forEach(voiceMetadata -> addVoiceListItem(modelSection, VoiceListItem.forPiperVoice(this, textToSpeech, voiceMetadata)));
 
 		} catch (IOException e) {throw new RuntimeException(e);}
 	}
 
-	private JPanel buildSpeakerSection(String name, String description, SpeechEngine engine) {
+	private CollapsibleSection buildEngineSection(String name, String description, String stateKey,
+												  boolean expandedByDefault) {
+		CollapsibleSection section = new CollapsibleSection(name, description, new OnlyVisibleGridLayout(0, 1, 0, 5),
+			expandedStates.getOrDefault(stateKey, expandedByDefault));
+		section.getContent().setBorder(new EmptyBorder(0, 8, 0, 0));
+		section.setOnExpanded(() -> collapseSiblings(section, engineSections.keySet()));
 
-		final JPanel section = new JPanel();
-		section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-		section.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-
-		final JPanel sectionHeader = new JPanel();
-		sectionHeader.setLayout(new BorderLayout());
-		sectionHeader.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		// For whatever reason, the header extends out by a single pixel when closed. Adding a single pixel of
-		// border on the right only affects the width when closed, fixing the issue.
-		sectionHeader.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(0, 0, 3, 1)));
-		section.add(sectionHeader);
-
-		final JButton sectionToggle = new JButton(SECTION_RETRACT_ICON);
-		sectionToggle.setPreferredSize(new Dimension(18, 0));
-		sectionToggle.setBorder(new EmptyBorder(0, 0, 0, 5));
-		sectionToggle.setToolTipText("Retract");
-		SwingUtil.removeButtonDecorations(sectionToggle);
-		sectionHeader.add(sectionToggle, BorderLayout.WEST);
-
-		final JLabel sectionName = new JLabel(name);
-		sectionName.setForeground(ColorScheme.BRAND_ORANGE);
-		sectionName.setFont(FontManager.getRunescapeBoldFont());
-		sectionName.setToolTipText("<html>" + name + ":<br>" + description + "</html>");
-		sectionHeader.add(sectionName, BorderLayout.CENTER);
-
-		final JPanel sectionContent = new JPanel();
-		sectionContent.setLayout(new OnlyVisibleGridLayout(0, 1, 0, 5));
-		sectionContent.setMinimumSize(new Dimension(PANEL_WIDTH, 0));
-		section.setBorder(new CompoundBorder(
-			new MatteBorder(0, 0, 1, 0, ColorScheme.MEDIUM_GRAY_COLOR),
-			new EmptyBorder(BORDER_OFFSET, 0, BORDER_OFFSET, 0)
-		));
-		section.add(sectionContent, BorderLayout.SOUTH);
-
-		// Add listeners to each part of the header so that it's easier to toggle them
-		final MouseAdapter adapter = new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				toggleSpeakerSection(sectionToggle, sectionContent);
-			}
-		};
-		sectionToggle.addActionListener(actionEvent -> toggleSpeakerSection(sectionToggle, sectionContent));
-		sectionName.addMouseListener(adapter);
-		sectionHeader.addMouseListener(adapter);
-
-		voiceSections.add(new VoiceSection(engine, section));
+		engineSections.put(section, new ArrayList<>());
+		sectionsByKey.put(stateKey, section);
 		sectionListPanel.add(section);
-		return sectionContent;
+		return section;
+	}
+
+	private CollapsibleSection buildModelSection(CollapsibleSection engineSection, String name, String description,
+												 String stateKey) {
+		List<CollapsibleSection> siblings = engineSections.get(engineSection);
+		CollapsibleSection section = new CollapsibleSection(name, description, new OnlyVisibleGridLayout(0, 1, 0, 5),
+			expandedStates.getOrDefault(stateKey, siblings.isEmpty()));
+		section.setOnExpanded(() -> collapseSiblings(section, siblings));
+
+		siblings.add(section);
+		modelSections.put(section, new ArrayList<>());
+		sectionsByKey.put(stateKey, section);
+		engineSection.getContent().add(section);
+		return section;
+	}
+
+	private void collapseSiblings(CollapsibleSection expanded, Iterable<CollapsibleSection> siblings) {
+		if (!singleSectionBox.isSelected()) return;
+
+		for (CollapsibleSection sibling : siblings) {
+			if (sibling != expanded && sibling.isExpanded()) sibling.setExpanded(false);
+		}
+	}
+
+	private void collapseExtraSections() {
+		collapseAllButFirst(engineSections.keySet());
+		engineSections.values().forEach(this::collapseAllButFirst);
+	}
+
+	private void collapseAllButFirst(Iterable<CollapsibleSection> sections) {
+		boolean foundExpanded = false;
+		for (CollapsibleSection section : sections) {
+			if (!section.isExpanded()) continue;
+
+			if (foundExpanded) section.setExpanded(false);
+			foundExpanded = true;
+		}
 	}
 
 	void searchFilter(String searchInput) {
 		if (searchInput.isEmpty()) {
 			for (VoiceListItem speakerItems : voiceListItems) {speakerItems.setVisible(true);}
-			sectionListPanel.revalidate();
+			updateSectionVisibility();
 			return;
 		}
 
@@ -383,6 +330,12 @@ public class VoiceExplorerPanel extends EditorPanel {
 			speakerItem.setVisible(visible);
 		}
 
+		updateSectionVisibility();
+	}
+
+	private void updateSectionVisibility() {
+		modelSections.forEach((section, items) -> section.setVisible(items.stream().anyMatch(Component::isVisible)));
+		engineSections.forEach((section, models) -> section.setVisible(models.stream().anyMatch(Component::isVisible)));
 		sectionListPanel.revalidate();
 	}
 
@@ -392,19 +345,5 @@ public class VoiceExplorerPanel extends EditorPanel {
 		voiceListItems.forEach(VoiceListItem::dispose);
 		voiceListItems.clear();
 		this.removeAll();
-	}
-
-	@Override
-	public void onActivate() {
-		super.onActivate();
-
-		SwingUtilities.invokeLater(() -> setVisible(true));
-	}
-
-	@Override
-	public void onDeactivate() {
-		super.onDeactivate();
-
-		SwingUtilities.invokeLater(() -> setVisible(false));
 	}
 }

@@ -2,21 +2,22 @@ package dev.phyce.naturalspeech.ui.game;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import dev.phyce.naturalspeech.enums.ElevenLabsModel;
 import dev.phyce.naturalspeech.enums.Gender;
 import dev.phyce.naturalspeech.enums.SpeechEngine;
-import dev.phyce.naturalspeech.exceptions.VoiceSelectionOutOfOption;
 import dev.phyce.naturalspeech.tts.ModelRepository;
 import dev.phyce.naturalspeech.tts.TextToSpeech;
 import dev.phyce.naturalspeech.tts.VoiceID;
 import dev.phyce.naturalspeech.tts.VoiceManager;
+import dev.phyce.naturalspeech.tts.VoiceSource;
 import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoice;
 import dev.phyce.naturalspeech.tts.elevenlabs.ElevenLabsVoiceRepository;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -27,24 +28,8 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.chatbox.ChatboxPanelManager;
 import net.runelite.client.game.chatbox.ChatboxTextMenuInput;
 
-/**
- * In-game voice picker for the right-click Configure option: pick an engine, then search that
- * engine's voices by name. No ids to memorise.
- * <p>
- * The engine step is a {@link ChatboxTextMenuInput}, which suits a handful of options. The voice step
- * is a {@link VoiceSearchChatbox} instead, because voice packs run to hundreds of entries and a menu
- * only binds keys 1-9.
- */
 @Slf4j
 public class VoicePickerChatbox {
-
-	private static final SpeechEngine[] ENGINES =
-		{SpeechEngine.PIPER, SpeechEngine.ELEVENLABS};
-
-	/** Reading a piper pack's metadata hits disk, and the menu asks for every engine on each open. */
-	private final Map<SpeechEngine, List<VoiceSearchChatbox.Choice>> voiceCache =
-		new EnumMap<>(SpeechEngine.class);
-
 	private final ChatboxPanelManager chatboxPanelManager;
 	private final ClientThread clientThread;
 	private final Client client;
@@ -57,6 +42,7 @@ public class VoicePickerChatbox {
 
 	private NPC npc;
 	private String standardActorName;
+	private String value = "";
 
 	@Inject
 	public VoicePickerChatbox(
@@ -90,88 +76,156 @@ public class VoicePickerChatbox {
 		return this;
 	}
 
-	/** The top level menu shown by the Configure option. */
+	public VoicePickerChatbox value(@NonNull String value) {
+		this.value = value;
+		return this;
+	}
+
 	public void build() {
-		chatboxPanelManager.openTextMenuInput("Voice for " + standardActorName)
-			.option("Enter a voice id", () -> onClientThread(this::openTextInput))
-			.option("Select engine", () -> onClientThread(this::openEngineMenu))
-			.option("Clear voice", () -> onClientThread(this::clearVoice))
+		VoiceConfigChatboxTextInput input = textInputProvider.get();
+		input.onChooseVoice(() -> clientThread.invokeLater(() -> chooseVoice(input)))
+			.onSubmit(text -> submit(input, text))
+			.prompt("Voice for " + standardActorName)
+			.value(value)
 			.build();
 	}
 
-	/** Every engine is always listed, so none of them look missing when nothing is loaded. */
-	private void openEngineMenu() {
-		ChatboxTextMenuInput menu = chatboxPanelManager.openTextMenuInput("Select engine");
-
-		for (SpeechEngine engine : ENGINES) {
-			// Say why an engine is empty instead of hiding it, which reads as the option not existing
-			String label = voicesFor(engine).isEmpty() ? engine + " (unavailable)" : engine.toString();
-
-			menu.option(label, () -> onClientThread(() -> openVoiceSearch(engine)));
+	private boolean submit(VoiceConfigChatboxTextInput input, String text) {
+		if (text.isBlank()) {
+			clientThread.invokeLater(() -> {
+				if (hasAssignedVoice()) confirmClear();
+			});
+			return true;
 		}
 
-		menu.option("Back", () -> onClientThread(this::build));
+		VoiceID voiceID = VoiceID.fromIDString(text.trim());
+		if (voiceID == null) {
+			input.error("Not a valid voice ID, example: libritts:120");
+			return false;
+		}
+
+		clientThread.invokeLater(() -> applyVoice(voiceID));
+		return true;
+	}
+
+	private boolean hasAssignedVoice() {
+		if (npc != null) return voiceManager.containsNPC(npc.getId(), standardActorName);
+		return voiceManager.containsUsername(standardActorName);
+	}
+
+	private void confirmClear() {
+		chatboxPanelManager.openTextMenuInput("Clear the voice for " + standardActorName + "?")
+			.option("Yes", () -> clientThread.invokeLater(this::clearVoice))
+			.option("No", () -> clientThread.invokeLater(this::build))
+			.build();
+	}
+
+	private void chooseVoice(VoiceConfigChatboxTextInput input) {
+		if (availableEngines().isEmpty()) {
+			input.error("No voices available, start an engine first");
+			return;
+		}
+		openEngineMenu();
+	}
+
+	private List<SpeechEngine> availableEngines() {
+		return Arrays.stream(SpeechEngine.values())
+			.filter(engine -> !activeModels(engine).isEmpty())
+			.collect(Collectors.toList());
+	}
+
+	private void openEngineMenu() {
+		List<SpeechEngine> engines = availableEngines();
+		if (engines.isEmpty()) {
+			build();
+			return;
+		}
+		if (engines.size() == 1) {
+			openModelMenu(engines.get(0), this::build);
+			return;
+		}
+
+		ChatboxTextMenuInput menu = chatboxPanelManager.openTextMenuInput("Choose an engine");
+		for (SpeechEngine engine : engines) {
+			menu.option(engine.toString(),
+				() -> clientThread.invokeLater(() -> openModelMenu(engine, this::openEngineMenu)));
+		}
+		menu.option("Back", () -> clientThread.invokeLater(this::build));
 		menu.build();
 	}
 
-	private void openVoiceSearch(SpeechEngine engine) {
-		List<VoiceSearchChatbox.Choice> voices = voicesFor(engine);
+	private void openModelMenu(SpeechEngine engine, Runnable back) {
+		List<VoiceSource> models = activeModels(engine);
+		if (models.isEmpty()) {
+			back.run();
+			return;
+		}
+		if (models.size() == 1) {
+			openVoiceSearch(models.get(0), back);
+			return;
+		}
 
+		ChatboxTextMenuInput menu = chatboxPanelManager.openTextMenuInput("Choose a " + engine + " model");
+		for (VoiceSource model : models) {
+			menu.option(model.getModelLabel(),
+				() -> clientThread.invokeLater(() -> openVoiceSearch(model, () -> openModelMenu(engine, back))));
+		}
+		menu.option("Back", () -> clientThread.invokeLater(back));
+		menu.build();
+	}
+
+	private List<VoiceSource> activeModels(SpeechEngine engine) {
+		List<VoiceSource> models = new ArrayList<>();
+		if (engine == SpeechEngine.ELEVENLABS) {
+			if (elevenLabsVoiceRepository.getVoices().isEmpty()) return models;
+
+			for (ElevenLabsModel model : elevenLabsVoiceRepository.getEnabledModels()) {
+				models.add(VoiceSource.ofModel(model.getId()));
+			}
+		}
+		else {
+			for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
+				models.add(VoiceSource.ofModel(modelURL.getModelName()));
+			}
+		}
+		models.removeIf(model -> !textToSpeech.isModelActive(model.getModelName()));
+		return models;
+	}
+
+	private void openVoiceSearch(VoiceSource model, Runnable back) {
+		List<VoiceSearchChatbox.Choice> voices = voicesFor(model.getModelName());
 		if (voices.isEmpty()) {
-			feedback(unavailableReason(engine));
-			openEngineMenu();
+			feedback(model + " has no voices available");
+			back.run();
 			return;
 		}
 
 		voiceSearchProvider.get()
 			.voices(voices)
-			.title(engine + " voice for " + standardActorName)
-			.onSelected(voiceID -> onClientThread(() -> applyVoice(voiceID)))
-			// Closing without picking steps back to the engine list rather than dumping the player out
-			.onBack(() -> onClientThread(this::openEngineMenu))
+			.title(model.getModelLabel() + " voice for " + standardActorName)
+			.onSelected(voiceID -> clientThread.invokeLater(() -> applyVoice(voiceID)))
+			.onBack(() -> clientThread.invokeLater(back))
 			.build();
 	}
 
-	private static String unavailableReason(SpeechEngine engine) {
-		switch (engine) {
-			case ELEVENLABS:
-				return "No ElevenLabs voices loaded. Set an API key, then press Check key in the panel.";
-			default:
-				return "No piper voice packs are running. Download one and press Start in the panel.";
-		}
-	}
-
-	private List<VoiceSearchChatbox.Choice> voicesFor(SpeechEngine engine) {
-		return voiceCache.computeIfAbsent(engine, this::loadVoicesFor);
-	}
-
-	private List<VoiceSearchChatbox.Choice> loadVoicesFor(SpeechEngine engine) {
+	private List<VoiceSearchChatbox.Choice> voicesFor(String modelName) {
 		List<VoiceSearchChatbox.Choice> choices = new ArrayList<>();
 
-		switch (engine) {
-			case ELEVENLABS:
-				for (ElevenLabsVoice voice : elevenLabsVoiceRepository.getVoices()) {
-					choices.add(VoiceSearchChatbox.Choice.of(
-						label(voice.getName(), voice.getGender()), voice.toVoiceID()));
+		ElevenLabsModel elevenLabsModel = ElevenLabsModel.fromId(modelName);
+		if (elevenLabsModel != null) {
+			for (ElevenLabsVoice voice : elevenLabsVoiceRepository.getVoices()) {
+				choices.add(VoiceSearchChatbox.Choice.of(label(voice.getName(), voice.getGender()),
+					voice.toVoiceID(elevenLabsModel)));
+			}
+		}
+		else {
+			try {
+				for (ModelRepository.VoiceMetadata voice : modelRepository.loadModelLocal(modelName).getVoiceMetadata()) {
+					choices.add(VoiceSearchChatbox.Choice.of(label(voice.getName(), voice.getGender()), voice.toVoiceID()));
 				}
-				break;
-
-			default:
-				// Every running voice pack at once, with the pack in the label so typing "libritts"
-				// narrows to it. A separate model step would just be one more thing to click through.
-				for (String model : activePiperModels()) {
-					try {
-						ModelRepository.ModelLocal local = modelRepository.loadModelLocal(model);
-						for (ModelRepository.VoiceMetadata voice : local.getVoiceMetadata()) {
-							choices.add(VoiceSearchChatbox.Choice.of(
-								model + " " + label(voice.getName(), voice.getGender()), voice.toVoiceID()));
-						}
-					}
-					catch (IOException e) {
-						log.error("Could not read the voices for {}", model, e);
-					}
-				}
-				break;
+			} catch (IOException e) {
+				log.error("Failed to load the voices for {}", modelName, e);
+			}
 		}
 
 		choices.sort(Comparator.comparing(choice -> choice.getLabel().toLowerCase()));
@@ -184,59 +238,17 @@ public class VoicePickerChatbox {
 		return name;
 	}
 
-	private List<String> activePiperModels() {
-		List<String> models = new ArrayList<>();
-
-		for (ModelRepository.ModelURL modelURL : modelRepository.getModelURLS()) {
-			if (textToSpeech.isModelActive(modelURL.getModelName())) {
-				models.add(modelURL.getModelName());
-			}
-		}
-
-		return models;
-	}
-
 	private void applyVoice(VoiceID voiceID) {
 		voiceManager.applyConfiguredVoice(npc, standardActorName, voiceID);
-		feedback(standardActorName + " set to " + voiceID + ", added to Custom Characters.");
+		feedback(standardActorName + " set to " + voiceID);
 	}
 
 	private void clearVoice() {
 		voiceManager.clearConfiguredVoice(npc, standardActorName);
-		feedback("Cleared the voice for " + standardActorName + ".");
-	}
-
-	private void openTextInput() {
-		textInputProvider.get()
-			.configNPC(npc)
-			.configUsername(standardActorName)
-			.value(currentVoiceIDString())
-			.build();
-	}
-
-	private String currentVoiceIDString() {
-		try {
-			VoiceID voiceID = npc != null
-				? voiceManager.getVoiceIDFromNPCId(npc.getId(), npc.getName())
-				: voiceManager.getVoiceIDFromUsername(standardActorName);
-			return voiceID.toVoiceIDString();
-		}
-		catch (VoiceSelectionOutOfOption | RuntimeException e) {
-			return "";
-		}
-	}
-
-	/**
-	 * Menu callbacks arrive on the client thread when clicked but on the AWT thread when picked with a
-	 * number key, and applying a voice reads NPC state that asserts the client thread. Hop always.
-	 */
-	private void onClientThread(Runnable runnable) {
-		clientThread.invokeLater(runnable);
+		feedback("Cleared the voice for " + standardActorName);
 	}
 
 	private void feedback(String message) {
-		// CONSOLE rather than GAMEMESSAGE: the plugin mutes console messages for text-to-speech,
-		// so this shows up without being read aloud
 		client.addChatMessage(ChatMessageType.CONSOLE, "", "Natural Speech: " + message, null);
 	}
 }

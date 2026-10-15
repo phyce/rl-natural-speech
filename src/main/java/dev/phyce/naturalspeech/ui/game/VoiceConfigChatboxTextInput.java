@@ -1,18 +1,9 @@
 package dev.phyce.naturalspeech.ui.game;
 
-import com.google.gson.Gson;
 import com.google.inject.Inject;
-import dev.phyce.naturalspeech.tts.TextToSpeech;
-import dev.phyce.naturalspeech.tts.VoiceID;
-import dev.phyce.naturalspeech.tts.VoiceManager;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
-import javax.annotation.Nullable;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.NPC;
+import java.util.function.Predicate;
+import javax.annotation.CheckForNull;
+import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.api.widgets.WidgetSizeMode;
@@ -21,82 +12,36 @@ import net.runelite.api.widgets.WidgetType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.chatbox.ChatboxPanelManager;
 import net.runelite.client.game.chatbox.ChatboxTextInput;
-import okhttp3.OkHttpClient;
 
-@Slf4j
 public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 	private static final int LINE_HEIGHT = 20;
-	private static final int CHATBOX_HEIGHT = 120;
+	private static final String HINT = "Pressing 'Enter' saves the voice ID. Leave it empty to clear it.";
 	private final ChatboxPanelManager chatboxPanelManager;
-	private NPC npc;
-	@SuppressWarnings("FieldCanBeLocal")
-	private final VoiceManager voiceManager;
-	private final Client client;
-	private final ClientThread clientThread;
-	private String standardActorName;
+	private Runnable onChooseVoice = () -> {};
+	@CheckForNull
+	private String error;
 
 	@Inject
-	public VoiceConfigChatboxTextInput(
-		ChatboxPanelManager chatboxPanelManager,
-		ClientThread clientThread,
-		ScheduledExecutorService scheduledExecutorService,
-		OkHttpClient okHttpClient, Gson gson, TextToSpeech textToSpeech, VoiceManager voiceManager,
-		Client client) {
+	public VoiceConfigChatboxTextInput(ChatboxPanelManager chatboxPanelManager, ClientThread clientThread) {
 		super(chatboxPanelManager, clientThread);
 		this.chatboxPanelManager = chatboxPanelManager;
-		this.voiceManager = voiceManager;
-		this.client = client;
-		this.clientThread = clientThread;
 		lines(1);
-		prompt("Enter voice in voice:id format. Example: libritts:120");
-
-		// onDone fires on the AWT thread, but applying a voice reads NPC composition and name, which
-		// assert they are on the client thread. Hopping is not optional: the assertion aborts the
-		// handler part-way, leaving the voice written but everything after it skipped.
-		// Cast because onDone is overloaded for Consumer and Predicate, and an implicitly typed
-		// lambda leaves the compiler unable to pick between them
-		onDone((Consumer<String>) string -> clientThread.invokeLater(() -> apply(string)));
+		onChanged(text -> error = null);
 	}
 
-	private void apply(String string) {
-		if (string == null) return;
-
-		{
-			if (!string.isEmpty()) {
-				VoiceID voiceId = VoiceID.fromIDString(string);
-				if (voiceId != null) {
-					log.info("{} set to {}", standardActorName, voiceId);
-					voiceManager.applyConfiguredVoice(npc, standardActorName, voiceId);
-
-					feedback(standardActorName + " set to " + voiceId + ", added to Custom Characters.");
-				} else {
-					log.info("Attempting to set invalid voiceID with {}", string);
-					// Used to fail silently, which is indistinguishable from the plugin ignoring you
-					feedback("'" + string + "' is not a valid voice id. Use model:id, for example "
-						+ "libritts:120 or elevenlabs:21m00Tcm4TlvDq8ikWAM.");
-				}
-			} else {
-				voiceManager.clearConfiguredVoice(npc, standardActorName);
-			}
-		}
-	}
-
-	/**
-	 * Reports back in the chatbox. Uses CONSOLE rather than GAMEMESSAGE because the plugin mutes
-	 * console messages for text-to-speech, so this shows up without being read aloud.
-	 */
-	private void feedback(String message) {
-		client.addChatMessage(ChatMessageType.CONSOLE, "", "Natural Speech: " + message, null);
-	}
-
-	public VoiceConfigChatboxTextInput configNPC(@Nullable NPC actor) {
-		this.npc = actor;
+	public VoiceConfigChatboxTextInput onChooseVoice(Runnable onChooseVoice) {
+		this.onChooseVoice = onChooseVoice;
 		return this;
 	}
 
-	public VoiceConfigChatboxTextInput configUsername(@NonNull String standardActorName) {
-		this.standardActorName = standardActorName;
+	public VoiceConfigChatboxTextInput onSubmit(Predicate<String> onSubmit) {
+		onDone(onSubmit);
 		return this;
+	}
+
+	public void error(String error) {
+		this.error = error;
+		clientThread.invoke(this::update);
 	}
 
 	@Override
@@ -104,19 +49,7 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		Widget container = chatboxPanelManager.getContainerWidget();
 		container.deleteAllChildren();
 
-		Widget promptWidget = container.createChild(-1, WidgetType.TEXT);
-		promptWidget.setText(getPrompt());
-		promptWidget.setTextColor(0x800000);
-		promptWidget.setFontId(getFontID());
-		promptWidget.setXPositionMode(WidgetPositionMode.ABSOLUTE_CENTER);
-		promptWidget.setOriginalX(0);
-		promptWidget.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
-		promptWidget.setOriginalY(5);
-		promptWidget.setOriginalHeight(LINE_HEIGHT);
-		promptWidget.setXTextAlignment(WidgetTextAlignment.CENTER);
-		promptWidget.setYTextAlignment(WidgetTextAlignment.CENTER);
-		promptWidget.setWidthMode(WidgetSizeMode.MINUS);
-		promptWidget.revalidate();
+		text(container, getPrompt(), 0x800000, 5);
 
 		buildEdit(0, 5 + LINE_HEIGHT, container.getWidth(), LINE_HEIGHT);
 
@@ -129,5 +62,36 @@ public class VoiceConfigChatboxTextInput extends ChatboxTextInput {
 		separator.setOriginalWidth(16);
 		separator.setWidthMode(WidgetSizeMode.MINUS);
 		separator.revalidate();
+
+		Widget chooseVoice = text(container, "Choose a voice", 0, 8 + (LINE_HEIGHT * 2));
+		chooseVoice.setAction(0, "Choose");
+		chooseVoice.setHasListener(true);
+		chooseVoice.setOnOpListener((JavaScriptCallback) event -> onChooseVoice.run());
+		chooseVoice.setOnMouseOverListener((JavaScriptCallback) event -> chooseVoice.setTextColor(0xFFFFFF));
+		chooseVoice.setOnMouseLeaveListener((JavaScriptCallback) event -> chooseVoice.setTextColor(0));
+
+		if (error != null) {
+			text(container, error, 0x800000, 8 + (LINE_HEIGHT * 3));
+		}
+		else {
+			text(container, HINT, 0x666666, 8 + (LINE_HEIGHT * 3));
+		}
+	}
+
+	private Widget text(Widget container, String text, int color, int y) {
+		Widget widget = container.createChild(-1, WidgetType.TEXT);
+		widget.setText(text);
+		widget.setTextColor(color);
+		widget.setFontId(getFontID());
+		widget.setXPositionMode(WidgetPositionMode.ABSOLUTE_CENTER);
+		widget.setOriginalX(0);
+		widget.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
+		widget.setOriginalY(y);
+		widget.setOriginalHeight(LINE_HEIGHT);
+		widget.setXTextAlignment(WidgetTextAlignment.CENTER);
+		widget.setYTextAlignment(WidgetTextAlignment.CENTER);
+		widget.setWidthMode(WidgetSizeMode.MINUS);
+		widget.revalidate();
+		return widget;
 	}
 }
